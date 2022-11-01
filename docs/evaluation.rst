@@ -174,7 +174,6 @@ Standalone Metrics
     Forgetting
     ForwardTransfer
     LabelsRepartition
-    Loss
     MAC
     MaxGPU
     MaxRAM

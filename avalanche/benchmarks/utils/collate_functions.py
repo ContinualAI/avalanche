@@ -18,16 +18,17 @@ import torch
 def classification_collate_mbatches_fn(mbatches):
     """Combines multiple mini-batches together.
 
-        Concatenates each tensor in the mini-batches along dimension 0 (usually
-        this is the batch size).
+    Concatenates each tensor in the mini-batches along dimension 0 (usually
+    this is the batch size).
 
-        :param mbatches: sequence of mini-batches.
-        :return: a single mini-batch
-        """
+    :param mbatches: sequence of mini-batches.
+    :return: a single mini-batch
+    """
     batch = []
     for i in range(len(mbatches[0])):
         t = classification_single_values_collate_fn(
-            [el[i] for el in mbatches], i)
+            [el[i] for el in mbatches], i
+        )
         batch.append(t)
     return batch
 
@@ -75,16 +76,16 @@ def detection_collate_mbatches_fn(mbatches):
 
     lists = []
     for mb_elem_idx in range(max(lists_dict.keys()) + 1):
-        lists.append(list(itertools.chain.from_iterable(
-            lists_dict[mb_elem_idx]
-        )))
+        lists.append(
+            list(itertools.chain.from_iterable(lists_dict[mb_elem_idx]))
+        )
 
     return lists
 
 
 __all__ = [
-    'classification_collate_mbatches_fn',
-    'classification_single_values_collate_fn',
-    'detection_collate_fn',
-    'detection_collate_mbatches_fn'
+    "classification_collate_mbatches_fn",
+    "classification_single_values_collate_fn",
+    "detection_collate_fn",
+    "detection_collate_mbatches_fn",
 ]

@@ -21,13 +21,16 @@ import torch
 from torch.utils.data import RandomSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
-from avalanche.benchmarks.utils import AvalancheDataset
-from avalanche.benchmarks.utils.collate_functions import \
-    classification_collate_mbatches_fn
-from avalanche.benchmarks.utils.collate_functions import detection_collate_fn \
-    as _detection_collate_fn
-from avalanche.benchmarks.utils.collate_functions import \
-    detection_collate_mbatches_fn as _detection_collate_mbatches_fn
+from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils.collate_functions import (
+    classification_collate_mbatches_fn,
+)
+from avalanche.benchmarks.utils.collate_functions import (
+    detection_collate_fn as _detection_collate_fn,
+)
+from avalanche.benchmarks.utils.collate_functions import (
+    detection_collate_mbatches_fn as _detection_collate_mbatches_fn,
+)
 
 _default_collate_mbatches_fn = classification_collate_mbatches_fn
 
@@ -48,7 +51,7 @@ class TaskBalancedDataLoader:
 
     def __init__(
         self,
-        data: AvalancheDataset,
+        data: make_classification_dataset,
         oversample_small_tasks: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         **kwargs
@@ -107,7 +110,7 @@ class GroupBalancedDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[AvalancheDataset],
+        datasets: Sequence[make_classification_dataset],
         oversample_small_groups: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,
@@ -162,8 +165,10 @@ class GroupBalancedDataLoader:
                 distributed_sampling,
                 kwargs,
                 mb_size,
-                force_no_workers=True)[0]
-            for dataset, mb_size in zip(self.datasets, self.batch_sizes)]
+                force_no_workers=True,
+            )[0]
+            for dataset, mb_size in zip(self.datasets, self.batch_sizes)
+        ]
 
         self.max_len = max([len(d) for d in loaders_for_len_estimation])
 
@@ -172,10 +177,8 @@ class GroupBalancedDataLoader:
         samplers = []
         for dataset, mb_size in zip(self.datasets, self.batch_sizes):
             data_l, data_l_sampler = _make_data_loader(
-                dataset,
-                self.distributed_sampling,
-                self.loader_kwargs,
-                mb_size)
+                dataset, self.distributed_sampling, self.loader_kwargs, mb_size
+            )
 
             dataloaders.append(data_l)
             samplers.append(data_l_sampler)
@@ -190,8 +193,9 @@ class GroupBalancedDataLoader:
             removed_dataloaders_idxs = []
             # copy() is necessary because we may remove keys from the
             # dictionary. This would break the generator.
-            for tid, (t_loader, t_loader_sampler) in \
-                    enumerate(zip(iter_dataloaders, samplers)):
+            for tid, (t_loader, t_loader_sampler) in enumerate(
+                zip(iter_dataloaders, samplers)
+            ):
                 try:
                     batch = next(t_loader)
                 except StopIteration:
@@ -200,7 +204,9 @@ class GroupBalancedDataLoader:
                         # reinitialize data loader
                         if isinstance(t_loader_sampler, DistributedSampler):
                             # Manage shuffling in DistributedSampler
-                            t_loader_sampler.set_epoch(t_loader_sampler.epoch+1)
+                            t_loader_sampler.set_epoch(
+                                t_loader_sampler.epoch + 1
+                            )
 
                         iter_dataloaders[tid] = iter(dataloaders[tid])
                         batch = next(iter_dataloaders[tid])
@@ -229,7 +235,7 @@ class GroupBalancedInfiniteDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[AvalancheDataset],
+        datasets: Sequence[make_classification_dataset],
         collate_mbatches=_default_collate_mbatches_fn,
         distributed_sampling: bool = True,
         **kwargs
@@ -258,15 +264,18 @@ class GroupBalancedInfiniteDataLoader:
                     0,
                     2 ** 32 - 1 - _DistributedHelper.world_size,
                     (1,),
-                    dtype=torch.int64)
+                    dtype=torch.int64,
+                )
                 seed += _DistributedHelper.rank
                 generator = torch.Generator()
                 generator.manual_seed(int(seed))
             else:
                 generator = None  # Default
             infinite_sampler = RandomSampler(
-                data, replacement=True, num_samples=10 ** 10,
-                generator=generator
+                data,
+                replacement=True,
+                num_samples=10 ** 10,
+                generator=generator,
             )
             collate_from_data_or_kwargs(data, kwargs)
             dl = DataLoader(data, sampler=infinite_sampler, **kwargs)
@@ -294,8 +303,8 @@ class ReplayDataLoader:
 
     def __init__(
         self,
-        data: AvalancheDataset,
-        memory: AvalancheDataset = None,
+        data: make_classification_dataset,
+        memory: make_classification_dataset = None,
         oversample_small_tasks: bool = False,
         collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,
@@ -304,7 +313,7 @@ class ReplayDataLoader:
         distributed_sampling: bool = True,
         **kwargs
     ):
-        """ Custom data loader for rehearsal strategies.
+        """Custom data loader for rehearsal strategies.
 
         This dataloader iterates in parallel two datasets, the current `data`
         and the rehearsal `memory`, which are used to create mini-batches by
@@ -353,7 +362,8 @@ class ReplayDataLoader:
             )
 
         self.data_batch_sizes, _ = self._get_batch_sizes(
-            data, batch_size, 0, False)
+            data, batch_size, 0, False
+        )
 
         # Create dataloader for memory items
         if task_balanced_dataloader:
@@ -364,50 +374,75 @@ class ReplayDataLoader:
             remaining_example = 0
 
         self.memory_batch_sizes, _ = self._get_batch_sizes(
-            memory, single_group_batch_size, remaining_example,
-            task_balanced_dataloader)
+            memory,
+            single_group_batch_size,
+            remaining_example,
+            task_balanced_dataloader,
+        )
 
         loaders_for_len_estimation = []
 
         if isinstance(self.data_batch_sizes, int):
-            loaders_for_len_estimation.append(_make_data_loader(
-                data, distributed_sampling, kwargs, self.data_batch_sizes,
-                force_no_workers=True
-            )[0])
+            loaders_for_len_estimation.append(
+                _make_data_loader(
+                    data,
+                    distributed_sampling,
+                    kwargs,
+                    self.data_batch_sizes,
+                    force_no_workers=True,
+                )[0]
+            )
         else:
             # Task balanced
             for task_id in data.task_set:
                 dataset = data.task_set[task_id]
                 mb_sz = self.data_batch_sizes[task_id]
 
-                loaders_for_len_estimation.append(_make_data_loader(
-                    dataset, distributed_sampling, kwargs, mb_sz,
-                    force_no_workers=True
-                )[0])
+                loaders_for_len_estimation.append(
+                    _make_data_loader(
+                        dataset,
+                        distributed_sampling,
+                        kwargs,
+                        mb_sz,
+                        force_no_workers=True,
+                    )[0]
+                )
 
         if isinstance(self.memory_batch_sizes, int):
-            loaders_for_len_estimation.append(_make_data_loader(
-                memory, distributed_sampling, kwargs, self.memory_batch_sizes,
-                force_no_workers=True
-            )[0])
+            loaders_for_len_estimation.append(
+                _make_data_loader(
+                    memory,
+                    distributed_sampling,
+                    kwargs,
+                    self.memory_batch_sizes,
+                    force_no_workers=True,
+                )[0]
+            )
         else:
             for task_id in memory.task_set:
                 dataset = memory.task_set[task_id]
                 mb_sz = self.memory_batch_sizes[task_id]
 
-                loaders_for_len_estimation.append(_make_data_loader(
-                    dataset, distributed_sampling, kwargs, mb_sz,
-                    force_no_workers=True
-                )[0])
+                loaders_for_len_estimation.append(
+                    _make_data_loader(
+                        dataset,
+                        distributed_sampling,
+                        kwargs,
+                        mb_sz,
+                        force_no_workers=True,
+                    )[0]
+                )
 
         self.max_len = max([len(d) for d in loaders_for_len_estimation])
 
     def __iter__(self):
         loader_data, sampler_data = self._create_loaders_and_samplers(
-            self.data, self.data_batch_sizes)
+            self.data, self.data_batch_sizes
+        )
 
         loader_memory, sampler_memory = self._create_loaders_and_samplers(
-            self.memory, self.memory_batch_sizes)
+            self.memory, self.memory_batch_sizes
+        )
 
         iter_data_dataloaders = {}
         iter_buffer_dataloaders = {}
@@ -491,7 +526,9 @@ class ReplayDataLoader:
 
         if isinstance(batch_sizes, int):
             loader, sampler = _make_data_loader(
-                data, self.distributed_sampling, self.loader_kwargs,
+                data,
+                self.distributed_sampling,
+                self.loader_kwargs,
                 batch_sizes,
             )
             loaders[0] = loader
@@ -502,16 +539,23 @@ class ReplayDataLoader:
                 mb_sz = batch_sizes[task_id]
 
                 loader, sampler = _make_data_loader(
-                    dataset, self.distributed_sampling,
-                    self.loader_kwargs, mb_sz)
+                    dataset,
+                    self.distributed_sampling,
+                    self.loader_kwargs,
+                    mb_sz,
+                )
 
                 loaders[task_id] = loader
                 samplers[task_id] = sampler
         return loaders, samplers
 
     @staticmethod
-    def _get_batch_sizes(data_dict, single_exp_batch_size, remaining_example,
-                         task_balanced_dataloader):
+    def _get_batch_sizes(
+        data_dict,
+        single_exp_batch_size,
+        remaining_example,
+        task_balanced_dataloader,
+    ):
         batch_sizes = dict()
         if task_balanced_dataloader:
             for task_id in data_dict.task_set:
@@ -527,28 +571,35 @@ class ReplayDataLoader:
 
 
 def _make_data_loader(
-        dataset, distributed_sampling, data_loader_args,
-        batch_size, force_no_workers=False):
+    dataset,
+    distributed_sampling,
+    data_loader_args,
+    batch_size,
+    force_no_workers=False,
+):
     data_loader_args = data_loader_args.copy()
 
     collate_from_data_or_kwargs(dataset, data_loader_args)
 
     if force_no_workers:
         data_loader_args['num_workers'] = 0
+        if 'persistent_workers' in data_loader_args:
+            data_loader_args['persistent_workers'] = False
 
     if _DistributedHelper.is_distributed and distributed_sampling:
         sampler = DistributedSampler(
             dataset,
-            shuffle=data_loader_args.pop('shuffle', False),
-            drop_last=data_loader_args.pop('drop_last', False)
+            shuffle=data_loader_args.pop("shuffle", False),
+            drop_last=data_loader_args.pop("drop_last", False),
         )
         data_loader = DataLoader(
-            dataset, sampler=sampler, batch_size=batch_size,
-            **data_loader_args)
+            dataset, sampler=sampler, batch_size=batch_size, **data_loader_args
+        )
     else:
         sampler = None
         data_loader = DataLoader(
-            dataset, batch_size=batch_size, **data_loader_args)
+            dataset, batch_size=batch_size, **data_loader_args
+        )
 
     return data_loader, sampler
 

@@ -20,14 +20,14 @@ from typing import Sequence, Union, SupportsInt, Any, Tuple
 from torch import Tensor
 
 from avalanche.benchmarks.utils import (
-    AvalancheTensorDataset,
+    make_tensor_classification_dataset,
     SupportedDataset,
     datasets_from_paths,
-    AvalancheDataset,
+    make_classification_dataset,
 )
 from avalanche.benchmarks.utils import datasets_from_filelists
 from .classification_scenario import GenericCLScenario
-from avalanche.benchmarks.utils.dataset_utils import ConstantSequence
+from ..utils.flat_data import ConstantSequence
 
 
 def create_multi_dataset_generic_scenario(
@@ -38,7 +38,7 @@ def create_multi_dataset_generic_scenario(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None
+    eval_target_transform=None,
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -120,13 +120,13 @@ def create_multi_dataset_generic_scenario(
     for dataset_idx in range(len(train_dataset_list)):
         dataset = train_dataset_list[dataset_idx]
         train_t_labels.append(task_labels[dataset_idx])
-        train_dataset_list[dataset_idx] = AvalancheDataset(
+        train_dataset_list[dataset_idx] = make_classification_dataset(
             dataset,
             task_labels=ConstantSequence(
                 task_labels[dataset_idx], len(dataset)
             ),
             transform_groups=transform_groups,
-            initial_transform_group="train"
+            initial_transform_group="train",
         )
 
     test_t_labels = []
@@ -140,11 +140,11 @@ def create_multi_dataset_generic_scenario(
 
         test_t_labels.append(test_t_label)
 
-        test_dataset_list[dataset_idx] = AvalancheDataset(
+        test_dataset_list[dataset_idx] = make_classification_dataset(
             dataset,
             task_labels=ConstantSequence(test_t_label, len(dataset)),
             transform_groups=transform_groups,
-            initial_transform_group="eval"
+            initial_transform_group="eval",
         )
 
     return GenericCLScenario(
@@ -242,7 +242,7 @@ def create_generic_scenario_from_filelists(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only
+        complete_test_set_only=complete_test_set_only,
     )
 
 
@@ -259,7 +259,7 @@ def create_generic_scenario_from_paths(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None
+    eval_target_transform=None,
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -346,7 +346,7 @@ def create_generic_scenario_from_paths(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only
+        complete_test_set_only=complete_test_set_only,
     )
 
 
@@ -429,12 +429,12 @@ def create_generic_scenario_from_tensor_lists(
     )
 
     train_datasets = [
-        AvalancheTensorDataset(*exp_tensors)
+        make_tensor_classification_dataset(*exp_tensors)
         for exp_tensors in train_tensors
     ]
 
     test_datasets = [
-        AvalancheTensorDataset(*exp_tensors)
+        make_tensor_classification_dataset(*exp_tensors)
         for exp_tensors in test_tensors
     ]
 
@@ -446,7 +446,7 @@ def create_generic_scenario_from_tensor_lists(
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
-        complete_test_set_only=complete_test_set_only
+        complete_test_set_only=complete_test_set_only,
     )
 
 
@@ -460,7 +460,7 @@ def create_generic_scenario_from_tensors(
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
-    eval_target_transform=None
+    eval_target_transform=None,
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
@@ -574,7 +574,7 @@ def create_generic_scenario_from_tensors(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform
+        eval_target_transform=eval_target_transform,
     )
 
 

@@ -12,7 +12,10 @@ from avalanche.benchmarks.scenarios.new_classes import NCExperience
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
     make_nc_transformation_subset,
 )
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
+from avalanche.benchmarks.utils import (
+    classification_subset,
+    make_classification_dataset,
+)
 from tests.unit_tests_utils import DummyImageDataset
 
 
@@ -317,7 +320,9 @@ class SITTests(unittest.TestCase):
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(3, 10)
         )
-        train_part2 = AvalancheSubset(train_part2, class_mapping=split_mapping)
+        train_part2 = classification_subset(
+            train_part2, class_mapping=split_mapping
+        )
 
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(3)
@@ -325,7 +330,9 @@ class SITTests(unittest.TestCase):
         test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(3, 10)
         )
-        test_part2 = AvalancheSubset(test_part2, class_mapping=split_mapping)
+        test_part2 = classification_subset(
+            test_part2, class_mapping=split_mapping
+        )
         my_nc_benchmark = nc_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
@@ -380,7 +387,9 @@ class SITTests(unittest.TestCase):
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(5, 10)
         )
-        train_part2 = AvalancheSubset(train_part2, class_mapping=split_mapping)
+        train_part2 = classification_subset(
+            train_part2, class_mapping=split_mapping
+        )
 
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(5)
@@ -388,7 +397,9 @@ class SITTests(unittest.TestCase):
         test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(5, 10)
         )
-        test_part2 = AvalancheSubset(test_part2, class_mapping=split_mapping)
+        test_part2 = classification_subset(
+            test_part2, class_mapping=split_mapping
+        )
         my_nc_benchmark = nc_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
@@ -472,7 +483,7 @@ class SITTests(unittest.TestCase):
             train=True,
             download=True,
         )
-        ds = AvalancheDataset(ds, transform=ToTensor())
+        ds = make_classification_dataset(ds, transform=ToTensor())
 
         benchmark = nc_benchmark(
             ds, ds, n_experiences=10, shuffle=True, seed=1234, task_labels=False

@@ -8,8 +8,8 @@
 # E-mail: jiashi@andrew.cmu.edu, zl279@cornell.edu                             #
 # Website: https://clear-benchmark.github.io                                   #
 ################################################################################
-'''Example: Training and evaluating on CLEAR benchmark (RGB images)
-'''
+"""Example: Training and evaluating on CLEAR benchmark (RGB images)
+"""
 import os
 import sys
 import json
@@ -54,7 +54,7 @@ MODEL_ROOT.mkdir(parents=True, exist_ok=True)
 # Define hyperparameters/scheduler/augmentation
 HPARAM = {
     "batch_size": 256,
-    'num_epoch' : 100,
+    "num_epoch": 100,
     "step_scheduler_decay": 30,
     "scheduler_step": 0.1,
     "start_lr": 0.01,
@@ -122,7 +122,7 @@ if EVALUATION_PROTOCOL == "streaming":
     seed = None
 else:
     seed = 0
-    
+
 scenario = CLEAR(
     data_name=DATASET_NAME,
     evaluation_protocol=EVALUATION_PROTOCOL,
@@ -170,8 +170,7 @@ for index, experience in enumerate(scenario.train_stream):
     print("Current Classes: ", experience.classes_in_this_experience)
     res = cl_strategy.train(experience)
     torch.save(
-        model.state_dict(),
-        str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
+        model.state_dict(), str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
     )
     print("Training completed")
     print(
@@ -185,17 +184,15 @@ accuracy_matrix = np.zeros((num_timestamp, num_timestamp))
 for train_idx in range(num_timestamp):
     for test_idx in range(num_timestamp):
         accuracy_matrix[train_idx][test_idx] = results[train_idx][
-            f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}"]
-print('Accuracy_matrix : ')
+            f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}"
+        ]
+print("Accuracy_matrix : ")
 print(accuracy_matrix)
 metric = CLEARMetric().get_metrics(accuracy_matrix)
 print(metric)
 
 metric_log = open(ROOT / "metric_log.txt", "w+")
-metric_log.write(
-    f"Protocol: {EVALUATION_PROTOCOL} "
-    f"Seed: {seed} "
-)
+metric_log.write(f"Protocol: {EVALUATION_PROTOCOL} " f"Seed: {seed} ")
 json.dump(accuracy_matrix.tolist(), metric_log, indent=6)
 json.dump(metric, metric_log, indent=6)
 metric_log.close()

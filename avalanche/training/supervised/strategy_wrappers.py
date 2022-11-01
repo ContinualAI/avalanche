@@ -35,7 +35,7 @@ from avalanche.training.plugins import (
     MASPlugin,
 )
 from avalanche.training.templates.base import BaseTemplate
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.models.generator import MlpVAE, VAE_loss
 from avalanche.models.expert_gate import AE_loss
@@ -686,7 +686,6 @@ class LwF(SupervisedTemplate):
     """Learning without Forgetting (LwF) strategy.
 
     See LwF plugin for details.
-    This strategy does not use task identities.
     """
 
     def __init__(

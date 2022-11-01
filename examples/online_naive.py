@@ -120,8 +120,10 @@ def main(args):
                                          experiences=exp,
                                          experience_size=1,
                                          access_task_boundaries=True)
+
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.train_stream)
+
         results.append(cl_strategy.eval(scenario.original_test_stream))
 
 

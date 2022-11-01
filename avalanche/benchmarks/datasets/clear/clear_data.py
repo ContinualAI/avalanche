@@ -13,13 +13,13 @@
 clear10 = [
     (
         "clear10-public.zip",  # name
-        "https://clear-challenge.s3.us-east-2.amazonaws.com",  
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
     )
 ]
 clear100_cvpr2022 = [
     (
         "clear100-workshop-avalanche.zip",  # name
-        "https://clear-challenge.s3.us-east-2.amazonaws.com",  
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
     )
 ]
 

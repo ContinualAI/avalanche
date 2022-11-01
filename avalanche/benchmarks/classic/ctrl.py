@@ -20,17 +20,19 @@ from tqdm import tqdm
 try:
     import ctrl
 except ImportError:
-    raise ModuleNotFoundError("ctrl not found, if you want to use this"
-                              "dataset please install avalanche with the "
-                              "extra dependencies: "
-                              "pip install avalanche-lib[extra]")
+    raise ModuleNotFoundError(
+        "ctrl not found, if you want to use this"
+        "dataset please install avalanche with the "
+        "extra dependencies: "
+        "pip install avalanche-lib[extra]"
+    )
 
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.utils import (
-    AvalancheTensorDataset,
+    make_tensor_classification_dataset,
     common_paths_root,
-    AvalancheDataset,
+    make_classification_dataset,
     PathsDataset,
 )
 
@@ -95,7 +97,7 @@ def CTrL(
 
                 common_root, exp_paths_list = common_paths_root(files)
                 paths_dataset = PathsDataset(common_root, exp_paths_list)
-                dataset = AvalancheDataset(
+                dataset = make_classification_dataset(
                     paths_dataset,
                     task_labels=task_labels,
                     transform=transforms.Compose(
@@ -103,7 +105,7 @@ def CTrL(
                     ),
                 )
             else:
-                dataset = AvalancheTensorDataset(
+                dataset = make_tensor_classification_dataset(
                     samples,
                     labels.squeeze(1),
                     task_labels=task_labels,

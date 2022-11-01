@@ -39,11 +39,17 @@ from avalanche.evaluation.metrics import (
     disk_usage_metrics,
     MAC_metrics,
     bwt_metrics,
-    forward_transfer_metrics, class_accuracy_metrics, amca_metrics,
+    forward_transfer_metrics,
+    class_accuracy_metrics,
+    amca_metrics,
 )
 from avalanche.models import SimpleMLP
-from avalanche.logging import InteractiveLogger, TextLogger, CSVLogger, \
-    TensorboardLogger
+from avalanche.logging import (
+    InteractiveLogger,
+    TextLogger,
+    CSVLogger,
+    TensorboardLogger,
+)
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.supervised import Naive
 
@@ -123,9 +129,7 @@ def main(args):
             stream=True,
         ),
         class_accuracy_metrics(
-            epoch=True,
-            stream=True,
-            classes=list(range(scenario.n_classes))
+            epoch=True, stream=True, classes=list(range(scenario.n_classes))
         ),
         amca_metrics(),
         forgetting_metrics(experience=True, stream=True),
