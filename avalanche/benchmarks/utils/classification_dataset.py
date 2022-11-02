@@ -440,9 +440,7 @@ def classification_subset(
         ):
             return dataset.subset(indices)
 
-    targets = _init_targets(
-        dataset, targets, check_shape=False
-    )
+    targets = _init_targets(dataset, targets, check_shape=False)
     task_labels = _init_task_labels(dataset, task_labels, check_shape=False)
     transform_gs = _init_transform_groups(
         transform_groups,
@@ -667,7 +665,7 @@ def concat_classification_datasets(
                 initial_transform_group=initial_transform_group,
                 task_labels=task_labels,
                 targets=targets,
-                collate_fn=collate_fn
+                collate_fn=collate_fn,
             )
         dds.append(dd)
     if (
