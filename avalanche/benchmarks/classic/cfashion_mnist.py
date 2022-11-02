@@ -13,14 +13,14 @@
 Fashion MNIST split CL scenario. """
 from pathlib import Path
 from typing import Sequence, Optional, Union, Any
-from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.datasets.external_datasets.fmnist import \
+    get_fmnist_dataset
 
 _default_fmnist_train_transform = transforms.Compose(
     [transforms.ToTensor(), transforms.Normalize((0.2860,), (0.3530,))]
@@ -114,7 +114,7 @@ def SplitFMNIST(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    fmnist_train, fmnist_test = _get_fmnist_dataset(dataset_root)
+    fmnist_train, fmnist_test = get_fmnist_dataset(dataset_root)
 
     return nc_benchmark(
         train_dataset=fmnist_train,
@@ -129,15 +129,6 @@ def SplitFMNIST(
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
-
-
-def _get_fmnist_dataset(dataset_root):
-    if dataset_root is None:
-        dataset_root = default_dataset_location("fashionmnist")
-
-    train_set = FashionMNIST(dataset_root, train=True, download=True)
-    test_set = FashionMNIST(dataset_root, train=False, download=True)
-    return train_set, test_set
 
 
 __all__ = ["SplitFMNIST"]

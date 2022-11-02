@@ -42,7 +42,10 @@ class BaseTemplate:
         self.model: Module = model
         """ PyTorch model. """
 
-        self.device = device
+        if device is None:
+            device = 'cpu'
+
+        self.device = torch.device(device)
         """ PyTorch device where the model will be allocated. """
 
         self.plugins = [] if plugins is None else plugins

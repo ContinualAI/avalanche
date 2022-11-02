@@ -13,7 +13,7 @@ from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import get_layers_and_params, ParamData
 
 if TYPE_CHECKING:
-    from ..templates.supervised import SupervisedTemplate
+    from ..templates import SupervisedTemplate
 
 SynDataType = Dict[str, Dict[str, Union[ParamData, Tensor]]]
 

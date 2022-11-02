@@ -28,7 +28,7 @@ from numpy import ndarray, arange
 from torch import Tensor
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
     from avalanche.benchmarks.scenarios import ClassificationExperience
     from avalanche.evaluation import PluginMetric
 

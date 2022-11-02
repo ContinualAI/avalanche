@@ -16,7 +16,7 @@ from avalanche.training.plugins import (
     SynapticIntelligencePlugin,
     CWRStarPlugin,
 )
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.utils import (
     replace_bn_with_brn,
     get_last_fc_layer,

@@ -9,7 +9,7 @@ from avalanche.training.storage_policy import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class ReplayPlugin(SupervisedPlugin):

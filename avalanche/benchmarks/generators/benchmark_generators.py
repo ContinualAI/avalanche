@@ -222,13 +222,13 @@ def nc_benchmark(
     train_dataset = make_classification_dataset(
         train_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="train"
+        initial_transform_group="train",
     )
 
     test_dataset = make_classification_dataset(
         test_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="eval"
+        initial_transform_group="eval",
     )
 
     return NCScenario(
@@ -344,13 +344,13 @@ def ni_benchmark(
     seq_train_dataset = make_classification_dataset(
         seq_train_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="train"
+        initial_transform_group="train",
     )
 
     seq_test_dataset = make_classification_dataset(
         seq_test_dataset,
         transform_groups=transform_groups,
-        initial_transform_group="eval"
+        initial_transform_group="eval",
     )
 
     return NIScenario(

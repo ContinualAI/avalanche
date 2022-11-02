@@ -1,5 +1,6 @@
 import unittest
 
+import avalanche.benchmarks.datasets.external_datasets.mnist
 from avalanche.benchmarks import (
     PermutedMNIST,
     ClassificationExperience,
@@ -19,23 +20,27 @@ MNIST_DOWNLOAD_METHOD = None
 class MNISTBenchmarksTests(unittest.TestCase):
     def setUp(self):
         import avalanche.benchmarks.classic.cmnist as cmnist
+        from avalanche.benchmarks.datasets.external_datasets.mnist import \
+            get_mnist_dataset
 
         global MNIST_DOWNLOAD_METHOD
-        MNIST_DOWNLOAD_METHOD = cmnist._get_mnist_dataset
+        MNIST_DOWNLOAD_METHOD = get_mnist_dataset
 
         def count_downloads(*args, **kwargs):
             global MNIST_DOWNLOADS
             MNIST_DOWNLOADS += 1
             return MNIST_DOWNLOAD_METHOD(*args, **kwargs)
 
-        cmnist._get_mnist_dataset = count_downloads
+        avalanche.benchmarks.datasets.external_datasets.mnist.\
+            get_mnist_dataset = count_downloads
 
     def tearDown(self):
         global MNIST_DOWNLOAD_METHOD
         if MNIST_DOWNLOAD_METHOD is not None:
             import avalanche.benchmarks.classic.cmnist as cmnist
 
-            cmnist._get_mnist_dataset = MNIST_DOWNLOAD_METHOD
+            avalanche.benchmarks.datasets.external_datasets.mnist.\
+                get_mnist_dataset = MNIST_DOWNLOAD_METHOD
             MNIST_DOWNLOAD_METHOD = None
 
     @unittest.skipIf(
