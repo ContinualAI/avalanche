@@ -53,7 +53,7 @@ class CustomDataCollatorSeq2SeqBeta:
         # method won't pad them and needs them of the
         # same length to return tensors.
         if labels is not None:
-            max_label_length = max(len(l) for l in labels)
+            max_label_length = max(len(lab) for lab in labels)
             if self.pad_to_multiple_of is not None:
                 max_label_length = (
                     (max_label_length + self.pad_to_multiple_of - 1)
