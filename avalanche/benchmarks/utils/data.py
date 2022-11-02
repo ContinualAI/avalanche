@@ -90,14 +90,16 @@ class AvalancheDataset(FlatData):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
-        if isinstance(datasets, TorchDataset) or \
-                isinstance(datasets, AvalancheDataset):
+        if isinstance(datasets, TorchDataset) or isinstance(
+            datasets, AvalancheDataset
+        ):
             warnings.warn(
                 "AvalancheDataset constructor has been changed. "
                 "Please check the documentation for the correct usage. You can"
                 " use `avalanche.benchmarks.utils.make_classification_dataset"
                 "if you need the old behavior.",
-                DeprecationWarning)
+                DeprecationWarning,
+            )
 
         # NOTES on implementation:
         # - raw datasets operations are implemented by _FlatData
@@ -254,7 +256,9 @@ class AvalancheDataset(FlatData):
         return element
 
     def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
-        elem = self._getitem_recursive_call(idx, self._transform_groups.current_group)
+        elem = self._getitem_recursive_call(
+            idx, self._transform_groups.current_group
+        )
         for da in self._data_attributes.values():
             if da.use_in_getitem:
                 if isinstance(elem, dict):
@@ -430,7 +434,4 @@ def _print_transforms(self):
     self._print_nonfrozen_transforms()
 
 
-__all__ = [
-    "AvalancheDataset",
-    "make_avalanche_dataset"
-]
+__all__ = ["AvalancheDataset", "make_avalanche_dataset"]

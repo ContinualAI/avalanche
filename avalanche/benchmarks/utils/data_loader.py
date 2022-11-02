@@ -76,7 +76,8 @@ class TaskBalancedDataLoader:
             raise ValueError(
                 "collate_mbatches is not needed anymore and it has been "
                 "deprecated. Data loaders will use the collate function"
-                "`data.collate_fn`.")
+                "`data.collate_fn`."
+            )
 
         self.data = data
         self.dataloaders: Dict[int, DataLoader] = dict()
@@ -139,7 +140,8 @@ class GroupBalancedDataLoader:
             raise ValueError(
                 "collate_mbatches is not needed anymore and it has been "
                 "deprecated. Data loaders will use the collate function"
-                "`data.collate_fn`.")
+                "`data.collate_fn`."
+            )
 
         self.datasets = datasets
         self.batch_sizes = []
@@ -187,7 +189,10 @@ class GroupBalancedDataLoader:
         samplers = []
         for dataset, mb_size in zip(self.datasets, self.batch_sizes):
             data_l, data_l_sampler = _make_data_loader(
-                dataset, self.distributed_sampling, self.loader_kwargs, mb_size,
+                dataset,
+                self.distributed_sampling,
+                self.loader_kwargs,
+                mb_size,
             )
 
             dataloaders.append(data_l)
@@ -352,7 +357,8 @@ class ReplayDataLoader:
             raise ValueError(
                 "collate_mbatches is not needed anymore and it has been "
                 "deprecated. Data loaders will use the collate function"
-                "`data.collate_fn`.")
+                "`data.collate_fn`."
+            )
 
         self.data = data
         self.memory = memory
