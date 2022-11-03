@@ -1,29 +1,30 @@
 import torch
+import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import argparse
+
 from avalanche.models.resnet32 import resnet32
 from avalanche.benchmarks.classic import SplitCIFAR100
-from avalanche.training.supervised import BiC
+from avalanche.training.supervised import Naive
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
     loss_metrics,
 )
 from avalanche.logging import InteractiveLogger, TextLogger
-from avalanche.training.plugins import EvaluationPlugin, LRSchedulerPlugin
+from avalanche.training.plugins import EvaluationPlugin, LRSchedulerPlugin, BiCPlugin
 
 
 def main(args):
     model = resnet32(num_classes=100)
     optimizer = torch.optim.SGD(model.parameters(), lr=args.lr, 
                                 momentum=0.9, weight_decay=0.0002)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, 
-    #                             momentum=0.9, weight_decay=0.0002)
+
     criterion = torch.nn.CrossEntropyLoss()
 
     schedule_plugins = LRSchedulerPlugin(
-                        ReduceLROnPlateau(optimizer, factor=1/3, min_lr=1e-4, verbose=True),
-                        metric="train_loss", first_exp_only=True)
+                        ReduceLROnPlateau(optimizer, factor=1/3, min_lr=1e-3, verbose=True),
+                        metric="train_loss") # first_exp_only=True
 
     # check if selected GPU is available or use CPU
     assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
@@ -47,23 +48,24 @@ def main(args):
         loggers=[interactive_logger],
     )
 
-    strategy = BiC(
+    bic_plugin = BiCPlugin(
+                    val_percentage=args.val_exemplar_percentage, 
+                    T=args.T, 
+                    mem_size=args.mem_size, 
+                    stage_2_epochs=args.num_bias_epochs, 
+                    lamb=args.lamb, 
+                    )
+
+    strategy = Naive(
         model,
         optimizer,
         criterion,
-        val_percentage=args.val_exemplar_percentage, 
-        T=args.T, 
-        mem_size=args.mem_size, 
-        stage_2_epochs=args.num_bias_epochs, 
-        lamb=args.lamb, 
-        verbose=True,
-        train_epochs=args.epochs,
-        device=device,
         train_mb_size=args.minibatch_size,
         eval_mb_size=args.minibatch_size,
+        train_epochs=args.epochs,
+        device=device,
+        plugins=[schedule_plugins, bic_plugin],
         evaluator=eval_plugin,
-        plugins=[schedule_plugins],
-        # multihead=True,
     )
 
     # train on the selected scenario with the chosen strategy
@@ -80,7 +82,6 @@ def main(args):
         )
         print("Computing accuracy on the test set")
         results.append(strategy.eval(scenario.test_stream[:t+1]))
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
