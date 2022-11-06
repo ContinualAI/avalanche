@@ -51,7 +51,6 @@ def main(args):
                     mem_size=args.mem_size, 
                     stage_2_epochs=args.num_bias_epochs, 
                     lamb=args.lamb, 
-                    multihead=multihead
                     )
 
     cl_strategy = Naive(

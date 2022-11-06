@@ -11,8 +11,9 @@ from avalanche.evaluation.metrics import (
     accuracy_metrics,
     loss_metrics,
 )
-from avalanche.logging import InteractiveLogger, TextLogger
-from avalanche.training.plugins import EvaluationPlugin, LRSchedulerPlugin, BiCPlugin
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin,  \
+                                LRSchedulerPlugin, BiCPlugin
 
 
 def main(args):
@@ -23,8 +24,12 @@ def main(args):
     criterion = torch.nn.CrossEntropyLoss()
 
     schedule_plugins = LRSchedulerPlugin(
-                        ReduceLROnPlateau(optimizer, factor=1/3, min_lr=1e-3, verbose=True),
-                        metric="train_loss") # first_exp_only=True
+                        ReduceLROnPlateau(
+                            optimizer, 
+                            factor=1/3, 
+                            min_lr=1e-3, 
+                            verbose=True),
+                        metric="train_loss")  # first_exp_only=True
 
     # check if selected GPU is available or use CPU
     assert args.cuda == -1 or args.cuda >= 0, "cuda must be -1 or >= 0."
@@ -82,6 +87,7 @@ def main(args):
         )
         print("Computing accuracy on the test set")
         results.append(strategy.eval(scenario.test_stream[:t+1]))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
