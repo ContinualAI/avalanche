@@ -25,7 +25,8 @@ class LwFPlugin(SupervisedPlugin):
         """
 
         strategy.loss += self.lwf(
-            strategy.mb_x, strategy.mb_output, strategy.model)
+            strategy.mb_x, strategy.mb_output, strategy.model
+        )
 
     def after_training_exp(self, strategy, **kwargs):
         """

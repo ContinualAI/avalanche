@@ -525,7 +525,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 test_x = torch.zeros(50, *pattern_shape)
                 test_y = torch.zeros(50, dtype=torch.long)
                 experience_test = make_tensor_classification_dataset(
-                    test_x, test_y)
+                    test_x, test_y
+                )
 
                 def train_gen():
                     # Lazy generator of the training stream

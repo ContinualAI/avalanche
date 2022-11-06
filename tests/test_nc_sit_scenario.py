@@ -20,7 +20,6 @@ from tests.unit_tests_utils import DummyImageDataset
 
 
 class SITTests(unittest.TestCase):
-
     def test_sit_single_dataset(self):
         mnist_train = MNIST(
             root=default_dataset_location("mnist"),

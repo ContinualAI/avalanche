@@ -13,7 +13,6 @@ from typing import Optional, Sequence, Union, Any
 import torch
 from PIL.Image import Image
 from torch import Tensor
-from torchvision.datasets import MNIST
 from torchvision.transforms import (
     ToTensor,
     ToPILImage,
@@ -27,7 +26,8 @@ from avalanche.benchmarks import NCScenario, nc_benchmark
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.datasets.external_datasets.mnist import \
+    get_mnist_dataset
 from ..utils import make_classification_dataset, DefaultTransformGroups
 from ..utils.data import make_avalanche_dataset
 
@@ -142,7 +142,7 @@ def SplitMNIST(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    mnist_train, mnist_test = _get_mnist_dataset(dataset_root)
+    mnist_train, mnist_test = get_mnist_dataset(dataset_root)
 
     return nc_benchmark(
         train_dataset=mnist_train,
@@ -219,7 +219,7 @@ def PermutedMNIST(
     list_test_dataset = []
     rng_permute = np.random.RandomState(seed)
 
-    mnist_train, mnist_test = _get_mnist_dataset(dataset_root)
+    mnist_train, mnist_test = get_mnist_dataset(dataset_root)
 
     # for every incremental experience
     for _ in range(n_experiences):
@@ -335,7 +335,7 @@ def RotatedMNIST(
     list_test_dataset = []
     rng_rotate = np.random.RandomState(seed)
 
-    mnist_train, mnist_test = _get_mnist_dataset(dataset_root)
+    mnist_train, mnist_test = get_mnist_dataset(dataset_root)
 
     # for every incremental experience
     for exp in range(n_experiences):
@@ -372,17 +372,6 @@ def RotatedMNIST(
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
-
-
-def _get_mnist_dataset(dataset_root):
-    if dataset_root is None:
-        dataset_root = default_dataset_location("mnist")
-
-    train_set = MNIST(root=dataset_root, train=True, download=True)
-
-    test_set = MNIST(root=dataset_root, train=False, download=True)
-
-    return train_set, test_set
 
 
 __all__ = ["SplitMNIST", "PermutedMNIST", "RotatedMNIST"]

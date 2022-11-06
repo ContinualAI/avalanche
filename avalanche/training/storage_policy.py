@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from avalanche.benchmarks.utils import (
     make_classification_dataset,
     classification_subset,
-    concat_classification_datasets,
+    AvalancheDataset,
 )
 from avalanche.models import FeatureExtractorBackbone
 from ..benchmarks.utils.utils import concat_datasets
@@ -34,7 +34,7 @@ class ExemplarsBuffer(ABC):
         """
         self.max_size = max_size
         """ Maximum size of the buffer. """
-        self._buffer: make_classification_dataset = concat_datasets([])
+        self._buffer: AvalancheDataset = concat_datasets([])
 
     @property
     def buffer(self) -> make_classification_dataset:
@@ -100,7 +100,7 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         sorted_weights, sorted_idxs = cat_weights.sort(descending=True)
 
         buffer_idxs = sorted_idxs[: self.max_size]
-        self.buffer = classification_subset(cat_data, buffer_idxs)
+        self.buffer = cat_data.subset(buffer_idxs)
         self._buffer_weights = sorted_weights[: self.max_size]
 
     def resize(self, strategy, new_size):

@@ -53,7 +53,6 @@ class TaskBalancedDataLoader:
         self,
         data: make_classification_dataset,
         oversample_small_tasks: bool = False,
-        collate_mbatches=_default_collate_mbatches_fn,
         **kwargs
     ):
         """Task-balanced data loader for Avalanche's datasets.
@@ -70,21 +69,25 @@ class TaskBalancedDataLoader:
         :param data: an instance of `AvalancheDataset`.
         :param oversample_small_tasks: whether smaller tasks should be
             oversampled to match the largest one.
-        :param collate_mbatches: function that given a sequence of mini-batches
-            (one for each task) combines them into a single mini-batch. Used to
-            combine the mini-batches obtained separately from each task.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
+        if "collate_mbatches" in kwargs:
+            raise ValueError(
+                "collate_mbatches is not needed anymore and it has been "
+                "deprecated. Data loaders will use the collate function"
+                "`data.collate_fn`."
+            )
+
         self.data = data
         self.dataloaders: Dict[int, DataLoader] = dict()
         self.oversample_small_tasks = oversample_small_tasks
-        self.collate_mbatches = collate_mbatches
 
         # split data by task.
         task_datasets = []
-        for task_label in self.data.task_set:
-            tdata = self.data.task_set[task_label]
+        for task_label in self.data.targets_task_labels.uniques:
+            tidxs = self.data.targets_task_labels.val_to_idx[task_label]
+            tdata = self.data.subset(tidxs)
             task_datasets.append(tdata)
 
         # the iteration logic is implemented by GroupBalancedDataLoader.
@@ -94,7 +97,6 @@ class TaskBalancedDataLoader:
             del kwargs["data"]
         # needed if they are passed as positional arguments
         kwargs["oversample_small_groups"] = oversample_small_tasks
-        kwargs["collate_mbatches"] = collate_mbatches
         self._dl = GroupBalancedDataLoader(datasets=task_datasets, **kwargs)
 
     def __iter__(self):
@@ -112,7 +114,6 @@ class GroupBalancedDataLoader:
         self,
         datasets: Sequence[make_classification_dataset],
         oversample_small_groups: bool = False,
-        collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,
         distributed_sampling: bool = True,
         **kwargs
@@ -130,20 +131,31 @@ class GroupBalancedDataLoader:
         :param datasets: an instance of `AvalancheDataset`.
         :param oversample_small_groups: whether smaller groups should be
             oversampled to match the largest one.
-        :param collate_mbatches: function that given a sequence of mini-batches
-            (one for each task) combines them into a single mini-batch. Used to
-            combine the mini-batches obtained separately from each task.
         :param batch_size: the size of the batch. It must be greater than or
             equal to the number of groups.
         :param kwargs: data loader arguments used to instantiate the loader for
             each group separately. See pytorch :class:`DataLoader`.
         """
+        if "collate_mbatches" in kwargs:
+            raise ValueError(
+                "collate_mbatches is not needed anymore and it has been "
+                "deprecated. Data loaders will use the collate function"
+                "`data.collate_fn`."
+            )
+
         self.datasets = datasets
         self.batch_sizes = []
         self.oversample_small_groups = oversample_small_groups
-        self.collate_mbatches = collate_mbatches
         self.distributed_sampling = distributed_sampling
         self.loader_kwargs = kwargs
+        if "collate_fn" in kwargs:
+            self.collate_fn = kwargs["collate_fn"]
+        else:
+            self.collate_fn = self.datasets[0].collate_fn
+
+        # collate is done after we have all batches
+        # so we set an empty collate for the internal dataloaders
+        self.loader_kwargs["collate_fn"] = lambda x: x
 
         # check if batch_size is larger than or equal to the number of datasets
         assert batch_size >= len(datasets)
@@ -177,7 +189,10 @@ class GroupBalancedDataLoader:
         samplers = []
         for dataset, mb_size in zip(self.datasets, self.batch_sizes):
             data_l, data_l_sampler = _make_data_loader(
-                dataset, self.distributed_sampling, self.loader_kwargs, mb_size
+                dataset,
+                self.distributed_sampling,
+                self.loader_kwargs,
+                mb_size,
             )
 
             dataloaders.append(data_l)
@@ -217,8 +232,8 @@ class GroupBalancedDataLoader:
                         samplers[tid] = None
                         removed_dataloaders_idxs.append(tid)
                         continue
-                mb_curr.append(batch)
-            yield self.collate_mbatches(mb_curr)
+                mb_curr.extend(batch)
+            yield self.collate_fn(mb_curr)
 
             # clear empty data-loaders
             for tid in reversed(removed_dataloaders_idxs):
@@ -306,7 +321,6 @@ class ReplayDataLoader:
         data: make_classification_dataset,
         memory: make_classification_dataset = None,
         oversample_small_tasks: bool = False,
-        collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,
         batch_size_mem: int = 32,
         task_balanced_dataloader: bool = False,
@@ -328,9 +342,6 @@ class ReplayDataLoader:
         :param memory: AvalancheDataset.
         :param oversample_small_tasks: whether smaller tasks should be
             oversampled to match the largest one.
-        :param collate_mbatches: function that given a sequence of mini-batches
-            (one for each task) combines them into a single mini-batch. Used to
-            combine the mini-batches obtained separately from each task.
         :param batch_size: the size of the data batch. It must be greater
             than or equal to the number of tasks.
         :param batch_size_mem: the size of the memory batch. If
@@ -342,19 +353,33 @@ class ReplayDataLoader:
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
+        if "collate_mbatches" in kwargs:
+            raise ValueError(
+                "collate_mbatches is not needed anymore and it has been "
+                "deprecated. Data loaders will use the collate function"
+                "`data.collate_fn`."
+            )
 
         self.data = data
         self.memory = memory
         self.oversample_small_tasks = oversample_small_tasks
         self.task_balanced_dataloader = task_balanced_dataloader
-        self.collate_mbatches = collate_mbatches
         self.data_batch_sizes: Union[int, Dict[int, int]] = dict()
         self.memory_batch_sizes: Union[int, Dict[int, int]] = dict()
         self.distributed_sampling = distributed_sampling
         self.loader_kwargs = kwargs
 
-        num_keys = len(self.memory.task_set)
+        if "collate_fn" in kwargs:
+            self.collate_fn = kwargs["collate_fn"]
+        else:
+            self.collate_fn = self.data.collate_fn
+
+        # collate is done after we have all batches
+        # so we set an empty collate for the internal dataloaders
+        self.loader_kwargs["collate_fn"] = lambda x: x
+
         if task_balanced_dataloader:
+            num_keys = len(self.memory.targets_task_labels.uniques)
             assert batch_size_mem >= num_keys, (
                 "Batch size must be greator or equal "
                 "to the number of tasks in the memory "
@@ -367,6 +392,7 @@ class ReplayDataLoader:
 
         # Create dataloader for memory items
         if task_balanced_dataloader:
+            num_keys = len(self.memory.targets_task_labels.uniques)
             single_group_batch_size = batch_size_mem // num_keys
             remaining_example = batch_size_mem % num_keys
         else:
@@ -481,7 +507,7 @@ class ReplayDataLoader:
                     mb_curr,
                 )
 
-                yield self.collate_mbatches(mb_curr)
+                yield self.collate_fn(mb_curr)
         except StopIteration:
             return
 
@@ -518,7 +544,7 @@ class ReplayDataLoader:
                     del iter_dataloaders[t]
                     del iter_samplers[t]
                     continue
-            mb_curr.append(tbatch)
+            mb_curr.extend(tbatch)
 
     def _create_loaders_and_samplers(self, data, batch_sizes):
         loaders = dict()
@@ -582,7 +608,9 @@ def _make_data_loader(
     collate_from_data_or_kwargs(dataset, data_loader_args)
 
     if force_no_workers:
-        data_loader_args["num_workers"] = 0
+        data_loader_args['num_workers'] = 0
+        if 'persistent_workers' in data_loader_args:
+            data_loader_args['persistent_workers'] = False
 
     if _DistributedHelper.is_distributed and distributed_sampling:
         sampler = DistributedSampler(

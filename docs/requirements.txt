@@ -21,3 +21,4 @@ higher
 lvis
 ctrl-benchmark
 sphinx_copybutton
+dill
