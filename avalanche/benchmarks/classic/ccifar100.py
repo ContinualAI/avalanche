@@ -12,16 +12,17 @@
 import random
 from pathlib import Path
 from typing import Sequence, Optional, Union, Any
-from torchvision.datasets import CIFAR100
+
 from torchvision import transforms
 
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets import CIFAR10, default_dataset_location
-from avalanche.benchmarks.utils.avalanche_dataset import (
-    concat_datasets_sequentially,
-)
+
+from avalanche.benchmarks.datasets.external_datasets.cifar import \
+    get_cifar100_dataset, get_cifar10_dataset
+from avalanche.benchmarks.utils import concat_datasets_sequentially
+
 from avalanche.benchmarks import nc_benchmark, NCScenario
 
 _default_cifar100_train_transform = transforms.Compose(
@@ -124,7 +125,7 @@ def SplitCIFAR100(
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
-    cifar_train, cifar_test = _get_cifar100_dataset(dataset_root)
+    cifar_train, cifar_test = get_cifar100_dataset(dataset_root)
 
     return nc_benchmark(
         train_dataset=cifar_train,
@@ -167,12 +168,12 @@ def SplitCIFAR110(
     scenario are "Class Incremental", "New Classes", etc. By default,
     an equal amount of classes will be assigned to each experience.
 
-    This generator will apply a task label "0" to all experiences.
+    This generator will apply a task label 0 to all experiences.
 
     The benchmark instance returned by this method will have two fields,
     `train_stream` and `test_stream`, which can be iterated to obtain
     training and test :class:`Experience`. Each Experience contains the
-    `dataset` and the associated task label (always "0" for this specific
+    `dataset` and the associated task label (always 0 for this specific
     benchmark).
 
     The benchmark API is quite simple and is uniform across all benchmark
@@ -212,8 +213,8 @@ def SplitCIFAR110(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    cifar10_train, cifar10_test = _get_cifar10_dataset(dataset_root_cifar10)
-    cifar100_train, cifar100_test = _get_cifar100_dataset(dataset_root_cifar100)
+    cifar10_train, cifar10_test = get_cifar10_dataset(dataset_root_cifar10)
+    cifar100_train, cifar100_test = get_cifar100_dataset(dataset_root_cifar100)
 
     cifar_10_100_train, cifar_10_100_test, _ = concat_datasets_sequentially(
         [cifar10_train, cifar100_train], [cifar10_test, cifar100_test]
@@ -245,26 +246,6 @@ def SplitCIFAR110(
     )
 
 
-def _get_cifar10_dataset(dataset_root):
-    if dataset_root is None:
-        dataset_root = default_dataset_location("cifar10")
-
-    train_set = CIFAR10(dataset_root, train=True, download=True)
-    test_set = CIFAR10(dataset_root, train=False, download=True)
-
-    return train_set, test_set
-
-
-def _get_cifar100_dataset(dataset_root):
-    if dataset_root is None:
-        dataset_root = default_dataset_location("cifar100")
-
-    train_set = CIFAR100(dataset_root, train=True, download=True)
-    test_set = CIFAR100(dataset_root, train=False, download=True)
-
-    return train_set, test_set
-
-
 if __name__ == "__main__":
     import sys
 
@@ -279,4 +260,7 @@ if __name__ == "__main__":
     sys.exit(0)
 
 
-__all__ = ["SplitCIFAR100", "SplitCIFAR110"]
+__all__ = [
+    "SplitCIFAR100",
+    "SplitCIFAR110"
+]

@@ -122,7 +122,10 @@ class MlpVAE(Generator, nn.Module):
         """
         super(MlpVAE, self).__init__()
         self.dim = nhid
-        self.device = device
+        if device is None:
+            device = 'cpu'
+
+        self.device = torch.device(device)
         self.encoder = VAEMLPEncoder(shape, latent_dim=128)
         self.calc_mean = MLP([128, nhid], last_activation=False)
         self.calc_logvar = MLP([128, nhid], last_activation=False)

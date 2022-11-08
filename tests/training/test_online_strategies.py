@@ -10,6 +10,7 @@ from avalanche.models import SimpleMLP
 from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
 from avalanche.training import OnlineNaive
 from tests.unit_tests_utils import get_fast_benchmark
+from avalanche.training.plugins.evaluation import default_evaluator
 
 
 class StrategyTest(unittest.TestCase):
@@ -51,7 +52,8 @@ class StrategyTest(unittest.TestCase):
             criterion,
             train_mb_size=1,
             device=self.device,
-            eval_mb_size=50
+            eval_mb_size=50,
+            evaluator=default_evaluator(),
         )
         ocl_benchmark = OnlineCLScenario(benchmark_streams,
                                          access_task_boundaries=True)
@@ -65,7 +67,8 @@ class StrategyTest(unittest.TestCase):
             criterion,
             train_mb_size=1,
             device=self.device,
-            eval_mb_size=50
+            eval_mb_size=50,
+            evaluator=default_evaluator(),
         )
         ocl_benchmark = OnlineCLScenario(benchmark_streams,
                                          access_task_boundaries=False)

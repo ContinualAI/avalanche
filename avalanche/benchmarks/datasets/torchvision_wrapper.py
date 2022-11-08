@@ -37,7 +37,7 @@ from torchvision.datasets import VOCSegmentation as torchVOCSegmentation
 from torchvision.datasets import Cityscapes as torchCityscapes
 from torchvision.datasets import SBDataset as torchSBDataset
 from torchvision.datasets import USPS as torchUSPS
-from torchvision.datasets import Kinetics400 as torchKinetics400
+from torchvision.datasets import Kinetics as torchKinetics
 from torchvision.datasets import HMDB51 as torchKHMDB51
 from torchvision.datasets import UCF101 as torchUCF101
 from torchvision.datasets import CelebA as torchCelebA
@@ -147,8 +147,8 @@ def USPS(*args, **kwargs):
     return torchUSPS(*args, **kwargs)
 
 
-def Kinetics400(*args, **kwargs):
-    return torchKinetics400(*args, **kwargs)
+def Kinetics(*args, **kwargs):
+    return torchKinetics(*args, **kwargs)
 
 
 def HMDB51(*args, **kwargs):
@@ -195,7 +195,7 @@ __all__ = [
     "Cityscapes",
     "SBDataset",
     "USPS",
-    "Kinetics400",
+    "Kinetics",
     "HMDB51",
     "UCF101",
     "CelebA",

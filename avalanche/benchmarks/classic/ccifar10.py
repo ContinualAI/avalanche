@@ -10,14 +10,16 @@
 ################################################################################
 from pathlib import Path
 from typing import Sequence, Optional, Union, Any
-from torchvision.datasets import CIFAR10
+
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark, NCScenario
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets import default_dataset_location
+
+from avalanche.benchmarks.datasets.external_datasets.cifar import \
+    get_cifar10_dataset
 
 _default_cifar10_train_transform = transforms.Compose(
     [
@@ -119,7 +121,7 @@ def SplitCIFAR10(
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
-    cifar_train, cifar_test = _get_cifar10_dataset(dataset_root)
+    cifar_train, cifar_test = get_cifar10_dataset(dataset_root)
 
     return nc_benchmark(
         train_dataset=cifar_train,
@@ -136,16 +138,6 @@ def SplitCIFAR10(
     )
 
 
-def _get_cifar10_dataset(dataset_root):
-    if dataset_root is None:
-        dataset_root = default_dataset_location("cifar10")
-
-    train_set = CIFAR10(dataset_root, train=True, download=True)
-    test_set = CIFAR10(dataset_root, train=False, download=True)
-
-    return train_set, test_set
-
-
 if __name__ == "__main__":
     import sys
 
@@ -153,4 +145,6 @@ if __name__ == "__main__":
     check_vision_benchmark(benchmark_instance)
     sys.exit(0)
 
-__all__ = ["SplitCIFAR10"]
+__all__ = [
+    "SplitCIFAR10"
+]

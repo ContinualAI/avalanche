@@ -27,7 +27,7 @@ class ExModelExperience(CLExperience):
         expert_model,
         current_experience: int = None,
         origin_stream=None,
-        classes_in_this_experience=None
+        classes_in_this_experience=None,
     ):
         super().__init__(
             current_experience=current_experience, origin_stream=origin_stream
@@ -64,11 +64,13 @@ class ExModelCLScenario(CLScenario):
         expert_models_l = []
         for m, e in zip(expert_models, original_benchmark.train_stream):
             cine = e.classes_in_this_experience
-            expert_models_l.append(ExModelExperience(
-                m, classes_in_this_experience=cine))
+            expert_models_l.append(
+                ExModelExperience(m, classes_in_this_experience=cine)
+            )
 
-        expert_stream = CLStream("expert_models", expert_models_l,
-                                 benchmark=self)
+        expert_stream = CLStream(
+            "expert_models", expert_models_l, benchmark=self
+        )
         streams = [expert_stream]
 
         self.original_benchmark = original_benchmark

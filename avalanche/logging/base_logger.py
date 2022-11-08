@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class BaseLogger(ABC):

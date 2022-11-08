@@ -193,3 +193,33 @@ class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
     ) -> CallbackResult:
         """Called after `eval_dataset_adaptation` by the `BaseTemplate`."""
         pass
+
+
+class SupervisedMetaLearningPlugin(SupervisedPlugin[Template], ABC):
+    """ABC for SupervisedMetaLearningTemplate plugins.
+
+        See `BaseTemplate` for complete description of the train/eval loop.
+    """
+    def before_inner_updates(
+        self, strategy: Template, *args, **kwargs
+    ) -> CallbackResult:
+        """Called before `_inner_updates` by the `BaseTemplate`."""
+        pass
+
+    def after_inner_updates(
+        self, strategy: Template, *args, **kwargs
+    ) -> CallbackResult:
+        """Called before `_outer_updates` by the `BaseTemplate`."""
+        pass
+
+    def before_outer_update(
+        self, strategy: Template, *args, **kwargs
+    ) -> CallbackResult:
+        """Called before `_outer_updates` by the `BaseTemplate`."""
+        pass
+
+    def after_outer_update(
+        self, strategy: Template, *args, **kwargs
+    ) -> CallbackResult:
+        """Called before `_outer_updates` by the `BaseTemplate`."""
+        pass

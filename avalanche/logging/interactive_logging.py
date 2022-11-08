@@ -19,7 +19,7 @@ from avalanche.benchmarks.scenarios import OnlineCLExperience
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class InteractiveLogger(TextLogger, SupervisedPlugin):
@@ -61,6 +61,8 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            return
         super().before_training_epoch(strategy, metric_values, **kwargs)
         self._progress.total = len(strategy.dataloader)
 
@@ -70,6 +72,8 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            return
         self._end_progress()
         super().after_training_epoch(strategy, metric_values, **kwargs)
 
@@ -83,12 +87,13 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
             experience = strategy.experience.logging()
             if experience.is_first_subexp:
                 super().before_training_exp(strategy, metric_values, **kwargs)
-                self._progress.total = \
-                    experience.sub_stream_length * \
-                    strategy.train_passes * \
-                    (experience.subexp_size // strategy.train_mb_size)
+                self._progress.total = (
+                    experience.sub_stream_length
+                    * strategy.train_passes
+                    * (experience.subexp_size // strategy.train_mb_size)
+                )
                 self.last_length = self._progress.total
-    
+
     def after_training_exp(
         self,
         strategy: "SupervisedTemplate",
@@ -149,3 +154,12 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         if self._pbar is not None:
             self._pbar.close()
             self._pbar = None
+
+    def __getstate__(self):
+        out = super().__getstate__()
+        del out['_pbar']
+        return out
+
+    def __setstate__(self, state):
+        state['_pbar'] = None
+        super().__setstate__(state)

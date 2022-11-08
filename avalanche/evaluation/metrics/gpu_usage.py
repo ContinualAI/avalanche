@@ -20,7 +20,7 @@ from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metric_results import MetricResult
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class MaxGPU(Metric[float]):

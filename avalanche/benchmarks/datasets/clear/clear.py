@@ -30,7 +30,7 @@ _CLEAR_DATA_SPLITS = {"clear10", "clear100_cvpr2022"}
 
 CLEAR_FEATURE_TYPES = {
     "clear10": ["moco_b0", "moco_imagenet", "byol_imagenet", "imagenet"],
-    "clear100_cvpr2022": ["moco_b0"]
+    "clear100_cvpr2022": ["moco_b0"],
 }
 
 SPLIT_OPTIONS = ["all", "train", "test"]
@@ -132,7 +132,7 @@ class CLEARDataset(DownloadableDataset):
 
     def _download_error_message(self) -> str:
         all_urls = [
-            os.path.join(item[1], item[0]) 
+            os.path.join(item[1], item[0])
             for item in getattr(self.module, self.data_name)
         ]
 
@@ -493,5 +493,11 @@ if __name__ == "__main__":
         print(len(y))
         break
 
-__all__ = ["CLEARDataset", "_CLEARFeature", "_CLEARImage", "SEED_LIST",
-           "CLEAR_FEATURE_TYPES", "_CLEAR_DATA_SPLITS"]
+__all__ = [
+    "CLEARDataset",
+    "_CLEARFeature",
+    "_CLEARImage",
+    "SEED_LIST",
+    "CLEAR_FEATURE_TYPES",
+    "_CLEAR_DATA_SPLITS",
+]

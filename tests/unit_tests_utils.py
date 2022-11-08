@@ -74,22 +74,63 @@ def load_benchmark(use_task_labels=False, fast_test=True):
     return my_nc_benchmark
 
 
+def load_image_data():
+    mnist_train = MNIST(
+        root=expanduser("~") + "/.avalanche/data/mnist/",
+        train=True,
+        download=True,
+        transform=Compose([ToTensor()]),
+    )
+    mnist_test = MNIST(
+        root=expanduser("~") + "/.avalanche/data/mnist/",
+        train=False,
+        download=True,
+        transform=Compose([ToTensor()]),
+    )
+    return mnist_train, mnist_test
+
+
+image_data = None
+
+
+def load_image_benchmark():
+    """Returns a PyTorch image dataset of 10 classes."""
+    global image_data
+
+    if image_data is None:
+        image_data = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True,
+            download=True,
+        )
+    return image_data
+
+
+def load_tensor_benchmark():
+    """Returns a PyTorch image dataset of 10 classes."""
+    x = torch.rand(32, 10)
+    y = torch.rand(32, 10)
+    return TensorDataset(x, y)
+
+
 def get_fast_benchmark(
-    use_task_labels=False, shuffle=True, n_samples_per_class=100
+    use_task_labels=False, shuffle=True, n_samples_per_class=100,
+    n_classes=10, n_features=6, seed=None
 ):
     dataset = make_classification(
-        n_samples=10 * n_samples_per_class,
-        n_classes=10,
-        n_features=6,
+        n_samples=n_classes * n_samples_per_class,
+        n_classes=n_classes,
+        n_features=n_features,
         n_informative=6,
         n_redundant=0,
+        random_state=seed
     )
 
     X = torch.from_numpy(dataset[0]).float()
     y = torch.from_numpy(dataset[1]).long()
 
     train_X, test_X, train_y, test_y = train_test_split(
-        X, y, train_size=0.6, shuffle=True, stratify=y
+        X, y, train_size=0.6, shuffle=True, stratify=y, random_state=seed
     )
 
     train_dataset = TensorDataset(train_X, train_y)
@@ -100,6 +141,7 @@ def get_fast_benchmark(
         5,
         task_labels=use_task_labels,
         shuffle=shuffle,
+        seed=seed
     )
     return my_nc_benchmark
 
