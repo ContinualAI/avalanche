@@ -45,7 +45,10 @@ class BaseTemplate(DistributedModelStrategySupport):
         self.model: Module = model
         """ PyTorch model. """
 
-        self.device = device
+        if device is None:
+            device = 'cpu'
+
+        self.device = torch.device(device)
         """ PyTorch device where the model will be allocated. """
 
         self.plugins = [] if plugins is None else plugins
@@ -74,8 +77,9 @@ class BaseTemplate(DistributedModelStrategySupport):
     def train(
         self,
         experiences: Union[CLExperience, ExpSequence],
-        eval_streams: Optional[Sequence[Union[CLExperience,
-                                              ExpSequence]]] = None,
+        eval_streams: Optional[
+            Sequence[Union[CLExperience, ExpSequence]]
+        ] = None,
         **kwargs,
     ):
         """Training loop.
@@ -111,9 +115,7 @@ class BaseTemplate(DistributedModelStrategySupport):
             self._after_training_exp(**kwargs)
         self._after_training(**kwargs)
 
-    def _train_exp(
-        self, experience: CLExperience, eval_streams, **kwargs
-    ):
+    def _train_exp(self, experience: CLExperience, eval_streams, **kwargs):
         raise NotImplementedError()
 
     @torch.no_grad()

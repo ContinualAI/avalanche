@@ -6,6 +6,7 @@ import torch
 
 try:
     from avalanche.benchmarks.classic.ctrl import CTrL
+
     skip = False
 except ImportError:
     skip = True

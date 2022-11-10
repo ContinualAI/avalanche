@@ -60,7 +60,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6,<3.11',
+    python_requires='>=3.7,<3.11',
     install_requires=[
         'typing-extensions',
         'psutil',
@@ -77,6 +77,7 @@ setuptools.setup(
         'torchmetrics',
         'gdown',
         'quadprog',
+        'dill',
         'setuptools<=59.5.0'
     ],
     extras_require=get_extra_requires('extra_dependencies.txt',

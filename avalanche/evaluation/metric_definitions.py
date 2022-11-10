@@ -13,12 +13,15 @@ from abc import ABC, abstractmethod
 from typing import TypeVar, Optional, TYPE_CHECKING, List, Union
 from typing_extensions import Protocol, Literal
 from .metric_results import MetricValue, MetricType, AlternativeValues
-from .metric_utils import get_metric_name, generic_get_metric_name, \
-    default_metric_name_template
+from .metric_utils import (
+    get_metric_name,
+    generic_get_metric_name,
+    default_metric_name_template,
+)
 
 if TYPE_CHECKING:
     from .metric_results import MetricResult
-    from ..training.templates.supervised import SupervisedTemplate
+    from ..training.templates import SupervisedTemplate
 
 TResult = TypeVar("TResult")
 TAggregated = TypeVar("TAggregated", bound="PluginMetric")
@@ -216,8 +219,13 @@ class GenericPluginMetric(PluginMetric[TResult]):
         super(GenericPluginMetric, self).__init__()
         assert mode in {"train", "eval"}
         if mode == "train":
-            assert reset_at in {"iteration", "epoch", "experience", "stream",
-                                "never"}
+            assert reset_at in {
+                "iteration",
+                "epoch",
+                "experience",
+                "stream",
+                "never",
+            }
             assert emit_at in {"iteration", "epoch", "experience", "stream"}
         else:
             assert reset_at in {"iteration", "experience", "stream", "never"}
@@ -345,16 +353,17 @@ class _ExtendedPluginMetricValue:
     """
 
     def __init__(
-            self,
-            *,
-            metric_name: str,
-            metric_value: Union[MetricType, AlternativeValues],
-            phase_name: str,
-            stream_name: Optional[str],
-            experience_id: Optional[int],
-            task_label: Optional[int],
-            plot_position: Optional[int] = None,
-            **other_info):
+        self,
+        *,
+        metric_name: str,
+        metric_value: Union[MetricType, AlternativeValues],
+        phase_name: str,
+        stream_name: Optional[str],
+        experience_id: Optional[int],
+        task_label: Optional[int],
+        plot_position: Optional[int] = None,
+        **other_info
+    ):
         super().__init__()
         self.metric_name = metric_name
         """
@@ -397,7 +406,8 @@ class _ExtendedPluginMetricValue:
 
 
 class _ExtendedGenericPluginMetric(
-        GenericPluginMetric[List[_ExtendedPluginMetricValue]]):
+    GenericPluginMetric[List[_ExtendedPluginMetricValue]]
+):
     """
     A generified version of :class:`GenericPluginMetric` which supports emitting
     multiple metrics from a single metric instance.
@@ -433,8 +443,8 @@ class _ExtendedGenericPluginMetric(
         for m_value in emitted_values:
             if not isinstance(m_value, _ExtendedPluginMetricValue):
                 raise RuntimeError(
-                    'Emitted a value that is not of type '
-                    'ExtendedPluginMetricValue'
+                    "Emitted a value that is not of type "
+                    "ExtendedPluginMetricValue"
                 )
 
             m_name = self.metric_value_name(m_value)
@@ -452,8 +462,7 @@ class _ExtendedGenericPluginMetric(
 
     def metric_value_name(self, m_value: _ExtendedPluginMetricValue) -> str:
         return generic_get_metric_name(
-            default_metric_name_template,
-            vars(m_value)
+            default_metric_name_template, vars(m_value)
         )
 
 
@@ -462,5 +471,5 @@ __all__ = [
     "PluginMetric",
     "GenericPluginMetric",
     "_ExtendedPluginMetricValue",
-    "_ExtendedGenericPluginMetric"
+    "_ExtendedGenericPluginMetric",
 ]

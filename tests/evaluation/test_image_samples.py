@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import Resize, Compose, ToTensor
 
 from avalanche.benchmarks import SplitMNIST
-from avalanche.benchmarks.utils import AvalancheTensorDataset
+from avalanche.benchmarks.utils import make_tensor_classification_dataset
 from avalanche.evaluation.metrics import ImagesSamplePlugin
 
 
@@ -36,7 +36,9 @@ class ImageSamplesTests(unittest.TestCase):
         curr_exp = scenario.train_stream[0]
         for mb in DataLoader(curr_exp.dataset, batch_size=32):
             break
-        curr_dataset = AvalancheTensorDataset(*mb[:2], targets=mb[1])
+        curr_dataset = make_tensor_classification_dataset(
+            *mb[:2], targets=mb[1]
+        )
 
         strategy_mock = MagicMock(
             eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset
@@ -53,8 +55,8 @@ class ImageSamplesTests(unittest.TestCase):
 
         # we use a ReSize transform because it's easy to detect if it's been
         # applied without looking at the image.
-        curr_dataset = curr_exp.dataset.replace_transforms(
-            transform=Compose([Resize(8), ToTensor()]), target_transform=None
+        curr_dataset = curr_exp.dataset.replace_current_transform_group(
+            Compose([Resize(8), ToTensor()])
         )
 
         ##########################################

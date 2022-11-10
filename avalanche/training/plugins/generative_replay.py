@@ -84,11 +84,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.model_is_generator = True
 
     def before_training_exp(
-        self,
-        strategy,
-        num_workers: int = 0,
-        shuffle: bool = True,
-        **kwargs
+        self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
     ):
         """
         Make deep copies of generator and solver before training new experience.
@@ -104,11 +100,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.old_model.eval()
 
     def after_training_exp(
-        self,
-        strategy,
-        num_workers: int = 0,
-        shuffle: bool = True,
-        **kwargs
+        self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
     ):
         """
         Set untrained_solver boolean to False after (the first) experience,
@@ -116,9 +108,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         """
         self.untrained_solver = False
 
-    def before_training_iteration(
-        self, strategy, **kwargs
-    ):
+    def before_training_iteration(self, strategy, **kwargs):
         """
         Generating and appending replay data to current minibatch before
         each training iteration.

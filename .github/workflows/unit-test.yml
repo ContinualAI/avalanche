@@ -38,16 +38,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     defaults:
       run:
-        shell: bash -l {0}
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: python unit test
         id: unittest
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
         run: |
-          conda activate avalanche-env
-          FAST_TEST=True USE_GPU=False python -m unittest discover tests
+          python -m unittest discover tests &&
+          echo "Running checkpointing tests..." &&
+          bash ./tests/checkpointing/test_checkpointing.sh &&
+          echo "While running unit tests, the following datasets were downloaded:" &&
+          ls ~/.avalanche/data
+          

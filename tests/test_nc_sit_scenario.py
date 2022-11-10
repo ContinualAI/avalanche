@@ -7,12 +7,16 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks import nc_benchmark, ClassificationStream
-from avalanche.benchmarks.datasets import CIFAR100, default_dataset_location
+from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios.new_classes import NCExperience
 from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
     make_nc_transformation_subset,
 )
-from avalanche.benchmarks.utils import AvalancheSubset, AvalancheDataset
+from avalanche.benchmarks.utils import (
+    classification_subset,
+    make_classification_dataset,
+)
+from tests.unit_tests_utils import DummyImageDataset
 
 
 class SITTests(unittest.TestCase):
@@ -315,7 +319,9 @@ class SITTests(unittest.TestCase):
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(3, 10)
         )
-        train_part2 = AvalancheSubset(train_part2, class_mapping=split_mapping)
+        train_part2 = classification_subset(
+            train_part2, class_mapping=split_mapping
+        )
 
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(3)
@@ -323,7 +329,9 @@ class SITTests(unittest.TestCase):
         test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(3, 10)
         )
-        test_part2 = AvalancheSubset(test_part2, class_mapping=split_mapping)
+        test_part2 = classification_subset(
+            test_part2, class_mapping=split_mapping
+        )
         my_nc_benchmark = nc_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
@@ -378,7 +386,9 @@ class SITTests(unittest.TestCase):
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(5, 10)
         )
-        train_part2 = AvalancheSubset(train_part2, class_mapping=split_mapping)
+        train_part2 = classification_subset(
+            train_part2, class_mapping=split_mapping
+        )
 
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, range(5)
@@ -386,7 +396,9 @@ class SITTests(unittest.TestCase):
         test_part2 = make_nc_transformation_subset(
             mnist_test, None, None, range(5, 10)
         )
-        test_part2 = AvalancheSubset(test_part2, class_mapping=split_mapping)
+        test_part2 = classification_subset(
+            test_part2, class_mapping=split_mapping
+        )
         my_nc_benchmark = nc_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
@@ -465,12 +477,12 @@ class SITTests(unittest.TestCase):
 
     def test_nc_benchmark_transformations_basic(self):
         # Regression for #577
-        ds = CIFAR100(
-            root=default_dataset_location("cifar100"),
+        ds = MNIST(
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
-        ds = AvalancheDataset(ds, transform=ToTensor())
+        ds = make_classification_dataset(ds, transform=ToTensor())
 
         benchmark = nc_benchmark(
             ds, ds, n_experiences=10, shuffle=True, seed=1234, task_labels=False
@@ -481,8 +493,8 @@ class SITTests(unittest.TestCase):
 
     def test_nc_benchmark_transformations_advanced(self):
         # Regression for #577
-        ds = CIFAR100(
-            root=default_dataset_location("cifar100"),
+        ds = MNIST(
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
@@ -510,13 +522,8 @@ class SITTests(unittest.TestCase):
         self.assertIsInstance(ds_test_train[0][0], Tensor)
 
     def test_nc_benchmark_classes_in_exp_range(self):
-        train_set = CIFAR100(
-            default_dataset_location("cifar100"), train=True, download=True
-        )
-
-        test_set = CIFAR100(
-            default_dataset_location("cifar100"), train=False, download=True
-        )
+        train_set = DummyImageDataset()
+        test_set = DummyImageDataset()
 
         benchmark_instance = nc_benchmark(
             train_dataset=train_set,

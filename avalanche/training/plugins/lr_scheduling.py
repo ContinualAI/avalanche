@@ -8,7 +8,7 @@ from avalanche.training.plugins import SupervisedPlugin
 import inspect
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class LRSchedulerPlugin(SupervisedPlugin):

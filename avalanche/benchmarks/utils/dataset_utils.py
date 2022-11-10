@@ -16,6 +16,7 @@ from .dataset_definitions import (
     IDatasetWithTargets,
     ISupportedClassificationDataset,
 )
+from .flat_data import ConstantSequence
 
 try:
     from typing import (
@@ -189,30 +190,6 @@ class LazyConcatIntTargets(LazyConcatTargets[int]):
 
     def __init__(self, targets_list: Sequence[Sequence[SupportsInt]]):
         super().__init__(targets_list, converter=int)
-
-
-class ConstantSequence(Sequence[int]):
-    """
-    Defines a constant sequence given an int value and the length.
-    """
-
-    def __init__(self, constant_value: int, size: int):
-        self._constant_value = constant_value
-        self._size = size
-
-    def __len__(self):
-        return self._size
-
-    def __getitem__(self, item_idx) -> int:
-        if item_idx >= len(self):
-            raise IndexError()
-
-        return self._constant_value
-
-    def __str__(self):
-        return (
-            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
-        )
 
 
 class SubsetWithTargets(Generic[T_co, TTargetType], Subset[T_co]):
@@ -449,7 +426,6 @@ __all__ = [
     "LazyClassMapping",
     "LazyConcatTargets",
     "LazyConcatIntTargets",
-    "ConstantSequence",
     "SubsetWithTargets",
     "ClassificationSubset",
     "SequenceDataset",

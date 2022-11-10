@@ -1,13 +1,38 @@
+################################################################################
+# Copyright (c) 2022 ContinualAI.                                              #
+# Copyrights licensed under the MIT License.                                   #
+# See the accompanying LICENSE file for terms.                                 #
+#                                                                              #
+# Date: 19-07-2022                                                             #
+# Author(s): Lorenzo Pellegrini, Antonio Carta                                 #
+# E-mail: contact@continualai.org                                              #
+# Website: avalanche.continualai.org                                           #
+################################################################################
+"""
+    Avalanche transformations are multi-argument.
+    This module contains a bunch of utility classes to help define
+    multi-argument transformations.
+"""
 import warnings
 from typing import Callable, Sequence
 from inspect import signature, Parameter
 
 
-class Compose:
-    """
-    A replacement for torchvision's Compose transformation.
+class MultiParamTransform:
+    """We need this class to be able to distinguish between a single argument
+    transformation and multi-argument ones.
 
-    Differently from the original Compose, this transformation can handle both
+    Transformations are callable objects.
+    """
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class MultiParamCompose(MultiParamTransform):
+    """Compose transformation for multi-argument transformations.
+
+    Differently from torchvision Compose, this transformation can handle both
     single-element and multi-elements transformations.
 
     For instance, single-element transformations are commonly used in
@@ -22,6 +47,8 @@ class Compose:
     """
 
     def __init__(self, transforms: Sequence[Callable]):
+        # skip empty transforms
+        transforms = list(filter(lambda x: x is not None, transforms))
         self.transforms = transforms
         self.param_def = []
 
@@ -31,7 +58,7 @@ class Compose:
         if len(transforms) > 0:
             for tr in transforms:
                 self.param_def.append(
-                    MultiParamTransform._detect_parameters(tr)
+                    MultiParamTransformCallable._detect_parameters(tr)
                 )
             all_maxes = set([max_p for _, max_p in self.param_def])
             if len(all_maxes) > 1:
@@ -53,7 +80,7 @@ class Compose:
             for transform, (min_par, max_par) in zip(
                 self.transforms, self.param_def
             ):
-                args = MultiParamTransform._call_transform(
+                args = MultiParamTransformCallable._call_transform(
                     transform, min_par, max_par, *args
                 )
 
@@ -69,18 +96,23 @@ class Compose:
         format_string += "\n)"
         return format_string
 
+    def __str__(self):
+        return self.__repr__()
 
-class MultiParamTransform:
+
+class MultiParamTransformCallable(MultiParamTransform):
+    """Generic multi-argument transformation."""
+
     def __init__(self, transform: Callable):
         self.transform = transform
 
         (
             self.min_params,
             self.max_params,
-        ) = MultiParamTransform._detect_parameters(transform)
+        ) = MultiParamTransformCallable._detect_parameters(transform)
 
     def __call__(self, *args, force_tuple_output=False):
-        args = MultiParamTransform._call_transform(
+        args = MultiParamTransformCallable._call_transform(
             self.transform, self.min_params, self.max_params, *args
         )
 
@@ -105,7 +137,7 @@ class MultiParamTransform:
         params = list(params)
 
         transform_result = transform_callable(*params[:n_params])
-        if not isinstance(transform_result, tuple):
+        if not isinstance(transform_result, Sequence):
             transform_result = (transform_result,)
 
         # In this way the transform is free to return more or less elements
@@ -124,7 +156,9 @@ class MultiParamTransform:
         ):
             min_params = transform_callable.min_params
             max_params = transform_callable.max_params
-        elif MultiParamTransform._is_torchvision_transform(transform_callable):
+        elif MultiParamTransformCallable._is_torchvision_transform(
+            transform_callable
+        ):
             min_params = 1
             max_params = 1
         else:
@@ -163,6 +197,23 @@ class MultiParamTransform:
         return "torchvision.transforms" in tc_module
 
 
+class TupleTransform(MultiParamTransform):
+    """Multi-argument transformation represented as tuples."""
+
+    def __init__(self, transforms: Sequence[Callable]):
+        self.transforms = transforms
+
+    def __call__(self, *args):
+        args = list(args)
+        for idx, transform in enumerate(self.transforms):
+            if transform is not None:
+                args[idx] = transform(args[idx])
+        return args
+
+    def __str__(self):
+        return "TupleTransform({})".format(self.transforms)
+
+
 class ComposeMaxParamsWarning(Warning):
     def __init__(self, message):
         self.message = message
@@ -171,4 +222,10 @@ class ComposeMaxParamsWarning(Warning):
 warnings.simplefilter("once", ComposeMaxParamsWarning)
 
 
-__all__ = ["Compose", "MultiParamTransform", "ComposeMaxParamsWarning"]
+__all__ = [
+    "MultiParamTransform",
+    "MultiParamCompose",
+    "MultiParamTransformCallable",
+    "ComposeMaxParamsWarning",
+    "TupleTransform",
+]

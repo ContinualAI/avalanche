@@ -35,11 +35,11 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils import concat_datasets_sequentially
-from avalanche.benchmarks.utils.avalanche_dataset import (
-    SupportedDataset,
-    as_classification_dataset
+from avalanche.benchmarks.utils.utils import (
+    concat_datasets_sequentially,
+    as_classification_dataset,
 )
+from avalanche.benchmarks.utils.classification_dataset import SupportedDataset
 
 
 def nc_scenario(
@@ -67,7 +67,7 @@ def nc_scenario(
     class won't be assigned to more than one experience.
 
     The ``task_labels`` parameter determines if each incremental experience has
-    an increasing task label or if, at the contrary, a default task label "0"
+    an increasing task label or if, at the contrary, a default task label 0
     has to be assigned to all experiences. This can be useful when
     differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
@@ -238,7 +238,7 @@ def ni_scenario(
     experience will contain patterns belonging to the same classes.
 
     The ``task_labels`` parameter determines if each incremental experience has
-    an increasing task label or if, at the contrary, a default task label "0"
+    an increasing task label or if, at the contrary, a default task label 0
     has to be assigned to all experiences. This can be useful when
     differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
@@ -374,7 +374,7 @@ def dataset_scenario(
         train_dataset_list=train_dataset_list,
         test_dataset_list=test_dataset_list,
         task_labels=task_labels,
-        complete_test_set_only=complete_test_set_only
+        complete_test_set_only=complete_test_set_only,
     )
 
 
@@ -554,7 +554,7 @@ def paths_scenario(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform
+        eval_target_transform=eval_target_transform,
     )
 
 
@@ -641,7 +641,7 @@ def tensors_scenario(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform
+        eval_target_transform=eval_target_transform,
     )
 
 
@@ -767,7 +767,7 @@ def tensor_scenario(
         train_transform=train_transform,
         train_target_transform=train_target_transform,
         eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform
+        eval_target_transform=eval_target_transform,
     )
 
 

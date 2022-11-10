@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+import math
 
 try:
     import higher
@@ -13,29 +14,14 @@ except ImportError:
                               "MAML please install avalanche with "
                               "the extra dependencies: "
                               "pip install avalanche-lib[extra]")
-import math
 
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates import SupervisedTemplate
+from avalanche.training.templates import SupervisedMetaLearningTemplate
 from avalanche.models.utils import avalanche_forward
 
 
-def init_kaiming_normal(m):
-    if isinstance(m, nn.Conv2d):
-        torch.nn.init.constant_(m.weight.data, 1.0)
-        torch.nn.init.kaiming_normal_(m.weight.data)
-        if m.bias is not None:
-            m.bias.data.zero_()
-
-    elif isinstance(m, nn.Linear):
-        torch.nn.init.constant_(m.weight.data, 1.0)
-        torch.nn.init.kaiming_normal_(m.weight.data)
-        if m.bias is not None:
-            m.bias.data.zero_()
-
-
-class LaMAML(SupervisedTemplate):
+class LaMAML(SupervisedMetaLearningTemplate):
     def __init__(
         self,
         model: Module,
@@ -104,14 +90,14 @@ class LaMAML(SupervisedTemplate):
 
         # Initialize alpha-lr parameters
         if self.alpha_params is None:
-            self.alpha_params = nn.ParameterList([])
+            self.alpha_params = nn.ParameterDict()
             # Iterate through model parameters and add the corresponding
             # alpha_lr parameter
-            for p in self.model.parameters():
+            for n, p in self.model.named_parameters():
                 alpha_param = nn.Parameter(
                     torch.ones(p.shape) * self.alpha_init, requires_grad=True
                 )
-                self.alpha_params.append(alpha_param)
+                self.alpha_params[n.replace('.', '_')] = alpha_param
             self.alpha_params.to(self.device)
 
             # Create optimizer for the alpha_lr parameters
@@ -119,19 +105,38 @@ class LaMAML(SupervisedTemplate):
                 self.alpha_params.parameters(), lr=self.lr_alpha
             )
 
-        # For task-incremental heads:
-        # If new parameters are added to the model, update alpha_lr
-        # parameters respectively
-        if len(self.alpha_params) < len(list(self.model.parameters())):
-            for iter_p, p in enumerate(self.model.parameters()):
-                # Skip the older parameters
-                if iter_p < len(self.alpha_params):
-                    continue
+        # update alpha-lr parameters
+        for n, p in self.model.named_parameters():
+            n = n.replace('.', '_')  # dict does not support names with '.'
+            if n in self.alpha_params:
+                if self.alpha_params[n].shape != p.shape:
+                    old_shape = self.alpha_params[n].shape
+                    # parameter expansion
+                    expanded = False
+                    assert len(p.shape) == len(old_shape), \
+                        "Expansion cannot add new dimensions"
+                    for i, (snew, sold) in enumerate(zip(p.shape, old_shape)):
+                        assert snew >= sold, "Shape cannot decrease."
+                        if snew > sold:
+                            assert not expanded, \
+                                "Expansion cannot occur " \
+                                "in more than one dimension."
+                            expanded = True
+                            exp_idx = i
+
+                    alpha_param = torch.ones(p.shape) * self.alpha_init
+                    idx = [slice(el) if i != exp_idx else
+                           slice(old_shape[exp_idx])
+                           for i, el in enumerate(p.shape)]
+                    alpha_param[idx] = self.alpha_params[n].detach().clone()
+                    alpha_param = nn.Parameter(alpha_param, requires_grad=True)
+                    self.alpha_params[n] = alpha_param
+            else:
                 # Add new alpha_lr for the new parameter
                 alpha_param = nn.Parameter(
                     torch.ones(p.shape) * self.alpha_init, requires_grad=True
                 )
-                self.alpha_params.append(alpha_param)
+                self.alpha_params[n] = alpha_param
 
             self.alpha_params.to(self.device)
             # Re-init optimizer for the new set of alpha_lr parameters
@@ -139,21 +144,18 @@ class LaMAML(SupervisedTemplate):
                 self.alpha_params.parameters(), lr=self.lr_alpha
             )
 
-    def training_epoch(self, **kwargs):
-        for self.mbatch in self.dataloader:
-            if self._stop_training:
-                break
+    def apply_grad(self, module, grads):
+        for i, p in enumerate(module.parameters()):
+            grad = grads[i]
+            if grad is None:
+                grad = torch.zeros(p.shape).float().to(self.device)
 
-            self.unpack_minibatch()
-            self._before_training_iteration(**kwargs)
-            self.loss = 0
+            if p.grad is None:
+                p.grad = grad
+            else:
+                p.grad += grad
 
-            self.train_batch()
-
-            self.mb_output = self.forward()
-            self._after_training_iteration(**kwargs)
-
-    def inner_update(self, fast_model, x, y, t):
+    def inner_update_step(self, fast_model, x, y, t):
         """Update fast weights using current samples and
         return the updated fast model.
         """
@@ -190,20 +192,9 @@ class LaMAML(SupervisedTemplate):
         # Update fast model's weights
         fast_model.update_params(new_fast_params)
 
-    def apply_grad(self, module, grads):
-        for i, p in enumerate(module.parameters()):
-            grad = grads[i]
-            if grad is None:
-                grad = torch.zeros(p.shape).float().to(self.device)
-
-            if p.grad is None:
-                p.grad = grad
-            else:
-                p.grad += grad
-
-    def train_batch(self):
+    def _inner_updates(self, **kwargs):
         # Create a stateless copy of the model for inner-updates
-        fast_model = higher.patch.monkeypatch(
+        self.fast_model = higher.patch.monkeypatch(
             self.model,
             copy_initial_weights=True,
             track_higher_grads=self.second_order,
@@ -217,28 +208,30 @@ class LaMAML(SupervisedTemplate):
 
         bsize_data = batch_x.shape[0]
         rough_sz = math.ceil(bsize_data / self.n_inner_updates)
-        meta_losses = [0 for _ in range(self.n_inner_updates)]
+        self.meta_losses = [0 for _ in range(self.n_inner_updates)]
 
         for i in range(self.n_inner_updates):
-            batch_x_i = batch_x[i * rough_sz : (i + 1) * rough_sz]
-            batch_y_i = batch_y[i * rough_sz : (i + 1) * rough_sz]
-            batch_t_i = batch_t[i * rough_sz : (i + 1) * rough_sz]
+            batch_x_i = batch_x[i * rough_sz: (i + 1) * rough_sz]
+            batch_y_i = batch_y[i * rough_sz: (i + 1) * rough_sz]
+            batch_t_i = batch_t[i * rough_sz: (i + 1) * rough_sz]
 
             # We assume that samples for inner update are from the same task
-            self.inner_update(fast_model, batch_x_i, batch_y_i, batch_t_i)
+            self.inner_update_step(self.fast_model, batch_x_i, batch_y_i,
+                                   batch_t_i)
 
             # Compute meta-loss with the combination of batch and buffer samples
             logits_meta = avalanche_forward(
-                fast_model, self.mb_x, self.mb_task_id
+                self.fast_model, self.mb_x, self.mb_task_id
             )
             meta_loss = self._criterion(logits_meta, self.mb_y)
-            meta_losses[i] = meta_loss
+            self.meta_losses[i] = meta_loss
 
+    def _outer_update(self, **kwargs):
         # Compute meta-gradient for the main model
-        meta_loss = sum(meta_losses) / len(meta_losses)
+        meta_loss = sum(self.meta_losses) / len(self.meta_losses)
         meta_grad_model = torch.autograd.grad(
             meta_loss,
-            fast_model.parameters(time=0),
+            self.fast_model.parameters(time=0),
             retain_graph=True,
             allow_unused=True,
         )
@@ -269,9 +262,23 @@ class LaMAML(SupervisedTemplate):
             self.optimizer.step()
         else:
             for p, alpha in zip(
-                self.model.parameters(), self.alpha_params.parameters()
+                    self.model.parameters(), self.alpha_params.parameters()
             ):
                 # Use relu on updated LRs to avoid negative values
                 p.data = p.data - p.grad * F.relu(alpha)
 
         self.loss = meta_loss
+
+
+def init_kaiming_normal(m):
+    if isinstance(m, nn.Conv2d):
+        torch.nn.init.constant_(m.weight.data, 1.0)
+        torch.nn.init.kaiming_normal_(m.weight.data)
+        if m.bias is not None:
+            m.bias.data.zero_()
+
+    elif isinstance(m, nn.Linear):
+        torch.nn.init.constant_(m.weight.data, 1.0)
+        torch.nn.init.kaiming_normal_(m.weight.data)
+        if m.bias is not None:
+            m.bias.data.zero_()
