@@ -61,7 +61,16 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
+    """
+    Reduced ResNet 32
 
+    This network architecture is an adaptation of ResNet for smaller
+    input size. The number of blocks can be modified in this line by 
+    changing n=5 to n=3 for ResNet-20, and n=9 for ResNet-56.
+
+    Implementation based on FACIL, as in:
+    https://github.com/mmasana/FACIL/blob/master/src/networks/resnet32.py
+    """
     def __init__(self, block, layers, num_classes=10):
         self.inplanes = 16
         super(ResNet, self).__init__()

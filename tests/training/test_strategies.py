@@ -42,6 +42,7 @@ from avalanche.training.supervised import (
     CoPE,
     StreamingLDA,
     MAS,
+    BiC,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -880,6 +881,48 @@ class StrategyTest(unittest.TestCase):
         #     criterion,
         #     lambda_reg=1.0,
         #     alpha=0.5,
+        #     train_mb_size=10,
+        #     device=self.device,
+        #     eval_mb_size=50,
+        #     train_epochs=2,
+        # )
+        # self.run_strategy(benchmark, strategy)
+    
+    def test_bic(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False
+        )
+        strategy = BiC(
+            model,
+            optimizer,
+            criterion,
+            mem_size=50,
+            val_percentage=0.1,
+            T=2,
+            stage_2_epochs=10,
+            lamb=-1,
+            lr=0.01,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        self.run_strategy(benchmark, strategy)
+
+        # MT scenario
+        # model, optimizer, criterion, benchmark = self.init_scenario(
+        #     multi_task=True)
+        # strategy = BiC(
+        #     model,
+        #     optimizer,
+        #     criterion,
+        #     mem_size=50,
+        #     val_percentage=0.1,
+        #     T=2,
+        #     stage_2_epochs=10,
+        #     lamb=-1,
+        #     lr=0.01,
         #     train_mb_size=10,
         #     device=self.device,
         #     eval_mb_size=50,

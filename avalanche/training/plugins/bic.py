@@ -49,6 +49,19 @@ class BiCPlugin(SupervisedPlugin):
         multihead: bool = False
     ):
         """
+        :param mem_size: replay buffer size.
+        :param batch_size: the size of the data batch. If set to `None`, it
+            will be set equal to the strategy's batch size.
+        :param batch_size_mem: the size of the memory batch. If
+            `task_balanced_dataloader` is set to True, it must be greater than 
+            or equal to the number of tasks. If its value is set to `None`
+            (the default value), it will be automatically set equal to the
+            data batch size.
+        :param task_balanced_dataloader: if True, buffer data loaders will be
+                task-balanced, otherwise it will create a single dataloader for 
+                the buffer samples.
+        :param storage_policy: The policy that controls how to add new exemplars
+                            in memory
         :param val_percentage: hyperparameter used to set the 
                 percentage of exemplars in the val set.
         :param T: hyperparameter used to set the temperature 
@@ -57,7 +70,9 @@ class BiCPlugin(SupervisedPlugin):
                 amount of epochs of stage 2.
         :param lamb: hyperparameter used to balance the distilling 
                 loss and the classification loss.
-        :param verbose: when True, the computation of the influence
+        :param lr: hyperparameter used as a learning rate for
+                the second phase of training.
+        :param multihead: if a Task Incremental Scenario is been used.
         """
 
         # Replay (Phase 1)

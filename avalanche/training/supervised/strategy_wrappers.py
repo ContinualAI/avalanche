@@ -32,6 +32,7 @@ from avalanche.training.plugins import (
     GSS_greedyPlugin,
     LFLPlugin,
     MASPlugin,
+    BiCPlugin,
 )
 from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates import SupervisedTemplate
@@ -1194,6 +1195,95 @@ class MAS(SupervisedTemplate):
         )
 
 
+class BiC(SupervisedTemplate):
+    """Bias Correction (BiC) strategy.
+
+    See BiC plugin for details.
+    This strategy does not use task identities.
+    """
+
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion,
+        mem_size: int = 200,
+        val_percentage: float = 0.1,
+        T: int = 2, 
+        stage_2_epochs: int = 200,
+        lamb: float = -1, 
+        lr: float = 0.1,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = None,
+        device=None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = default_evaluator(),
+        eval_every=-1,
+        **base_kwargs
+    ):
+        """Init.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param mem_size: replay buffer size.
+        :param val_percentage: hyperparameter used to set the 
+                percentage of exemplars in the val set.
+        :param T: hyperparameter used to set the temperature 
+                used in stage 1.
+        :param stage_2_epochs: hyperparameter used to set the 
+                amount of epochs of stage 2.
+        :param lamb: hyperparameter used to balance the distilling 
+                loss and the classification loss.
+        :param lr: hyperparameter used as a learning rate for
+                the second phase of training.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
+        :param \*\*base_kwargs: any additional
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
+        """
+
+        # Instantiate plugin
+        bic = BiCPlugin(mem_size=mem_size, 
+                        val_percentage=val_percentage,
+                        T=T,
+                        stage_2_epochs=stage_2_epochs,
+                        lamb=lamb,
+                        lr=lr,
+                        )
+
+        # Add plugin to the strategy
+        if plugins is None:
+            plugins = [bic]
+        else:
+            plugins.append(bic)
+
+        super().__init__(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            **base_kwargs
+        )
+
+
 __all__ = [
     "Naive",
     "PNNStrategy",
@@ -1211,4 +1301,5 @@ __all__ = [
     "CoPE",
     "LFL",
     "MAS",
+    "BiC"
 ]
