@@ -100,7 +100,8 @@ def main(args):
     # CREATE THE STRATEGY INSTANCE (ONLINE-REPLAY)
     storage_policy = ReservoirSamplingBuffer(max_size=100)
     replay_plugin = ReplayPlugin(
-        mem_size=100, batch_size=1, storage_policy=storage_policy
+        mem_size=100, batch_size_mem=1, storage_policy=storage_policy,
+        interactive=True
     )
 
     cl_strategy = OnlineNaive(
@@ -108,7 +109,7 @@ def main(args):
         torch.optim.Adam(model.parameters(), lr=0.1),
         CrossEntropyLoss(),
         train_passes=1,
-        train_mb_size=1,
+        train_mb_size=10,
         eval_mb_size=32,
         device=device,
         evaluator=eval_plugin,
@@ -125,7 +126,7 @@ def main(args):
     for i, exp in enumerate(scenario.train_stream):
         # Create online scenario from experience exp
         ocl_benchmark = OnlineCLScenario(
-            original_streams=batch_streams, experiences=exp, experience_size=1
+            original_streams=batch_streams, experiences=exp, experience_size=10
         )
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.train_stream)
