@@ -53,7 +53,7 @@ class AR1(SupervisedTemplate):
         max_d_max=0.5,
         inc_step=4.1e-05,
         rm_sz: int = 1500,
-        freeze_below_layer: str = "lat_features.19.bn.beta",
+        freeze_below_layer: str = "lat_features.19.bn",
         latent_layer_num: int = 19,
         ewc_lambda: float = 0,
         train_mb_size: int = 128,
