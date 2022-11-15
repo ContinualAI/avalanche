@@ -19,6 +19,14 @@ AVALANCHE_CONFIG_ROOT = os.path.expanduser("~/.avalanche")
 AVALANCHE_CONFIG_FILENAME = os.path.expanduser("~/.avalanche/config.json")
 
 
+def set_dataset_root(root_dir: str):
+    """Set the default dataset root directory.
+
+    :param root_dir: The new root directory.
+    """
+    AVALANCHE_CONFIG["dataset_location"] = root_dir
+
+
 def default_dataset_location(dataset_name: str) -> Path:
     """Returns the default download location for Avalanche datasets.
 
