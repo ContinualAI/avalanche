@@ -46,7 +46,6 @@ class BiCPlugin(SupervisedPlugin):
         stage_2_epochs: int = 200,
         lamb: float = -1, 
         lr: float = 0.1,
-        multihead: bool = False
     ):
         """
         :param mem_size: replay buffer size.
@@ -72,7 +71,6 @@ class BiCPlugin(SupervisedPlugin):
                 loss and the classification loss.
         :param lr: hyperparameter used as a learning rate for
                 the second phase of training.
-        :param multihead: if a Task Incremental Scenario is been used.
         """
 
         # Replay (Phase 1)
@@ -97,7 +95,6 @@ class BiCPlugin(SupervisedPlugin):
         self.lamb = lamb
         self.mem_size = mem_size
         self.lr = lr
-        self.multihead = multihead
 
         self.seen_classes = set()
         self.class_to_tasks = {}
@@ -109,7 +106,11 @@ class BiCPlugin(SupervisedPlugin):
     def ext_mem(self):
         return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
-    # Tranformar val_data tambien en un buffer
+    def before_training(self, strategy: "SupervisedTemplate", *args, **kwargs):
+        if strategy.model:
+            assert False, "BiC only supported for Class Incremetnal Learning \
+                            (single head)"
+
     def before_train_dataset_adaptation(
         self, 
         strategy: "SupervisedTemplate", 
@@ -214,11 +215,7 @@ class BiCPlugin(SupervisedPlugin):
         task_id = strategy.experience.current_experience
 
         if self.model_old is not None:
-            if self.multihead:
-                out_old = self.model_old(strategy.mb_x.to(strategy.device), 
-                                         task_id)
-            else:
-                out_old = self.model_old(strategy.mb_x.to(strategy.device))
+            out_old = self.model_old(strategy.mb_x.to(strategy.device))
             out_new = strategy.model(strategy.mb_x.to(strategy.device))
 
             old_clss = []

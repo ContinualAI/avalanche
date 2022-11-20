@@ -910,26 +910,6 @@ class StrategyTest(unittest.TestCase):
         )
         self.run_strategy(benchmark, strategy)
 
-        # MT scenario
-        # model, optimizer, criterion, benchmark = self.init_scenario(
-        #     multi_task=True)
-        # strategy = BiC(
-        #     model,
-        #     optimizer,
-        #     criterion,
-        #     mem_size=50,
-        #     val_percentage=0.1,
-        #     T=2,
-        #     stage_2_epochs=10,
-        #     lamb=-1,
-        #     lr=0.01,
-        #     train_mb_size=10,
-        #     device=self.device,
-        #     eval_mb_size=50,
-        #     train_epochs=2,
-        # )
-        # self.run_strategy(benchmark, strategy)
-
     def load_benchmark(self, use_task_labels=False):
         """
         Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,
