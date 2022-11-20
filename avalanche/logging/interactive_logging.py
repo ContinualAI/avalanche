@@ -154,3 +154,12 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         if self._pbar is not None:
             self._pbar.close()
             self._pbar = None
+
+    def __getstate__(self):
+        out = super().__getstate__()
+        del out['_pbar']
+        return out
+
+    def __setstate__(self, state):
+        state['_pbar'] = None
+        super().__setstate__(state)

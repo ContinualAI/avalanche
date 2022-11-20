@@ -139,6 +139,13 @@ class EmptyTransformGroups(DefaultTransformGroups):
         super().__init__({})
         self.transform_groups = defaultdict(lambda: None)
 
+    def __call__(self, elem, group_name=None):
+        """Apply current transformation group to element."""
+        if self.transform_groups[group_name] is None:
+            return elem
+        else:
+            return super().__call__(elem, group_name=group_name)
+
 
 def _normalize_transform(transforms):
     """Normalize transform to MultiParamTransform."""

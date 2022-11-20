@@ -53,5 +53,8 @@ jobs:
           USE_GPU: "False"
         run: |
           python -m unittest discover tests &&
+          echo "Running checkpointing tests..." &&
+          bash ./tests/checkpointing/test_checkpointing.sh &&
           echo "While running unit tests, the following datasets were downloaded:" &&
           ls ~/.avalanche/data
+          

@@ -126,7 +126,4 @@ class LearningWithoutForgetting(RegularizationMethod):
                 ].union(pc)
 
 
-__all__ = [
-    "RegularizationMethod",
-    "LearningWithoutForgetting"
-]
+__all__ = ["RegularizationMethod", "LearningWithoutForgetting"]

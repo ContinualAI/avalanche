@@ -74,6 +74,11 @@ class BatchRenorm2D(Module):
 
         device = self.gamma.device
 
+        self.r_max = self.r_max if isinstance(self.r_max, float)\
+            else self.r_max.to(device)
+        self.d_max = self.d_max if isinstance(self.d_max, float)\
+            else self.d_max.to(device)
+
         batch_ch_mean = torch.mean(x, dim=(0, 2, 3), keepdim=True).to(device)
         batch_ch_std = torch.sqrt(
             torch.var(x, dim=(0, 2, 3), keepdim=True, unbiased=False) + self.eps

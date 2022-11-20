@@ -90,14 +90,14 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # Initialize alpha-lr parameters
         if self.alpha_params is None:
-            self.alpha_params = nn.ParameterList([])
+            self.alpha_params = nn.ParameterDict()
             # Iterate through model parameters and add the corresponding
             # alpha_lr parameter
-            for p in self.model.parameters():
+            for n, p in self.model.named_parameters():
                 alpha_param = nn.Parameter(
                     torch.ones(p.shape) * self.alpha_init, requires_grad=True
                 )
-                self.alpha_params.append(alpha_param)
+                self.alpha_params[n.replace('.', '_')] = alpha_param
             self.alpha_params.to(self.device)
 
             # Create optimizer for the alpha_lr parameters
@@ -105,19 +105,38 @@ class LaMAML(SupervisedMetaLearningTemplate):
                 self.alpha_params.parameters(), lr=self.lr_alpha
             )
 
-        # For task-incremental heads:
-        # If new parameters are added to the model, update alpha_lr
-        # parameters respectively
-        if len(self.alpha_params) < len(list(self.model.parameters())):
-            for iter_p, p in enumerate(self.model.parameters()):
-                # Skip the older parameters
-                if iter_p < len(self.alpha_params):
-                    continue
+        # update alpha-lr parameters
+        for n, p in self.model.named_parameters():
+            n = n.replace('.', '_')  # dict does not support names with '.'
+            if n in self.alpha_params:
+                if self.alpha_params[n].shape != p.shape:
+                    old_shape = self.alpha_params[n].shape
+                    # parameter expansion
+                    expanded = False
+                    assert len(p.shape) == len(old_shape), \
+                        "Expansion cannot add new dimensions"
+                    for i, (snew, sold) in enumerate(zip(p.shape, old_shape)):
+                        assert snew >= sold, "Shape cannot decrease."
+                        if snew > sold:
+                            assert not expanded, \
+                                "Expansion cannot occur " \
+                                "in more than one dimension."
+                            expanded = True
+                            exp_idx = i
+
+                    alpha_param = torch.ones(p.shape) * self.alpha_init
+                    idx = [slice(el) if i != exp_idx else
+                           slice(old_shape[exp_idx])
+                           for i, el in enumerate(p.shape)]
+                    alpha_param[idx] = self.alpha_params[n].detach().clone()
+                    alpha_param = nn.Parameter(alpha_param, requires_grad=True)
+                    self.alpha_params[n] = alpha_param
+            else:
                 # Add new alpha_lr for the new parameter
                 alpha_param = nn.Parameter(
                     torch.ones(p.shape) * self.alpha_init, requires_grad=True
                 )
-                self.alpha_params.append(alpha_param)
+                self.alpha_params[n] = alpha_param
 
             self.alpha_params.to(self.device)
             # Re-init optimizer for the new set of alpha_lr parameters

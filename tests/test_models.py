@@ -82,9 +82,9 @@ class PytorchcvWrapperTests(unittest.TestCase):
 
     def test_get_model(self):
         # Check general wrapper and whether downloading pretrained model works
-        model = get_model("simplepose_resnet18_coco", pretrained=True)
+        model = get_model("resnet10", pretrained=True)
         self.assertIsInstance(
-            model, pytorchcv.models.simplepose_coco.SimplePose
+            model, pytorchcv.models.resnet.ResNet
         )
 
 

@@ -653,20 +653,20 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
 
         # # MT scenario
-        # model, optimizer, criterion, benchmark = self.init_scenario(
-        #     multi_task=True)
-        # strategy = EWC(
-        #     model,
-        #     optimizer,
-        #     criterion,
-        #     ewc_lambda=0.4,
-        #     mode="online",
-        #     decay_factor=0.1,
-        #     train_mb_size=10,
-        #     eval_mb_size=50,
-        #     train_epochs=2,
-        # )
-        # self.run_strategy(benchmark, strategy)
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
+        strategy = EWC(
+            model,
+            optimizer,
+            criterion,
+            ewc_lambda=0.4,
+            mode="online",
+            decay_factor=0.1,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        self.run_strategy(benchmark, strategy)
 
     def test_rwalk(self):
         # SIT scenario
@@ -691,24 +691,24 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
 
         # # MT scenario
-        # model, optimizer, criterion, benchmark = self.init_scenario(
-        #     multi_task=True)
-        # strategy = Naive(
-        #     model,
-        #     optimizer,
-        #     criterion,
-        #     train_mb_size=10,
-        #     eval_mb_size=50,
-        #     train_epochs=2,
-        #     plugins=[
-        #         RWalkPlugin(
-        #             ewc_lambda=0.1,
-        #             ewc_alpha=0.9,
-        #             delta_t=10,
-        #         ),
-        #     ],
-        # )
-        # self.run_strategy(benchmark, strategy)
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=[
+                RWalkPlugin(
+                    ewc_lambda=0.1,
+                    ewc_alpha=0.9,
+                    delta_t=10,
+                ),
+            ],
+        )
+        self.run_strategy(benchmark, strategy)
 
     def test_synaptic_intelligence(self):
         # SIT scenario
@@ -727,18 +727,18 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
 
         # MT scenario
-        # model, optimizer, criterion, benchmark = self.init_scenario(
-        #     multi_task=True)
-        # strategy = SynapticIntelligence(
-        #     model,
-        #     optimizer,
-        #     criterion,
-        #     si_lambda=0.0001,
-        #     train_epochs=1,
-        #     train_mb_size=10,
-        #     eval_mb_size=10,
-        # )
-        # self.run_strategy(benchmark, strategy)
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=True)
+        strategy = SynapticIntelligence(
+            model,
+            optimizer,
+            criterion,
+            si_lambda=0.0001,
+            train_epochs=1,
+            train_mb_size=10,
+            eval_mb_size=10,
+        )
+        self.run_strategy(benchmark, strategy)
 
     def test_cope(self):
         # Fast benchmark (hardcoded)

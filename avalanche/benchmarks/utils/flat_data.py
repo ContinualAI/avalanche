@@ -81,8 +81,7 @@ class FlatData(IDataset):
             else:
                 self_indices = self._get_indices()
                 new_indices = [self_indices[x] for x in indices]
-            return self.__class__(datasets=self._datasets,
-                                  indices=new_indices)
+            return self.__class__(datasets=self._datasets, indices=new_indices)
         return self.__class__(datasets=[self], indices=indices)
 
     def concat(self, other: "FlatData") -> "FlatData":
@@ -171,7 +170,7 @@ class FlatData(IDataset):
                 idx = idx
             else:
                 idx = idx - self._cumulative_sizes[dataset_idx - 1]
-        return dataset_idx, idx
+        return dataset_idx, int(idx)
 
     def __getitem__(self, idx):
         dataset_idx, idx = self._get_idx(idx)
@@ -311,7 +310,7 @@ def _flatdata_print(dataset, indent=0):
         print(
             "\t" * indent
             + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},"
-              f"cat={cc},cf={cf})"
+            f"cat={cc},cf={cf})"
         )
         for dd in dataset._datasets:
             _flatdata_print(dd, indent + 1)
