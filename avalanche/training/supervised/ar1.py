@@ -44,6 +44,7 @@ class AR1(SupervisedTemplate):
         self,
         criterion=None,
         lr: float = 0.001,
+        inc_lr: float = 5e-5,
         momentum=0.9,
         l2=0.0005,
         train_epochs: int = 4,
@@ -53,7 +54,7 @@ class AR1(SupervisedTemplate):
         max_d_max=0.5,
         inc_step=4.1e-05,
         rm_sz: int = 1500,
-        freeze_below_layer: str = "lat_features.19.bn.beta",
+        freeze_below_layer: str = "lat_features.19.bn",
         latent_layer_num: int = 19,
         ewc_lambda: float = 0,
         train_mb_size: int = 128,
@@ -68,7 +69,8 @@ class AR1(SupervisedTemplate):
 
         :param criterion: The loss criterion to use. Defaults to None, in which
             case the cross entropy loss is used.
-        :param lr: The learning rate (SGD optimizer).
+        :param lr: The initial learning rate (SGD optimizer).
+        :param inc_lr: The incremental learning rate (SGD optimizer).
         :param momentum: The momentum (SGD optimizer).
         :param l2: The L2 penalty used for weight decay.
         :param train_epochs: The number of training epochs. Defaults to 4.
@@ -151,6 +153,7 @@ class AR1(SupervisedTemplate):
         self.max_r_max = max_r_max
         self.max_d_max = max_d_max
         self.lr = lr
+        self.inc_lr = inc_lr
         self.momentum = momentum
         self.l2 = l2
         self.rm = None
@@ -204,7 +207,7 @@ class AR1(SupervisedTemplate):
             self.model = self.model.to(self.device)
             self.optimizer = SGD(
                 self.model.parameters(),
-                lr=self.lr,
+                lr=self.inc_lr,
                 momentum=self.momentum,
                 weight_decay=self.l2,
             )
