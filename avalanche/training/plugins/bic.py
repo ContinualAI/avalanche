@@ -14,6 +14,7 @@ from avalanche.training.storage_policy import (
     ExperienceBalancedBuffer,
     ReservoirSamplingBuffer,
 )
+from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models.bic_model import BiasLayer
 
 if TYPE_CHECKING:
@@ -107,9 +108,8 @@ class BiCPlugin(SupervisedPlugin):
         return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
     def before_training(self, strategy: "SupervisedTemplate", *args, **kwargs):
-        if strategy.model:
-            assert False, "BiC only supported for Class Incremetnal Learning \
-                            (single head)"
+        assert not isinstance(strategy.model, MultiTaskModule), \
+               "BiC only supported for Class Incremetnal Learning (single head)"
 
     def before_train_dataset_adaptation(
         self, 
