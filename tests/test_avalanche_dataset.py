@@ -56,6 +56,17 @@ class FrozenTransformGroupsCenterCrop:
 
 
 class AvalancheDatasetTests(unittest.TestCase):
+
+    def test_avalanche_dataset_creation_without_list(self):
+        dataset_mnist = load_image_benchmark()
+        dataset = AvalancheDataset(dataset_mnist)
+        self.assertIsInstance(dataset, AvalancheDataset)
+        self.assertEqual(len(dataset_mnist), len(dataset))
+
+        dataset = AvalancheDataset(dataset)
+        self.assertIsInstance(dataset, AvalancheDataset)
+        self.assertEqual(len(dataset_mnist), len(dataset))
+
     def test_disallowed_attribute_name(self):
         d_sz = 3
         xdata = torch.rand(d_sz, 2)
