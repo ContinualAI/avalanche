@@ -2,7 +2,9 @@ import warnings
 from copy import copy
 from collections import defaultdict
 from typing import Union, Sequence, TYPE_CHECKING
+from typing_extensions import Literal
 
+from avalanche.distributed import DistributedHelper
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
@@ -31,7 +33,9 @@ class EvaluationPlugin:
     def __init__(
         self,
         *metrics: Union["PluginMetric", Sequence["PluginMetric"]],
-        loggers: Union["BaseLogger", Sequence["BaseLogger"]] = None,
+        loggers: Union["BaseLogger",
+                       Sequence["BaseLogger"],
+                       Literal['default']] = 'default',
         collect_all=True,
         strict_checks=False
     ):
@@ -57,14 +61,16 @@ class EvaluationPlugin:
                 flat_metrics_list.append(metric)
         self.metrics = flat_metrics_list
 
-        if loggers is None:
+        if loggers == 'default':
+            loggers = make_default_loggers()
+        elif loggers is None:
             loggers = []
         elif not isinstance(loggers, Sequence):
             loggers = [loggers]
 
         self.loggers: Sequence["BaseLogger"] = loggers
 
-        if len(self.loggers) == 0:
+        if len(self.loggers) == 0 and DistributedHelper.is_main_process:
             warnings.warn("No loggers specified, metrics will not be logged")
 
         if self.collect_all:
@@ -200,12 +206,19 @@ class EvaluationPlugin:
 
 def default_evaluator():
     return EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=False, epoch=True, experience=True, stream=True
-        ),
-        loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-        loggers=[InteractiveLogger()],
+        accuracy_metrics(minibatch=False, epoch=True,
+                         experience=True, stream=True),
+        loss_metrics(minibatch=False, epoch=True,
+                     experience=True, stream=True),
+        loggers='default'
     )
+
+
+def make_default_loggers():
+    if DistributedHelper.is_main_process:
+        return [InteractiveLogger()]
+    else:
+        return []
 
 
 __all__ = ["EvaluationPlugin", "default_evaluator"]

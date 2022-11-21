@@ -6,6 +6,10 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
+from avalanche.distributed import DistributedHelper
+from avalanche.distributed.strategies import \
+    DistributedMiniBatchStrategySupport, DistributedLossStrategySupport
+from avalanche.benchmarks import ClassificationExperience
 from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BaseSGDPlugin
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin

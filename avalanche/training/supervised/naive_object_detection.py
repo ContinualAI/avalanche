@@ -192,19 +192,21 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         Beware that the loss can only be obtained for the training phase as no
         loss dictionary is returned when evaluating.
         """
-        if self.is_training:
-            return sum(loss for loss in self.detection_loss_dict.values())
-        else:
-            # eval does not compute the loss directly.
-            # Metrics will use self.mb_output and self.detection_predictions
-            # to compute AP, AR, ...
-            self.detection_predictions = {
-                target["image_id"].item(): output
-                for target, output in zip(self.mb_y, self.mb_output)
-            }
-            return torch.zeros((1,))
+        with self.local_mb_output():
+            with self.local_mbatch():
+                if self.is_training:
+                    return sum(
+                        loss for loss in self.detection_loss_dict.values())
+                else:
+                    # eval does not compute the loss directly.
+                    # Metrics will use self.mb_output and
+                    # self.detection_predictions to compute AP, AR, ...
+                    self.detection_predictions = \
+                        {target["image_id"].item(): output
+                         for target, output in zip(self.mb_y, self.mb_output)}
+                    return torch.zeros((1,))
 
-    def forward(self):
+    def _forward(self):
         """
         Compute the model's output given the current mini-batch.
 
@@ -231,7 +233,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         self.mbatch[0] = images
         self.mbatch[1] = targets
 
-    def backward(self):
+    def _backward(self):
         if self.scaler is not None:
             self.scaler.scale(self.loss).backward()
         else:

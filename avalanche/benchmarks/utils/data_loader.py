@@ -15,10 +15,10 @@
     between the current data and the replay memory.
 """
 from itertools import chain
-from typing import Dict, Sequence, Union
+from typing import Dict, Sequence, Union, Any
 
 import torch
-from torch.utils.data import RandomSampler, DistributedSampler
+from torch.utils.data import RandomSampler, DistributedSampler, Dataset
 from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks.utils import make_classification_dataset
@@ -31,6 +31,7 @@ from avalanche.benchmarks.utils.collate_functions import (
 from avalanche.benchmarks.utils.collate_functions import (
     detection_collate_mbatches_fn as _detection_collate_mbatches_fn,
 )
+from avalanche.distributed import DistributedHelper
 
 _default_collate_mbatches_fn = classification_collate_mbatches_fn
 
@@ -274,14 +275,14 @@ class GroupBalancedInfiniteDataLoader:
         self.collate_mbatches = collate_mbatches
 
         for data in self.datasets:
-            if _DistributedHelper.is_distributed and distributed_sampling:
+            if DistributedHelper.is_distributed and distributed_sampling:
                 seed = torch.randint(
                     0,
-                    2 ** 32 - 1 - _DistributedHelper.world_size,
+                    2 ** 32 - 1 - DistributedHelper.world_size,
                     (1,),
                     dtype=torch.int64,
                 )
-                seed += _DistributedHelper.rank
+                seed += DistributedHelper.rank
                 generator = torch.Generator()
                 generator.manual_seed(int(seed))
             else:
@@ -597,11 +598,11 @@ class ReplayDataLoader:
 
 
 def _make_data_loader(
-    dataset,
-    distributed_sampling,
-    data_loader_args,
-    batch_size,
-    force_no_workers=False,
+    dataset: Dataset,
+    distributed_sampling: bool,
+    data_loader_args: Dict[str, Any],
+    batch_size: int,
+    force_no_workers=False
 ):
     data_loader_args = data_loader_args.copy()
 
@@ -612,7 +613,7 @@ def _make_data_loader(
         if 'persistent_workers' in data_loader_args:
             data_loader_args['persistent_workers'] = False
 
-    if _DistributedHelper.is_distributed and distributed_sampling:
+    if DistributedHelper.is_distributed and distributed_sampling:
         sampler = DistributedSampler(
             dataset,
             shuffle=data_loader_args.pop("shuffle", False),
@@ -628,15 +629,6 @@ def _make_data_loader(
         )
 
     return data_loader, sampler
-
-
-class __DistributedHelperPlaceholder:
-    is_distributed = False
-    world_size = 1
-    rank = 0
-
-
-_DistributedHelper = __DistributedHelperPlaceholder()
 
 
 __all__ = [
