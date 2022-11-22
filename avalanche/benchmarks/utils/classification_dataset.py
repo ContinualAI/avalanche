@@ -110,6 +110,9 @@ class ClassificationDataset(AvalancheDataset, _ClassificationAttributesMixin):
         data = super().concat(other)
         return data.with_transforms(self._transform_groups.current_group)
 
+    def __hash__(self):
+        return id(self)
+
 
 def make_classification_dataset(
     dataset: SupportedDataset,
@@ -473,6 +476,15 @@ def classification_subset(
     if targets is not None:
         das.append(targets)
     if task_labels is not None:
+        # special treatment for task labels for backward compatibility
+        # if len(task_labels) != len(dataset):
+        #     pass
+        # else:
+        #     self._data_attributes[da.name] = da.subset(self._indices)
+        #
+        #     dasub = da.subset(indices)
+        #     self._data_attributes[da.name] = dasub
+
         das.append(task_labels)
     if len(das) == 0:
         das = None

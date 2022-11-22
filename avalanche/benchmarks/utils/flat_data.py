@@ -12,6 +12,7 @@
     Datasets with optimized concat/subset operations.
 """
 import bisect
+import collections
 from typing import List
 
 from torch.utils.data import ConcatDataset
@@ -58,7 +59,17 @@ class FlatData(IDataset):
 
         if can_flatten:
             self._datasets = _flatten_dataset_list(self._datasets)
+            self._datasets, self._indices = _flatten_datasets_and_reindex(
+                self._datasets, self._indices)
         self._cumulative_sizes = ConcatDataset.cumsum(self._datasets)
+
+        # NOTE: check disabled to avoid slowing down OCL scenarios
+        # # check indices
+        # if self._indices is not None and len(self) > 0:
+        #     assert min(self._indices) >= 0
+        #     assert max(self._indices) < self._cumulative_sizes[-1], \
+        #         f"Max index {max(self._indices)} is greater than datasets " \
+        #         f"list size {self._cumulative_sizes[-1]}"
 
     def _get_indices(self):
         """This method creates indices on-the-fly if self._indices=None.
@@ -189,6 +200,9 @@ class FlatData(IDataset):
     def __radd__(self, other: "FlatData") -> "FlatData":
         return other.concat(self)
 
+    def __hash__(self):
+        return id(self)
+
 
 class ConstantSequence:
     """A memory-efficient constant sequence."""
@@ -239,9 +253,12 @@ class ConstantSequence:
             f"ConstantSequence(value={self._constant_value}, len={self._size}"
         )
 
+    def __hash__(self):
+        return id(self)
+
 
 def _flatten_dataset_list(datasets: List[FlatData]):
-    """Flatten dataset tree if possible."""
+    """Flatten the dataset tree if possible."""
     # Concat -> Concat branch
     # Flattens by borrowing the list of concatenated datasets
     # from the original datasets.
@@ -271,6 +288,51 @@ def _flatten_dataset_list(datasets: List[FlatData]):
         else:
             new_data_list.append(dataset)
     return new_data_list
+
+
+def _flatten_datasets_and_reindex(datasets, indices):
+    """The same dataset may occurr multiple times in the list of datasets.
+
+    Here, we flatten the list of datasets and fix the indices to account for
+    the new dataset position in the list.
+    """
+    # find unique datasets
+    if not all(isinstance(d, collections.Hashable) for d in datasets):
+        return datasets, indices
+
+    dset_uniques = set(datasets)
+    if len(dset_uniques) == datasets:  # no duplicates. Nothing to do.
+        return datasets, indices
+
+    # split the indices into <dataset-id, sample-id> pairs
+    cumulative_sizes = [0] + ConcatDataset.cumsum(datasets)
+    data_sample_pairs = []
+    if indices is None:
+        for ii, dset in enumerate(datasets):
+            data_sample_pairs.extend([(ii, jj) for jj in range(len(dset))])
+    else:
+        for idx in indices:
+            d_idx = bisect.bisect_right(cumulative_sizes, idx) - 1
+            s_idx = idx - cumulative_sizes[d_idx]
+            data_sample_pairs.append((d_idx, s_idx))
+
+    # assign a new position in the list to each unique dataset
+    new_datasets = list(dset_uniques)
+    new_dpos = {d: i for i, d in enumerate(new_datasets)}
+    new_cumsizes = [0] + ConcatDataset.cumsum(new_datasets)
+    # reindex the indices to account for the new dataset position
+    new_indices = []
+    for d_idx, s_idx in data_sample_pairs:
+        new_d_idx = new_dpos[datasets[d_idx]]
+        new_indices.append(new_cumsizes[new_d_idx] + s_idx)
+
+    # NOTE: check disabled to avoid slowing down OCL scenarios
+    # if len(new_indices) > 0 and new_cumsizes[-1] > 0:
+    #     assert min(new_indices) >= 0
+    #     assert max(new_indices) < new_cumsizes[-1], \
+    #         f"Max index {max(new_indices)} is greater than datasets " \
+    #         f"list size {new_cumsizes[-1]}"
+    return new_datasets, new_indices
 
 
 def _maybe_merge_subsets(d1: FlatData, d2: FlatData):

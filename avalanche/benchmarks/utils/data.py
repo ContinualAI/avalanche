@@ -194,13 +194,16 @@ class AvalancheDataset(FlatData):
             for da in self._data_attributes.values():
                 # TODO: this was the old behavior. How do we know what to do if
                 # we permute the entire dataset?
-                if len(da) != sum([len(d) for d in datasets]):
-                    self._data_attributes[da.name] = da
-                else:
-                    self._data_attributes[da.name] = da.subset(self._indices)
-
-                    dasub = da.subset(indices)
-                    self._data_attributes[da.name] = dasub
+                # DEPRECATED! always subset attributes
+                # if len(da) != sum([len(d) for d in datasets]):
+                #     self._data_attributes[da.name] = da
+                # else:
+                #     self._data_attributes[da.name] = da.subset(self._indices)
+                #
+                #     dasub = da.subset(indices)
+                #     self._data_attributes[da.name] = dasub
+                dasub = da.subset(self._indices)
+                self._data_attributes[da.name] = dasub
 
         # set attributes dynamically
         for el in self._data_attributes.values():
