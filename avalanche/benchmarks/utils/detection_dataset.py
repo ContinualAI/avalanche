@@ -10,33 +10,15 @@
 ################################################################################
 
 """
-This module contains the implementation of the ``ClassificationDataset``,
+This module contains the implementation of the ``DetectionDataset``,
 which is the dataset used for supervised continual learning benchmarks.
-ClassificationDatasets are ``AvalancheDatasets`` that manage class and task
+DetectionDatasets are ``AvalancheDatasets`` that manage targets and task
 labels automatically. Concatenation and subsampling operations are optimized
 to be used frequently, as is common in replay strategies.
 """
 import warnings
 from collections import defaultdict, deque
-
-import torch
-from torch.utils.data import Dataset
-from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
-
-from .collate_functions import ClassificationCollate
-from .data import make_avalanche_dataset, AvalancheDataset
-from .transform_groups import TransformGroups, DefaultTransformGroups
-from .data_attribute import DataAttribute
-from .dataset_utils import (
-    SubSequence,
-    find_list_from_index,
-)
-from .flat_data import ConstantSequence
-from .dataset_definitions import (
-    ITensorDataset,
-    IDatasetWithTargets,
-)
-
+from functools import partial
 from typing import (
     List,
     Any,
@@ -47,14 +29,29 @@ from typing import (
     Callable,
     Dict,
     Tuple,
-    Mapping,
-)
+    Mapping, )
 
+import torch
+from torch import Tensor
+from torch.utils.data import Dataset
+from torch.utils.data.dataset import Subset, ConcatDataset
 from typing_extensions import Protocol
+
+from .collate_functions import DetectionCollate
+from .data import AvalancheDataset
+from .data_attribute import DataAttribute
+from .dataset_definitions import (
+    IDatasetWithTargets, )
+from .dataset_utils import (
+    SubSequence,
+    find_list_from_index,
+)
+from .flat_data import ConstantSequence
+from .transform_groups import TransformGroups, DefaultTransformGroups
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
-TTargetType = Union[int]
+TTargetType = Dict[str, Tensor]
 
 
 # Info: https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols
@@ -78,31 +75,37 @@ YTransform = Optional[YTransformDef]
 TransformGroupDef = Union[None, XTransform, Tuple[XTransform, YTransform]]
 
 
-SupportedDataset = Union[
+SupportedDetectionDataset = Union[
     IDatasetWithTargets,
-    ITensorDataset,
     Subset,
     ConcatDataset,
 ]
 
+DetectionExampleT = Tuple[Tensor, TTargetType, int]  # Image (tensor), target dict, task label
 
-class _ClassificationAttributesMixin:
+
+class DetectionDataset(AvalancheDataset, IDatasetWithTargets[DetectionExampleT, TTargetType]):
     def __init__(self, *args, **kwargs):
+        # Here defined only to provide type hinting
+        self.targets_task_labels: DataAttribute[int] = DataAttribute(
+            [],
+            name='targets_task_labels',
+            use_in_getitem=True
+        )
+        self.targets: DataAttribute[Dict[str, Tensor]] = DataAttribute(
+            [],
+            name='targets',
+            use_in_getitem=False
+        )
+
+        del self.targets_task_labels
+        del self.targets
+
         super().__init__(*args, **kwargs)
 
-    @property
-    def task_pattern_indices(self):
-        """A dictionary mapping task ids to their sample indices."""
-        return self.targets_task_labels.val_to_idx
+        assert hasattr(self, 'targets_task_labels')
+        assert hasattr(self, 'targets')
 
-    @property
-    def task_set(self):
-        """Returns the datasets's ``TaskSet``, which is a mapping <task-id,
-        task-dataset>."""
-        return TaskSet(self)
-
-
-class ClassificationDataset(AvalancheDataset, _ClassificationAttributesMixin):
     def subset(self, indices):
         data = super().subset(indices)
         return data.with_transforms(self._transform_groups.current_group)
@@ -111,9 +114,20 @@ class ClassificationDataset(AvalancheDataset, _ClassificationAttributesMixin):
         data = super().concat(other)
         return data.with_transforms(self._transform_groups.current_group)
 
+    @property
+    def task_pattern_indices(self):
+        """A dictionary mapping task ids to their sample indices."""
+        return self.targets_task_labels.val_to_idx
 
-def make_classification_dataset(
-    dataset: SupportedDataset,
+    @property
+    def task_set(self):
+        """Returns the dataset's ``TaskSet``, which is a mapping <task-id,
+        task-dataset>."""
+        return DetectionTaskSet(self)
+
+
+def make_detection_dataset(
+    dataset: SupportedDetectionDataset,
     *,
     transform: XTransform = None,
     target_transform: YTransform = None,
@@ -123,14 +137,14 @@ def make_classification_dataset(
     targets: Sequence[TTargetType] = None,
     collate_fn: Callable[[List], Any] = None
 ):
-    """Avalanche Classification Dataset.
+    """Avalanche Detection Dataset.
 
     Supervised continual learning benchmarks in Avalanche return instances of
     this dataset, but it can also be used in a completely standalone manner.
 
     This dataset applies input/target transformations, it supports
     slicing and advanced indexing and it also contains useful fields as
-    `targets`, which contains the pattern labels, and `targets_task_labels`,
+    `targets`, which contains the pattern dictionaries, and `targets_task_labels`,
     which contains the pattern task labels. The `task_set` field can be used to
     obtain a the subset of patterns labeled with a given task label.
 
@@ -189,15 +203,14 @@ def make_classification_dataset(
         the dataset will try to obtain the task labels from the original
         dataset. If no task labels could be found, a default task label
         0 will be applied to all instances.
-    :param targets: The label of each pattern. Defaults to None, which
-        means that the targets will be retrieved from the dataset (if
-        possible).
+    :param targets: The dictionary of detection boxes of each pattern.
+        Defaults to None, which means that the targets will be retrieved from
+        the dataset (if possible).
     :param collate_fn: The function to use when slicing to merge single
-        patterns.This function is the function
-        used in the data loading process, too. If None
-        the constructor will check if a
+        patterns. This function is the function used in the data loading
+        process, too. If None, the constructor will check if a
         `collate_fn` field exists in the dataset. If no such field exists,
-        the default collate function will be used.
+        the default collate function for detection will be used.
     """
     transform_gs = _init_transform_groups(
         transform_groups,
@@ -218,9 +231,9 @@ def make_classification_dataset(
         das = None
 
     if collate_fn is None:
-        collate_fn = getattr(dataset, 'collate_fn', ClassificationCollate())
+        collate_fn = getattr(dataset, 'collate_fn', DetectionCollate())
 
-    data = ClassificationDataset(
+    data = DetectionDataset(
         [dataset],
         data_attributes=das,
         transform_groups=transform_gs,
@@ -254,7 +267,7 @@ def _init_transform_groups(
         # Detect from the input dataset. If not an AvalancheDataset then
         # use 'train' as the initial transform group
         if (
-            isinstance(dataset, ClassificationDataset)
+            isinstance(dataset, DetectionDataset)
             and dataset._transform_groups is not None
         ):
             initial_transform_group = dataset._transform_groups.current_group
@@ -302,9 +315,7 @@ def _check_groups_dict_format(groups_dict):
 def _init_targets(dataset, targets, check_shape=True):
     if targets is not None:
         # User defined targets always take precedence
-        if isinstance(targets, int):
-            targets = ConstantSequence(targets, len(dataset))
-        elif len(targets) != len(dataset) and check_shape:
+        if len(targets) != len(dataset) and check_shape:
             raise ValueError(
                 "Invalid amount of target labels. It must be equal to the "
                 "number of patterns in the dataset. Got {}, expected "
@@ -312,12 +323,10 @@ def _init_targets(dataset, targets, check_shape=True):
             )
         return DataAttribute(targets, "targets")
 
-    if isinstance(dataset, ClassificationDataset):
+    if isinstance(dataset, DetectionDataset):
         return None  # targets are initialized automatically
     else:
         targets = _traverse_supported_dataset(dataset, _select_targets)
-        if isinstance(targets, torch.Tensor):
-            targets = targets.tolist()
 
     if targets is None:
         return None
@@ -338,7 +347,7 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
             )
         tls = SubSequence(task_labels, converter=int)
     else:
-        if isinstance(dataset, ClassificationDataset):
+        if isinstance(dataset, DetectionDataset):
             tls = None
         else:
             task_labels = _traverse_supported_dataset(
@@ -351,8 +360,24 @@ def _init_task_labels(dataset, task_labels, check_shape=True):
     return DataAttribute(tls, "targets_task_labels", use_in_getitem=True)
 
 
-def classification_subset(
-    dataset: SupportedDataset,
+def _detection_class_mapping_transform(class_mapping, example_target_dict):
+    example_target_dict = dict(example_target_dict)
+
+    # example_target_dict["labels"] is a tensor containing one label
+    # for each bounding box in the image. We need to remap each of them
+    example_target_labels = example_target_dict["labels"]
+    example_mapped_labels = [class_mapping[int(el)] for el in example_target_labels]
+
+    if isinstance(example_target_labels, Tensor):
+        example_mapped_labels = torch.as_tensor(example_mapped_labels)
+
+    example_target_dict["labels"] = example_mapped_labels
+
+    return example_target_dict
+
+
+def detection_subset(
+    dataset: SupportedDetectionDataset,
     indices: Sequence[int] = None,
     *,
     class_mapping: Sequence[int] = None,
@@ -379,10 +404,8 @@ def classification_subset(
     :param dataset: The whole dataset.
     :param indices: Indices in the whole set selected for subset. Can
         be None, which means that the whole dataset will be returned.
-    :param class_mapping: A list that, for each possible target (Y) value,
+    :param class_mapping: A list that, for each possible class label value,
         contains its corresponding remapped value. Can be None.
-        Beware that setting this parameter will force the final
-        dataset type to be CLASSIFICATION or UNDEFINED.
     :param transform: A function/transform that takes the X value of a
         pattern from the original dataset and returns a transformed version.
     :param target_transform: A function/transform that takes in the target
@@ -416,22 +439,21 @@ def classification_subset(
         obtain the task labels from the original dataset. If no task labels
         could be found, a default task label 0 will be applied to all
         instances.
-    :param targets: The label of each pattern. Defaults to None, which
-        means that the targets will be retrieved from the dataset (if
-        possible). This can either be a list of target labels for the
-        original dataset or the list of target labels for the instances of
-        the subset (an automatic detection will be made). In the unfortunate
-        case in which the original dataset and the subset contain the same
-        amount of instances, then this parameter is considered to contain
-        the target labels of the subset.
+    :param targets: The target dictionary of each pattern. Defaults to None,
+        which means that the targets will be retrieved from the dataset (if
+        possible). This can either be a list of target dictionaries for the
+        original dataset or the list of target dictionaries for the instances
+        of the subset (an automatic detection will be made). In the
+        unfortunate case in which the original dataset and the subset contain
+        the same amount of instances, then this parameter is considered to
+        contain the target dictionaries of the subset.
     :param collate_fn: The function to use when slicing to merge single
-        patterns. This function is the function
-        used in the data loading process, too. If None,
-        the constructor will check if a
+        patterns. This function is the function used in the data loading
+        process, too. If None, the constructor will check if a
         `collate_fn` field exists in the dataset. If no such field exists,
-        the default collate function will be used.
+        the default collate function for detection will be used
     """
-    if isinstance(dataset, ClassificationDataset):
+    if isinstance(dataset, DetectionDataset):
         if (
             class_mapping is None
             and transform is None
@@ -460,15 +482,19 @@ def classification_subset(
         dataset = dataset.with_transforms(initial_transform_group)
 
     if class_mapping is not None:  # update targets
+
         if targets is None:
-            tgs = [class_mapping[el] for el in dataset.targets]
-        else:
-            tgs = [class_mapping[el] for el in targets]
+            targets = dataset.targets
+
+        tgs = [_detection_class_mapping_transform(class_mapping, example_target_dict)
+               for example_target_dict in targets]
+
         targets = DataAttribute(tgs, "targets")
 
     if class_mapping is not None:
+        mapping_fn = partial(_detection_class_mapping_transform, class_mapping)
         frozen_transform_groups = DefaultTransformGroups(
-            (None, lambda x: class_mapping[x])
+            (None, mapping_fn)
         )
     else:
         frozen_transform_groups = None
@@ -481,7 +507,10 @@ def classification_subset(
     if len(das) == 0:
         das = None
 
-    return ClassificationDataset(
+    if collate_fn is None:
+        collate_fn = DetectionCollate()
+
+    return DetectionDataset(
         [dataset],
         indices=indices,
         data_attributes=das,
@@ -491,99 +520,8 @@ def classification_subset(
     )
 
 
-def make_tensor_classification_dataset(
-    *dataset_tensors: Sequence,
-    transform: Callable[[Any], Any] = None,
-    target_transform: Callable[[int], int] = None,
-    transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
-    initial_transform_group: str = "train",
-    task_labels: Union[int, Sequence[int]] = None,
-    targets: Union[Sequence[TTargetType], int] = None,
-    collate_fn: Callable[[List], Any] = None
-):
-    """Creates a ``AvalancheTensorDataset`` instance.
-
-    A Dataset that wraps existing ndarrays, Tensors, lists... to provide
-    basic Dataset functionalities. Very similar to TensorDataset from PyTorch,
-    this Dataset also supports transformations, slicing, advanced indexing,
-    the targets field and all the other goodies listed in
-    :class:`AvalancheDataset`.
-
-    :param dataset_tensors: Sequences, Tensors or ndarrays representing the
-        content of the dataset.
-    :param transform: A function/transform that takes in a single element
-        from the first tensor and returns a transformed version.
-    :param target_transform: A function/transform that takes a single
-        element of the second tensor and transforms it.
-    :param transform_groups: A dictionary containing the transform groups.
-        Transform groups are used to quickly switch between training and
-        eval (test) transformations. This becomes useful when in need to
-        test on the training dataset as test transformations usually don't
-        contain random augmentations. ``AvalancheDataset`` natively supports
-        the 'train' and 'eval' groups by calling the ``train()`` and
-        ``eval()`` methods. When using custom groups one can use the
-        ``with_transforms(group_name)`` method instead. Defaults to None,
-        which means that the current transforms will be used to
-        handle both 'train' and 'eval' groups (just like in standard
-        ``torchvision`` datasets).
-    :param initial_transform_group: The name of the transform group
-        to be used. Defaults to 'train'.
-    :param task_labels: The task labels for each pattern. Must be a sequence
-        of ints, one for each pattern in the dataset. Alternatively can be a
-        single int value, in which case that value will be used as the task
-        label for all the instances. Defaults to None, which means that a
-        default task label 0 will be applied to all patterns.
-    :param targets: The label of each pattern. Defaults to None, which
-        means that the targets will be retrieved from the second tensor of
-        the dataset. Otherwise, it can be a sequence of values containing
-        as many elements as the number of patterns.
-    :param collate_fn: The function to use when slicing to merge single
-        patterns. In the future this function may become the function
-        used in the data loading process, too.
-    """
-    if len(dataset_tensors) < 1:
-        raise ValueError("At least one sequence must be passed")
-
-    if targets is None:
-        targets = dataset_tensors[1]
-    elif isinstance(targets, int):
-        targets = dataset_tensors[targets]
-    dataset = _TensorClassificationDataset(*dataset_tensors)
-
-    transform_gs = _init_transform_groups(
-        transform_groups,
-        transform,
-        target_transform,
-        initial_transform_group,
-        dataset,
-    )
-    targets = _init_targets(dataset, targets)
-    task_labels = _init_task_labels(dataset, task_labels)
-
-    if initial_transform_group is not None and isinstance(
-        dataset, AvalancheDataset
-    ):
-        dataset = dataset.with_transforms(initial_transform_group)
-
-    return ClassificationDataset(
-        [dataset],
-        data_attributes=[targets, task_labels],
-        transform_groups=transform_gs,
-        collate_fn=collate_fn,
-    )
-
-
-class _TensorClassificationDataset(TensorDataset):
-    """we want class labels to be integers, not tensors."""
-
-    def __getitem__(self, item):
-        elem = list(super().__getitem__(item))
-        elem[1] = elem[1].item()
-        return tuple(elem)
-
-
-def concat_classification_datasets(
-    datasets: List[SupportedDataset],
+def concat_detection_datasets(
+    datasets: List[SupportedDetectionDataset],
     *,
     transform: Callable[[Any], Any] = None,
     target_transform: Callable[[int], int] = None,
@@ -650,10 +588,10 @@ def concat_classification_datasets(
         labels could be found for a dataset, a default task label 0 will
         be applied to all patterns of that dataset.
     :param collate_fn: The function to use when slicing to merge single
-        patterns. In the future this function may become the function
-        used in the data loading process, too. If None, the constructor
-        will check if a `collate_fn` field exists in the first dataset. If
-        no such field exists, the default collate function will be used.
+        patterns. This function is the function used in the data loading
+        process, too. If None, the constructor will check if a `collate_fn`
+        field exists in the first dataset. If no such field exists, the
+        default collate function for detection  will be used.
         Beware that the chosen collate function will be applied to all
         the concatenated datasets even if a different collate is defined
         in different datasets.
@@ -661,7 +599,7 @@ def concat_classification_datasets(
     dds = []
     for dd in datasets:
         if not isinstance(dd, AvalancheDataset):
-            dd = make_classification_dataset(
+            dd = make_detection_dataset(
                 dd,
                 transform=transform,
                 target_transform=target_transform,
@@ -683,7 +621,7 @@ def concat_classification_datasets(
         and len(datasets) > 0
     ):
         d0 = datasets[0]
-        if isinstance(d0, ClassificationDataset):
+        if isinstance(d0, DetectionDataset):
             for d1 in datasets[1:]:
                 d0 = d0.concat(d1)
             return d0
@@ -743,18 +681,16 @@ def concat_classification_datasets(
             )
 
         if targets is not None:  # User defined targets always take precedence
-            if isinstance(targets, int):
-                targets = ConstantSequence(targets, totlen)
-            elif len(targets) != totlen:
+            if len(targets) != totlen:
                 raise ValueError(
-                    "Invalid amount of target labels. It must be equal to the "
-                    "number of patterns in the dataset. Got {}, expected "
-                    "{}!".format(len(targets), totlen)
+                    "Invalid amount of target dictionaries. It must be "
+                    "equal to the number of patterns in the dataset. "
+                    "Got {}, expected {}!".format(len(targets), totlen)
                 )
             das.append(DataAttribute(targets, "targets"))
     if len(das) == 0:
         das = None
-    data = ClassificationDataset(
+    data = DetectionDataset(
         dds, transform_groups=transform_groups, data_attributes=das
     )
     return data.with_transforms(initial_transform_group)
@@ -764,19 +700,9 @@ def _select_targets(dataset, indices):
     if hasattr(dataset, "targets"):
         # Standard supported dataset
         found_targets = dataset.targets
-    elif hasattr(dataset, "tensors"):
-        # Support for PyTorch TensorDataset
-        if len(dataset.tensors) < 2:
-            raise ValueError(
-                "Tensor dataset has not enough tensors: "
-                "at least 2 are required."
-            )
-        found_targets = dataset.tensors[1]
     else:
         raise ValueError(
-            "Unsupported dataset: must have a valid targets field "
-            "or has to be a Tensor Dataset with at least 2 "
-            "Tensors"
+            "Unsupported dataset: must have a valid targets field"
         )
 
     if indices is not None:
@@ -879,10 +805,10 @@ def _traverse_supported_dataset(
     raise ValueError("Error: can't find the needed data in the given dataset")
 
 
-class TaskSet(Mapping):
+class DetectionTaskSet(Mapping):
     """A lazy mapping for <task-label -> task dataset>.
 
-    Given an `AvalancheClassificationDataset`, this class provides an
+    Given a `DetectionDataset`, this class provides an
     iterator that splits the data into task subsets, returning tuples
     `<task_id, task_dataset>`.
 
@@ -890,13 +816,13 @@ class TaskSet(Mapping):
 
     .. code-block:: python
 
-        tset = TaskSet(data)
+        tset = DetectionTaskSet(data)
         for tid, tdata in tset:
             print(f"task {tid} has {len(tdata)} examples.")
 
     """
 
-    def __init__(self, data: make_classification_dataset):
+    def __init__(self, data: DetectionDataset):
         """Constructor.
 
         :param data: original data
@@ -909,17 +835,17 @@ class TaskSet(Mapping):
 
     def __getitem__(self, task_label):
         tl_idx = self.data.targets_task_labels.val_to_idx[task_label]
-        return classification_subset(self.data, tl_idx)
+        return detection_subset(self.data, tl_idx)
 
     def __len__(self):
         return len(self.data.targets_task_labels.uniques)
 
 
 __all__ = [
-    "SupportedDataset",
-    "make_classification_dataset",
-    "classification_subset",
-    "make_tensor_classification_dataset",
-    "concat_classification_datasets",
-    "TaskSet",
+    "SupportedDetectionDataset",
+    "DetectionDataset",
+    "make_detection_dataset",
+    "detection_subset",
+    "concat_detection_datasets",
+    "DetectionTaskSet",
 ]

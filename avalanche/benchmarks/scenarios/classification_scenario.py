@@ -1,5 +1,6 @@
 import copy
 import re
+import warnings
 from abc import ABC
 from typing import (
     Generic,
@@ -18,10 +19,8 @@ from typing import (
     Mapping,
 )
 
-from typing_extensions import Protocol
-
-import warnings
 from torch.utils.data.dataset import Dataset
+from typing_extensions import Protocol
 
 from avalanche.benchmarks.scenarios.generic_definitions import (
     TCLExperience,
@@ -32,10 +31,7 @@ from avalanche.benchmarks.scenarios.generic_definitions import (
 from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )
-from avalanche.benchmarks.utils import make_classification_dataset
-from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
-)
+from avalanche.benchmarks.utils import make_classification_dataset, AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 TGenericCLClassificationScenario = TypeVar(
@@ -494,7 +490,7 @@ class GenericCLScenario(Generic[TCLExperience]):
                 # exp_data[0] must contain the generator
                 stream_length = exp_data[1]
             is_lazy = True
-        elif isinstance(exp_data, ClassificationDataset):
+        elif isinstance(exp_data, AvalancheDataset):
             # Single element
             exp_data = [exp_data]
             is_lazy = False
@@ -506,7 +502,7 @@ class GenericCLScenario(Generic[TCLExperience]):
 
         if not is_lazy:
             for i, dataset in enumerate(exp_data):
-                if not isinstance(dataset, ClassificationDataset):
+                if not isinstance(dataset, AvalancheDataset):
                     raise ValueError(
                         "All experience datasets must be subclasses of"
                         " AvalancheDataset"

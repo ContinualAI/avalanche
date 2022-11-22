@@ -34,7 +34,7 @@ T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 
 
-class AvalancheDataset(FlatData):
+class AvalancheDataset(FlatData[T_co]):
     """Avalanche Dataset.
 
     Avlanche dataset are pytorch-compatible Datasets with some additional
@@ -255,7 +255,7 @@ class AvalancheDataset(FlatData):
             element = self._transform_groups(element, group_name=group_name)
         return element
 
-    def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
+    def __getitem__(self, idx) -> T_co:
         elem = self._getitem_recursive_call(
             idx, self._transform_groups.current_group
         )

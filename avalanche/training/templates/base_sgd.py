@@ -1,28 +1,27 @@
-from typing import Iterable, Sequence, Optional, Union, List
-from pkg_resources import parse_version
+from typing import Iterable, Sequence, Optional, Union, List, final
 
 import torch
+from pkg_resources import parse_version
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 
+from avalanche.benchmarks import CLExperience, CLStream
+from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
+    collate_from_data_or_kwargs
+from avalanche.core import BaseSGDPlugin
 from avalanche.distributed import DistributedHelper
 from avalanche.distributed.strategies import \
     DistributedMiniBatchStrategySupport, DistributedLossStrategySupport
-from avalanche.benchmarks import ClassificationExperience
-from avalanche.benchmarks import CLExperience, CLStream
-from avalanche.core import BaseSGDPlugin
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.base import BaseTemplate, ExpSequence
-from avalanche.models.utils import avalanche_model_adaptation
-from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
-    collate_from_data_or_kwargs
 from avalanche.training.utils import trigger_plugins
 
 
-class BaseSGDTemplate(BaseTemplate):
+class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
+                      DistributedLossStrategySupport):
     """Base SGD class for continual learning skeletons.
 
     **Training loop**
@@ -165,12 +164,6 @@ class BaseSGDTemplate(BaseTemplate):
         super().eval(exp_list, **kwargs)
         return self.evaluator.get_last_metrics()
 
-    def _train_exp(
-        self, experience: CLExperience, eval_streams, **kwargs
-    ):
-        # Should be implemented in Observation Type
-        raise NotImplementedError()
-
     def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
@@ -199,8 +192,19 @@ class BaseSGDTemplate(BaseTemplate):
         # Should be implemented in Update Type
         raise NotADirectoryError()
 
+    @final
     def backward(self):
-        """Run the backward pass."""
+        """
+        Run the backward pass.
+        This method should not be overridden by child classes.
+        Consider overriding :meth:`_backward` instead.
+        """
+        with self.use_local_loss():
+            self._backward()
+            self.reset_distributed_loss()
+
+    def _backward(self):
+        """ Implementation of the backward pass. """
         self.loss.backward()
 
     def optimizer_step(self):
@@ -210,7 +214,7 @@ class BaseSGDTemplate(BaseTemplate):
     def eval_epoch(self, **kwargs):
         """Evaluation loop over the current `self.dataloader`."""
         for self.mbatch in self.dataloader:
-            self._unpack_minibatch()
+            self.unpack_minibatch()
             self._before_eval_iteration(**kwargs)
 
             self._before_eval_forward(**kwargs)
@@ -221,6 +225,12 @@ class BaseSGDTemplate(BaseTemplate):
             self._after_eval_iteration(**kwargs)
 
     # ==================================================================> NEW
+
+    def wrap_distributed_model(self, model):
+        """
+        Prepare a model for distributed training/eval.
+        """
+        return DistributedHelper.wrap_model(model)
 
     def check_model_and_optimizer(self):
         # Should be implemented in observation type
@@ -323,6 +333,9 @@ class BaseSGDTemplate(BaseTemplate):
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
             pinned memory before returning them. Defaults to True.
+        :param persistent_workers: If True, the data loader will not shut down
+            the worker processes after a dataset has been consumed once.
+            Please refer to PyTorch `DataLoader` class for more details.
         """
 
         other_dataloader_args = {}
@@ -364,11 +377,17 @@ class BaseSGDTemplate(BaseTemplate):
 
         collate_from_data_or_kwargs(self.adapted_dataset,
                                     other_dataloader_args)
+        sampler = None
+        if DistributedHelper.is_distributed:
+            sampler = DistributedSampler(
+                self.adapted_dataset, shuffle=False, drop_last=False)
+
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=self.eval_mb_size,
             pin_memory=pin_memory,
+            sampler=sampler,
             **other_dataloader_args
         )
 
@@ -376,6 +395,17 @@ class BaseSGDTemplate(BaseTemplate):
         """Initialize `self.adapted_dataset`."""
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.eval()
+
+    @final
+    def unpack_minibatch(self):
+        """
+        Move minibatch elements to device.
+        This method should not be overridden by child classes.
+        Consider overriding :meth:`_unpack_minibatch` instead.
+        """
+        with self.use_local_input_batch():
+            self._unpack_minibatch()
+            self.reset_distributed_mbatch()
 
     def _unpack_minibatch(self):
         """Move to device"""

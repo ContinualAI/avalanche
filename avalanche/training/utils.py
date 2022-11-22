@@ -421,6 +421,7 @@ class ParamData(object):
 
 
 __all__ = [
+    "trigger_plugins",
     "load_all_dataset",
     "zerolike_params_dict",
     "copy_params_dict",

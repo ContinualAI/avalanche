@@ -317,7 +317,7 @@ class OldBaseStrategy:
             if self._stop_training:
                 break
 
-            self._unpack_minibatch()
+            self.unpack_minibatch()
             trigger_plugins(self, "before_training_iteration")
 
             self.optimizer.zero_grad()
@@ -354,7 +354,7 @@ class OldBaseStrategy:
     def eval_epoch(self, **kwargs):
         """Evaluation loop over the current `self.dataloader`."""
         for self.mbatch in self.dataloader:
-            self._unpack_minibatch()
+            self.unpack_minibatch()
             trigger_plugins(self, "before_eval_iteration")
 
             trigger_plugins(self, "before_eval_forward")

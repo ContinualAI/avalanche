@@ -12,14 +12,17 @@
     Datasets with optimized concat/subset operations.
 """
 import bisect
-from typing import List
+from typing import List, TypeVar, Optional
 
 from torch.utils.data import ConcatDataset
 
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 
+FlatDataImplT = TypeVar('FlatDataImplT', bound='FlatData')
+DataT = TypeVar("DataT")
 
-class FlatData(IDataset):
+
+class FlatData(IDataset[DataT]):
     """FlatData is a dataset optimized for efficient repeated concatenation
     and subset operations.
 
@@ -42,9 +45,9 @@ class FlatData(IDataset):
 
     def __init__(
         self,
-        datasets: List[IDataset],
+        datasets: List[IDataset[DataT]],
         indices: List[int] = None,
-        can_flatten=True,
+        can_flatten: bool = True,
     ):
         """Constructor
 
@@ -69,13 +72,13 @@ class FlatData(IDataset):
         else:
             return list(range(len(self)))
 
-    def subset(self, indices: List[int]) -> "FlatData":
+    def subset(self: FlatDataImplT, indices: Optional[List[int]]) -> FlatDataImplT:
         """Subsampling operation.
 
         :param indices: indices of the new samples
         :return:
         """
-        if self._can_flatten:
+        if self._can_flatten and indices is not None:
             if self._indices is None:
                 new_indices = indices
             else:
@@ -84,7 +87,7 @@ class FlatData(IDataset):
             return self.__class__(datasets=self._datasets, indices=new_indices)
         return self.__class__(datasets=[self], indices=indices)
 
-    def concat(self, other: "FlatData") -> "FlatData":
+    def concat(self: FlatDataImplT, other: "FlatData") -> FlatDataImplT:
         """Concatenation operation.
 
         :param other: other dataset.
@@ -172,7 +175,7 @@ class FlatData(IDataset):
                 idx = idx - self._cumulative_sizes[dataset_idx - 1]
         return dataset_idx, int(idx)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> DataT:
         dataset_idx, idx = self._get_idx(idx)
         return self._datasets[dataset_idx][idx]
 
@@ -183,10 +186,10 @@ class FlatData(IDataset):
             return len(self._indices)
         return self._cumulative_sizes[-1]
 
-    def __add__(self, other: "FlatData") -> "FlatData":
+    def __add__(self, other: FlatDataImplT) -> FlatDataImplT:
         return self.concat(other)
 
-    def __radd__(self, other: "FlatData") -> "FlatData":
+    def __radd__(self, other: FlatDataImplT) -> FlatDataImplT:
         return other.concat(self)
 
 
@@ -240,7 +243,7 @@ class ConstantSequence:
         )
 
 
-def _flatten_dataset_list(datasets: List[FlatData]):
+def _flatten_dataset_list(datasets: List[IDataset[DataT]]) -> List[IDataset[DataT]]:
     """Flatten dataset tree if possible."""
     # Concat -> Concat branch
     # Flattens by borrowing the list of concatenated datasets
@@ -259,7 +262,7 @@ def _flatten_dataset_list(datasets: List[FlatData]):
             flattened_list.append(dataset)
 
     # merge consecutive Subsets if compatible
-    new_data_list = []
+    new_data_list: List[IDataset[DataT]] = []
     for dataset in flattened_list:
         if (
             isinstance(dataset, FlatData)

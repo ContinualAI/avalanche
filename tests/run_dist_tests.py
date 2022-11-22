@@ -38,6 +38,15 @@ def run_distributed_suites():
     success = True
     exited = False
 
+    use_gpu_in_tests = os.environ.get('USE_GPU', 0).lower() in ['1', 'true']
+    if use_gpu_in_tests:
+        print('Running tests using GPUs')
+        import torch
+        nproc_per_node = torch.cuda.device_count()
+    else:
+        print('Running tests using CPU only')
+        nproc_per_node = 4
+
     for case_name in cases_names:
         if exited:
             print('Exiting due to keyboard interrupt')
@@ -46,7 +55,7 @@ def run_distributed_suites():
         try:
             p = Popen(
                 ['python', '-m', 'torch.distributed.run', '--nnodes=1',
-                 '--nproc_per_node=4', '-m', 'unittest', case_name],
+                 f'--nproc_per_node={nproc_per_node}', '-m', 'unittest', case_name],
                 stdout=sys.stdout, stderr=sys.stderr)
             p.communicate()
         except KeyboardInterrupt:

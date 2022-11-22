@@ -26,7 +26,7 @@ class DistributedStrategySupport:
         Examples of distributed-critical fields are `model`, `mbatch`,
         `mb_output`, `loss`.
 
-        Beware that this is method will modify the behavior of getters of ALL
+        Beware that this method will modify the behavior of getters of ALL
         such properties. This may not be desirable. Use the field-specific
         `use_local_*` context managers to control the behavior of these
         fields in a finer way.

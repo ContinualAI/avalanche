@@ -55,6 +55,8 @@ jobs:
           python -m unittest discover tests &&
           echo "Running checkpointing tests..." &&
           bash ./tests/checkpointing/test_checkpointing.sh &&
+          echo "Running distributed training tests..." &&
+          python ./tests/run_dist_tests.py &&
           echo "While running unit tests, the following datasets were downloaded:" &&
           ls ~/.avalanche/data
           

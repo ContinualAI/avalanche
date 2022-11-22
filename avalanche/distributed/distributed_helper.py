@@ -1,11 +1,9 @@
 import os
-import random
+import pickle
 import warnings
-from collections import OrderedDict
 from io import BytesIO
-from typing import Optional, List, Tuple
+from typing import Optional, List
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch.distributed import init_process_group
@@ -13,9 +11,7 @@ from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel
 from typing_extensions import Literal
 
-from avalanche.benchmarks import GenericCLScenario
-
-import pickle
+from avalanche.distributed.distributed_consistency_verification import hash_tensor
 
 
 class _Singleton(type):
@@ -28,7 +24,7 @@ class _Singleton(type):
         return cls._instances[cls]
 
 
-class _RollingSeedContext(object):
+class RollingSeedContext(object):
     """
     Implement seed alignment by storing random number generators state.
 
@@ -38,20 +34,19 @@ class _RollingSeedContext(object):
       - change the global state of random number generators
     """
     def __init__(self):
-        self.generators_state = None
+        self.rng_manager_state = None
 
     def save_generators_state(self):
-        self.generators_state = dict()
-        for gen_name, gen_def in DistributedHelper.random_generators.items():
-            self.generators_state[gen_name] = gen_def['save_state']()
+        from avalanche.training.determinism.rng_manager import RNGManager
+        self.rng_manager_state = RNGManager.__getstate__()
 
     def load_generators_state(self):
-        for gen_name, gen_def in DistributedHelper.random_generators.items():
-            gen_def['load_state'](self.generators_state[gen_name])
+        from avalanche.training.determinism.rng_manager import RNGManager
+        self.rng_manager_state = RNGManager.__setstate__(self.rng_manager_state)
 
     def step_random_generators(self):
-        for gen_name, gen_def in DistributedHelper.random_generators.items():
-            gen_def['step']()
+        from avalanche.training.determinism.rng_manager import RNGManager
+        RNGManager.step_generators()
 
     def __enter__(self):
         self.save_generators_state()
@@ -61,11 +56,11 @@ class _RollingSeedContext(object):
         self.step_random_generators()
 
 
-class _BroadcastSeedContext(object):
+class BroadcastSeedContext(object):
     """
     Implement seed alignment by broadcasting a new seed from the main process.
 
-    This is usually slower than using :class:`_RollingSeedContext`.
+    This is usually slower than using :class:`RollingSeedContext`.
     """
     def __init__(self):
         pass
@@ -90,9 +85,9 @@ class _MainProcessFirstContext(object):
             seed_alignment: Literal["rolling", "broadcast"] = 'rolling',
             final_barrier: bool = False):
         if seed_alignment == 'rolling':
-            self._seed_aligner = _RollingSeedContext()
+            self._seed_aligner = RollingSeedContext()
         else:
-            self._seed_aligner = _BroadcastSeedContext()
+            self._seed_aligner = BroadcastSeedContext()
 
         self._final_barrier = final_barrier
 
@@ -117,34 +112,13 @@ class _DistributedHelperCls(object):
     __metaclass__ = _Singleton
 
     def __init__(self):
-        self.use_cuda = True
-
-        self.random_generators = OrderedDict()
-
-        self.register_random_generator('torch', {
-            'seed': torch.random.manual_seed,
-            'save_state': torch.random.get_rng_state,
-            'load_state': torch.random.set_rng_state,
-            'step': lambda: torch.rand(1)
-        })
-
-        self.register_random_generator('numpy', {
-            'seed': np.random.seed,
-            'save_state': np.random.get_state,
-            'load_state': np.random.set_state,
-            'step': lambda: np.random.rand(1)
-        })
-
-        self.register_random_generator('random', {
-            'seed': random.seed,
-            'save_state': random.getstate,
-            'load_state': random.setstate,
-            'step': random.random
-        })
+        self.use_cuda = False
 
     def init_distributed(self, random_seed, backend=None, use_cuda=True):
         if self.is_distributed:
             raise RuntimeError('Distributed API already initialized')
+
+        use_cuda = use_cuda and torch.cuda.is_available()
 
         if backend is None:
             if use_cuda:
@@ -166,7 +140,7 @@ class _DistributedHelperCls(object):
         self.set_random_seeds(random_seed)
         self.use_cuda = use_cuda
 
-        if use_cuda or backend == 'nccl':
+        if use_cuda or backend == 'nccl':  # TODO: remove in final release
             # https://github.com/pytorch/pytorch/issues/6351
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
@@ -180,7 +154,7 @@ class _DistributedHelperCls(object):
         else:
             device_id = 0
 
-        if self.use_cuda and torch.cuda.is_available():
+        if self.use_cuda:
             return device_id
 
         return -1
@@ -191,7 +165,7 @@ class _DistributedHelperCls(object):
         else:
             device_id = 0
 
-        if self.use_cuda and device_id >= 0 and torch.cuda.is_available():
+        if self.use_cuda and device_id >= 0:
             ref_device = torch.device(f'cuda:{device_id}')
             torch.cuda.set_device(ref_device)
         else:
@@ -220,16 +194,9 @@ class _DistributedHelperCls(object):
 
         return model
 
-    def register_random_generator(self, name: str, rng_def: dict):
-        if 'save_state' not in rng_def or \
-                'load_state' not in rng_def or 'step' not in rng_def:
-            raise ValueError('Invalid random number generator definition')
-
-        self.random_generators[name] = rng_def
-
     def set_random_seeds(self, random_seed):
-        for gen_name, gen_dict in self.random_generators.items():
-            gen_dict['seed'](random_seed)
+        from avalanche.training.determinism.rng_manager import RNGManager
+        RNGManager.set_random_seeds(random_seed)
 
     def align_seeds(self):
         if not self.is_distributed:
@@ -462,64 +429,6 @@ class _DistributedHelperCls(object):
         return self.backend == 'nccl'
 
 
-def hash_benchmark(benchmark: GenericCLScenario) -> str:
-    import hashlib
-    import io
-
-    hash_engine = hashlib.sha256()
-    for stream_name, stream in benchmark.streams.items():
-        hash_engine.update(stream_name.encode())
-        for experience in stream:
-            exp_dataset = experience.dataset
-            dataset_content = exp_dataset[:]
-            for tuple_elem in dataset_content:
-                # https://stackoverflow.com/a/63880190
-                buff = io.BytesIO()
-                torch.save(tuple_elem, buff)
-                buff.seek(0)
-                hash_engine.update(buff.read())
-    return hash_engine.hexdigest()
-
-
-def hash_minibatch(minibatch: Tuple[Tensor]) -> str:
-    import hashlib
-    import io
-
-    hash_engine = hashlib.sha256()
-    for tuple_elem in minibatch:
-        buff = io.BytesIO()
-        torch.save(tuple_elem, buff)
-        buff.seek(0)
-        hash_engine.update(buff.read())
-    return hash_engine.hexdigest()
-
-
-def hash_tensor(tensor: Tensor) -> str:
-    import hashlib
-    import io
-
-    hash_engine = hashlib.sha256()
-    buff = io.BytesIO()
-    torch.save(tensor, buff)
-    buff.seek(0)
-    hash_engine.update(buff.read())
-    return hash_engine.hexdigest()
-
-
-def hash_model(model: Module) -> str:
-    import hashlib
-    import io
-
-    hash_engine = hashlib.sha256()
-    for name, param in model.named_parameters():
-        hash_engine.update(name.encode())
-        buff = io.BytesIO()
-        torch.save(param, buff)
-        buff.seek(0)
-        hash_engine.update(buff.read())
-    return hash_engine.hexdigest()
-
-
 DistributedHelper = _DistributedHelperCls()
 
 
@@ -549,6 +458,8 @@ torch.distributed.distributed_c10d._unpickler = MappedUnpickler
 
 
 __all__ = [
+    'RollingSeedContext',
+    'BroadcastSeedContext',
     'DistributedHelper',
     '_DistributedHelperCls'
 ]

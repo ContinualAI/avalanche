@@ -1,3 +1,6 @@
+from typing import final
+
+from avalanche.distributed.strategies import DistributedMiniBatchStrategySupport, DistributedModelStrategySupport
 from avalanche.models import avalanche_forward
 
 
@@ -20,10 +23,23 @@ class SupervisedProblem:
 
     def criterion(self):
         """Loss function for supervised problems."""
-        return self._criterion(self.mb_output, self.mb_y)
+        with self.use_local_output_batch():  # Force self.mb_output to be from local batch
+            with self.use_local_input_batch():  # Force self.mb_y to be from local batch
 
+                return self._criterion(self.mb_output, self.mb_y)
+
+    @final
     def forward(self):
-        """Compute the model's output given the current mini-batch."""
+        """
+        Compute the model's output given the current mini-batch.
+        This method should not be overridden by child classes.
+        Consider overriding :meth:`_forward` instead.
+        """
+        with self.use_local_input_batch():
+            return self._forward()
+
+    def _forward(self):
+        """Implementation of the forward pass."""
         return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
 
     def _check_minibatch(self):

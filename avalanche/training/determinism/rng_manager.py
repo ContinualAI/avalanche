@@ -1,4 +1,3 @@
-import hashlib
 import random
 from collections import OrderedDict
 

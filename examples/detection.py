@@ -15,41 +15,29 @@ This example will use a toy benchmark based on the LVIS dataset in which the
 stream of experiences is obtained by splitting the dataset in equal parts.
 """
 
+import argparse
 import logging
 from pathlib import Path
 from typing import Union
 
+import torch
+import torchvision
 from torch.utils.data import random_split, Subset
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
+from torchvision.transforms import ToTensor
 
-from avalanche.benchmarks import StreamUserDef
-from avalanche.benchmarks.datasets import LvisDataset, PennFudanDataset
-from avalanche.benchmarks.scenarios.detection_scenario import (
-    DetectionCLScenario,
+from avalanche.benchmarks.datasets import PennFudanDataset
+from avalanche.evaluation.metrics import (
+    timing_metrics,
+    loss_metrics,
 )
-from avalanche.benchmarks.utils import (
-    make_classification_dataset,
-    classification_subset,
-)
+from avalanche.evaluation.metrics.detection import DetectionMetrics
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
 from avalanche.training.supervised.naive_object_detection import (
     ObjectDetectionTemplate,
 )
-
-from avalanche.evaluation.metrics import (
-    make_lvis_metrics,
-    timing_metrics,
-    loss_metrics,
-    DetectionMetrics,
-)
-from avalanche.logging import InteractiveLogger
-from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
-import argparse
-import torch
-from torchvision.transforms import ToTensor
-import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-
-
 # This sets the root logger to write to stdout (your console).
 # Your script/app needs to call this somewhere at least once.
 from examples.detection_examples_utils import split_detection_benchmark

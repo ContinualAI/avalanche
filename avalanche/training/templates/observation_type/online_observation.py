@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, final
 
 from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.dynamic_optimizers import reset_optimizer
@@ -7,6 +7,7 @@ from avalanche.models.utils import avalanche_model_adaptation
 
 
 class OnlineObservation:
+
     def make_optimizer(self):
         """Optimizer initialization.
 
@@ -26,7 +27,17 @@ class OnlineObservation:
                              self.model.parameters(),
                              reset_state=False)
 
+    @final
     def model_adaptation(self, model=None):
+        """Adapts the model to the current data.
+        Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
+        This method should not be overridden by child classes.
+        Consider overriding :meth:`_model_adaptation` instead.
+        """
+        with self.use_local_model():
+            return self._model_adaptation(model=model)
+
+    def _model_adaptation(self, model=None):
         """Adapts the model to the current data.
 
         Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
@@ -53,14 +64,17 @@ class OnlineObservation:
         return model.to(self.device)
 
     def check_model_and_optimizer(self):
-        # If strategy has access to the task boundaries, and the current
-        # sub-experience is the first sub-experience in the online (sub-)stream,
-        # then adapt the model with the full origin experience:
-        if self.experience.access_task_boundaries:
-            if self.experience.is_first_subexp:
+        with self.use_local_model():
+            # If strategy has access to the task boundaries, and the current
+            # sub-experience is the first sub-experience in the online (sub-)stream,
+            # then adapt the model with the full origin experience:
+            if self.experience.access_task_boundaries:
+                if self.experience.is_first_subexp:
+                    self.model = self.model_adaptation()
+                    self.model = self.wrap_distributed_model(self.model)
+                    self.make_optimizer()
+            # Otherwise, adapt to the current sub-experience:
+            else:
                 self.model = self.model_adaptation()
+                self.model = self.wrap_distributed_model(self.model)
                 self.make_optimizer()
-        # Otherwise, adapt to the current sub-experience:
-        else:
-            self.model = self.model_adaptation()
-            self.make_optimizer()

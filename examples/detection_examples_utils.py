@@ -5,8 +5,7 @@ from avalanche.benchmarks.scenarios.detection_scenario import (
     DetectionCLScenario,
 )
 from avalanche.benchmarks.utils import (
-    make_classification_dataset,
-    classification_subset,
+    make_detection_dataset, detection_subset,
 )
 
 
@@ -44,12 +43,12 @@ def split_detection_benchmark(
     exp_n_imgs = len(train_dataset) // n_experiences
     remaining = len(train_dataset) % n_experiences
 
-    train_dataset_avl = make_classification_dataset(
+    train_dataset_avl = make_detection_dataset(
         train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
     )
-    test_dataset_avl = make_classification_dataset(
+    test_dataset_avl = make_detection_dataset(
         test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
@@ -73,9 +72,9 @@ def split_detection_benchmark(
     last_slice_idx = 0
     for exp_id in range(n_experiences):
         n_imgs = exp_sz[exp_id]
-        idx_range = train_indices[last_slice_idx : last_slice_idx + n_imgs]
+        idx_range = train_indices[last_slice_idx:last_slice_idx + n_imgs]
         train_exps_datasets.append(
-            classification_subset(train_dataset_avl, indices=idx_range)
+            detection_subset(train_dataset_avl, indices=idx_range)
         )
         last_slice_idx += n_imgs
 
@@ -100,4 +99,6 @@ def split_detection_benchmark(
     )
 
 
-__all__ = ["split_detection_benchmark"]
+__all__ = [
+    "split_detection_benchmark"
+]

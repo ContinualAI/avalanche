@@ -1,6 +1,6 @@
 from typing import Callable, List, Any
 
-
+from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.collate_functions import \
     classification_collate_mbatches_fn, classification_single_values_collate_fn
 from avalanche.distributed import CollateDistributedBatch
@@ -24,6 +24,8 @@ class DistributedMiniBatchStrategySupport(DistributedStrategySupport):
             classification_collate_mbatches_fn,
             classification_single_values_collate_fn
         )
+
+        self._adapted_dataset = None
 
         self._use_local_contexts.append(self.use_local_input_batch)
         self._use_local_contexts.append(self.use_local_output_batch)
@@ -100,6 +102,8 @@ class DistributedMiniBatchStrategySupport(DistributedStrategySupport):
         self._mb_output.reset_distributed_value()
     # --- END OUTPUT MINIBATCH PROPERTY ---
 
+    # TODO: adapt collate functions
+
     # --- START COLLATE FUNCTIONS (INPUT MB) ---
     @property
     def input_batch_collate_fn(self):
@@ -146,6 +150,24 @@ class DistributedMiniBatchStrategySupport(DistributedStrategySupport):
     def use_local_output_batch(self, *args, **kwargs):
         return self._mb_output.use_local_value(*args, **kwargs)
     # --- END LOCAL CONTEXT MANAGERS ---
+
+    # --- START - GET COLLATE FUNCTIONS FROM DATASET ---
+    @property
+    def adapted_dataset(self):
+        return self._adapted_dataset
+
+    @adapted_dataset.setter
+    def adapted_dataset(self, dataset: AvalancheDataset):
+        # Every time a new dataset is set, the related collate
+        # function is retrieved and set for sync-ing distributed
+        # input/output minibatch fields.
+        self._adapted_dataset = dataset
+        if self._adapted_dataset is not None:
+            new_collate = self._adapted_dataset.collate_fn
+            self.input_batch_collate_fn = new_collate
+            self.input_batch_single_values_collate_fn = None
+
+    # --- END - GET COLLATE FUNCTIONS FROM DATASET ---
 
 
 __all__ = [

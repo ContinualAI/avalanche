@@ -157,7 +157,6 @@ class ObjectDetectionTemplate(SupervisedTemplate):
             batch_size=self.train_mb_size,
             shuffle=shuffle,
             pin_memory=pin_memory,
-            collate_mbatches=detection_collate_mbatches_fn,
             collate_fn=detection_collate_fn,
             **other_dataloader_args
         )
@@ -192,8 +191,8 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         Beware that the loss can only be obtained for the training phase as no
         loss dictionary is returned when evaluating.
         """
-        with self.local_mb_output():
-            with self.local_mbatch():
+        with self.use_local_output_batch():
+            with self.use_local_input_batch():
                 if self.is_training:
                     return sum(
                         loss for loss in self.detection_loss_dict.values())
@@ -230,8 +229,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         targets = [
             {k: v.to(self.device) for k, v in t.items()} for t in self.mbatch[1]
         ]
-        self.mbatch[0] = images
-        self.mbatch[1] = targets
+        self.mbatch = (images, targets, *self.mbatch[2:])
 
     def _backward(self):
         if self.scaler is not None:

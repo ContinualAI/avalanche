@@ -12,10 +12,7 @@
 from collections import defaultdict
 from typing import Sequence, Iterable, Dict, Optional, Iterator
 
-from avalanche.benchmarks.utils import make_classification_dataset
-from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
-)
+from avalanche.benchmarks.utils import make_classification_dataset, AvalancheDataset
 
 
 class LazyDatasetSequence(Sequence[make_classification_dataset]):
@@ -212,7 +209,7 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
                     f"while generating experience {exp_id}."
                 )
 
-            if not isinstance(generated_exp, ClassificationDataset):
+            if not isinstance(generated_exp, AvalancheDataset):
                 raise ValueError(
                     "All experience datasets must be subclasses of"
                     " AvalancheDataset"

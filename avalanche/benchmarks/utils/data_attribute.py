@@ -15,6 +15,7 @@ a class designed to managed task and class labels. DataAttributes allow fast
 concatenation and subsampling operations and are automatically managed by
 AvalancheDatasets.
 """
+from typing import TypeVar, Generic, Sequence, Set, Dict, Optional
 
 import torch
 
@@ -22,7 +23,10 @@ from .dataset_definitions import IDataset
 from .flat_data import ConstantSequence, FlatData
 
 
-class DataAttribute:
+DataT = TypeVar("DataT")
+
+
+class DataAttribute(Generic[DataT]):
     """Data attributes manage sample-wise information such as task or
     class labels.
 
@@ -32,7 +36,7 @@ class DataAttribute:
     Data attributes can be efficiently concatenated and subsampled.
     """
 
-    def __init__(self, data: IDataset, name: str = None, use_in_getitem=False):
+    def __init__(self, data: IDataset[DataT], name: str = None, use_in_getitem: bool = False):
         """Data Attribute.
 
         :param data: a sequence of values, one for each sample.
@@ -42,16 +46,16 @@ class DataAttribute:
         :param use_in_getitem: If True, `AvalancheDataset` will add
             the value at the end of each sample.
         """
-        self.name = name
-        self.use_in_getitem = use_in_getitem
+        self.name: str = name
+        self.use_in_getitem: bool = use_in_getitem
 
-        self._data = self._normalize_sequence(data)
+        self._data: FlatData = self._normalize_sequence(data)
 
-        self._uniques = None  # set()
-        self._val_to_idx = None  # dict()
-        self._count = None  # dict()
+        self._uniques: Optional[Set[DataT]] = None
+        self._val_to_idx: Optional[Dict[DataT, Sequence[int]]] = None
+        self._count: Optional[Dict[DataT, int]] = None
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> DataT:
         return self.data[item]
 
     def __len__(self):
@@ -64,26 +68,18 @@ class DataAttribute:
         return str(self.data[:])
 
     @property
-    def data(self):
+    def data(self) -> FlatData[DataT]:
         return self._data
 
     @property
-    def uniques(self):
+    def uniques(self) -> Set[DataT]:
         """Set of unique values in the attribute."""
         if self._uniques is None:
-            self._uniques = set()
-            # init. uniques with fast paths for special cases
-            if isinstance(self.data, ConstantSequence):
-                self.uniques.add(self.data[0])
-            elif isinstance(self.data, DataAttribute):
-                self.uniques.update(self.data.uniques)
-            else:
-                for el in self.data:
-                    self.uniques.add(el)
+            self._uniques = set(self.data)
         return self._uniques
 
     @property
-    def count(self):
+    def count(self) -> Dict[DataT, int]:
         """Dictionary of value -> count."""
         if self._count is None:
             self._count = {}
@@ -94,7 +90,7 @@ class DataAttribute:
         return self._count
 
     @property
-    def val_to_idx(self):
+    def val_to_idx(self) -> Dict[DataT, Sequence[int]]:
         """Dictionary mapping unique values to indices."""
         if self._val_to_idx is None:
             # init. val-to-idx
@@ -108,7 +104,7 @@ class DataAttribute:
                     self._val_to_idx[x].append(i)
         return self._val_to_idx
 
-    def subset(self, indices):
+    def subset(self, indices) -> "DataAttribute[DataT]":
         """Subset operation.
 
         Return a new `DataAttribute` by keeping only the elements in `indices`.
@@ -122,14 +118,14 @@ class DataAttribute:
             use_in_getitem=self.use_in_getitem,
         )
 
-    def concat(self, other: "DataAttribute"):
+    def concat(self, other: "DataAttribute[DataT]") -> "DataAttribute[DataT]":
         """Concatenation operation.
 
         :param other: the other `DataAttribute`
         :return: the new concatenated `DataAttribute`
         """
         assert self.name == other.name, (
-            "Cannot concatenate DataAttributes" + "with different names."
+            "Cannot concatenate DataAttributes with different names."
         )
         return DataAttribute(
             self.data.concat(other.data),
@@ -155,4 +151,7 @@ class TaskLabels(DataAttribute):
         super().__init__(task_labels, "task_labels", use_in_getitem=True)
 
 
-__all__ = ["DataAttribute", "TaskLabels"]
+__all__ = [
+    "DataAttribute",
+    "TaskLabels"
+]

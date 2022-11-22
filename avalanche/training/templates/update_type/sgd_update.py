@@ -10,11 +10,10 @@ class SGDUpdate:
             if self._stop_training:
                 break
 
-            self._unpack_minibatch()
+            self.unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.loss = 0
 
             # Forward
             self._before_forward(**kwargs)
@@ -22,7 +21,7 @@ class SGDUpdate:
             self._after_forward(**kwargs)
 
             # Loss & Backward
-            self.loss += self.criterion()
+            self.loss = self.criterion()
 
             self._before_backward(**kwargs)
             self.backward()
