@@ -101,6 +101,10 @@ class AvalancheDataset(FlatData):
                 DeprecationWarning,
             )
 
+        if issubclass(type(datasets), TorchDataset) or  \
+                issubclass(type(datasets), AvalancheDataset):
+            datasets = [datasets]
+
         # NOTES on implementation:
         # - raw datasets operations are implemented by _FlatData
         # - data attributes are implemented by DataAttribute

@@ -1,4 +1,5 @@
 import warnings
+from collections import defaultdict
 from typing import Iterable, Sequence, Optional, Union, List
 
 import torch
@@ -90,6 +91,9 @@ class BaseTemplate:
         :param eval_streams: sequence of streams for evaluation.
             If None: use training experiences for evaluation.
             Use [] if you do not want to evaluate during training.
+            Experiences in `eval_streams` are grouped by stream name
+            when calling `eval`. If you use multiple streams, they must
+            have different names.
         """
         self.is_training = True
         self._stop_training = False
@@ -102,7 +106,7 @@ class BaseTemplate:
             experiences = [experiences]
         if eval_streams is None:
             eval_streams = [experiences]
-        self._eval_streams = eval_streams
+        self._eval_streams = _group_experiences_by_stream(eval_streams)
 
         self._before_training(**kwargs)
 
@@ -244,3 +248,20 @@ class BaseTemplate:
 
     def _after_eval_exp(self, **kwargs):
         trigger_plugins(self, "after_eval_exp", **kwargs)
+
+
+def _group_experiences_by_stream(eval_streams):
+    exps = []
+    # First, we unpack the list of experiences.
+    for exp in eval_streams:
+        if isinstance(exp, Iterable):
+            exps.extend(exp)
+        else:
+            exps.append(exp)
+    # Then, we group them by stream.
+    exps_by_stream = defaultdict(list)
+    for exp in exps:
+        sname = exp.origin_stream.name
+        exps_by_stream[sname].append(exp)
+    # Finally, we return a list of lists.
+    return list(exps_by_stream.values())

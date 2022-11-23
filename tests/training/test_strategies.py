@@ -42,17 +42,44 @@ from avalanche.training.supervised import (
     CoPE,
     StreamingLDA,
     MAS,
+    BiC,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
 from avalanche.training.supervised.joint_training import AlreadyTrainedError
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.training.templates.base import _group_experiences_by_stream
 from avalanche.training.utils import get_last_fc_layer
 from tests.unit_tests_utils import get_fast_benchmark, get_device
 
 
 class BaseStrategyTest(unittest.TestCase):
+    def test_eval_streams_normalization(self):
+        benchmark = get_fast_benchmark()
+        train_len = len(benchmark.train_stream)
+        test_len = len(benchmark.test_stream)
+
+        res = _group_experiences_by_stream(benchmark.test_stream)
+        assert len(res) == 1
+        assert len(res[0]) == test_len
+
+        res = _group_experiences_by_stream([benchmark.test_stream])
+        assert len(res) == 1
+        assert len(res[0]) == test_len
+
+        res = _group_experiences_by_stream(
+            [*benchmark.test_stream, *benchmark.train_stream])
+        assert len(res) == 2
+        assert len(res[0]) == test_len
+        assert len(res[1]) == train_len
+
+        res = _group_experiences_by_stream(
+            [benchmark.test_stream, benchmark.train_stream])
+        assert len(res) == 2
+        assert len(res[0]) == test_len
+        assert len(res[1]) == train_len
+
     def test_periodic_eval(self):
         model = SimpleMLP(input_size=6, hidden_size=10)
         model.classifier = IncrementalClassifier(model.classifier.in_features)
@@ -872,14 +899,36 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
 
         # MT scenario
+        # model, optimizer, criterion, benchmark = self.init_scenario(
+        #     multi_task=True)
+        # strategy = MAS(
+        #     model,
+        #     optimizer,
+        #     criterion,
+        #     lambda_reg=1.0,
+        #     alpha=0.5,
+        #     train_mb_size=10,
+        #     device=self.device,
+        #     eval_mb_size=50,
+        #     train_epochs=2,
+        # )
+        # self.run_strategy(benchmark, strategy)
+    
+    def test_bic(self):
+        # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(
-            multi_task=True)
-        strategy = MAS(
+            multi_task=False
+        )
+        strategy = BiC(
             model,
             optimizer,
             criterion,
-            lambda_reg=1.0,
-            alpha=0.5,
+            mem_size=50,
+            val_percentage=0.1,
+            T=2,
+            stage_2_epochs=10,
+            lamb=-1,
+            lr=0.01,
             train_mb_size=10,
             device=self.device,
             eval_mb_size=50,
