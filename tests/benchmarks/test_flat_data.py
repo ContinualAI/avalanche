@@ -4,9 +4,12 @@ import random
 import torch
 
 from avalanche.benchmarks import fixed_size_experience_split
-from avalanche.benchmarks.utils import AvalancheDataset, concat_datasets
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
-from avalanche.benchmarks.utils.flat_data import FlatData, _flatten_datasets_and_reindex
+from avalanche.benchmarks.utils import AvalancheDataset, \
+    concat_datasets
+from avalanche.benchmarks.utils.classification_dataset import \
+    ClassificationDataset
+from avalanche.benchmarks.utils.flat_data import FlatData, \
+    _flatten_datasets_and_reindex
 from avalanche.benchmarks.utils.flat_data import (
     _flatdata_depth,
     _flatdata_print,
@@ -101,7 +104,8 @@ class FlatteningTests(unittest.TestCase):
         D1 = bm.train_stream[0].dataset
         ds, idxs = _flatten_datasets_and_reindex([D1, D1, D1], None)
 
-        print(f"len-ds: {len(ds)}, max={max(idxs)}, min={min(idxs)}, lens={[len(d) for d in ds]}")
+        print(f"len-ds: {len(ds)}, max={max(idxs)}, min={min(idxs)}, "
+              f"lens={[len(d) for d in ds]}")
         assert len(ds) == 1
         assert len(idxs) == 3 * len(D1)
         assert max(idxs) == len(D1) - 1
@@ -179,7 +183,8 @@ class FlatteningTests(unittest.TestCase):
         benchmark = get_fast_benchmark()
         buffer = ReservoirSamplingBuffer(100)
 
-        for t, exp in enumerate(fixed_size_experience_split(benchmark.train_stream[0], 1)):
+        for t, exp in enumerate(fixed_size_experience_split(
+                benchmark.train_stream[0], 1)):
             buffer.update_from_dataset(exp.dataset)
             b = buffer.buffer
             # depths = _flatdata_depth(b)
@@ -191,12 +196,14 @@ class FlatteningTests(unittest.TestCase):
             # depths = [_flatdata_depth(b) for b in atts]
             # lenidxs = [len(b._indices) for b in atts]
             # lendsets = [len(b._datasets) for b in atts]
-            # print(f"(t={t}) ATTS depth={depths}, idxs={lenidxs}, dsets={lendsets}")
+            # print(f"(t={t}) ATTS depth={depths}, idxs={lenidxs},
+            # dsets={lendsets}")
             if t > 5:
                 break
         assert len(b._datasets) == 1
 
-        for t, exp in enumerate(fixed_size_experience_split(benchmark.train_stream[1], 1)):
+        for t, exp in enumerate(fixed_size_experience_split(
+                benchmark.train_stream[1], 1)):
             buffer.update_from_dataset(exp.dataset)
             b = buffer.buffer
             # depths = _flatdata_depth(b)
@@ -208,7 +215,8 @@ class FlatteningTests(unittest.TestCase):
             # depths = [_flatdata_depth(b) for b in atts]
             # lenidxs = [len(b._indices) for b in atts]
             # lendsets = [len(b._datasets) for b in atts]
-            # print(f"(t={t}) ATTS depth={depths}, idxs={lenidxs}, dsets={lendsets}")
+            # print(f"(t={t}) ATTS depth={depths}, idxs={lenidxs},
+            # dsets={lendsets}")
             if t > 5:
                 break
         assert len(b._datasets) == 2

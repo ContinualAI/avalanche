@@ -489,7 +489,8 @@ def classification_subset(
                 collate_fn=collate_fn,
             )
             # now add task labels
-            return ClassificationDataset([dataset],
+            return ClassificationDataset(
+                [dataset],
                 data_attributes=[dataset.targets, task_labels])
         else:
             das.append(task_labels)
