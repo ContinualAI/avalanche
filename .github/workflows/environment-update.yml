@@ -57,6 +57,7 @@ jobs:
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
           python -m unittest discover tests &&
+          echo "Running checkpointing tests..." &&
           bash ./tests/checkpointing/test_checkpointing.sh &&
           python ./tests/run_dist_tests.py
       - name: checkout avalanche-docker repo
