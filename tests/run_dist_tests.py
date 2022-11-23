@@ -6,6 +6,8 @@ from subprocess import Popen
 from typing import Union, Set
 from unittest import TestSuite, TestCase
 
+import click
+
 os.environ['DISTRIBUTED_TESTS'] = '1'
 
 
@@ -29,16 +31,27 @@ def get_distributed_test_cases(suite: Union[TestCase, TestSuite]) -> Set[str]:
     return found_cases
 
 
-def run_distributed_suites():
+@click.command()
+@click.argument('test_cases', nargs=-1)
+def run_distributed_suites(test_cases):
     cases_names = get_distributed_test_cases(
         unittest.defaultTestLoader.discover('.'))  # Don't change the path!
     cases_names = list(sorted(cases_names))
+    print(cases_names)
+    if len(test_cases) > 0:
+        test_cases = set(test_cases)
+        cases_names = [x for x in cases_names if x in test_cases]
+
+        if set(cases_names) != test_cases:
+            print('Some cases have not been found!', test_cases - set(cases_names))
+            sys.exit(1)
+
     print('Running', len(cases_names), 'tests')
     p = None
     success = True
     exited = False
 
-    use_gpu_in_tests = os.environ.get('USE_GPU', 0).lower() in ['1', 'true']
+    use_gpu_in_tests = os.environ.get('USE_GPU', 'false').lower() in ['1', 'true']
     if use_gpu_in_tests:
         print('Running tests using GPUs')
         import torch
@@ -70,10 +83,10 @@ def run_distributed_suites():
 
     if success:
         print('Tests completed successfully')
-        exit(0)
+        sys.exit(0)
     else:
         print('Tests terminated with errors')
-        exit(1)
+        sys.exit(1)
 
 
 if __name__ == '__main__':

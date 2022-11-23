@@ -8,7 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from typing import Optional, Sequence, List, Union
+from typing import Optional, Sequence, List, Union, Callable
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
@@ -42,7 +42,7 @@ class OnlineNaive(OnlineSupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator=default_evaluator,
         eval_every=-1,
     ):
         """

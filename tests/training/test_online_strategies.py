@@ -53,7 +53,7 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=1,
             device=self.device,
             eval_mb_size=50,
-            evaluator=default_evaluator(),
+            evaluator=default_evaluator,
         )
         ocl_benchmark = OnlineCLScenario(benchmark_streams,
                                          access_task_boundaries=True)
@@ -68,7 +68,7 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=1,
             device=self.device,
             eval_mb_size=50,
-            evaluator=default_evaluator(),
+            evaluator=default_evaluator,
         )
         ocl_benchmark = OnlineCLScenario(benchmark_streams,
                                          access_task_boundaries=False)

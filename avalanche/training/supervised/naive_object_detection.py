@@ -56,7 +56,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
         scaler=None,
@@ -127,7 +127,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         self,
         num_workers=0,
         shuffle=True,
-        pin_memory=True,
+        pin_memory=None,
         persistent_workers=False,
         **kwargs
     ):
@@ -139,45 +139,70 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
-            pinned memory before returning them. Defaults to True.
+            pinned memory before returning them. Defaults to None, which means
+            that the value will be determined by looking at the strategy `device`
+            field.
         :param persistent_workers: If True, the data loader will not shutdown
             the worker processes after a dataset has been consumed once.
             Used only if `PyTorch >= 1.7.0`.
         """
 
-        other_dataloader_args = {}
-
-        if parse_version(torch.__version__) >= parse_version("1.7.0"):
-            other_dataloader_args["persistent_workers"] = persistent_workers
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=self.train_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            **kwargs
+        )
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
-            num_workers=num_workers,
-            batch_size=self.train_mb_size,
-            shuffle=shuffle,
-            pin_memory=pin_memory,
             collate_fn=detection_collate_fn,
             **other_dataloader_args
         )
 
-    def make_eval_dataloader(self, num_workers=0, pin_memory=True, **kwargs):
+    def make_eval_dataloader(
+        self,
+        num_workers=0,
+        shuffle=False,
+        pin_memory=None,
+        persistent_workers=False,
+        drop_last=False,
+        **kwargs):
+
         """
-        Initializes the eval data loader.
         :param num_workers: How many subprocesses to use for data loading.
             0 means that the data will be loaded in the main process.
             (default: 0).
+        :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
-            pinned memory before returning them. Defaults to True.
-        :param kwargs:
-        :return:
+            pinned memory before returning them. Defaults to None, which means
+            that the value will be determined by looking at the strategy `device`
+            field.
+        :param persistent_workers: If True, the data loader will not shut down
+            the worker processes after a dataset has been consumed once.
+            Please refer to PyTorch `DataLoader` class for more details.
+        :param drop_last: If True, the last batch will be skipped if not of size
+            equal to the eval minibatch size.
+        :param kwargs: Other dataloader parameters.
         """
+
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=self.eval_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            drop_last=drop_last,
+            **kwargs
+        )
+
         self.dataloader = DataLoader(
             self.adapted_dataset,
-            num_workers=num_workers,
-            batch_size=self.eval_mb_size,
-            pin_memory=pin_memory,
             collate_fn=detection_collate_fn,
+            **other_dataloader_args
         )
 
     def criterion(self):

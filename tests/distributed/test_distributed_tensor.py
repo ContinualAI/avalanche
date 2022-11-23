@@ -1,5 +1,3 @@
-import contextlib
-import os
 import unittest
 
 import torch
@@ -7,24 +5,16 @@ import torch
 from avalanche.distributed import DistributedHelper
 from avalanche.distributed.distributed_tensor import \
     DistributedMeanTensor
-
-
-@contextlib.contextmanager
-def manage_output():
-    if os.environ['LOCAL_RANK'] != 0:
-        with contextlib.redirect_stderr(None):
-            with contextlib.redirect_stdout(None):
-                yield
-    else:
-        yield
+from tests.distributed.distributed_test_utils import check_skip_distributed_test, suppress_dst_tests_output, \
+    common_dst_tests_setup
 
 
 class DistributedTensorTests(unittest.TestCase):
 
     def setUp(self) -> None:
-        DistributedHelper.init_distributed(1234, use_cuda=False)
+        self.use_gpu_in_tests = common_dst_tests_setup()
 
-    @unittest.skipIf(int(os.environ.get('DISTRIBUTED_TESTS', 0)) != 1,
+    @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_one_element_tensor(self):
         dt = DistributedMeanTensor('dt', torch.zeros((1,), dtype=torch.float32))
@@ -43,7 +33,7 @@ class DistributedTensorTests(unittest.TestCase):
         self.assertEqual(i, float(dt.local_value))
         self.assertEqual(expected / n, float(dt.value))
 
-    @unittest.skipIf(int(os.environ.get('DISTRIBUTED_TESTS', 0)) != 1,
+    @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_one_element_tensor_random(self):
         dt = DistributedMeanTensor('dt', torch.zeros((1,), dtype=torch.float32))
@@ -56,7 +46,7 @@ class DistributedTensorTests(unittest.TestCase):
         self.assertTrue(torch.allclose(expected, torch.mean(dt.local_value)))
         self.assertTrue(torch.allclose(expected, dt.value))
 
-    @unittest.skipIf(int(os.environ.get('DISTRIBUTED_TESTS', 0)) != 1,
+    @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_unshaped_tensor(self):
         dt = DistributedMeanTensor('dt',
@@ -81,7 +71,7 @@ class DistributedTensorTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    with manage_output():
+    with suppress_dst_tests_output():
         verbosity = 1
         if DistributedHelper.rank > 0:
             verbosity = 0

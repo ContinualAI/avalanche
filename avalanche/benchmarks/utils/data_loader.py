@@ -234,6 +234,7 @@ class GroupBalancedDataLoader:
                         removed_dataloaders_idxs.append(tid)
                         continue
                 mb_curr.extend(batch)
+
             yield self.collate_fn(mb_curr)
 
             # clear empty data-loaders
@@ -308,6 +309,7 @@ class GroupBalancedInfiniteDataLoader:
             for tid, t_loader in enumerate(iter_dataloaders):
                 batch = next(t_loader)
                 mb_curr.append(batch)
+
             yield self.collate_mbatches(mb_curr)
 
     def __len__(self):
@@ -614,13 +616,22 @@ def _make_data_loader(
             data_loader_args['persistent_workers'] = False
 
     if DistributedHelper.is_distributed and distributed_sampling:
+        # Note: shuffle only goes in the sampler, while
+        # drop_last must be passed to both the sampler
+        # and the DataLoader
+        drop_last = data_loader_args.pop("drop_last", False)
         sampler = DistributedSampler(
             dataset,
-            shuffle=data_loader_args.pop("shuffle", False),
-            drop_last=data_loader_args.pop("drop_last", False),
+            shuffle=data_loader_args.pop("shuffle", True),
+            drop_last=drop_last,
         )
+
         data_loader = DataLoader(
-            dataset, sampler=sampler, batch_size=batch_size, **data_loader_args
+            dataset,
+            sampler=sampler,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            **data_loader_args
         )
     else:
         sampler = None

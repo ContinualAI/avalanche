@@ -1,5 +1,3 @@
-import contextlib
-import os
 import unittest
 from typing import Tuple
 
@@ -9,24 +7,16 @@ from torch.utils.data import default_collate
 
 from avalanche.distributed import DistributedHelper, \
     make_classification_distributed_batch, CollateDistributedBatch
-
-
-@contextlib.contextmanager
-def manage_output():
-    if os.environ['LOCAL_RANK'] != 0:
-        with contextlib.redirect_stderr(None):
-            with contextlib.redirect_stdout(None):
-                yield
-    else:
-        yield
+from tests.distributed.distributed_test_utils import check_skip_distributed_test, suppress_dst_tests_output, \
+    common_dst_tests_setup
 
 
 class DistributedBatchesTests(unittest.TestCase):
 
     def setUp(self) -> None:
-        DistributedHelper.init_distributed(1234, use_cuda=False)
+        self.use_gpu_in_tests = common_dst_tests_setup()
 
-    @unittest.skipIf(int(os.environ.get('DISTRIBUTED_TESTS', 0)) != 1,
+    @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_classification_batch(self):
         dt = make_classification_distributed_batch('mb')
@@ -55,7 +45,7 @@ class DistributedBatchesTests(unittest.TestCase):
             self.assertTrue(torch.equal(expect,
                                         distrib_val[1][8*rank:8*(rank+1)]))
 
-    @unittest.skipIf(int(os.environ.get('DISTRIBUTED_TESTS', 0)) != 1,
+    @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_unsupervised_classification_batch(self):
         dt = make_classification_distributed_batch('mb')
@@ -73,7 +63,7 @@ class DistributedBatchesTests(unittest.TestCase):
         self.assertSequenceEqual((8*DistributedHelper.world_size, 1, 28, 28),
                                  distrib_val.shape)
 
-    @unittest.skipIf(int(os.environ.get('DISTRIBUTED_TESTS', 0)) != 1,
+    @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_tuple_merge_batch_vanilla_collate(self):
         dt: CollateDistributedBatch[Tuple[Tensor, Tensor]] = CollateDistributedBatch(
@@ -105,7 +95,7 @@ class DistributedBatchesTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    with manage_output():
+    with suppress_dst_tests_output():
         verbosity = 1
         if DistributedHelper.rank > 0:
             verbosity = 0

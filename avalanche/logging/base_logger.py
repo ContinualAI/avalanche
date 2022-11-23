@@ -7,7 +7,6 @@ from avalanche.distributed import DistributedHelper
 
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
-    from avalanche.training.templates import SupervisedTemplate
 
 
 class BaseLogger(ABC):
@@ -32,6 +31,7 @@ class BaseLogger(ABC):
         super().__init__()
 
         if not DistributedHelper.is_main_process:
+
             raise RuntimeError(
                 'You are creating a logger in a non-main process during a '
                 'distributed training session. '

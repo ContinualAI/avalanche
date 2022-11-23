@@ -1,4 +1,4 @@
-from typing import Iterable, Sequence, Optional, Union, List, final
+from typing import Iterable, Sequence, Optional, Union, List, final, Callable
 
 import torch
 from pkg_resources import parse_version
@@ -50,7 +50,7 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[EvaluationPlugin, Callable[[], EvaluationPlugin]] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
     ):
@@ -94,8 +94,10 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
 
         if evaluator is None:
             evaluator = EvaluationPlugin()
+        elif isinstance(evaluator, Callable):
+            evaluator = evaluator()
         self.plugins.append(evaluator)
-        self.evaluator = evaluator
+        self.evaluator: EvaluationPlugin = evaluator
         """ EvaluationPlugin used for logging and metric computations. """
 
         # Configure periodic evaluation.
@@ -123,6 +125,14 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
             This dataset may contain samples from different experiences. If you 
             want the original data for the current experience  
             use :attr:`.BaseTemplate.experience`.
+        """
+
+        self.collate_fn = None
+        """
+        The collate function used to merge the values obtained from the
+        dataset into a minibatch.
+
+        This value is obtained from the adapted dataset directly. 
         """
 
         self.dataloader = None
@@ -298,6 +308,7 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
 
+
     def _load_train_state(self, prev_state):
         super()._load_train_state(prev_state)
         self.adapted_dataset = prev_state["adapted_dataset"]
@@ -316,11 +327,41 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
 
         super()._before_eval_exp(**kwargs)
 
+    def _obtain_common_dataloader_parameters(self, **kwargs):
+        """
+        Utility function that returns the dictionary of parameters to be passed
+        to the train and eval dataloaders.
+
+        The resulting dataset does not include the collate function.
+
+        Overriding this function can be useful if particular/runtime computed
+        parameters are needed. However, when overriding, it is recommended to first
+        call this implementation (super) to obtain a base parameters dictionary.
+
+        :param kwargs: The dataloader arguments as passed to the `train`
+            or `eval` method.
+        :return: A dictionary of parameters to be passed to the DataLoader class
+            or to one of the Avalanche dataloaders.
+        """
+        other_dataloader_args = {}
+
+        if 'persistent_workers' in kwargs:
+            if parse_version(torch.__version__) >= parse_version("1.7.0"):
+                other_dataloader_args["persistent_workers"] = kwargs['persistent_workers']
+
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
+
+        if other_dataloader_args.get('pin_memory', None) is None:
+            other_dataloader_args['pin_memory'] = self.device.type == 'cuda'
+
+        return other_dataloader_args
+
     def make_train_dataloader(
         self,
         num_workers=0,
         shuffle=True,
-        pin_memory=True,
+        pin_memory=None,
         persistent_workers=False,
         **kwargs
     ):
@@ -332,61 +373,78 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
-            pinned memory before returning them. Defaults to True.
+            pinned memory before returning them. Defaults to None, which means
+            that the value will be determined by looking at the strategy `device`
+            field.
         :param persistent_workers: If True, the data loader will not shut down
             the worker processes after a dataset has been consumed once.
             Please refer to PyTorch `DataLoader` class for more details.
+        :param kwargs: Other dataloader parameters.
         """
 
-        other_dataloader_args = {}
-
-        if parse_version(torch.__version__) >= parse_version("1.7.0"):
-            other_dataloader_args["persistent_workers"] = persistent_workers
-        for k, v in kwargs.items():
-            other_dataloader_args[k] = v
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=self.train_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            **kwargs
+        )
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
-            num_workers=num_workers,
-            batch_size=self.train_mb_size,
-            shuffle=shuffle,
-            pin_memory=pin_memory,
             **other_dataloader_args
         )
 
     def make_eval_dataloader(
-        self, num_workers=0, pin_memory=True, persistent_workers=False, **kwargs
+        self,
+        num_workers=0,
+        shuffle=False,
+        pin_memory=None,
+        persistent_workers=False,
+        drop_last=False,
+        **kwargs
     ):
         """
         Initializes the eval data loader.
         :param num_workers: How many subprocesses to use for data loading.
             0 means that the data will be loaded in the main process.
             (default: 0).
+        :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
-            pinned memory before returning them. Defaults to True.
-        :param kwargs:
-        :return:
+            pinned memory before returning them. Defaults to None, which means
+            that the value will be determined by looking at the strategy `device`
+            field.
+        :param persistent_workers: If True, the data loader will not shut down
+            the worker processes after a dataset has been consumed once.
+            Please refer to PyTorch `DataLoader` class for more details.
+        :param drop_last: If True, the last batch will be skipped if not of size
+            equal to the eval minibatch size.
+        :param kwargs: Other dataloader parameters.
         """
-        other_dataloader_args = {}
 
-        if parse_version(torch.__version__) >= parse_version("1.7.0"):
-            other_dataloader_args["persistent_workers"] = persistent_workers
-        for k, v in kwargs.items():
-            other_dataloader_args[k] = v
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=self.eval_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            drop_last=drop_last,
+            **kwargs
+        )
 
         collate_from_data_or_kwargs(self.adapted_dataset,
                                     other_dataloader_args)
         sampler = None
         if DistributedHelper.is_distributed:
             sampler = DistributedSampler(
-                self.adapted_dataset, shuffle=False, drop_last=False)
+                self.adapted_dataset,
+                shuffle=other_dataloader_args.pop('shuffle'),
+                drop_last=other_dataloader_args.get('drop_last'))
 
         self.dataloader = DataLoader(
             self.adapted_dataset,
-            num_workers=num_workers,
-            batch_size=self.eval_mb_size,
-            pin_memory=pin_memory,
             sampler=sampler,
             **other_dataloader_args
         )

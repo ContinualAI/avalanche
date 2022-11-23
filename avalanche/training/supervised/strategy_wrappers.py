@@ -61,7 +61,7 @@ class Naive(SupervisedTemplate):
         eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -117,7 +117,7 @@ class PNNStrategy(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -172,7 +172,7 @@ class CWRStar(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -236,7 +236,7 @@ class Replay(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -311,7 +311,7 @@ class GenerativeReplay(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         generator_strategy: BaseTemplate = None,
         replay_size: int = None,
@@ -435,7 +435,7 @@ class VAETraining(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = get_default_vae_logger(),
+        evaluator=get_default_vae_logger,
         eval_every=-1,
         **base_kwargs
     ):
@@ -502,7 +502,7 @@ class GSS_greedy(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -568,7 +568,7 @@ class GDumb(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -633,7 +633,7 @@ class LwF(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -701,7 +701,7 @@ class AGEM(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -769,7 +769,7 @@ class GEM(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -839,7 +839,7 @@ class EWC(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -925,7 +925,7 @@ class SynapticIntelligence(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1000,7 +1000,7 @@ class CoPE(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1073,7 +1073,7 @@ class LFL(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1140,7 +1140,7 @@ class MAS(SupervisedTemplate):
         eval_mb_size: int = 1,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator=default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
