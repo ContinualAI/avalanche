@@ -195,6 +195,7 @@ class AvalancheDataset(FlatData):
                 # TODO: this was the old behavior. How do we know what to do if
                 # we permute the entire dataset?
                 # DEPRECATED! always subset attributes
+                # we keep this behavior only for `classification_subset`
                 # if len(da) != sum([len(d) for d in datasets]):
                 #     self._data_attributes[da.name] = da
                 # else:

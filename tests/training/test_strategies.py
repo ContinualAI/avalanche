@@ -926,7 +926,7 @@ class StrategyTest(unittest.TestCase):
             mem_size=50,
             val_percentage=0.1,
             T=2,
-            stage_2_epochs=2,
+            stage_2_epochs=10,
             lamb=-1,
             lr=0.01,
             train_mb_size=10,
