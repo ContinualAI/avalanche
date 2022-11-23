@@ -128,8 +128,9 @@ class Collate(ABC, Generic[ExampleT, BatchT]):
         the dataset.
 
         PyTorch official documentation described the default_collate_fn as:
-        "Function that takes in a batch of data and puts the elements within the batch
-        into a tensor with an additional outer dimension - batch size."
+        "Function that takes in a batch of data and puts the elements within
+        the batch into a tensor with an additional
+        outer dimension - batch size."
 
         :param batch: The list of examples.
         :return: The batch.
@@ -177,10 +178,12 @@ class Collate(ABC, Generic[ExampleT, BatchT]):
 
         This function expects a list of pre-batched features.
 
-        :param feature_batches: A list of batched features to be merged together.
+        :param feature_batches: A list of batched features to be merged
+            together.
         :param feature_idx: The index of the feature being batched.
             This may be useful to customize how features are merged.
-        :return: A batch of featured made by collating the input batched featured.
+        :return: A batch of features made by collating the input batched
+            features.
         """
         pass
 
@@ -198,7 +201,10 @@ class ClassificationCollate(Collate[Tuple[Tensor, ...], Tuple[Tensor, ...]]):
     def collate_fn(self, batch):
         return default_collate(batch)
 
-    def collate_single_value_fn(self, feature_batch: Sequence[Tensor], feature_idx):
+    def collate_single_value_fn(
+            self,
+            feature_batch: Sequence[Tensor],
+            feature_idx):
         return torch.stack(feature_batch)
 
     def collate_batches_fn(self, batches):
@@ -217,7 +223,8 @@ class ClassificationCollate(Collate[Tuple[Tensor, ...], Tuple[Tensor, ...]]):
         return torch.cat(feature_batch, dim=0)
 
 
-class DetectionCollate(Collate[Tuple[Tensor, Dict, int], Tuple[Tuple[Tensor], Tuple[Dict], Tuple[int]]]):
+class DetectionCollate(Collate[Tuple[Tensor, Dict, int],
+                               Tuple[Tuple[Tensor], Tuple[Dict], Tuple[int]]]):
 
     def collate_fn(self, batch):
         return detection_collate_fn(batch)

@@ -43,7 +43,8 @@ def run_distributed_suites(test_cases):
         cases_names = [x for x in cases_names if x in test_cases]
 
         if set(cases_names) != test_cases:
-            print('Some cases have not been found!', test_cases - set(cases_names))
+            print('Some cases have not been found!',
+                  test_cases - set(cases_names))
             sys.exit(1)
 
     print('Running', len(cases_names), 'tests')
@@ -51,7 +52,8 @@ def run_distributed_suites(test_cases):
     success = True
     exited = False
 
-    use_gpu_in_tests = os.environ.get('USE_GPU', 'false').lower() in ['1', 'true']
+    use_gpu_in_tests = os.environ.get('USE_GPU', 'false').lower() in [
+        '1', 'true']
     if use_gpu_in_tests:
         print('Running tests using GPUs')
         import torch
@@ -68,7 +70,8 @@ def run_distributed_suites(test_cases):
         try:
             p = Popen(
                 ['python', '-m', 'torch.distributed.run', '--nnodes=1',
-                 f'--nproc_per_node={nproc_per_node}', '-m', 'unittest', case_name],
+                 f'--nproc_per_node={nproc_per_node}',
+                 '-m', 'unittest', case_name],
                 stdout=sys.stdout, stderr=sys.stderr)
             p.communicate()
         except KeyboardInterrupt:

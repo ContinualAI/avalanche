@@ -50,7 +50,8 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         eval_mb_size: Optional[int] = 1,
         device="cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: Union[EvaluationPlugin, Callable[[], EvaluationPlugin]] = default_evaluator,
+        evaluator: Union[EvaluationPlugin,
+                         Callable[[], EvaluationPlugin]] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
     ):
@@ -308,7 +309,6 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         self.adapted_dataset = self.experience.dataset
         self.adapted_dataset = self.adapted_dataset.train()
 
-
     def _load_train_state(self, prev_state):
         super()._load_train_state(prev_state)
         self.adapted_dataset = prev_state["adapted_dataset"]
@@ -335,8 +335,9 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         The resulting dataset does not include the collate function.
 
         Overriding this function can be useful if particular/runtime computed
-        parameters are needed. However, when overriding, it is recommended to first
-        call this implementation (super) to obtain a base parameters dictionary.
+        parameters are needed. However, when overriding, it is recommended to
+        first call this implementation (super) to obtain a base dictionary of
+        parameters .
 
         :param kwargs: The dataloader arguments as passed to the `train`
             or `eval` method.
@@ -347,7 +348,8 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
 
         if 'persistent_workers' in kwargs:
             if parse_version(torch.__version__) >= parse_version("1.7.0"):
-                other_dataloader_args["persistent_workers"] = kwargs['persistent_workers']
+                other_dataloader_args["persistent_workers"] = \
+                    kwargs['persistent_workers']
 
         for k, v in kwargs.items():
             other_dataloader_args[k] = v
@@ -374,8 +376,8 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
             pinned memory before returning them. Defaults to None, which means
-            that the value will be determined by looking at the strategy `device`
-            field.
+            that the value will be determined by looking at the strategy
+            `device` field.
         :param persistent_workers: If True, the data loader will not shut down
             the worker processes after a dataset has been consumed once.
             Please refer to PyTorch `DataLoader` class for more details.
@@ -414,8 +416,8 @@ class BaseSGDTemplate(BaseTemplate, DistributedMiniBatchStrategySupport,
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
             pinned memory before returning them. Defaults to None, which means
-            that the value will be determined by looking at the strategy `device`
-            field.
+            that the value will be determined by looking at the strategy
+            `device` field.
         :param persistent_workers: If True, the data loader will not shut down
             the worker processes after a dataset has been consumed once.
             Please refer to PyTorch `DataLoader` class for more details.

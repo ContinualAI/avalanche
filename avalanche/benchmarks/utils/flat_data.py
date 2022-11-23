@@ -72,7 +72,8 @@ class FlatData(IDataset[DataT]):
         else:
             return list(range(len(self)))
 
-    def subset(self: FlatDataImplT, indices: Optional[List[int]]) -> FlatDataImplT:
+    def subset(self: FlatDataImplT, indices: Optional[List[int]]) \
+            -> FlatDataImplT:
         """Subsampling operation.
 
         :param indices: indices of the new samples
@@ -243,7 +244,8 @@ class ConstantSequence:
         )
 
 
-def _flatten_dataset_list(datasets: List[IDataset[DataT]]) -> List[IDataset[DataT]]:
+def _flatten_dataset_list(datasets: List[IDataset[DataT]]) \
+        -> List[IDataset[DataT]]:
     """Flatten dataset tree if possible."""
     # Concat -> Concat branch
     # Flattens by borrowing the list of concatenated datasets

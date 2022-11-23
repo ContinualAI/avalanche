@@ -1,4 +1,5 @@
 import hashlib
+import math
 import unittest
 
 import torch
@@ -7,12 +8,19 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torch.utils.data import DistributedSampler, DataLoader
 
+from avalanche.core import SupervisedPlugin
 from avalanche.distributed import DistributedHelper
-from avalanche.distributed.distributed_consistency_verification import hash_dataset
+from avalanche.distributed.distributed_consistency_verification import \
+    hash_dataset
 from avalanche.distributed.strategies import DistributedMiniBatchStrategySupport
+from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
+    confusion_matrix_metrics, topk_acc_metrics, class_accuracy_metrics, \
+    amca_metrics
 from avalanche.models import SimpleMLP
 from avalanche.training import Naive
-from tests.distributed.distributed_test_utils import check_skip_distributed_test, suppress_dst_tests_output, \
+from avalanche.training.plugins import EvaluationPlugin
+from tests.distributed.distributed_test_utils import \
+    check_skip_distributed_test, suppress_dst_tests_output, \
     common_dst_tests_setup
 from tests.unit_tests_utils import get_fast_benchmark
 
@@ -89,7 +97,8 @@ class DistributedStrategySupportTests(unittest.TestCase):
             float(torch.mean(torch.as_tensor(all_losses))),
             float(global_loss))
 
-    def _check_batches_equal(self, uut: Naive, rank: int, mb_size: int, mb_dist_size: int, input_size: int):
+    def _check_batches_equal(self, uut: Naive, rank: int, mb_size: int,
+                             mb_dist_size: int, input_size: int):
         local_input_mb = uut.local_mbatch
         global_input_mb = uut.mbatch
 
@@ -108,11 +117,13 @@ class DistributedStrategySupportTests(unittest.TestCase):
         self.assertTrue(torch.equal(global_input_mb[1], uut.mb_y))
         self.assertTrue(torch.equal(global_input_mb[2], uut.mb_task_id))
 
-        self.assertSequenceEqual(local_input_mb[0].shape, [mb_dist_size, input_size])
+        self.assertSequenceEqual(local_input_mb[0].shape,
+                                 [mb_dist_size, input_size])
         self.assertSequenceEqual(local_input_mb[1].shape, [mb_dist_size])
         self.assertSequenceEqual(local_input_mb[2].shape, [mb_dist_size])
 
-        self.assertSequenceEqual(global_input_mb[0].shape, [mb_size, input_size])
+        self.assertSequenceEqual(global_input_mb[0].shape,
+                                 [mb_size, input_size])
         self.assertSequenceEqual(global_input_mb[1].shape, [mb_size])
         self.assertSequenceEqual(global_input_mb[2].shape, [mb_size])
 
@@ -120,13 +131,18 @@ class DistributedStrategySupportTests(unittest.TestCase):
         global_index_end = global_index_start + mb_dist_size
 
         for i in range(3):
-            self.assertTrue(torch.equal(local_input_mb[i], global_input_mb[i][global_index_start:global_index_end]))
+            self.assertTrue(
+                torch.equal(
+                    local_input_mb[i],
+                    global_input_mb[i][global_index_start:global_index_end]))
 
     def _check_adapted_datasets_equal(self, uut: Naive):
         local_adapted_dataset = uut.adapted_dataset
 
         DistributedHelper.check_equal_objects(
-            hash_dataset(local_adapted_dataset, num_workers=4, hash_engine=hashlib.sha1())
+            hash_dataset(local_adapted_dataset,
+                         num_workers=4,
+                         hash_engine=hashlib.sha1())
         )
 
     @unittest.skipIf(check_skip_distributed_test(),
@@ -135,8 +151,8 @@ class DistributedStrategySupportTests(unittest.TestCase):
         self.assertTrue(DistributedHelper.is_distributed)
 
         input_size = 28 * 28
-        # mb_size == 60, so that it can be tested using [1, 6] parallel processes
-        mb_size = 1*2*2*3*4*5
+        # mb_size == 60 so that it can be tested using [1, 6] parallel processes
+        mb_size = 1*2*2*3*5
         model = SimpleMLP(input_size=input_size)
         optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
         criterion = CrossEntropyLoss()
@@ -145,6 +161,48 @@ class DistributedStrategySupportTests(unittest.TestCase):
         # DST parameters adaptation
         mb_size_dst = mb_size // DistributedHelper.world_size
 
+        class IterationCheckerPlugin(SupervisedPlugin):
+
+            def __init__(self, test_suite):
+                super().__init__()
+                self.test_suite = test_suite
+
+            def after_training_iteration(self, strategy, *args, **kwargs):
+                self._check_aligned(strategy)
+
+            def after_eval_iteration(self, strategy, *args, **kwargs):
+                self._check_aligned(strategy)
+
+            def _check_aligned(self, strategy: Naive):
+
+                is_last_iteration = strategy.clock.train_epoch_iterations == \
+                                    (len(strategy.dataloader) - 1)
+                if is_last_iteration:
+                    return
+
+                self.test_suite._check_batches_equal(
+                    strategy,
+                    DistributedHelper.rank,
+                    mb_size,
+                    mb_size_dst,
+                    input_size)
+                self.test_suite._check_loss_equal(strategy)
+
+        metrics = EvaluationPlugin(
+            accuracy_metrics(minibatch=True, epoch=True,
+                             experience=True, stream=True),
+            loss_metrics(minibatch=True, epoch=True,
+                         experience=True, stream=True),
+            confusion_matrix_metrics(save_image=False,
+                                     stream=True),
+            topk_acc_metrics(minibatch=True, epoch=True,
+                             experience=True, stream=True),
+            class_accuracy_metrics(minibatch=True, epoch=True,
+                                   experience=True, stream=True),
+            amca_metrics(),
+            loggers='default'
+        )
+
         uut = Naive(
             model,
             optimizer,
@@ -152,7 +210,9 @@ class DistributedStrategySupportTests(unittest.TestCase):
             train_mb_size=mb_size_dst,
             eval_mb_size=mb_size_dst,
             train_epochs=2,
-            device=device
+            device=device,
+            plugins=[IterationCheckerPlugin(self)],
+            evaluator=metrics
         )
 
         self.assertEqual(device, uut.device)
@@ -161,13 +221,31 @@ class DistributedStrategySupportTests(unittest.TestCase):
             self.assertEqual(0, len(uut.evaluator.loggers))
 
         benchmark = get_fast_benchmark(
-            n_samples_per_class=400,
+            n_samples_per_class=250,
             n_features=input_size)
 
         for exp_idx, train_experience in enumerate(benchmark.train_stream):
-            # TODO: insert checks between iterations
-            metrics = uut.train(train_experience, drop_last=True)
-            self._check_batches_equal(uut, DistributedHelper.rank, mb_size, mb_size_dst, input_size)
+            metrics = uut.train(train_experience, drop_last=False)
+
+            # Check that drop_last=False works correctly
+            train_dataset_sz = len(uut.adapted_dataset)
+            world_size = DistributedHelper.world_size
+            last_mb_size_without_dropping = \
+                math.ceil(train_dataset_sz / world_size) * world_size % mb_size
+            if last_mb_size_without_dropping == 0:
+                # Corner case: no drop needed
+                last_mb_size_without_dropping = mb_size
+            last_mb_size_without_dropping_dst = \
+                last_mb_size_without_dropping // world_size
+
+            self._check_batches_equal(
+                uut,
+                DistributedHelper.rank,
+                last_mb_size_without_dropping,
+                last_mb_size_without_dropping_dst,
+                input_size)
+
+            # Other checks
             self._check_loss_equal(uut)
             if exp_idx < 2:
                 # Do it only for the first 2 experiences to speed up tests
@@ -175,7 +253,9 @@ class DistributedStrategySupportTests(unittest.TestCase):
             DistributedHelper.check_equal_objects(metrics)
 
             metrics = uut.eval(benchmark.test_stream, drop_last=True)
-            self._check_batches_equal(uut, DistributedHelper.rank, mb_size, mb_size_dst, input_size)
+            # Also checks that drop_last=True works correctly
+            self._check_batches_equal(uut, DistributedHelper.rank, mb_size,
+                                      mb_size_dst, input_size)
             self._check_loss_equal(uut)
             if exp_idx < 2:
                 # Do it only for the first 2 experiences to speed up tests

@@ -7,7 +7,8 @@ from torch.utils.data import default_collate
 
 from avalanche.distributed import DistributedHelper, \
     make_classification_distributed_batch, CollateDistributedBatch
-from tests.distributed.distributed_test_utils import check_skip_distributed_test, suppress_dst_tests_output, \
+from tests.distributed.distributed_test_utils import \
+    check_skip_distributed_test, suppress_dst_tests_output, \
     common_dst_tests_setup
 
 
@@ -66,11 +67,12 @@ class DistributedBatchesTests(unittest.TestCase):
     @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_tuple_merge_batch_vanilla_collate(self):
-        dt: CollateDistributedBatch[Tuple[Tensor, Tensor]] = CollateDistributedBatch(
-            'mb',
-            None,
-            default_collate,
-            None)
+        dt: CollateDistributedBatch[Tuple[Tensor, Tensor]] = \
+            CollateDistributedBatch(
+                'mb',
+                None,
+                default_collate,
+                None)
 
         self.assertEqual(None, dt.local_value)
         self.assertEqual(None, dt.value)
@@ -90,8 +92,10 @@ class DistributedBatchesTests(unittest.TestCase):
             expect = torch.full((8,),
                                 rank,
                                 dtype=torch.long)
-            self.assertTrue(torch.equal(expect,
-                                        distrib_val[1][8 * rank:8 * (rank + 1)]))
+            self.assertTrue(
+                torch.equal(
+                    expect,
+                    distrib_val[1][8 * rank:8 * (rank + 1)]))
 
 
 if __name__ == "__main__":

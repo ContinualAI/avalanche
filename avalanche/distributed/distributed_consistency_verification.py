@@ -23,7 +23,6 @@ def hash_benchmark(benchmark: 'GenericCLScenario') -> str:
 
 
 def hash_dataset(dataset: 'Dataset', *, hash_engine=None, num_workers=0) -> str:
-    from avalanche.distributed import DistributedHelper
     if hash_engine is None:
         hash_engine = hashlib.sha256()
 

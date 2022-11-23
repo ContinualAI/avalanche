@@ -7,7 +7,8 @@ from avalanche.distributed import DistributedHelper
 
 
 def common_dst_tests_setup():
-    use_gpu_in_tests = os.environ.get('USE_GPU', 'false').lower() in ['1', 'true']
+    use_gpu_in_tests = os.environ.get('USE_GPU', 'false').lower() in [
+        '1', 'true']
     use_gpu_in_tests = use_gpu_in_tests and torch.cuda.is_available()
     DistributedHelper.init_distributed(1234, use_cuda=use_gpu_in_tests)
     return use_gpu_in_tests

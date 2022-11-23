@@ -106,10 +106,12 @@ class DetectionCLScenario(GenericCLScenario[TCLExperience]):
         return _LazyStreamClassesInDetectionExps(self)
 
 
-class _LazyStreamClassesInDetectionExps(Mapping[str, Sequence[Optional[Set[int]]]]):
+class _LazyStreamClassesInDetectionExps(Mapping[str,
+                                                Sequence[Optional[Set[int]]]]):
     def __init__(self, benchmark: GenericCLScenario):
         self._benchmark = benchmark
-        self._default_lcie = _LazyClassesInDetectionExps(benchmark, stream="train")
+        self._default_lcie = _LazyClassesInDetectionExps(
+            benchmark, stream="train")
 
     def __len__(self):
         return len(self._benchmark.stream_definitions)

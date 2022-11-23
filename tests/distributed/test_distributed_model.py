@@ -4,7 +4,8 @@ from torch.nn.parallel import DistributedDataParallel
 
 from avalanche.distributed import DistributedHelper, DistributedModel
 from avalanche.models import SimpleMLP
-from tests.distributed.distributed_test_utils import check_skip_distributed_test, suppress_dst_tests_output, \
+from tests.distributed.distributed_test_utils import \
+    check_skip_distributed_test, suppress_dst_tests_output, \
     common_dst_tests_setup
 
 

@@ -2,7 +2,7 @@ import os
 import pickle
 import warnings
 from io import BytesIO
-from typing import Optional, List
+from typing import Optional, List, Any, Iterable, Dict
 
 import torch
 from torch import Tensor
@@ -11,7 +11,8 @@ from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel
 from typing_extensions import Literal
 
-from avalanche.distributed.distributed_consistency_verification import hash_tensor
+from avalanche.distributed.distributed_consistency_verification import \
+    hash_tensor
 
 
 class _Singleton(type):
@@ -370,13 +371,16 @@ class _DistributedHelperCls(object):
         if not DistributedHelper.is_distributed:
             return
 
-        output = [None for _ in range(self.world_size)]
+        output: List[Any] = [None for _ in range(self.world_size)]
         torch.distributed.all_gather_object(output, obj)
 
+        obj_bt = base_typed(obj)
+
         for i, o in enumerate(output):
-            if obj != o:
+            o_bt = base_typed(o)
+            if obj_bt != o_bt:
                 raise ValueError(
-                    'Different object ranks this={}, remote={}. '
+                    'Different objects (ranks this={}, remote={}). '
                     'Got this={}, remote={}'.format(
                         self.rank, i, obj, o))
 
@@ -427,6 +431,36 @@ class _DistributedHelperCls(object):
     @property
     def forced_cuda_comm(self) -> bool:
         return self.backend == 'nccl'
+
+
+BASE_TYPES = [str, int, float, bool, type(None)]
+
+
+def base_typed(obj):
+    """
+    Improved version of https://stackoverflow.com/a/62420097
+    """
+    T = type(obj)
+    from_numpy = T.__module__ == 'numpy'
+    from_pytorch = T.__module__ == 'torch'
+
+    if from_numpy or from_pytorch:
+        print(T.__module__)
+        return obj.tolist()
+
+    if T in BASE_TYPES or callable(obj) or ((from_numpy or from_pytorch)
+                                            and not isinstance(T, Iterable)):
+        return obj
+
+    if isinstance(obj, Dict):
+        return {base_typed(k): base_typed(v) for k, v in obj.items()}
+    elif isinstance(obj, Iterable):
+        base_items = [base_typed(item) for item in obj]
+        return base_items if (from_numpy or from_pytorch) else T(base_items)
+
+    d = obj if T is dict else obj.__dict__
+
+    return {k: base_typed(v) for k, v in d.items()}
 
 
 DistributedHelper = _DistributedHelperCls()

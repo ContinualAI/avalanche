@@ -140,8 +140,8 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
             pinned memory before returning them. Defaults to None, which means
-            that the value will be determined by looking at the strategy `device`
-            field.
+            that the value will be determined by looking at the strategy
+            `device` field.
         :param persistent_workers: If True, the data loader will not shutdown
             the worker processes after a dataset has been consumed once.
             Used only if `PyTorch >= 1.7.0`.
@@ -170,7 +170,8 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         pin_memory=None,
         persistent_workers=False,
         drop_last=False,
-        **kwargs):
+        **kwargs
+    ):
 
         """
         :param num_workers: How many subprocesses to use for data loading.
@@ -179,8 +180,8 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         :param shuffle: True if the data should be shuffled, False otherwise.
         :param pin_memory: If True, the data loader will copy Tensors into CUDA
             pinned memory before returning them. Defaults to None, which means
-            that the value will be determined by looking at the strategy `device`
-            field.
+            that the value will be determined by looking at the strategy
+            `device` field.
         :param persistent_workers: If True, the data loader will not shut down
             the worker processes after a dataset has been consumed once.
             Please refer to PyTorch `DataLoader` class for more details.

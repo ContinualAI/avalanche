@@ -31,7 +31,8 @@ from avalanche.benchmarks.scenarios.generic_definitions import (
 from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )
-from avalanche.benchmarks.utils import make_classification_dataset, AvalancheDataset
+from avalanche.benchmarks.utils import \
+    make_classification_dataset, AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 TGenericCLClassificationScenario = TypeVar(

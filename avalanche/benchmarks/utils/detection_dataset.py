@@ -81,10 +81,12 @@ SupportedDetectionDataset = Union[
     ConcatDataset,
 ]
 
-DetectionExampleT = Tuple[Tensor, TTargetType, int]  # Image (tensor), target dict, task label
+# Image (tensor), target dict, task label
+DetectionExampleT = Tuple[Tensor, TTargetType, int]
 
 
-class DetectionDataset(AvalancheDataset, IDatasetWithTargets[DetectionExampleT, TTargetType]):
+class DetectionDataset(AvalancheDataset,
+                       IDatasetWithTargets[DetectionExampleT, TTargetType]):
     def __init__(self, *args, **kwargs):
         # Here defined only to provide type hinting
         self.targets_task_labels: DataAttribute[int] = DataAttribute(
@@ -144,9 +146,10 @@ def make_detection_dataset(
 
     This dataset applies input/target transformations, it supports
     slicing and advanced indexing and it also contains useful fields as
-    `targets`, which contains the pattern dictionaries, and `targets_task_labels`,
-    which contains the pattern task labels. The `task_set` field can be used to
-    obtain a the subset of patterns labeled with a given task label.
+    `targets`, which contains the pattern dictionaries, and
+    `targets_task_labels`, which contains the pattern task labels.
+    The `task_set` field can be used to obtain a the subset of patterns
+    labeled with a given task label.
 
     This dataset can also be used to apply several advanced operations involving
     transformations. For instance, it allows the user to add and replace
@@ -366,7 +369,8 @@ def _detection_class_mapping_transform(class_mapping, example_target_dict):
     # example_target_dict["labels"] is a tensor containing one label
     # for each bounding box in the image. We need to remap each of them
     example_target_labels = example_target_dict["labels"]
-    example_mapped_labels = [class_mapping[int(el)] for el in example_target_labels]
+    example_mapped_labels = [class_mapping[int(el)] for el
+                             in example_target_labels]
 
     if isinstance(example_target_labels, Tensor):
         example_mapped_labels = torch.as_tensor(example_mapped_labels)
@@ -486,8 +490,10 @@ def detection_subset(
         if targets is None:
             targets = dataset.targets
 
-        tgs = [_detection_class_mapping_transform(class_mapping, example_target_dict)
-               for example_target_dict in targets]
+        tgs = [
+            _detection_class_mapping_transform(
+                class_mapping, example_target_dict)
+            for example_target_dict in targets]
 
         targets = DataAttribute(tgs, "targets")
 

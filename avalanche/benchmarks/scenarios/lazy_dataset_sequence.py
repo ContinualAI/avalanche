@@ -12,7 +12,8 @@
 from collections import defaultdict
 from typing import Sequence, Iterable, Dict, Optional, Iterator
 
-from avalanche.benchmarks.utils import make_classification_dataset, AvalancheDataset
+from avalanche.benchmarks.utils import \
+    make_classification_dataset, AvalancheDataset
 
 
 class LazyDatasetSequence(Sequence[make_classification_dataset]):

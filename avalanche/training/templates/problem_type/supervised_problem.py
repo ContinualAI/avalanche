@@ -1,6 +1,5 @@
 from typing import final
 
-from avalanche.distributed.strategies import DistributedMiniBatchStrategySupport, DistributedModelStrategySupport
 from avalanche.models import avalanche_forward
 
 
@@ -23,9 +22,9 @@ class SupervisedProblem:
 
     def criterion(self):
         """Loss function for supervised problems."""
-        with self.use_local_output_batch():  # Force self.mb_output to be from local batch
-            with self.use_local_input_batch():  # Force self.mb_y to be from local batch
-
+        # Force self.mb_output and self.mb_y to be from local batch
+        with self.use_local_output_batch():
+            with self.use_local_input_batch():
                 return self._criterion(self.mb_output, self.mb_y)
 
     @final

@@ -2,12 +2,10 @@ from typing import Optional, List
 
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import ConcatDataset
 
-from avalanche.benchmarks.utils import concat_classification_datasets
 from avalanche.benchmarks.utils.utils import concat_datasets
+from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.templates import SupervisedTemplate
 
 

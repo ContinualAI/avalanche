@@ -2,7 +2,7 @@ from typing import Callable, List, Any, Optional, Union
 
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.collate_functions import \
-    classification_collate_mbatches_fn, classification_single_values_collate_fn, Collate, ClassificationCollate
+    Collate, ClassificationCollate
 from avalanche.distributed import CollateDistributedBatch
 from avalanche.distributed.strategies import DistributedStrategySupport
 
@@ -16,15 +16,15 @@ class DistributedMiniBatchStrategySupport(DistributedStrategySupport):
         self._mbatch = CollateDistributedBatch(
             'mbatch',
             None,
-            classification_collate_mbatches_fn,
-            classification_single_values_collate_fn
+            default_collate_impl.collate_fn,
+            default_collate_impl.collate_single_value_fn
         )
 
         self._mb_output = CollateDistributedBatch(
             'mb_output',
             None,
-            classification_collate_mbatches_fn,
-            classification_single_values_collate_fn
+            default_collate_impl.collate_fn,
+            default_collate_impl.collate_single_value_fn
         )
 
         self._adapted_dataset: Optional[AvalancheDataset] = None
@@ -168,7 +168,8 @@ class DistributedMiniBatchStrategySupport(DistributedStrategySupport):
 
         if isinstance(new_collate, Collate):
             self.input_batch_collate_fn = new_collate.collate_fn
-            self.input_batch_single_values_collate_fn = new_collate.collate_single_value_fn
+            self.input_batch_single_values_collate_fn = \
+                new_collate.collate_single_value_fn
         else:
             self.input_batch_collate_fn = new_collate
             self.input_batch_single_values_collate_fn = None

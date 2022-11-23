@@ -36,7 +36,11 @@ class DataAttribute(Generic[DataT]):
     Data attributes can be efficiently concatenated and subsampled.
     """
 
-    def __init__(self, data: IDataset[DataT], name: str = None, use_in_getitem: bool = False):
+    def __init__(
+            self,
+            data: IDataset[DataT],
+            name: str = None,
+            use_in_getitem: bool = False):
         """Data Attribute.
 
         :param data: a sequence of values, one for each sample.

@@ -1,4 +1,4 @@
-from typing import Iterable, final
+from typing import final
 
 from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.dynamic_optimizers import reset_optimizer
@@ -66,8 +66,9 @@ class OnlineObservation:
     def check_model_and_optimizer(self):
         with self.use_local_model():
             # If strategy has access to the task boundaries, and the current
-            # sub-experience is the first sub-experience in the online (sub-)stream,
-            # then adapt the model with the full origin experience:
+            # sub-experience is the first sub-experience in the online
+            # (sub-)stream, then adapt the model with the full origin
+            # experience:
             if self.experience.access_task_boundaries:
                 if self.experience.is_first_subexp:
                     self.model = self.model_adaptation()

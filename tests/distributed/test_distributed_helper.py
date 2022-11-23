@@ -1,4 +1,3 @@
-import os
 import random
 import unittest
 
@@ -6,10 +5,12 @@ import torch
 import torch.distributed as dst
 
 from avalanche.distributed import DistributedHelper
-from avalanche.distributed.distributed_helper import RollingSeedContext, BroadcastSeedContext
+from avalanche.distributed.distributed_helper import \
+    RollingSeedContext, BroadcastSeedContext
 
 from avalanche.training.determinism.rng_manager import RNGManager
-from tests.distributed.distributed_test_utils import check_skip_distributed_test, suppress_dst_tests_output, \
+from tests.distributed.distributed_test_utils import \
+    check_skip_distributed_test, suppress_dst_tests_output, \
     common_dst_tests_setup
 
 
@@ -23,10 +24,12 @@ class DistributedHelperTests(unittest.TestCase):
     def test_device_id(self):
         if self.use_gpu_in_tests:
             self.assertEqual(dst.get_rank(), DistributedHelper.get_device_id())
-            self.assertEqual(torch.device(f'cuda:{dst.get_rank()}'), DistributedHelper.make_device())
+            self.assertEqual(torch.device(f'cuda:{dst.get_rank()}'),
+                             DistributedHelper.make_device())
         else:
             self.assertEqual(-1, DistributedHelper.get_device_id())
-            self.assertEqual(torch.device('cpu'), DistributedHelper.make_device())
+            self.assertEqual(torch.device('cpu'),
+                             DistributedHelper.make_device())
 
     @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')

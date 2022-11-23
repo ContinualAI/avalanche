@@ -93,7 +93,8 @@ class DistributedBatch(DistributedObject[LocalT, LocalT], ABC):
 
             return tuple(merged_elements)
         except OnlyTupleSynchronizationSupported:
-            raise RuntimeError('[DistributedBatch] No proper collate function set.')
+            raise RuntimeError(
+                '[DistributedBatch] No proper collate function set.')
 
     @abstractmethod
     def _merge_single_values(self, values: List, value_index: int):
@@ -125,7 +126,8 @@ class CollateDistributedBatch(DistributedBatch[LocalT]):
             for mb_element_idx in range(mb_size):
                 mb_element = []
                 for tuple_element_idx in range(n_elements):
-                    mb_element.append(local_tuple[tuple_element_idx][mb_element_idx])
+                    mb_element.append(
+                        local_tuple[tuple_element_idx][mb_element_idx])
                 unrolled_elements.append(tuple(mb_element))
         return unrolled_elements
 

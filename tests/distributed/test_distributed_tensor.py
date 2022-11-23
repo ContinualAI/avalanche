@@ -5,7 +5,8 @@ import torch
 from avalanche.distributed import DistributedHelper
 from avalanche.distributed.distributed_tensor import \
     DistributedMeanTensor
-from tests.distributed.distributed_test_utils import check_skip_distributed_test, suppress_dst_tests_output, \
+from tests.distributed.distributed_test_utils import \
+    check_skip_distributed_test, suppress_dst_tests_output, \
     common_dst_tests_setup
 
 
