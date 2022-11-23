@@ -272,30 +272,13 @@ class GroupBalancedInfiniteDataLoader:
         self.datasets = datasets
         self.dataloaders = []
         self.collate_mbatches = collate_mbatches
+        self.kwargs = kwargs
 
         for data in self.datasets:
-            if _DistributedHelper.is_distributed and distributed_sampling:
-                seed = torch.randint(
-                    0,
-                    2 ** 32 - 1 - _DistributedHelper.world_size,
-                    (1,),
-                    dtype=torch.int64,
-                )
-                seed += _DistributedHelper.rank
-                generator = torch.Generator()
-                generator.manual_seed(int(seed))
-            else:
-                generator = None  # Default
-            infinite_sampler = RandomSampler(
-                data,
-                replacement=True,
-                num_samples=10 ** 10,
-                generator=generator,
-            )
             collate_from_data_or_kwargs(data, kwargs)
-            dl = DataLoader(data, sampler=infinite_sampler, **kwargs)
+            dl = DataLoader(data, **kwargs)
             self.dataloaders.append(dl)
-        self.max_len = 10 ** 10
+        self.fake_max_len = 10 ** 10
 
     def __iter__(self):
         iter_dataloaders = []
@@ -304,13 +287,19 @@ class GroupBalancedInfiniteDataLoader:
 
         while True:
             mb_curr = []
-            for tid, t_loader in enumerate(iter_dataloaders):
-                batch = next(t_loader)
+            for t_id, t_loader in enumerate(iter_dataloaders):
+                try:
+                    batch = next(t_loader)
+                except StopIteration:
+                    # create on-the-fly new DataLoader when previous one ends
+                    iter_dataloaders[t_id] = iter(DataLoader(
+                        self.datasets[t_id], **self.kwargs))
+                    batch = next(iter_dataloaders[t_id])
                 mb_curr.append(batch)
             yield self.collate_mbatches(mb_curr)
 
     def __len__(self):
-        return self.max_len
+        return self.fake_max_len
 
 
 class ReplayDataLoader:

@@ -43,7 +43,6 @@ class AGEMPlugin(SupervisedPlugin):
         self.buffer_dliter = None
 
         self.reference_gradients = None
-        self.memory_x, self.memory_y = None, None
 
     def before_training_iteration(self, strategy, **kwargs):
         """
