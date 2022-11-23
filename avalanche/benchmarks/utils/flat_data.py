@@ -12,7 +12,11 @@
     Datasets with optimized concat/subset operations.
 """
 import bisect
-import collections
+try:
+    from collections import Hashable
+except ImportError:
+    from collections.abc import Hashable
+
 from typing import List
 
 from torch.utils.data import ConcatDataset
@@ -297,11 +301,11 @@ def _flatten_datasets_and_reindex(datasets, indices):
     the new dataset position in the list.
     """
     # find unique datasets
-    if not all(isinstance(d, collections.Hashable) for d in datasets):
+    if not all(isinstance(d, Hashable) for d in datasets):
         return datasets, indices
 
     dset_uniques = set(datasets)
-    if len(dset_uniques) == datasets:  # no duplicates. Nothing to do.
+    if len(dset_uniques) == len(datasets):  # no duplicates. Nothing to do.
         return datasets, indices
 
     # split the indices into <dataset-id, sample-id> pairs

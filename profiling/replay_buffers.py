@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     start = time.time()
     buffer = ReservoirSamplingBuffer(100)
-    for t, exp in tqdm(enumerate(split_online_stream(benchmark.train_stream[:2], 1))):
+    for t, exp in tqdm(enumerate(split_online_stream(benchmark.train_stream, 10))):
         buffer.update_from_dataset(exp.dataset)
         b = buffer.buffer
         # depths = _flatdata_depth(b)
@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     start = time.time()
     buffer = ParametricBuffer(100)
-    for exp in tqdm(split_online_stream(benchmark.train_stream[:2], 1)):
+    for exp in tqdm(split_online_stream(benchmark.train_stream, 10)):
         buffer.update(Mock(experience=exp, dataset=exp.dataset))
         bgs = buffer.buffer_datasets
 
@@ -52,10 +52,6 @@ if __name__ == '__main__':
         # lendsets = [len(b._datasets) for b in atts]
         # lentots = sum([len(b) for b in bgs])
         # print(f"ATTS depth={depths}, idxs={lenidxs}, dsets={lendsets}, len={lentots}")
-    for exp in tqdm(fixed_size_experience_split(experience, 2)):
-        buffer.update(Mock(experience=exp, dataset=exp.dataset))
-        bgs = buffer.buffer_datasets
-
     end = time.time()
     duration = end - start
     print("ParametricBuffer (random sampling) Duration: ", duration)
