@@ -54,6 +54,9 @@ jobs:
           conda run -n avalanche-env --no-capture-output mamba env update --file environment.yml -v
       - name: python unit test
         id: unittest
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
           python -m unittest discover tests &&
