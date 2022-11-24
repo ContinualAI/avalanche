@@ -125,6 +125,13 @@ class AvalancheDataset(FlatData):
             self._data_attributes = {}
         else:
             self._data_attributes = {da.name: da for da in data_attributes}
+            for da in data_attributes:
+                ld = sum(len(d) for d in self._datasets)
+                if len(da) != ld:
+                    raise ValueError(
+                        "Data attribute {} has length {} but the dataset "
+                        "has length {}".format(da.name, len(da), ld)
+                    )
         self._transform_groups = transform_groups
         self._frozen_transform_groups = frozen_transform_groups
         self.collate_fn = collate_fn

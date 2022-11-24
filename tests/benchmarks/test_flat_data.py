@@ -155,10 +155,13 @@ class FlatteningTests(unittest.TestCase):
 
         B1 = D1.concat(B)
         print(f"DATA depth={_flatdata_depth(B1)}, dsets={len(B1._datasets)}")
+        assert len(B1._datasets) == 2
         B2 = D1.concat(B1)
         print(f"DATA depth={_flatdata_depth(B2)}, dsets={len(B2._datasets)}")
+        assert len(B2._datasets) == 2
         B3 = D1.concat(B2)
         print(f"DATA depth={_flatdata_depth(B3)}, dsets={len(B3._datasets)}")
+        assert len(B3._datasets) == 2
 
     def test_concat_flattens_nc_scenario_dataset2(self):
         bm = get_fast_benchmark()
