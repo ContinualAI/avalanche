@@ -117,7 +117,7 @@ class RWalkPlugin(SupervisedPlugin):
     def _update_importance(self, strategy):
         importance = copy_params_dict(strategy.model, copy_grad=True)
         for k in importance.keys():
-            importance[k].data **= 2
+            importance[k].data = importance[k].data ** 2
 
         if self.iter_importance is None:
             self.iter_importance = importance
