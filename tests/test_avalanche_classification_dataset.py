@@ -1715,7 +1715,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
 
         dataset_other = make_classification_dataset(dataset_reset)
         dataset_other = dataset_other.replace_current_transform_group(
-            (None, lambda l: l + 1)
+            (None, lambda lll: lll + 1)
         )
 
         _, y6, _ = dataset_other[0]
