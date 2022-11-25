@@ -57,6 +57,17 @@ class FrozenTransformGroupsCenterCrop:
 
 class AvalancheDatasetTests(unittest.TestCase):
 
+    def test_avldata_subset_size(self):
+        data = [1, 2, 3, 4]
+        attr = DataAttribute(data, "a")
+        # avl data subset expects len(attribute) == len(dataset)
+        AvalancheDataset([data], data_attributes=[attr], indices=[0, 1])
+
+        # avl data should warn if len(attribute) != len(dataset)
+        with self.assertRaises(ValueError):
+            attr = DataAttribute(data[:2], "a")
+            AvalancheDataset([data], data_attributes=[attr], indices=[0, 1])
+
     def test_avalanche_dataset_creation_without_list(self):
         dataset_mnist = load_image_benchmark()
         dataset = AvalancheDataset(dataset_mnist)
