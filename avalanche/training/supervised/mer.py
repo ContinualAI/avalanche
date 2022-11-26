@@ -125,17 +125,16 @@ class MER(OnlineSupervisedMetaLearningTemplate):
             # Within-batch Reptile update
             w_aft_t = self.model.state_dict()
             self.model.load_state_dict(
-                {name: w_bef_t[name] +
-                       ((w_aft_t[name] - w_bef_t[name]) * self.beta)
+                {name: w_bef_t[name] + ((w_aft_t[name] - w_bef_t[name])
+                                        * self.beta)
                  for name in w_bef_t}
             )
 
     def _outer_update(self, **kwargs):
         w_aft = self.model.state_dict()
         self.model.load_state_dict(
-            {name: self.w_bef[name] +
-                   ((w_aft[name] - self.w_bef[name]) * self.gamma)
-             for name in self.w_bef}
+            {name: self.w_bef[name] + ((w_aft[name] - self.w_bef[name])
+                                       * self.gamma) for name in self.w_bef}
         )
         with torch.no_grad():
             pred = self.forward()
