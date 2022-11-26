@@ -107,10 +107,7 @@ class BaseTemplate:
         if eval_streams is None:
             eval_streams = [experiences]
 
-        if len(eval_streams) == 1:
-            self._eval_streams = eval_streams
-        else:
-            self._eval_streams = _group_experiences_by_stream(eval_streams)
+        self._eval_streams = _group_experiences_by_stream(eval_streams)
 
         self._before_training(**kwargs)
 
@@ -255,6 +252,9 @@ class BaseTemplate:
 
 
 def _group_experiences_by_stream(eval_streams):
+    if len(eval_streams) == 1:
+        return eval_streams
+
     exps = []
     # First, we unpack the list of experiences.
     for exp in eval_streams:
