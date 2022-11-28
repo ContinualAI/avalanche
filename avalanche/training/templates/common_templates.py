@@ -3,7 +3,7 @@ from typing import Sequence, Optional
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 
-from avalanche.core import BaseSGDPlugin
+from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 
 from .observation_type import *
@@ -60,7 +60,7 @@ class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
 
     """
 
-    PLUGIN_CLASS = BaseSGDPlugin
+    PLUGIN_CLASS = SupervisedPlugin
 
     def __init__(
             self,
@@ -173,7 +173,7 @@ class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
 
     """
 
-    PLUGIN_CLASS = BaseSGDPlugin
+    PLUGIN_CLASS = SupervisedPlugin
 
     def __init__(
             self,
@@ -286,7 +286,7 @@ class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
 
     """
 
-    PLUGIN_CLASS = BaseSGDPlugin
+    PLUGIN_CLASS = SupervisedPlugin
 
     def __init__(
             self,
@@ -388,7 +388,7 @@ class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
 
     """
 
-    PLUGIN_CLASS = BaseSGDPlugin
+    PLUGIN_CLASS = SupervisedPlugin
 
     def __init__(
             self,
