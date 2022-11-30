@@ -1,10 +1,11 @@
 import warnings
+import random
 from typing import List
-
+from time import time
 import torch
 from torch.utils.data import random_split
 
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils import make_classification_dataset, AvalancheSubset
 from avalanche.benchmarks.utils.data_loader import (
     GroupBalancedInfiniteDataLoader,
 )
@@ -22,18 +23,22 @@ class AGEMPlugin(SupervisedPlugin):
     This plugin does not use task identities.
     """
 
-    def __init__(self, patterns_per_experience: int, sample_size: int):
+    def __init__(self, patterns_per_experience: int, sample_size: int,
+                 sample_frequency: int = 50):
         """
         :param patterns_per_experience: number of patterns per experience in the
             memory.
         :param sample_size: number of patterns in memory sample when computing
             reference gradient.
+        :param sample_frequency: sample from the buffer every `sample_frequency`
+            iterations. Sample `sample_size`*`sample_frequency` samples to speedup.
         """
 
         super().__init__()
 
         self.patterns_per_experience = int(patterns_per_experience)
         self.sample_size = int(sample_size)
+        self.sample_frequency = sample_frequency
 
         self.buffers: List[
             make_classification_dataset
@@ -41,13 +46,13 @@ class AGEMPlugin(SupervisedPlugin):
         # each experience.
         self.buffer_dataloader = None
         self.buffer_dliter = None
-
         self.reference_gradients = None
 
     def before_training_iteration(self, strategy, **kwargs):
         """
         Compute reference gradient on memory sample.
         """
+
         if len(self.buffers) > 0:
             strategy.model.train()
             strategy.optimizer.zero_grad()
@@ -126,16 +131,18 @@ class AGEMPlugin(SupervisedPlugin):
             )
         removed_els = len(dataset) - self.patterns_per_experience
         if removed_els > 0:
-            dataset, _ = random_split(
-                dataset, [self.patterns_per_experience, removed_els]
-            )
+            indices = list(range(len(dataset)))
+            random.shuffle(indices)
+            dataset = dataset.subset(indices[:self.patterns_per_experience])
+
         self.buffers.append(dataset)
+
         persistent_workers = num_workers > 0
         self.buffer_dataloader = GroupBalancedInfiniteDataLoader(
             self.buffers,
-            batch_size=self.sample_size // len(self.buffers),
+            batch_size=(self.sample_size // len(self.buffers)),
             num_workers=num_workers,
-            pin_memory=True,
+            pin_memory=False,
             persistent_workers=persistent_workers,
         )
         self.buffer_dliter = iter(self.buffer_dataloader)
