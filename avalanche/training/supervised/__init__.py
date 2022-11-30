@@ -9,3 +9,4 @@ from .strategy_wrappers import *
 from .strategy_wrappers_online import *
 from .deep_slda import *
 from .icarl import ICaRL
+from .er_acl import ER_ACL, OnlineER_ACL
