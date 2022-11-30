@@ -26,10 +26,11 @@ As in torchvision datasets, AvalancheDataset supports the two kind of transforma
 
 In the following example, a MNIST dataset is created and then wrapped in an AvalancheDataset. When creating the AvalancheDataset, we can set *train* and *eval* transformations by passing a *transform\_groups* parameter. Train transformations usually include some form of random augmentation, while eval transformations usually include a sequence of deterministic transformations only. Here we define the sequence of train transformations as a random rotation followed by the ToTensor operation. The eval transformations only include the ToTensor operation.
 
+
 ```python
 from torchvision import transforms
 from torchvision.datasets import MNIST
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils import AvalancheDataset
 
 mnist_dataset = MNIST('mnist_data', download=True)
 
@@ -51,7 +52,7 @@ transform_groups = {
     'eval': (eval_transformation, eval_target_transformation)
 }
 
-avl_mnist_transform = make_classification_dataset(mnist_dataset, transform_groups=transform_groups)
+avl_mnist_transform = AvalancheDataset(mnist_dataset, transform_groups=transform_groups)
 ```
 
 Of course, one can also just use the `transform` and `target_transform` constructor parameters to set the transformations for both the *train* and the *eval* groups. However, it is recommended to use the approach based on *transform\_groups* (shown in the code above) as it is much more flexible.
@@ -225,11 +226,12 @@ Note: one can use `.replace_transforms(...)` to remove previous transformations 
 
 The following cell shows how to use `.replace_transforms(...)` to replace the transformations of the current group:
 
+
 ```python
 new_transform = transforms.RandomCrop(size=(28, 28), padding=4)
 
 # Append a transformation. Simple as:
-avl_mnist_replaced_transform = avl_mnist.replace_current_transform_group(new_transform, None)
+avl_mnist_replaced_transform = avl_mnist.replace_transforms(new_transform, None)
 
 print('With replaced transform:', avl_mnist_replaced_transform.transform)
 # Prints: "With replaces transforms: RandomCrop(size=(28, 28), padding=4)"
@@ -292,13 +294,14 @@ In this way, that transform can't be removed. However, remember that one can alw
 
 The cell below shows that `replace_transforms` can't remove frozen transformations:
 
+
 ```python
 # First, show that the image pixels are permuted
 print('Before replace_transforms:')
 display(permuted_train_set[0][0].resize((192, 192), 0))
 
 # Try to remove the permutation
-with_removed_transforms = permuted_train_set.replace_current_transform_group(None, None)
+with_removed_transforms = permuted_train_set.replace_transforms(None, None)
 
 print('After replace_transforms:')
 display(permuted_train_set[0][0].resize((192, 192), 0))
