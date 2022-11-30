@@ -53,15 +53,12 @@ class ImageSamplesTests(unittest.TestCase):
         scenario = SplitMNIST(5)
         curr_exp = scenario.train_stream[0]
 
-        # we use a ReSize transform because it's easy to detect if it's been
-        # applied without looking at the image.
-        curr_dataset = curr_exp.dataset.replace_current_transform_group(
-            Compose([Resize(8), ToTensor()])
-        )
-
         ##########################################
         # WITH AUGMENTATIONS
         ##########################################
+        curr_dataset = curr_exp.dataset.replace_current_transform_group(
+            Compose([Resize(8)])
+        )
         p_metric = ImagesSamplePlugin(
             n_cols=5,
             n_rows=5,
@@ -82,6 +79,11 @@ class ImageSamplesTests(unittest.TestCase):
         ##########################################
         # WITHOUT AUGMENTATIONS
         ##########################################
+        # we use a ReSize transform because it's easy to detect if it's been
+        # applied without looking at the image.
+        curr_dataset = curr_exp.dataset.replace_current_transform_group(
+            Compose([Resize(8), ToTensor()])
+        )
         p_metric = ImagesSamplePlugin(
             n_cols=5,
             n_rows=5,
