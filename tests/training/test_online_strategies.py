@@ -116,6 +116,8 @@ class StrategyTest(unittest.TestCase):
         cl_strategy.train(benchmark.train_stream, num_workers=0)
         print("Training completed")
 
+        assert cl_strategy.clock.train_exp_counter > 0
+
         print("Computing accuracy on the current test set")
         results.append(cl_strategy.eval(benchmark.original_test_stream[:]))
 
