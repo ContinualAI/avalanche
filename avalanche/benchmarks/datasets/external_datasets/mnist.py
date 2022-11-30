@@ -12,7 +12,8 @@ class TensorMNIST(MNIST):
         Returns:
             tuple: (image, target) where target is index of the target class.
         """
-        img, target = self.data[index].float().unsqueeze(0) / 255., int(self.targets[index])
+        img = self.data[index].float().unsqueeze(0) / 255.
+        target = int(self.targets[index])
 
         if self.transform is not None:
             img = self.transform(img)
@@ -36,7 +37,7 @@ def get_mnist_dataset(dataset_root):
 
 def load_MNIST(root, train, transform, target_transform):
     return TensorMNIST(root=root, train=train, transform=transform,
-                 target_transform=target_transform)
+                       target_transform=target_transform)
 
 
 @dill.register(TensorMNIST)

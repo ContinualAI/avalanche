@@ -1,11 +1,9 @@
 import warnings
 import random
 from typing import List
-from time import time
 import torch
-from torch.utils.data import random_split
 
-from avalanche.benchmarks.utils import make_classification_dataset, AvalancheSubset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.data_loader import (
     GroupBalancedInfiniteDataLoader,
 )
@@ -23,22 +21,18 @@ class AGEMPlugin(SupervisedPlugin):
     This plugin does not use task identities.
     """
 
-    def __init__(self, patterns_per_experience: int, sample_size: int,
-                 sample_frequency: int = 50):
+    def __init__(self, patterns_per_experience: int, sample_size: int):
         """
         :param patterns_per_experience: number of patterns per experience in the
             memory.
         :param sample_size: number of patterns in memory sample when computing
             reference gradient.
-        :param sample_frequency: sample from the buffer every `sample_frequency`
-            iterations. Sample `sample_size`*`sample_frequency` samples to speedup.
         """
 
         super().__init__()
 
         self.patterns_per_experience = int(patterns_per_experience)
         self.sample_size = int(sample_size)
-        self.sample_frequency = sample_frequency
 
         self.buffers: List[
             make_classification_dataset

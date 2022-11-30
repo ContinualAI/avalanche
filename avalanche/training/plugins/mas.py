@@ -6,7 +6,8 @@ import torch
 
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict, ParamData
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
+    ParamData
 
 
 class MASPlugin(SupervisedPlugin):
@@ -109,7 +110,7 @@ class MASPlugin(SupervisedPlugin):
                     # to be None for all the heads different from the
                     # current one.
                     if param.grad is not None:
-                        importance[name].data += param.grad.abs() # * len(batch)
+                        importance[name].data += param.grad.abs()
 
         # Normalize importance
         for k in importance.keys():

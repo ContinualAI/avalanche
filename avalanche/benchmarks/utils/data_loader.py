@@ -311,7 +311,6 @@ class GroupBalancedInfiniteDataLoader:
         return self.max_len
 
 
-
 class ReplayDataLoader:
     """Custom data loader for rehearsal/replay strategies."""
 
