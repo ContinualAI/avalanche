@@ -1,10 +1,12 @@
 """Regularization methods."""
 import copy
+from collections import defaultdict
+from typing import List
 
 import torch
+import torch.nn.functional as F
 
 from avalanche.models import MultiTaskModule, avalanche_forward
-from collections import defaultdict
 
 
 class RegularizationMethod:
@@ -126,4 +128,66 @@ class LearningWithoutForgetting(RegularizationMethod):
                 ].union(pc)
 
 
-__all__ = ["RegularizationMethod", "LearningWithoutForgetting"]
+class ACECriterion(RegularizationMethod):
+    """
+    Asymetric cross-entropy (ACE) Criterion used in
+    "New Insights on Reducing Abrupt Representation 
+    Change in Online Continual Learning"
+    by Lucas Caccia et. al.
+    https://openreview.net/forum?id=N8MaByOzUfb
+    """
+
+    def __init__(
+        self,
+        initial_old_classes: List[int] = None,
+        initial_new_classes: List[int] = None,
+    ):
+        """
+        param: initial_old_classes: List[int]
+        param: initial_new_classes: List[int]
+        """
+        self.old_classes = (
+            set(initial_old_classes) if 
+            initial_old_classes is not None else set()
+        )
+        self.new_classes = (
+            set(initial_new_classes) if 
+            initial_new_classes is not None else set()
+        )
+
+    def update(self, batch_y):
+        current_classes = set(torch.unique(batch_y).cpu().numpy())
+        inter_new = current_classes.intersection(self.new_classes)
+        inter_old = current_classes.intersection(self.old_classes)
+        if len(self.new_classes) == 0:
+            self.new_classes = current_classes
+        elif len(inter_new) == 0:
+            # Intersection is null, new task has arrived
+            self.old_classes.update(self.new_classes)
+            self.new_classes = current_classes
+        elif len(inter_new) > 0 and (
+            len(current_classes.union(self.new_classes)) > len(self.new_classes)
+        ):
+            #
+            self.new_classes.update(current_classes)
+        elif len(inter_new) > 0 and len(inter_old) > 0:
+            raise ValueError(
+                ("ACECriterion strategy cannot handle mixing",
+                 "of same classes in different tasks")
+            )
+
+    def __call__(self, out_in, target_in, out_buffer, target_buffer):
+        loss_buffer = F.cross_entropy(out_buffer, target_buffer)
+        loss_current = F.cross_entropy(
+            out_in[:, len(self.all_classes) - len(self.new_classes) :],
+            target_in - (len(self.all_classes) - len(self.new_classes)),
+        )
+        # Divide by two for learning rate coherency
+        return (loss_buffer + loss_current) / 2
+
+    @property
+    def all_classes(self):
+        return self.new_classes.union(self.old_classes)
+
+
+__all__ = ["RegularizationMethod", "LearningWithoutForgetting", "ACECriterion"]

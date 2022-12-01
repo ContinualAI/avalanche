@@ -10,6 +10,7 @@ from torch.optim import Optimizer
 
 from avalanche.benchmarks.utils import concat_datasets
 from avalanche.models.utils import avalanche_forward
+from avalanche.training import ACECriterion
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import (OnlineSupervisedTemplate,
@@ -22,7 +23,7 @@ def cycle(loader):
             yield batch
 
 
-def er_acl_criterion(
+def er_ace_criterion(
     out_in, target_in, out_buffer, target_buffer, all_classes, new_classes
 ):
     loss_buffer = F.cross_entropy(out_buffer, target_buffer)
@@ -33,10 +34,11 @@ def er_acl_criterion(
     return loss_buffer + loss_current
 
 
-class OnlineER_ACL(OnlineSupervisedTemplate):
+class OnlineER_ACE(OnlineSupervisedTemplate):
     """
-    ER ACL Online version, as originally proposed in
-    "New Insights on Reducing Abrupt Representation Change in Online Continual Learning"
+    ER ACE Online version, as originally proposed in
+    "New Insights on Reducing Abrupt Representation 
+    Change in Online Continual Learning"
     by Lucas Caccia et. al.
     https://openreview.net/forum?id=N8MaByOzUfb
     """
@@ -100,36 +102,11 @@ class OnlineER_ACL(OnlineSupervisedTemplate):
             max_size=self.mem_size, adaptive_size=True
         )
         self.replay_loader = None
-
-        # Use this that way we do not depend on
-        # the ones present in self.experience attributes
-        self.old_classes = set()
-        self.new_classes = set()
+        self.ace_criterion = ACECriterion()
 
     def _before_training_iteration(self, **kwargs):
-        # Update self.classes_seen_so_far and self.new_classes
-        current_classes = set(torch.unique(self.mb_y).cpu().numpy())
-        inter_new = current_classes.intersection(self.new_classes)
-        inter_old = current_classes.intersection(self.old_classes)
-        if len(self.new_classes) == 0:
-            self.new_classes = current_classes
-        elif len(inter_new) == 0:
-            # Intersection is null, new task has arrived
-            self.old_classes.update(self.new_classes)
-            self.new_classes = current_classes
-        elif len(inter_new) > 0 and (
-            len(current_classes.union(self.new_classes)) > len(self.new_classes)
-        ):
-            self.new_classes.update(current_classes)
-        elif len(inter_new) > 0 and len(inter_old) > 0:
-            raise ValueError(
-                "Online ER ACL strategy cannot handle mixing of same classes in different tasks"
-            )
+        self.ace_criterion.update(self.mb_y)
         super()._before_training_iteration(**kwargs)
-
-    @property
-    def classes_seen_so_far(self):
-        return self.new_classes.union(self.old_classes)
 
     def training_epoch(self, **kwargs):
         """Training epoch.
@@ -144,9 +121,7 @@ class OnlineER_ACL(OnlineSupervisedTemplate):
             self._unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
-            if (
-                len(self.new_classes) != len(self.classes_seen_so_far)
-            ) and self.replay_loader is not None:
+            if self.replay_loader is not None:
                 self.mb_buffer_x, self.mb_buffer_y, self.mb_buffer_tid = next(
                     self.replay_loader
                 )
@@ -162,21 +137,22 @@ class OnlineER_ACL(OnlineSupervisedTemplate):
             # Forward
             self._before_forward(**kwargs)
             self.mb_output = self.forward()
-            if (
-                len(self.new_classes) != len(self.classes_seen_so_far)
-            ) and self.replay_loader is not None:
+            if self.replay_loader is not None:
                 self.mb_buffer_out = avalanche_forward(
                     self.model, self.mb_buffer_x, self.mb_buffer_tid
                 )
             self._after_forward(**kwargs)
 
             # Loss & Backward
-            if (
-                len(self.new_classes) == len(self.classes_seen_so_far)
-            ) or self.replay_loader is None:
+            if self.replay_loader is None:
                 self.loss += self.criterion()
             else:
-                self.loss += self.er_acl_criterion()
+                self.loss += self.ace_criterion(
+                    self.mb_output,
+                    self.mb_y,
+                    self.mb_buffer_out,
+                    self.mb_buffer_y,
+                )
 
             self._before_backward(**kwargs)
             self.backward()
@@ -190,12 +166,9 @@ class OnlineER_ACL(OnlineSupervisedTemplate):
             self._after_training_iteration(**kwargs)
 
     def _before_training_exp(self, **kwargs):
-        ##############################
-        #  Update Buffer and Loader  #
-        ##############################
         self.storage_policy.update(self, **kwargs)
 
-        # Take all classes for ER ACL loss
+        # Take all classes for ER ACE loss
         buffer = self.storage_policy.buffer
         if len(buffer) >= self.batch_size_mem:
             self.replay_loader = cycle(
@@ -211,26 +184,18 @@ class OnlineER_ACL(OnlineSupervisedTemplate):
 
         super()._before_training_exp(**kwargs)
 
-    def er_acl_criterion(self):
-        return er_acl_criterion(
-            self.mb_output,
-            self.mb_y,
-            self.mb_buffer_out,
-            self.mb_buffer_y,
-            self.classes_seen_so_far,
-            self.new_classes,
-        )
 
-
-class ER_ACL(SupervisedTemplate):
+class ER_ACE(SupervisedTemplate):
     """
-    ER ACL, as proposed in
-    "New Insights on Reducing Abrupt Representation Change in Online Continual Learning"
+    ER ACE, as proposed in
+    "New Insights on Reducing Abrupt Representation 
+    Change in Online Continual Learning"
     by Lucas Caccia et. al.
     https://openreview.net/forum?id=N8MaByOzUfb
 
-    This version is adapted to non-online scenario, the difference with OnlineER_ACL
-    is that it introduces all of the exemples from the new classes in the buffer at the
+    This version is adapted to non-online scenario, 
+    the difference with OnlineER_ACE is that it introduces 
+    all of the exemples from the new classes in the buffer at the
     beggining of the task instead of introducing them progressively.
     """
 
@@ -285,21 +250,17 @@ class ER_ACL(SupervisedTemplate):
             eval_every,
             peval_mode,
         )
-
         self.mem_size = mem_size
         self.batch_size_mem = batch_size_mem
         self.storage_policy = ClassBalancedBuffer(
             max_size=self.mem_size, adaptive_size=True
         )
         self.replay_loader = None
+        self.ace_criterion = ACECriterion()
 
-    @property
-    def new_classes(self):
-        return np.unique(self.experience.classes_in_this_experience)
-
-    @property
-    def classes_seen_so_far(self):
-        return np.unique(self.experience.classes_seen_so_far)
+    def _before_training_iteration(self, **kwargs):
+        self.ace_criterion.update(self.mb_y)
+        super()._before_training_iteration(**kwargs)
 
     def training_epoch(self, **kwargs):
         """Training epoch.
@@ -314,7 +275,7 @@ class ER_ACL(SupervisedTemplate):
             self._unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
-            if len(self.new_classes) != len(self.classes_seen_so_far):
+            if self.replay_loader is not None:
                 self.mb_buffer_x, self.mb_buffer_y, self.mb_buffer_tid = next(
                     self.replay_loader
                 )
@@ -330,17 +291,22 @@ class ER_ACL(SupervisedTemplate):
             # Forward
             self._before_forward(**kwargs)
             self.mb_output = self.forward()
-            if len(self.new_classes) != len(self.classes_seen_so_far):
+            if self.replay_loader is not None:
                 self.mb_buffer_out = avalanche_forward(
                     self.model, self.mb_buffer_x, self.mb_buffer_tid
                 )
             self._after_forward(**kwargs)
 
             # Loss & Backward
-            if len(self.new_classes) == len(self.classes_seen_so_far):
+            if self.replay_loader is None:
                 self.loss += self.criterion()
             else:
-                self.loss += self.er_acl_criterion()
+                self.loss += self.ace_criterion(
+                    self.mb_output,
+                    self.mb_y,
+                    self.mb_buffer_out,
+                    self.mb_buffer_y,
+                )
 
             self._before_backward(**kwargs)
             self.backward()
@@ -367,13 +333,3 @@ class ER_ACL(SupervisedTemplate):
                 )
             )
         super()._before_training_exp(**kwargs)
-
-    def er_acl_criterion(self):
-        return er_acl_criterion(
-            self.mb_output,
-            self.mb_y,
-            self.mb_buffer_out,
-            self.mb_buffer_y,
-            self.classes_seen_so_far,
-            self.new_classes,
-        )

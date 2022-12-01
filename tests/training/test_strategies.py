@@ -44,7 +44,7 @@ from avalanche.training.supervised import (
     MAS,
     BiC,
     MIR,
-    ER_ACL,
+    ER_ACE,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -974,12 +974,12 @@ class StrategyTest(unittest.TestCase):
         )
         self.run_strategy(benchmark, strategy)
 
-    def test_eracl(self):
+    def test_erace(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(
             multi_task=False
         )
-        strategy = ER_ACL(
+        strategy = ER_ACE(
             model,
             optimizer,
             criterion,
