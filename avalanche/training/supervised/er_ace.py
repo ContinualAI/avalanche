@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import copy
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
 import torch
@@ -9,6 +9,7 @@ from torch.nn import CrossEntropyLoss, Module
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.utils import concat_datasets
+from avalanche.core import SupervisedPlugin
 from avalanche.models.utils import avalanche_forward
 from avalanche.training import ACECriterion
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -37,7 +38,7 @@ def er_ace_criterion(
 class OnlineER_ACE(OnlineSupervisedTemplate):
     """
     ER ACE Online version, as originally proposed in
-    "New Insights on Reducing Abrupt Representation 
+    "New Insights on Reducing Abrupt Representation
     Change in Online Continual Learning"
     by Lucas Caccia et. al.
     https://openreview.net/forum?id=N8MaByOzUfb
@@ -54,7 +55,7 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
         train_passes: int = 1,
         eval_mb_size: Optional[int] = 1,
         device="cpu",
-        plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,
         peval_mode="experience",
@@ -188,13 +189,13 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
 class ER_ACE(SupervisedTemplate):
     """
     ER ACE, as proposed in
-    "New Insights on Reducing Abrupt Representation 
+    "New Insights on Reducing Abrupt Representation
     Change in Online Continual Learning"
     by Lucas Caccia et. al.
     https://openreview.net/forum?id=N8MaByOzUfb
 
-    This version is adapted to non-online scenario, 
-    the difference with OnlineER_ACE is that it introduces 
+    This version is adapted to non-online scenario,
+    the difference with OnlineER_ACE is that it introduces
     all of the exemples from the new classes in the buffer at the
     beggining of the task instead of introducing them progressively.
     """
@@ -210,7 +211,7 @@ class ER_ACE(SupervisedTemplate):
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
         device="cpu",
-        plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
+        plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,
         peval_mode="epoch",
