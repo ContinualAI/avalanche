@@ -252,7 +252,12 @@ import pkgutil
 undocumented_classes_to_ignore = [
     # benchmarks
     'IDataset',
-
+    'TensorMNIST',
+    'SpeechCommandsData',
+    'ClassAccuracyPluginMetric',
+    'MeanScoresTrainPluginMetric',
+    'MeanScoresEvalPluginMetric',
+    'AMCAPluginMetric',
     'DictLVIS',
     'LvisEvaluator',
     'CocoEvaluator',

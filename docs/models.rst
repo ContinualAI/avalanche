@@ -45,6 +45,8 @@ Models
     MTSimpleCNN
     SimpleMLP
     MTSimpleMLP
+    SimpleSequenceClassifier
+    MTSimpleSequenceClassifier
     MobilenetV1
     NCMClassifier
     SLDAResNetModel  
