@@ -9,6 +9,15 @@ import torch.nn.functional as F
 from avalanche.models import MultiTaskModule, avalanche_forward
 
 
+def cross_entropy_with_oh_targets(outputs, targets, eps=1e-5):
+    """ Calculates cross-entropy with temperature scaling, 
+    targets can also be soft targets but they must sum to 1 """
+    outputs = torch.nn.functional.softmax(outputs, dim=1)
+    ce = -(targets * outputs.log()).sum(1)
+    ce = ce.mean()
+    return ce
+
+
 class RegularizationMethod:
     """RegularizationMethod implement regularization strategies.
     RegularizationMethod is a callable.
@@ -178,11 +187,9 @@ class ACECriterion(RegularizationMethod):
 
     def __call__(self, out_in, target_in, out_buffer, target_buffer):
         loss_buffer = F.cross_entropy(out_buffer, target_buffer)
-        loss_current = F.cross_entropy(
-            out_in[:, len(self.all_classes) - len(self.new_classes) :],
-            target_in - (len(self.all_classes) - len(self.new_classes)),
-        )
-        # Divide by two for learning rate coherency
+        oh_target_in = F.one_hot(target_in, num_classes=out_in.shape[1])
+        oh_target_in = oh_target_in[:, list(self.new_classes)]
+        loss_current = cross_entropy_with_oh_targets(out_in[:, list(self.new_classes)], oh_target_in)
         return (loss_buffer + loss_current) / 2
 
     @property
