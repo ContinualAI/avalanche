@@ -992,7 +992,6 @@ class StrategyTest(unittest.TestCase):
         )
         self.run_strategy(benchmark, strategy)
 
-
     def load_benchmark(self, use_task_labels=False):
         """
         Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,

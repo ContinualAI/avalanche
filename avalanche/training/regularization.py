@@ -189,7 +189,9 @@ class ACECriterion(RegularizationMethod):
         loss_buffer = F.cross_entropy(out_buffer, target_buffer)
         oh_target_in = F.one_hot(target_in, num_classes=out_in.shape[1])
         oh_target_in = oh_target_in[:, list(self.new_classes)]
-        loss_current = cross_entropy_with_oh_targets(out_in[:, list(self.new_classes)], oh_target_in)
+        loss_current = cross_entropy_with_oh_targets(
+                out_in[:, list(self.new_classes)], oh_target_in
+        )
         return (loss_buffer + loss_current) / 2
 
     @property
