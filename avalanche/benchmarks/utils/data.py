@@ -132,6 +132,10 @@ class AvalancheDataset(FlatData):
                         "Data attribute {} has length {} but the dataset "
                         "has length {}".format(da.name, len(da), ld)
                     )
+        if isinstance(transform_groups, dict):
+            transform_groups = TransformGroups(transform_groups)
+        if isinstance(frozen_transform_groups, dict):
+            frozen_transform_groups = TransformGroups(frozen_transform_groups)
         self._transform_groups = transform_groups
         self._frozen_transform_groups = frozen_transform_groups
         self.collate_fn = collate_fn
@@ -197,7 +201,7 @@ class AvalancheDataset(FlatData):
                 if found_all:
                     self._data_attributes[attr.name] = acat
 
-        if indices is not None:  # subset operation for attributes
+        if self._indices is not None:  # subset operation for attributes
             for da in self._data_attributes.values():
                 # TODO: this was the old behavior. How do we know what to do if
                 # we permute the entire dataset?

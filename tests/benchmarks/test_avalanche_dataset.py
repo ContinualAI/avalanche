@@ -57,6 +57,30 @@ class FrozenTransformGroupsCenterCrop:
 
 class AvalancheDatasetTests(unittest.TestCase):
 
+    def test_attribute_cat_sub(self):
+        # Create a dataset of 100 data points described by 22 features + 1 class label
+        x_data = torch.rand(100, 22)
+        y_data = torch.randint(0, 5, (100,))
+        torch_data = TensorDataset(x_data, y_data)
+
+        tls = [0 for _ in range(100)]  # one task label for each sample
+        sup_data = make_classification_dataset(torch_data, task_labels=tls)
+        print(sup_data.targets.name, len(sup_data.targets._data))
+        print(sup_data.targets_task_labels.name, len(sup_data.targets_task_labels._data))
+        assert len(sup_data) == 100
+
+        # after subsampling
+        sub_data = sup_data.subset(range(10))
+        print(sub_data.targets.name, len(sub_data.targets._data))
+        print(sub_data.targets_task_labels.name, len(sub_data.targets_task_labels._data))
+        assert len(sub_data) == 10
+
+        # after concat
+        cat_data = sup_data.concat(sup_data)
+        print(cat_data.targets.name, len(cat_data.targets._data))
+        print(cat_data.targets_task_labels.name, len(cat_data.targets_task_labels._data))
+        assert len(cat_data) == 200
+
     def test_avldata_subset_size(self):
         data = [1, 2, 3, 4]
         attr = DataAttribute(data, "a")
