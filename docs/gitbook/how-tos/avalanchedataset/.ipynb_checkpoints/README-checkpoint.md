@@ -8,8 +8,11 @@ The `AvalancheDataset` is an implementation of the PyTorch `Dataset` class that 
 
 **A serie of _Mini How-Tos_** will guide you through the functionalities of the *AvalancheDataset* and its subclasses:
 
-- [AvalancheDatasets basics](https://avalanche.continualai.org/how-tos/avalanchedataset/avalanche-datasets)
+- [Preamble: PyTorch Datasets](https://avalanche.continualai.org/how-tos/avalanchedataset/preamble-pytorch-datasets)
+- [Creating AvalancheDatasets](https://avalanche.continualai.org/how-tos/avalanchedataset/creating-avalanchedatasets)
 - [Advanced Transformations](https://avalanche.continualai.org/how-tos/avalanchedataset/advanced-transformations)
+
+Brefore jumping to the actual *Mini How-To*s, **we recommend having a look at the basic notions of Dataset and DataLoader by reading the [Preamble page](https://avalanche.continualai.org/how-tos/avalanchedataset/preamble-pytorch-datasets)**.
 
 
 ```python
