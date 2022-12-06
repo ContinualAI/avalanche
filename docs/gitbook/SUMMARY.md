@@ -24,9 +24,8 @@
 ## How-Tos
 
 * [AvalancheDataset](how-tos/avalanchedataset/README.md)
-  * [Preamble: PyTorch Datasets](how-tos/avalanchedataset/preamble-pytorch-datasets.md)
-  * [Creating AvalancheDatasets](how-tos/avalanchedataset/creating-avalanchedatasets.md)
-  * [Advanced Transformations](how-tos/avalanchedataset/advanced-transformations.md)
+  * [avalanche-datasets](how-tos/avalanchedataset/avalanche-datasets.md)
+  * [avalanche-transformations](how-tos/avalanchedataset/avalanche-transformations.md)
 * [Dataloaders, Buffers, and Replay](how-tos/dataloading\_buffers\_replay.md)
 
 ## 📝 Examples

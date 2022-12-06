@@ -8,7 +8,7 @@ _Avalanche_ is a tool **from** the continual learning research community and **f
 \
 This is why **we are always keen to hear your feedback** about _Avalanche!_ Join directly [**on slack**](https://join.slack.com/t/continualai/shared\_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU) (**#avalanche** channel) for a quick feedback or write a post on [**GitHub Discussions**](https://github.com/ContinualAI/avalanche/discussions)!
 
-![General Feedback Section of the Avalanche GitHub "Discussions" Tab.](../.gitbook/assets/feedback.png)
+![General Feedback Section of the Avalanche GitHub "Discussions" Tab.](../../../.gitbook/assets/feedback.png)
 
 {% embed url="https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU" %}
 Click Above to Join ContinualAI Slack

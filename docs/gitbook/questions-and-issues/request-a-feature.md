@@ -14,4 +14,4 @@ If you'd like to add a new feature to _Avalanche_ please let us know, so we can 
 
 Features request can be opened on the appropriate [GitHub Discussion Feature-Request section](https://github.com/ContinualAI/avalanche/discussions/categories/feature-request). Vote your preferred features and we will try to implement the most voted first!
 
-![Feature-request section of the Avalanche GitHub "Discussions" Tab.](../.gitbook/assets/requerst.png)
+![Feature-request section of the Avalanche GitHub "Discussions" Tab.](../../../.gitbook/assets/requerst.png)

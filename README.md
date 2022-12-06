@@ -15,7 +15,6 @@
 </p>
 
 
-
 **Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within [ContinualAI](https://www.continualai.org/) with the unique goal of providing a shared and collaborative 
 open-source (MIT licensed) codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms. 
 Avalanche can help Continual Learning researchers in several ways:
