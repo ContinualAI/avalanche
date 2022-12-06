@@ -8,7 +8,7 @@ Welcome to the _"Logging"_ tutorial of the _"From Zero to Hero"_ series. In this
 
 
 ```python
-!pip install avalanche-lib==0.2.0
+!pip install avalanche-lib==0.3.0
 ```
 
 ### 📑 The Logging Module
@@ -83,8 +83,7 @@ eval_plugin = EvaluationPlugin(
     confusion_matrix_metrics(num_classes=benchmark.n_classes, save_image=True,
                              stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-    loggers=loggers,
-    benchmark=benchmark
+    loggers=loggers
 )
 
 # CREATE THE STRATEGY INSTANCE (NAIVE)
