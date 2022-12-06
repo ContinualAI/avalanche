@@ -24,8 +24,8 @@
 ## How-Tos
 
 * [AvalancheDataset](how-tos/avalanchedataset/README.md)
-  * [AvalancheDatasets basics](https://avalanche.continualai.org/how-tos/avalanchedataset/avalanche-datasets)
-  * [Advanced Transformations](https://avalanche.continualai.org/how-tos/avalanchedataset/advanced-transformations)
+  * [avalanche-datasets](how-tos/avalanchedataset/avalanche-datasets.md)
+  * [avalanche-transformations](how-tos/avalanchedataset/avalanche-transformations.md)
 * [Dataloaders, Buffers, and Replay](how-tos/dataloading\_buffers\_replay.md)
 
 ## 📝 Examples

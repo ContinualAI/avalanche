@@ -15,4 +15,4 @@ No matter your research or coding expertise level you may have, we believe anyon
 
 So, don't hesitate to contact [our team](the-team.md) to learn more about how you can help. Do it now! 😊
 
-![](../.gitbook/assets/join-us-you-5cae9e.jpg)
+![](../../../.gitbook/assets/join-us-you-5cae9e.jpg)
