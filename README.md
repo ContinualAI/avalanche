@@ -16,12 +16,14 @@
 
 
 **Avalanche** is an *end-to-end Continual Learning library* based on **Pytorch**, born within [ContinualAI](https://www.continualai.org/) with the unique goal of providing a shared and collaborative 
-open-source (MIT licensed) codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms. 
+open-source (MIT licensed) codebase for fast prototyping, training and reproducible evaluation of continual learning algorithms.
+
+> :warning: Looking for **continual learning baselines**? In the [CL-Baseline](https://github.com/ContinualAI/continual-learning-baselines) sibling project based on Avalanche we reproduce seminal papers results you cand directly use in **your experiments**!
+
 Avalanche can help Continual Learning researchers in several ways:
 
 - *Write less code, prototype faster & reduce errors*
-- *Improve reproducibility*
-- *Improve modularity and reusability*
+- *Improve reproducibility, modularity and reusability*
 - *Increase code efficiency, scalability & portability*
 - *Augment impact and usability of your research products*
 
@@ -83,7 +85,7 @@ Current Release
 
 Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org/) community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
 
-A the moment, Avalanche is in [**Beta (v0.2.0)**](https://github.com/ContinualAI/avalanche/releases/tag/v0.2.0). We support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
+A the moment, Avalanche is in [**Beta (v0.3.0)**](https://github.com/ContinualAI/avalanche/releases/tag/v0.3.0). We support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
 
 **You can install Avalanche by running `pip install avalanche-lib`.**  
 This will install the core Avalanche package. You can install Avalanche with extra packages to enable more functionalities.  
