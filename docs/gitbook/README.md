@@ -4,15 +4,14 @@ description: Powered by ContinualAI
 
 # Avalanche: an End-to-End Library for Continual Learning
 
-![](.gitbook/assets/avalanche\_logo\_with\_clai.png)
+![](../../.gitbook/assets/avalanche\_logo\_with\_clai.png)
 
-**Avalanche** is an _End-to-End Continual Learning Library_ based on [**PyTorch**](https://pytorch.org), born within [**ContinualAI**](https://www.continualai.org) with the unique goal of providing a **shared** and **collaborative** open-source (MIT licensed) **codebase** for _fast prototyping_, _training_ and [_reproducible_ _evaluation_](https://github.com/ContinualAI/reproducible-continual-learning) of continual learning algorithms.
+**Avalanche** is an _End-to-End Continual Learning Library_ based on [**PyTorch**](https://pytorch.org), born within [**ContinualAI**](https://www.continualai.org) with the goal of providing a **shared** and **collaborative** open-source (MIT licensed) **codebase** for _fast prototyping_, _training_ and [_reproducible_ _evaluation_](https://github.com/ContinualAI/reproducible-continual-learning) of continual learning algorithms.
 
 Avalanche can help _Continual Learning_ researchers and practitioners in several ways:
 
 * _Write less code, prototype faster & reduce errors_
-* _Improve reproducibility_
-* _Improve modularity and reusability_
+* _Improve reproducibility, modularity and reusability_
 * _Increase code efficiency, scalability & portability_
 * _Augment impact and usability of your research products_
 
@@ -227,14 +226,14 @@ For example, you may start with our _**5-minutes**_ **guide** that will let you 
 
 We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:
 
-{% content-ref url="broken-reference/" %}
-[broken-reference](broken-reference/)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
 Having completed these two sections, you will already feel with _superpowers_ ⚡, this is why we have also created an **in-depth tutorial** that will cover all the aspect of _Avalanche_ in details and make you a true _Continual Learner_! 👨‍🎓️
 
-{% content-ref url="broken-reference/" %}
-[broken-reference](broken-reference/)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
 ## 📑 Cite Avalanche
@@ -253,7 +252,7 @@ If you used _Avalanche_ in your research project, please remember to cite our re
 
 ## 🗂️ Maintained by ContinualAI Lab
 
-![](<.gitbook/assets/continualai\_lab\_logo (1).png>)
+![](<../../.gitbook/assets/continualai\_lab\_logo (1).png>)
 
 _Avalanche_ is the flagship open-source collaborative project of [**ContinualAI**](https://www.continualai.org/#home): _a non profit research organization and the largest open community on Continual Learning for AI._
 
