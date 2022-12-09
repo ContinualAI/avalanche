@@ -24,7 +24,7 @@ from avalanche.models.expert_gate import (ExpertAutoencoder,
                                           ExpertGate)
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.training.supervised import AETraining
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import (SupervisedPlugin,
                                         EvaluationPlugin,
                                         LwFPlugin)
