@@ -32,6 +32,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         mode: str = "max",
         peval_mode: str = "epoch",
         margin: float = 0.0,
+        verbose=False,
     ):
         """Init.
 
@@ -50,10 +51,13 @@ class EarlyStoppingPlugin(SupervisedPlugin):
             considered best than a previous one. It should be an float, the
             default value is 0. That means that any improvement is considered
             better.
+        :param verbose: If True, prints a message for each update
+            (default: False).
         """
         super().__init__()
         self.val_stream_name = val_stream_name
         self.patience = patience
+        self.verbose = verbose
 
         assert peval_mode in {"epoch", "iteration"}
         self.peval_mode = peval_mode
@@ -123,6 +127,8 @@ class EarlyStoppingPlugin(SupervisedPlugin):
             if self.operator(float(val_acc - self.best_val), self.margin):
                 self.best_step = self._get_strategy_counter(strategy)
                 self.best_val = val_acc
+                if self.verbose:
+                    print("EarlyStopping: new best value:", val_acc)
 
         return self.best_val
 
