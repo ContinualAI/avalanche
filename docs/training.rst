@@ -79,6 +79,8 @@ Ready-to-use continual learning strategies.
     GenerativeReplay
     LaMAML
     MAS
+    BiC
+    MIR
 
 Replay Buffers and Selection Strategies
 ----------------------------------------
@@ -168,3 +170,5 @@ Strategy implemented as plugins in `avalanche.training.plugins`.
     TrainGeneratorAfterExpPlugin
     RWalkPlugin
     GenerativeReplayPlugin
+    BiCPlugin
+    MIRPlugin

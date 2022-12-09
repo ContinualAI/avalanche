@@ -54,6 +54,12 @@ class LearningWithoutForgetting(RegularizationMethod):
         # we compute the loss only on the previously active units.
         au = list(active_units)
 
+        # some people use the crossentropy instead of the KL
+        # They are equivalent. We compute 
+        # kl_div(log_p_curr, p_prev) = p_prev * (log (p_prev / p_curr)) = 
+        #   p_prev * log(p_prev) - p_prev * log(p_curr).
+        # Now, the first term is constant (we don't optimize the teacher), 
+        # so optimizing the crossentropy and kl-div are equivalent.
         log_p = torch.log_softmax(out[:, au] / self.temperature, dim=1)
         q = torch.softmax(prev_out[:, au] / self.temperature, dim=1)
         res = torch.nn.functional.kl_div(log_p, q, reduction="batchmean")
