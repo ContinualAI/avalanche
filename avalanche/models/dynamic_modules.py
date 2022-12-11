@@ -74,6 +74,11 @@ class DynamicModule(Module):
         """
         pass
 
+    @property
+    def model_device(self):
+        """Returns the device of the model."""
+        return next(self.parameters()).device
+
 
 class MultiTaskModule(DynamicModule):
     """Base pytorch Module with support for task labels.
@@ -216,7 +221,7 @@ class IncrementalClassifier(DynamicModule):
         self.mask_value = mask_value
 
         self.classifier = torch.nn.Linear(in_features, initial_out_features)
-        au_init = torch.zeros(initial_out_features, dtype=torch.bool)
+        au_init = torch.zeros(initial_out_features, dtype=torch.int8)
         self.register_buffer("active_units", au_init)
 
     @torch.no_grad()
@@ -226,6 +231,7 @@ class IncrementalClassifier(DynamicModule):
         :param experience: data from the current experience.
         :return:
         """
+        device = self.model_device
         in_features = self.classifier.in_features
         old_nclasses = self.classifier.out_features
         curr_classes = experience.classes_in_this_experience
@@ -235,7 +241,11 @@ class IncrementalClassifier(DynamicModule):
         if self.masking:
             if old_nclasses != new_nclasses:  # expand active_units mask
                 old_act_units = self.active_units
-                self.active_units = torch.zeros(new_nclasses, dtype=torch.bool)
+                self.active_units = torch.zeros(
+                    new_nclasses,
+                    dtype=torch.int8, 
+                    device=device)
+                
                 self.active_units[: old_act_units.shape[0]] = old_act_units
             # update with new active classes
             if self.training:
@@ -245,7 +255,7 @@ class IncrementalClassifier(DynamicModule):
         if old_nclasses == new_nclasses:
             return
         old_w, old_b = self.classifier.weight, self.classifier.bias
-        self.classifier = torch.nn.Linear(in_features, new_nclasses)
+        self.classifier = torch.nn.Linear(in_features, new_nclasses).to(device)
         self.classifier.weight[:old_nclasses] = old_w
         self.classifier.bias[:old_nclasses] = old_b
 
@@ -318,14 +328,14 @@ class MultiHeadClassifier(MultiTaskModule):
         self.classifiers["0"] = first_head
         self.max_class_label = max(self.max_class_label, initial_out_features)
 
-        au_init = torch.zeros(initial_out_features, dtype=torch.bool)
+        au_init = torch.zeros(initial_out_features, dtype=torch.int8)
         self.register_buffer("active_units_T0", au_init)
 
     @property
     def active_units(self):
         res = {}
         for tid in self.known_train_tasks_labels:
-            mask = getattr(self, f"active_units_T{tid}")
+            mask = getattr(self, f"active_units_T{tid}").to(torch.bool)
             au = torch.arange(0, mask.shape[0])[mask].tolist()
             res[tid] = au
         return res
@@ -334,7 +344,7 @@ class MultiHeadClassifier(MultiTaskModule):
     def task_masks(self):
         res = {}
         for tid in self.known_train_tasks_labels:
-            res[tid] = getattr(self, f"active_units_T{tid}")
+            res[tid] = getattr(self, f"active_units_T{tid}").to(torch.bool)
         return res
 
     def adaptation(self, experience: CLExperience):
@@ -344,6 +354,7 @@ class MultiHeadClassifier(MultiTaskModule):
         :return:
         """
         super().adaptation(experience)
+        device = self.model_device
         curr_classes = experience.classes_in_this_experience
         task_labels = experience.task_labels
         if isinstance(task_labels, ConstantSequence):
@@ -356,11 +367,13 @@ class MultiHeadClassifier(MultiTaskModule):
             if tid not in self.classifiers:  # create new head
                 new_head = IncrementalClassifier(
                     self.in_features, self.starting_out_features
-                )
+                ).to(device)
                 self.classifiers[tid] = new_head
 
                 au_init = torch.zeros(
-                    self.starting_out_features, dtype=torch.bool
+                    self.starting_out_features,
+                    dtype=torch.int8,
+                    device=device
                 )
                 self.register_buffer(f"active_units_T{tid}", au_init)
 
@@ -388,7 +401,9 @@ class MultiHeadClassifier(MultiTaskModule):
                 if old_nunits != new_nclasses:  # expand active_units mask
                     old_act_units = self._buffers[au_name]
                     self._buffers[au_name] = torch.zeros(
-                        new_nclasses, dtype=torch.bool
+                        new_nclasses,
+                        dtype=torch.int8,
+                        device=device
                     )
                     self._buffers[au_name][
                         : old_act_units.shape[0]
@@ -405,6 +420,7 @@ class MultiHeadClassifier(MultiTaskModule):
         :param task_label:
         :return:
         """
+        device = self.model_device
         task_label = str(task_label)
         out = self.classifiers[task_label](x)
         if self.masking:
@@ -413,7 +429,10 @@ class MultiHeadClassifier(MultiTaskModule):
             nunits, oldsize = out.shape[-1], curr_au.shape[0]
             if oldsize < nunits:  # we have to update the mask
                 old_mask = self._buffers[au_name]
-                self._buffers[au_name] = torch.zeros(nunits, dtype=torch.bool)
+                self._buffers[au_name] = torch.zeros(
+                    nunits,
+                    dtype=torch.int8,
+                    device=device)
                 self._buffers[au_name][:oldsize] = old_mask
                 curr_au = self._buffers[au_name]
             out[..., torch.logical_not(curr_au)] = self.mask_value

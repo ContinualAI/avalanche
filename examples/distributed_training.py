@@ -106,7 +106,7 @@ def main(args):
     if DistributedHelper.is_main_process:
         # Loggers should be created in the main process only
         loggers.append(TensorboardLogger(
-            tb_log_dir=f'./logs/{args.exp_name}'))
+            tb_log_dir=f'./distributed_training_logs/{args.exp_name}'))
 
     # Metrics should be created as usual, with no differences between main and
     # non-main processes.

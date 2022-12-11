@@ -51,6 +51,7 @@ def run_distributed_suites(test_cases):
     p = None
     success = True
     exited = False
+    failed_test_cases = set()
 
     use_gpu_in_tests = os.environ.get('USE_GPU', 'false').lower() in [
         '1', 'true']
@@ -84,11 +85,17 @@ def run_distributed_suites(test_cases):
             success = success and exit_code == 0
             p = None
 
+            if exit_code != 0:
+                failed_test_cases.add(case_name)
+
     if success:
         print('Tests completed successfully')
         sys.exit(0)
     else:
-        print('Tests terminated with errors')
+        print('The following tests terminated with errors:')
+        for failed_case in sorted(failed_test_cases):
+            print(failed_case)
+
         sys.exit(1)
 
 

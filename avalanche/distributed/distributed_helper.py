@@ -114,6 +114,7 @@ class _DistributedHelperCls(object):
 
     def __init__(self):
         self.use_cuda = False
+        self._dev_map = _DistributedHelperCls._make_map('cpu')
 
     def init_distributed(self, random_seed, backend=None, use_cuda=True):
         if self.is_distributed:
@@ -131,12 +132,14 @@ class _DistributedHelperCls(object):
             warnings.warn(
                 'Bad configuration: using NCCL, but you set use_cuda=False!')
 
+        could_initialize_distributed = False
         if os.environ.get('LOCAL_RANK', None) is None:
             warnings.warn(
                 'Torch distributed could not be initialized '
                 '(missing environment configuration)')
         else:
             init_process_group(backend=backend)
+            could_initialize_distributed = True
 
         self.set_random_seeds(random_seed)
         self.use_cuda = use_cuda
@@ -146,8 +149,13 @@ class _DistributedHelperCls(object):
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
 
-        self.make_device()  # Force-init the default CUDA device (if any)
-        return True
+        # Force-init the default CUDA device (if any)
+        reference_device = self.make_device(set_cuda_device=True)
+
+        # Create map for device placement of unpickled tensors
+        self._dev_map = _DistributedHelperCls._make_map(reference_device)
+
+        return could_initialize_distributed
 
     def get_device_id(self):
         if self.is_distributed:
@@ -160,7 +168,7 @@ class _DistributedHelperCls(object):
 
         return -1
 
-    def make_device(self):
+    def make_device(self, set_cuda_device=False):
         if self.is_distributed:
             device_id = self.rank
         else:
@@ -168,7 +176,8 @@ class _DistributedHelperCls(object):
 
         if self.use_cuda and device_id >= 0:
             ref_device = torch.device(f'cuda:{device_id}')
-            torch.cuda.set_device(ref_device)
+            if set_cuda_device:
+                torch.cuda.set_device(ref_device)
         else:
             ref_device = torch.device('cpu')
         return ref_device
@@ -183,9 +192,12 @@ class _DistributedHelperCls(object):
                 # (an int, a device object or a str)
                 # If not set, output_device defaults to device_ids[0]
                 return DistributedDataParallel(
-                    model, device_ids=[self.make_device()])
+                    model, device_ids=[self.make_device()], 
+                    find_unused_parameters=True)
             else:
-                return DistributedDataParallel(model)
+                return DistributedDataParallel(
+                    model,
+                    find_unused_parameters=True)
         else:
             return model
 
@@ -432,6 +444,25 @@ class _DistributedHelperCls(object):
     def forced_cuda_comm(self) -> bool:
         return self.backend == 'nccl'
 
+    @property
+    def device_map(self) -> Dict[str, str]:
+        return self._dev_map
+
+    @staticmethod
+    def _make_map(device_or_map) -> Dict[str, str]:
+        # TODO: borrowed from checkpointing plugins
+        # it would be better to have a single function in a shared utils
+        if not isinstance(device_or_map, (torch.device, str)):
+            return device_or_map
+
+        device = torch.device(device_or_map)
+        map_location = dict()
+
+        map_location['cpu'] = 'cpu'
+        for cuda_idx in range(100):
+            map_location[f'cuda:{cuda_idx}'] = str(device)
+        return map_location
+
 
 BASE_TYPES = [str, int, float, bool, type(None)]
 
@@ -445,7 +476,6 @@ def base_typed(obj):
     from_pytorch = T.__module__ == 'torch'
 
     if from_numpy or from_pytorch:
-        print(T.__module__)
         return obj.tolist()
 
     if T in BASE_TYPES or callable(obj) or ((from_numpy or from_pytorch)
@@ -468,7 +498,7 @@ DistributedHelper = _DistributedHelperCls()
 
 def fix():
     return lambda b: torch.load(BytesIO(b),
-                                map_location=DistributedHelper.make_device())
+                                map_location=DistributedHelper.device_map)
 
 
 class MappedUnpickler(pickle.Unpickler):

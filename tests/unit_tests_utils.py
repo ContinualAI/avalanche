@@ -29,7 +29,7 @@ UPDATE_METRICS = False
 if "UPDATE_METRICS" in os.environ:
     UPDATE_METRICS = os.environ["UPDATE_METRICS"].lower() == "true"
 
-print(f"UPDATE_METRICS: {UPDATE_METRICS}")
+# print(f"UPDATE_METRICS: {UPDATE_METRICS}")
 
 
 def is_github_action():
