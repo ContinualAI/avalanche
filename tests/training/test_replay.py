@@ -11,6 +11,7 @@ from avalanche.benchmarks.utils import (
     make_classification_dataset,
     make_tensor_classification_dataset,
 )
+from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.storage_policy import (
@@ -187,6 +188,6 @@ class FixedSelectionStrategy(ExemplarsSelectionStrategy):
         self.indices = indices
 
     def make_sorted_indices(
-        self, strategy: "SupervisedTemplate", data: make_classification_dataset
+        self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         return self.indices

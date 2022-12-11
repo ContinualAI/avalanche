@@ -9,7 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Sequence, List, Optional, Dict, Any, Set
+from typing import Sequence, List, Optional, Dict, Any, Set, TYPE_CHECKING
 
 import torch
 
@@ -18,10 +18,12 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
     ClassificationStream,
     GenericClassificationExperience,
 )
-from avalanche.benchmarks.utils import (
-    classification_subset,
-    make_classification_dataset,
-)
+from avalanche.benchmarks.utils import classification_subset
+from avalanche.benchmarks.utils.classification_dataset import \
+    ClassificationDataset
+
+if TYPE_CHECKING:
+    from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
@@ -37,8 +39,8 @@ class NCScenario(GenericCLScenario["NCExperience"]):
 
     def __init__(
         self,
-        train_dataset: make_classification_dataset,
-        test_dataset: make_classification_dataset,
+        train_dataset: ClassificationDataset,
+        test_dataset: ClassificationDataset,
         n_experiences: int,
         task_labels: bool,
         shuffle: bool = True,

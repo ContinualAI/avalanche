@@ -77,14 +77,6 @@ YTransform = Optional[YTransformDef]
 TransformGroupDef = Union[None, XTransform, Tuple[XTransform, YTransform]]
 
 
-SupportedDataset = Union[
-    IDatasetWithTargets,
-    ITensorDataset,
-    Subset,
-    ConcatDataset,
-]
-
-
 class _ClassificationAttributesMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -112,6 +104,15 @@ class ClassificationDataset(AvalancheDataset, _ClassificationAttributesMixin):
 
     def __hash__(self):
         return id(self)
+
+
+SupportedDataset = Union[
+    IDatasetWithTargets,
+    ITensorDataset,
+    Subset,
+    ConcatDataset,
+    ClassificationDataset
+]
 
 
 def make_classification_dataset(
@@ -913,7 +914,7 @@ class TaskSet(Mapping):
 
     """
 
-    def __init__(self, data: make_classification_dataset):
+    def __init__(self, data: AvalancheDataset):
         """Constructor.
 
         :param data: original data

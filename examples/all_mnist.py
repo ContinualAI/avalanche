@@ -14,10 +14,6 @@ In this simple example we show all the different ways you can use MNIST with
 Avalanche.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import torch
 import argparse
 from torch.nn import CrossEntropyLoss
