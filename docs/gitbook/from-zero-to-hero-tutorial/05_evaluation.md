@@ -8,7 +8,7 @@ Welcome to the "_Evaluation_" tutorial of the "_From Zero to Hero_" series. In t
 
 
 ```python
-!pip install avalanche-lib==0.2.0
+!pip install avalanche-lib==0.3.0
 ```
 
 ## 📈 The Evaluation Module
@@ -24,29 +24,61 @@ Each metric comes with a standalone class and a set of plugin classes aimed at e
 #### Standalone metric
 
 As an example, the standalone `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.  
-The `Accuracy` metric requires the `task_labels` parameter, which specifies which task is associated with the current patterns. The metric returns a dictionary mapping task labels to accuracy values.
+
+The `TaskAwareAccuracy` metric keeps separate accuracy counters for different task labels. As such, it requires the `task_labels` parameter, which specifies which task is associated with the current patterns. The metric returns a dictionary mapping task labels to accuracy values.
 
 
 ```python
 import torch
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import Accuracy, TaskAwareAccuracy
 
-task_labels = 0  # we will work with a single task
 # create an instance of the standalone Accuracy metric
-# initial accuracy is 0 for each task
+# initial accuracy is 0
 acc_metric = Accuracy()
-print("Initial Accuracy: ", acc_metric.result()) #  output {}
+print("Initial Accuracy: ", acc_metric.result()) #  output 0.0
 
 # two consecutive metric updates
 real_y = torch.tensor([1, 2]).long()
 predicted_y = torch.tensor([1, 0]).float()
-acc_metric.update(real_y, predicted_y, task_labels)
+acc_metric.update(real_y, predicted_y)
 acc = acc_metric.result()
-print("Average Accuracy: ", acc) # output 0.5 on task 0
+print("Average Accuracy: ", acc) # output 0.5
 predicted_y = torch.tensor([1,2]).float()
-acc_metric.update(real_y, predicted_y, task_labels)
+acc_metric.update(real_y, predicted_y)
 acc = acc_metric.result()
-print("Average Accuracy: ", acc) # output 0.75 on task 0
+print("Average Accuracy: ", acc) # output 0.75
+
+# reset accuracy
+acc_metric.reset()
+print("After reset: ", acc_metric.result()) # output 0.0
+```
+
+
+```python
+# create an instance of the standalone TaskAwareAccuracy metric
+# initial accuracy is 0 for each task
+acc_metric = TaskAwareAccuracy()
+print("Initial Accuracy: ", acc_metric.result()) #  output {}
+
+# metric updates for 2 different tasks
+task_label = 0
+real_y = torch.tensor([1, 2]).long()
+predicted_y = torch.tensor([1, 0]).float()
+acc_metric.update(real_y, predicted_y, task_label)
+acc = acc_metric.result()
+print("Average Accuracy: ", acc) # output 0.5 for task 0
+
+task_label = 1
+predicted_y = torch.tensor([1,2]).float()
+acc_metric.update(real_y, predicted_y, task_label)
+acc = acc_metric.result() 
+print("Average Accuracy: ", acc) # output 0.75 for task 0 and 1.0 for task 1
+
+task_label = 0
+predicted_y = torch.tensor([1,2]).float()
+acc_metric.update(real_y, predicted_y, task_label)
+acc = acc_metric.result()
+print("Average Accuracy: ", acc) # output 0.75 for task 0 and 1.0 for task 1
 
 # reset accuracy
 acc_metric.reset()
@@ -114,7 +146,6 @@ eval_plugin = EvaluationPlugin(
     confusion_matrix_metrics(num_classes=benchmark.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     loggers=[InteractiveLogger()],
-    benchmark=benchmark,
     strict_checks=False
 )
 
@@ -287,8 +318,7 @@ eval_plugin2 = EvaluationPlugin(
     confusion_matrix_metrics(num_classes=benchmark.n_classes, save_image=False, stream=True),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
     collect_all=True, # this is default value anyway
-    loggers=[InteractiveLogger()],
-    benchmark=benchmark
+    loggers=[InteractiveLogger()]
 )
 
 # since no training and evaluation has been performed, this will return an empty dict.

@@ -32,11 +32,11 @@ from ..utils import make_classification_dataset, DefaultTransformGroups
 from ..utils.data import make_avalanche_dataset
 
 _default_mnist_train_transform = Compose(
-    [ToTensor(), Normalize((0.1307,), (0.3081,))]
+    [Normalize((0.1307,), (0.3081,))]
 )
 
 _default_mnist_eval_transform = Compose(
-    [ToTensor(), Normalize((0.1307,), (0.3081,))]
+    [Normalize((0.1307,), (0.3081,))]
 )
 
 

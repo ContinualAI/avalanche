@@ -21,4 +21,4 @@ sphinx-build -b coverage . _build
 in `conf.py` you find a list `undocumented_classes_to_ignore`. This keeps track of the classes that we don't want to add to the apidoc. Add a class here if you believe it should not be documented in the apidoc. Ideally, this should be kept to a minimum.
 
 ### Check for errors
-Due to a bug in sphinx, we have lots of warnings. You can silence them by changing the class template by renaming `_templates/autosummary/no-attributes-class.rst` into `_templates/autosummary/class.rst` to disable the documentation of attributes.
+Due to a bug in sphinx, we have lots of warnings. You can silence them by changing the class template by renaming `_templates/autosummary/documented-methods-class.rst` into `_templates/autosummary/class.rst` to disable the documentation of attributes.

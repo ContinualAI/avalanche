@@ -1364,7 +1364,8 @@ class TransformationSubsetTests(unittest.TestCase):
         full_task_labels[1000] = 2
         # First, test by passing len(task_labels) == len(dataset_mnist)
         dataset = classification_subset(
-            dataset_mnist, indices=[1000, 1007], task_labels=full_task_labels
+            dataset_mnist, indices=[1000, 1007],
+            task_labels=full_task_labels
         )
 
         x3, y3, t3 = dataset[0]
@@ -1376,7 +1377,8 @@ class TransformationSubsetTests(unittest.TestCase):
 
         # Secondly, test by passing len(task_labels) == len(indices)
         dataset = classification_subset(
-            dataset_mnist, indices=[1000, 1007], task_labels=[3, 5]
+            dataset_mnist, indices=[1000, 1007],
+            task_labels=[3, 5]
         )
 
         x3, y3, t3 = dataset[0]
@@ -1713,7 +1715,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
 
         dataset_other = make_classification_dataset(dataset_reset)
         dataset_other = dataset_other.replace_current_transform_group(
-            (None, lambda l: l + 1)
+            (None, lambda lll: lll + 1)
         )
 
         _, y6, _ = dataset_other[0]

@@ -257,11 +257,9 @@ class GroupBalancedInfiniteDataLoader:
     ):
         """Data loader that balances data from multiple datasets emitting an
         infinite stream.
-
         Mini-batches emitted by this dataloader are created by collating
         together mini-batches from each group. It may be used to balance data
         among classes, experiences, tasks, and so on.
-
         :param datasets: an instance of `AvalancheDataset`.
         :param collate_mbatches: function that given a sequence of mini-batches
             (one for each task) combines them into a single mini-batch. Used to

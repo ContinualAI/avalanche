@@ -80,10 +80,13 @@ Of course also the basic utilities `ImageFolder` and `DatasetFolder` can be used
 
 We also provide an additional `FilelistDataset` and `AvalancheDataset` classes. The former to construct a dataset from a filelist [\(caffe style\)](https://ceciliavision.wordpress.com/2016/03/08/caffedata-layer/) pointing to files anywhere on the disk. The latter to augment the basic Pytorch Dataset functionalities with an extention to better deal with a stack of transformations to be used during train and test.
 
+
 ```python
-from avalanche.benchmarks.utils import ImageFolder, DatasetFolder, FilelistDataset, make_classification_dataset
+from avalanche.benchmarks.utils import ImageFolder, DatasetFolder, FilelistDataset, AvalancheDataset
 ```
 
+
+```python
 ## 🛠️ Benchmarks Basics
 
 The _Avalanche_ benchmarks \(instances of the _Scenario_ class\), contains several attributes that characterize the benchmark. However, the most important ones are the `train` and `test streams`.
@@ -101,6 +104,7 @@ This means that memory requirements are very low, while the speed is guaranteed 
 #### Scenarios
 
 So, as we have seen, each `scenario` object in _Avalanche_ has several useful attributes that characterizes the benchmark, including the two important `train` and `test streams`. Let's check what you can get from a scenario object more in details:
+```
 
 
 ```python

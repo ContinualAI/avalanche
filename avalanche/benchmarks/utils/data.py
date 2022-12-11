@@ -125,6 +125,17 @@ class AvalancheDataset(FlatData):
             self._data_attributes = {}
         else:
             self._data_attributes = {da.name: da for da in data_attributes}
+            for da in data_attributes:
+                ld = sum(len(d) for d in self._datasets)
+                if len(da) != ld:
+                    raise ValueError(
+                        "Data attribute {} has length {} but the dataset "
+                        "has length {}".format(da.name, len(da), ld)
+                    )
+        if isinstance(transform_groups, dict):
+            transform_groups = TransformGroups(transform_groups)
+        if isinstance(frozen_transform_groups, dict):
+            frozen_transform_groups = TransformGroups(frozen_transform_groups)
         self._transform_groups = transform_groups
         self._frozen_transform_groups = frozen_transform_groups
         self.collate_fn = collate_fn
@@ -190,17 +201,21 @@ class AvalancheDataset(FlatData):
                 if found_all:
                     self._data_attributes[attr.name] = acat
 
-        if indices is not None:  # subset operation for attributes
+        if self._indices is not None:  # subset operation for attributes
             for da in self._data_attributes.values():
                 # TODO: this was the old behavior. How do we know what to do if
                 # we permute the entire dataset?
-                if len(da) != sum([len(d) for d in datasets]):
-                    self._data_attributes[da.name] = da
-                else:
-                    self._data_attributes[da.name] = da.subset(self._indices)
-
-                    dasub = da.subset(indices)
-                    self._data_attributes[da.name] = dasub
+                # DEPRECATED! always subset attributes
+                # we keep this behavior only for `classification_subset`
+                # if len(da) != sum([len(d) for d in datasets]):
+                #     self._data_attributes[da.name] = da
+                # else:
+                #     self._data_attributes[da.name] = da.subset(self._indices)
+                #
+                #     dasub = da.subset(indices)
+                #     self._data_attributes[da.name] = dasub
+                dasub = da.subset(self._indices)
+                self._data_attributes[da.name] = dasub
 
         # set attributes dynamically
         for el in self._data_attributes.values():

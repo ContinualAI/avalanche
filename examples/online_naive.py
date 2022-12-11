@@ -101,7 +101,7 @@ def main(args):
         torch.optim.Adam(model.parameters(), lr=0.1),
         CrossEntropyLoss(),
         train_passes=1,
-        train_mb_size=1,
+        train_mb_size=10,
         eval_mb_size=32,
         device=device,
         evaluator=eval_plugin,
@@ -118,7 +118,7 @@ def main(args):
         # Create online scenario from experience exp
         ocl_benchmark = OnlineCLScenario(original_streams=batch_streams,
                                          experiences=exp,
-                                         experience_size=1,
+                                         experience_size=10,
                                          access_task_boundaries=True)
 
         # Train on the online train stream of the scenario
