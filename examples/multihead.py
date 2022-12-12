@@ -8,15 +8,12 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+
 """
 This example trains a Multi-head model on Split MNIST with Elastich Weight
 Consolidation. Each experience has a different task label, which is used at test
 time to select the appropriate head.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import argparse
 import torch
@@ -43,9 +40,9 @@ def main(args):
     model = MTSimpleMLP()
 
     # CL Benchmark Creation
-    scenario = SplitMNIST(n_experiences=5, return_task_id=True)
-    train_stream = scenario.train_stream
-    test_stream = scenario.test_stream
+    benchmark = SplitMNIST(n_experiences=5, return_task_id=True)
+    train_stream = benchmark.train_stream
+    test_stream = benchmark.test_stream
 
     # Prepare for training & testing
     optimizer = Adam(model.parameters(), lr=0.01)

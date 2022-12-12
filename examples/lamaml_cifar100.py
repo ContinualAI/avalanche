@@ -1,14 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-
 import argparse
 import torch
 import wandb
 from torch.nn import CrossEntropyLoss
 import torch.optim.lr_scheduler
-from avalanche.benchmarks.classic import SplitCIFAR100, SplitTinyImageNet
+from avalanche.benchmarks.classic import SplitTinyImageNet
 from avalanche.models import MTSimpleCNN
 from avalanche.training.supervised.lamaml import LaMAML
 from avalanche.training.plugins import ReplayPlugin
@@ -30,13 +25,13 @@ def main(args):
         else "cpu"
     )
 
-    # --- SCENARIO CREATION
-    scenario = SplitTinyImageNet(
+    # --- BENCHMARK CREATION
+    benchmark = SplitTinyImageNet(
         n_experiences=20,
         return_task_id=True,
         class_ids_from_zero_in_each_exp=True,
     )
-    config = {"scenario": "SplitCIFAR100"}
+    config = {"scenario": "SplitTinyImageNet"}
 
     # MODEL CREATION
     model = MTSimpleCNN()
@@ -91,13 +86,13 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
         cl_strategy.train(experience)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
     if args.wandb_project != "":
         wandb.finish()

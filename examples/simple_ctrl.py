@@ -15,11 +15,7 @@ in https://arxiv.org/abs/2012.12631.
 The training procedure will report the Transfer metric as defined in
 eq.3 in the article for all streams but the long one, for which
 the average accuracy after training on the whole stream is reported.
- """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""
 
 import argparse
 from copy import deepcopy
@@ -51,13 +47,14 @@ def main(args):
     if args.stream != "s_long":
         model_init = deepcopy(model)
 
-    scenario = CTrL(
+    # create the benchmark
+    benchmark = CTrL(
         stream_name=args.stream, save_to_disk=args.save, path=args.path, seed=10
     )
 
-    train_stream = scenario.train_stream
-    test_stream = scenario.test_stream
-    val_stream = scenario.val_stream
+    train_stream = benchmark.train_stream
+    test_stream = benchmark.test_stream
+    val_stream = benchmark.val_stream
 
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
     criterion = CrossEntropyLoss()

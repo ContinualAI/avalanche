@@ -1,3 +1,10 @@
+"""
+This example tests Less-Forgetful Learning on Permuted MNIST.
+The performance with default arguments should give an accuracy
+of more than 88% on all tasks.
+"""
+
+
 import torch
 import argparse
 from avalanche.benchmarks import PermutedMNIST
@@ -10,13 +17,6 @@ from avalanche.evaluation.metrics import (
 )
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
-
-
-"""
-This example tests Less-Forgetful Learning on Permuted MNIST.
-The performance with default arguments should give an accuracy
-of more than 88% on all tasks.
-"""
 
 
 def main(args):
@@ -33,8 +33,8 @@ def main(args):
     )
     print(f"Using device: {device}")
 
-    # create Permuted MNIST scenario
-    scenario = PermutedMNIST(n_experiences=4)
+    # create Permuted MNIST benchmark
+    benchmark = PermutedMNIST(n_experiences=4)
 
     interactive_logger = InteractiveLogger()
     eval_plugin = EvaluationPlugin(
@@ -63,10 +63,10 @@ def main(args):
         evaluator=eval_plugin,
     )
 
-    # train on the selected scenario with the chosen strategy
+    # train on the selected benchmark with the chosen strategy
     print("Starting experiment...")
     results = []
-    for train_batch_info in scenario.train_stream:
+    for train_batch_info in benchmark.train_stream:
         print(
             "Start training on experience ", train_batch_info.current_experience
         )
@@ -76,7 +76,7 @@ def main(args):
             "End training on experience ", train_batch_info.current_experience
         )
         print("Computing accuracy on the test set")
-        results.append(strategy.eval(scenario.test_stream[:]))
+        results.append(strategy.eval(benchmark.test_stream[:]))
 
 
 if __name__ == "__main__":

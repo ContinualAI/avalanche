@@ -1,9 +1,13 @@
+"""
+This example tests RWalk on Split MNIST and Permuted MNIST.
+"""
+
 import torch
-from os.path import expanduser
 import argparse
 from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor
 from avalanche.benchmarks import PermutedMNIST, nc_benchmark
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.training.supervised import Naive
 from avalanche.training.plugins import RWalkPlugin
 from avalanche.models import SimpleMLP
@@ -15,10 +19,6 @@ from avalanche.evaluation.metrics import (
 )
 from avalanche.logging import InteractiveLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
-
-"""
-This example tests RWalk on Split MNIST and Permuted MNIST.
-"""
 
 
 def main(args):
@@ -35,23 +35,23 @@ def main(args):
     )
     print(f"Using device: {device}")
 
-    # create scenario
+    # create benchmark
     if args.scenario == "pmnist":
-        scenario = PermutedMNIST(n_experiences=args.permutations)
+        benchmark = PermutedMNIST(n_experiences=args.permutations)
     elif args.scenario == "smnist":
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
             transform=ToTensor(),
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
             transform=ToTensor(),
         )
-        scenario = nc_benchmark(
+        benchmark = nc_benchmark(
             mnist_train, mnist_test, 5, task_labels=False, seed=1234
         )
     else:
@@ -88,16 +88,16 @@ def main(args):
         ],
     )
 
-    # train on the selected scenario with the chosen strategy
+    # train on the selected benchmark with the chosen strategy
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start training on experience ", experience.current_experience)
 
         strategy.train(experience)
         print("End training on experience", experience.current_experience)
         print("Computing accuracy on the test set")
-        results.append(strategy.eval(scenario.test_stream[:]))
+        results.append(strategy.eval(benchmark.test_stream[:]))
 
 
 if __name__ == "__main__":
