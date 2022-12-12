@@ -11,8 +11,8 @@
 
 """
 This example shows how to run object detection/segmentation tasks.
-This example will use a toy benchmark based on the LVIS dataset in which the
-stream of experiences is obtained by splitting the dataset in equal parts.
+This example will use a toy benchmark based on the Penn Fudan dataset in which 
+the stream of experiences is obtained by splitting the dataset in equal parts.
 """
 
 import logging
@@ -22,24 +22,15 @@ from typing import Union
 from torch.utils.data import random_split, Subset
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 
-from avalanche.benchmarks import StreamUserDef
-from avalanche.benchmarks.datasets import LvisDataset, PennFudanDataset
-from avalanche.benchmarks.scenarios.detection_scenario import (
-    DetectionCLScenario,
-)
-from avalanche.benchmarks.utils import (
-    make_classification_dataset,
-    classification_subset,
-)
+from avalanche.benchmarks.datasets import PennFudanDataset
 from avalanche.training.supervised.naive_object_detection import (
     ObjectDetectionTemplate,
 )
 
 from avalanche.evaluation.metrics import (
-    make_lvis_metrics,
     timing_metrics,
     loss_metrics,
-    DetectionMetrics,
+    DetectionMetrics
 )
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
@@ -71,7 +62,7 @@ def main(args):
     test_transform = ToTensor()
     # ---------
 
-    # --- SCENARIO CREATION
+    # --- BENCHMARK CREATION
     torch.random.manual_seed(1234)
     n_exps = 5
     benchmark = split_penn_fudan(

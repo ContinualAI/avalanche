@@ -21,10 +21,9 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
     _exp_structure_from_assignment,
 )
-from avalanche.benchmarks.utils import (
-    classification_subset,
-    make_classification_dataset,
-)
+from avalanche.benchmarks.utils import classification_subset
+from avalanche.benchmarks.utils.classification_dataset import \
+    ClassificationDataset
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
@@ -47,8 +46,8 @@ class NIScenario(GenericCLScenario["NIExperience"]):
 
     def __init__(
         self,
-        train_dataset: make_classification_dataset,
-        test_dataset: make_classification_dataset,
+        train_dataset: ClassificationDataset,
+        test_dataset: ClassificationDataset,
         n_experiences: int,
         task_labels: bool = False,
         shuffle: bool = True,

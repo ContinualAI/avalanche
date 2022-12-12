@@ -22,10 +22,6 @@ De Lange, Matthias, et al. "Continual prototype evolution: Learning online from
 non-stationary data streams." ICCV. 2021.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import torch
 import torch.optim.lr_scheduler
@@ -71,19 +67,19 @@ def main(args):
     )
     # ---------
 
-    # --- SCENARIO CREATION
+    # --- BENCHMARK CREATION
     n_classes = 10
-    task_scenario = SplitMNIST(
+    task_benchmark = SplitMNIST(
         nb_tasks,
         return_task_id=return_task_id,
         fixed_class_order=[i for i in range(n_classes)],
     )
 
     # Make data incremental (one batch = one experience)
-    scenario = data_incremental_benchmark(
-        task_scenario, experience_size=batch_size
+    benchmark = data_incremental_benchmark(
+        task_benchmark, experience_size=batch_size
     )
-    print(f"{scenario.n_experiences} batches in online data incremental setup.")
+    print(benchmark.n_experiences, 'batches in online data incremental setup.')
     # 6002 batches for SplitMNIST with batch size 10
     # ---------
 
@@ -99,8 +95,7 @@ def main(args):
         accuracy_metrics(experience=True, stream=True),
         loss_metrics(experience=False, stream=True),
         StreamForgetting(),
-        loggers=[logger],
-        benchmark=scenario,
+        loggers=[logger]
     )
 
     # CoPE PLUGIN
@@ -110,9 +105,9 @@ def main(args):
 
     # CREATE THE STRATEGY INSTANCE (NAIVE) WITH CoPE PLUGIN
     cl_strategy = Naive(
-        model,
-        torch.optim.SGD(model.parameters(), lr=0.01),
-        cope.ppp_loss,  # CoPE PPP-Loss
+        model=model,
+        optimizer=torch.optim.SGD(model.parameters(), lr=0.01),
+        criterion=cope.ppp_loss,  # CoPE PPP-Loss
         train_mb_size=batch_size,
         train_epochs=epochs,
         eval_mb_size=100,
@@ -124,10 +119,10 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    cl_strategy.train(scenario.train_stream)
+    cl_strategy.train(benchmark.train_stream)
 
     print("Computing accuracy on the whole test set")
-    results.append(cl_strategy.eval(scenario.test_stream))
+    results.append(cl_strategy.eval(benchmark.test_stream))
 
 
 if __name__ == "__main__":

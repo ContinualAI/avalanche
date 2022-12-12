@@ -15,6 +15,7 @@
 from pathlib import Path
 from typing import Union, List, Sequence
 
+import torch
 from PIL import Image
 from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
