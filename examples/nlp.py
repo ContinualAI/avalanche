@@ -1,7 +1,11 @@
 """
 Example adapting Avalanche to use Huggingface models and datasets.
 To run this example you need huggingface datasets and transformers libraries.
+
+You can install them by running:
+pip install datasets transformers
 """
+
 from avalanche.benchmarks.utils import DataAttribute, ConstantSequence
 from avalanche.training.plugins import ReplayPlugin
 
@@ -160,7 +164,7 @@ class HGNaive(avalanche.training.Naive):
 def main():
     tokenizer = AutoTokenizer.from_pretrained("t5-small", padding=True)
     tokenizer.save_pretrained(
-        r"D:\MLDATA\NLP\hf_tokenizers"
+        "./MLDATA/NLP/hf_tokenizers"
     )  # CHANGE DIRECTORY
 
     prefix = "<2en>"

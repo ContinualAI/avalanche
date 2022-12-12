@@ -3,6 +3,7 @@ from os.path import expanduser
 import torch
 
 from avalanche.benchmarks.datasets import CIFAR100
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.models import IcarlNet, make_icarl_net, initialize_icarl_net
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
@@ -73,7 +74,7 @@ def run_experiment(config):
 
     per_pixel_mean = get_dataset_per_pixel_mean(
         CIFAR100(
-            expanduser("~") + "/.avalanche/data/cifar100/",
+            default_dataset_location("cifar100"),
             train=True,
             download=True,
             transform=transforms.Compose([transforms.ToTensor()]),
@@ -103,12 +104,12 @@ def run_experiment(config):
     )
 
     train_set = CIFAR100(
-        expanduser("~") + "/.avalanche/data/cifar100/",
+        default_dataset_location("cifar100"),
         train=True,
         download=True,
     )
     test_set = CIFAR100(
-        expanduser("~") + "/.avalanche/data/cifar100/",
+        default_dataset_location("cifar100"),
         train=False,
         download=True,
     )
@@ -124,7 +125,7 @@ def run_experiment(config):
         initial_transform_group="eval",
     )
 
-    scenario = nc_benchmark(
+    benchmark = nc_benchmark(
         train_dataset=train_set,
         test_dataset=test_set,
         n_experiences=config.nb_exp,
@@ -169,8 +170,8 @@ def run_experiment(config):
         evaluator=evaluator,
     )
 
-    for i, exp in enumerate(scenario.train_stream):
-        eval_exps = [e for e in scenario.test_stream][: i + 1]
+    for i, exp in enumerate(benchmark.train_stream):
+        eval_exps = [e for e in benchmark.test_stream][: i + 1]
         strategy.train(exp, num_workers=4)
         strategy.eval(eval_exps, num_workers=4)
 

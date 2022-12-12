@@ -37,17 +37,17 @@ def main(args):
 
     # Here we show all the MNIST variation we offer in the "classic" benchmarks
     if args.mnist_type == "permuted":
-        scenario = PermutedMNIST(n_experiences=5, seed=1)
+        benchmark = PermutedMNIST(n_experiences=5, seed=1)
     elif args.mnist_type == "rotated":
-        scenario = RotatedMNIST(
+        benchmark = RotatedMNIST(
             n_experiences=5, rotations_list=[30, 60, 90, 120, 150], seed=1
         )
     else:
-        scenario = SplitMNIST(n_experiences=5, seed=1)
+        benchmark = SplitMNIST(n_experiences=5, seed=1)
 
     # Than we can extract the parallel train and test streams
-    train_stream = scenario.train_stream
-    test_stream = scenario.test_stream
+    train_stream = benchmark.train_stream
+    test_stream = benchmark.test_stream
 
     # Prepare for training & testing
     optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)

@@ -1,7 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+"""
+This example shows how to use the mean_scores_metrics metrics.
+"""
 
 import argparse
 from datetime import datetime
@@ -25,12 +24,12 @@ def main(cuda: int):
         f"cuda:{cuda}" if torch.cuda.is_available() else "cpu"
     )
 
-    # --- SCENARIO CREATION
-    scenario = SplitMNIST(n_experiences=5, seed=42)
+    # --- BENCHMARK CREATION
+    benchmark = SplitMNIST(n_experiences=5, seed=42)
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = SimpleMLP(num_classes=benchmark.n_classes)
 
     # choose some metrics and evaluation method
     eval_plugin = EvaluationPlugin(
@@ -55,9 +54,9 @@ def main(cuda: int):
     )
 
     # TRAINING LOOP
-    for i, experience in enumerate(scenario.train_stream, 1):
+    for i, experience in enumerate(benchmark.train_stream, 1):
         cl_strategy.train(experience)
-        cl_strategy.eval(scenario.test_stream[:i])
+        cl_strategy.eval(benchmark.test_stream[:i])
 
 
 if __name__ == "__main__":
