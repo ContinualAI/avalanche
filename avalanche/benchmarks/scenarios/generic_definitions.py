@@ -12,6 +12,9 @@
 from abc import abstractmethod
 import warnings
 
+from avalanche.benchmarks.utils.classification_dataset import \
+    ClassificationDataset
+
 try:
     from typing import (
         TypeVar,
@@ -90,7 +93,7 @@ class ClassificationExperience(Protocol[TCLScenario, TCLStream]):
     encounter experiences.
     """
 
-    dataset: make_classification_dataset
+    dataset: ClassificationDataset
     """
     The dataset containing the patterns available in this experience.
     """

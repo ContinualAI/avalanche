@@ -54,7 +54,6 @@ Stream Metrics
 
     StreamAccuracy
     StreamClassAccuracy
-    AMCAPluginMetric
     TrainedExperienceAccuracy
     StreamLoss
     StreamBWT
@@ -68,7 +67,6 @@ Stream Metrics
     StreamMaxRAM
     StreamMaxGPU
     StreamTopkAccuracy
-    MeanScoresEvalPluginMetric
 
 Experience Metrics
 ^^^^^^^^^^^^^^^^^^^^
@@ -111,7 +109,6 @@ Epoch Metrics
     EpochMAC
     EpochMaxRAM
     EpochMaxGPU
-    MeanScoresTrainPluginMetric
     EpochTopkAccuracy
 
 RunningEpoch Metrics
@@ -164,6 +161,9 @@ Standalone Metrics
    :toctree: generated
 
     Accuracy
+    LossMetric
+    TaskAwareAccuracy
+    TaskAwareLoss
     AverageMeanClassAccuracy
     BWT
     CPUUsage

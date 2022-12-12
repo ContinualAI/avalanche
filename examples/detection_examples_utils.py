@@ -8,6 +8,7 @@ from avalanche.benchmarks.utils import (
     make_classification_dataset,
     classification_subset,
 )
+from avalanche.benchmarks.utils.collate_functions import detection_collate_fn
 
 
 def split_detection_benchmark(
@@ -44,15 +45,20 @@ def split_detection_benchmark(
     exp_n_imgs = len(train_dataset) // n_experiences
     remaining = len(train_dataset) % n_experiences
 
+    # Note: in future versions of Avalanche, the make_classification_dataset
+    # function will be replaced with a more specific function for object 
+    # detection datasets.
     train_dataset_avl = make_classification_dataset(
         train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
+        collate_fn=detection_collate_fn
     )
     test_dataset_avl = make_classification_dataset(
         test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
+        collate_fn=detection_collate_fn
     )
 
     exp_sz = [exp_n_imgs for _ in range(n_experiences)]

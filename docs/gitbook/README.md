@@ -6,13 +6,16 @@ description: Powered by ContinualAI
 
 ![](../../.gitbook/assets/avalanche\_logo\_with\_clai.png)
 
-**Avalanche** is an _End-to-End Continual Learning Library_ based on [**PyTorch**](https://pytorch.org), born within [**ContinualAI**](https://www.continualai.org) with the unique goal of providing a **shared** and **collaborative** open-source (MIT licensed) **codebase** for _fast prototyping_, _training_ and [_reproducible_ _evaluation_](https://github.com/ContinualAI/reproducible-continual-learning) of continual learning algorithms.
+**Avalanche** is an _End-to-End Continual Learning Library_ based on [**PyTorch**](https://pytorch.org), born within [**ContinualAI**](https://www.continualai.org) with the goal of providing a **shared** and **collaborative** open-source (MIT licensed) **codebase** for _fast prototyping_, _training_ and [_reproducible_ _evaluation_](https://github.com/ContinualAI/reproducible-continual-learning) of continual learning algorithms.
+
+{% hint style="success" %}
+Looking for **continual learning baselines**? In the [CL-Baseline](https://github.com/ContinualAI/reproducible-continual-learning) sibling project based on Avalanche we reproduce seminal papers results you cand directly use in **your experiments!**
+{% endhint %}
 
 Avalanche can help _Continual Learning_ researchers and practitioners in several ways:
 
 * _Write less code, prototype faster & reduce errors_
-* _Improve reproducibility_
-* _Improve modularity and reusability_
+* _Improve reproducibility, modularity and reusability_
 * _Increase code efficiency, scalability & portability_
 * _Augment impact and usability of your research products_
 
@@ -225,7 +228,7 @@ For example, you may start with our _**5-minutes**_ **guide** that will let you 
 [learn-avalanche-in-5-minutes.md](getting-started/learn-avalanche-in-5-minutes.md)
 {% endcontent-ref %}
 
-We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:&#x20;
+We have also prepared for you a large set of _**examples & snippets**_ you can plug-in directly into your code and play with:
 
 {% content-ref url="broken-reference" %}
 [Broken link](broken-reference)

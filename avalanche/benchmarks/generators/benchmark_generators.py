@@ -49,7 +49,6 @@ from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.classification_dataset import (
     SupportedDataset,
     make_classification_dataset,
-    classification_subset,
 )
 
 
@@ -654,6 +653,12 @@ def class_balanced_split_strategy(
     (train and validation) of size `validation_size` using a class-balanced
     split. Sample of each class are chosen randomly.
 
+    You can use this split strategy to split a benchmark with::
+
+        validation_size = 0.2
+        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
+        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
+
     :param validation_size: The percentage of samples to allocate to the
         validation experience as a float between 0 and 1.
     :param experience: The experience to split.
@@ -785,6 +790,13 @@ def benchmark_with_validation_stream(
     controlled using the `lazy_splitting` parameter. By default, experiences
     are split in a lazy way only when the input stream is lazily generated.
 
+    The default splitting strategy is a random split. A class-balanced split
+    is also available using `class_balanced_split_strategy`::
+
+        validation_size = 0.2
+        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
+        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
+
     :param benchmark_instance: The benchmark to split.
     :param validation_size: The size of the validation experience, as an int
         or a float between 0 and 1. Ignored if `custom_split_strategy` is used.
@@ -896,4 +908,6 @@ __all__ = [
     "tensors_benchmark",
     "data_incremental_benchmark",
     "benchmark_with_validation_stream",
+    "random_validation_split_strategy",
+    "class_balanced_split_strategy",
 ]

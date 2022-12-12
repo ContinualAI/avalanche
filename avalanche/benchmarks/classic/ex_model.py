@@ -125,7 +125,7 @@ class ExMLMNIST(ExModelCLScenario):
         CURR_SEED = SEED_BENCHMARK_RUNS[run_id]
 
         transforms = Compose(
-            [Resize(32), ToTensor(), Normalize((0.1307,), (0.3081,))]
+            [Resize(32), Normalize((0.1307,), (0.3081,))]
         )
         if scenario == "split":
             benchmark = SplitMNIST(
