@@ -13,10 +13,6 @@
 This is a simple example on how to use the Synaptic Intelligence Plugin.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -56,15 +52,15 @@ def main(args):
     )
     # ---------
 
-    # --- SCENARIO CREATION
-    scenario = SplitCIFAR10(
+    # --- BENCHMARK CREATION
+    benchmark = SplitCIFAR10(
         5, train_transform=train_transform, eval_transform=test_transform
     )
     # ---------
 
     # MODEL CREATION
     model = MobilenetV1()
-    adapt_classification_layer(model, scenario.n_classes, bias=False)
+    adapt_classification_layer(model, benchmark.n_classes, bias=False)
 
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
 
@@ -100,7 +96,7 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
@@ -108,7 +104,7 @@ def main(args):
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
 
 if __name__ == "__main__":

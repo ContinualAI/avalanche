@@ -14,12 +14,6 @@ This is a simple example that shows how to use the
 Tensorboard Logger
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from os.path import expanduser
-
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -29,6 +23,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_benchmark
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.logging import InteractiveLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import (
@@ -69,26 +64,26 @@ def main(args):
     )
     # ---------
 
-    # --- SCENARIO CREATION
+    # --- BENCHMARK CREATION
     mnist_train = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=True,
         download=True,
         transform=train_transform,
     )
     mnist_test = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=False,
         download=True,
         transform=test_transform,
     )
-    scenario = nc_benchmark(
+    benchmark = nc_benchmark(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234
     )
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = SimpleMLP(num_classes=benchmark.n_classes)
 
     interactive_logger = InteractiveLogger()
     tensorboard_logger = TensorboardLogger()
@@ -149,7 +144,7 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
@@ -157,7 +152,7 @@ def main(args):
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
 
 if __name__ == "__main__":
