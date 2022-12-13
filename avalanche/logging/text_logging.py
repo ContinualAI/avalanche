@@ -246,10 +246,10 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         try:
             is_notebook = file_object.__class__.__name__ == 'OutStream' and\
                 'ipykernel' in file_object.__class__.__module__
-        except:
+        except Exception:
             pass
 
-        if  is_notebook:
+        if is_notebook:
             # Running in a notebook
             out_file_path = None
             stream_name = 'stdout'
