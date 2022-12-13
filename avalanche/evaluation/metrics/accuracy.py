@@ -14,9 +14,8 @@ from typing import List, Union, Dict
 import torch
 from torch import Tensor
 from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
-from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics.mean import Mean
-from avalanche.evaluation.metric_utils import phase_and_task, get_metric_name
+from avalanche.evaluation.metric_utils import phase_and_task
 from collections import defaultdict
 
 
@@ -216,8 +215,6 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
         :param split_by_task: whether to compute task-aware accuracy or not.
         """
         self.split_by_task = split_by_task
-        self.reset_at = reset_at
-
         if self.split_by_task:
             self._accuracy = TaskAwareAccuracy()
         else:
@@ -225,27 +222,6 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
         super(AccuracyPluginMetric, self).__init__(
             self._accuracy, reset_at=reset_at, emit_at=emit_at, mode=mode
         )
-
-    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
-        metric_value = self.result(strategy)
-        add_exp = self._emit_at == "experience"
-        plot_x_position = strategy.clock.train_iterations
-        metric_name = get_metric_name(
-            self, strategy, add_experience=add_exp,
-            add_task=self.split_by_task
-        )
-
-        if isinstance(metric_value, dict):
-            metrics = []
-            for k, v in metric_value.items():
-                metrics.append(
-                    MetricValue(self, metric_name, v, plot_x_position)
-                )
-            return metrics
-        else:
-            return [
-                MetricValue(self, metric_name, metric_value, plot_x_position)
-            ]
 
     def reset(self, strategy=None) -> None:
         self._metric.reset()
@@ -262,9 +238,6 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
             )
         else:
             assert False, "should never get here."
-
-    def __str__(self):
-        return f"Top1_Acc_{self.reset_at}"
 
 
 class MinibatchAccuracy(AccuracyPluginMetric):
