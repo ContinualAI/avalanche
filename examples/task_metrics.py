@@ -54,7 +54,7 @@ def main(args):
     tr_ds = [
         make_tensor_classification_dataset(
             torch.randn(10, 3),
-            torch.randint(0, 3, (10,)).tolist(),
+            torch.randint(0, 3, (10,)),
             task_labels=torch.randint(0, 5, (10,)).tolist(),
         )
         for _ in range(3)
@@ -62,7 +62,7 @@ def main(args):
     ts_ds = [
         make_tensor_classification_dataset(
             torch.randn(10, 3),
-            torch.randint(0, 3, (10,)).tolist(),
+            torch.randint(0, 3, (10,)),
             task_labels=torch.randint(0, 5, (10,)).tolist(),
         )
         for _ in range(3)
