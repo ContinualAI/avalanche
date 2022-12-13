@@ -24,17 +24,6 @@ def cycle(loader):
             yield batch
 
 
-def er_ace_criterion(
-    out_in, target_in, out_buffer, target_buffer, all_classes, new_classes
-):
-    loss_buffer = F.cross_entropy(out_buffer, target_buffer)
-    loss_current = F.cross_entropy(
-        out_in[:, len(all_classes) - len(new_classes) :],
-        target_in - (len(all_classes) - len(new_classes)),
-    )
-    return loss_buffer + loss_current
-
-
 class OnlineER_ACE(OnlineSupervisedTemplate):
     """
     ER ACE Online version, as originally proposed in
