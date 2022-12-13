@@ -8,9 +8,11 @@ _Avalanche_ is a framework in constant development. Thanks to the support of the
 \
 A the moment, _Avalanche_ is in **Beta (v0.3.0).** We support a large number of _Benchmarks_, _Strategies_ and _Metrics_, that makes it, we believe, **the best tool out there for your continual learning research!** 💪
 
-You can find the full list of available features on the [API documentation](https://avalanche-api.continualai.org).
+{% hint style="success" %}
+You can find the **full list of available features** on the [API documentation](https://avalanche-api.continualai.org).
+{% endhint %}
 
-{% hint style="info" %}
+{% hint style="warning" %}
 Do you think we are missing some important features? Please [let us know](../questions-and-issues/request-a-feature.md)! We deeply value [your feedback](../questions-and-issues/give-feedback.md)!
 {% endhint %}
 
@@ -41,8 +43,8 @@ All the major continual learning benchmarks are available and ready to use. Benc
 Avalanche provides _Continual Learning_ algorithms (_strategies_). We are continuously expanding the library with new algorithms and making sure they can reproduce seminal papers results in the sibling project [CL-Baselines](https://github.com/ContinualAI/continual-learning-baselines).
 
 * **Baselines**: Naive, JointTraining, Cumulative.
-* **Rehearsal**: Replay with reservoir sampling and balanced buffers, GSS greedy, CoPE.
-* **Regularization**: EWC, LwF, GEM, AGEM, CWR\*, Synaptic Intelligence.
+* **Rehearsal**: Replay with reservoir sampling and balanced buffers, GSS greedy, CoPE, Generative Replay.
+* **Regularization**: EWC, LwF, GEM, AGEM, CWR\*, Synaptic Intelligence, MAS.
 * **Architectural**: Progressive Neural Networks, multi-head, incremental classifier.
 * **Others**: GDumb, iCaRL, AR1, Streaming LDA, LFL.
 
