@@ -522,7 +522,7 @@ class GenericCLScenario(Generic[TCLExperience]):
             # Extract task labels from the dataset
             task_labels = []
             for i in range(len(exp_data)):
-                exp_dataset: make_classification_dataset = exp_data[i]
+                exp_dataset: ClassificationDataset = exp_data[i]
                 task_labels.append(set(exp_dataset.targets_task_labels))
         else:
             # Standardize task labels structure
@@ -933,7 +933,7 @@ class GenericClassificationExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        self.dataset: make_classification_dataset = (
+        self.dataset: ClassificationDataset = (
             origin_stream.benchmark.stream_definitions[
                 origin_stream.name
             ].exps_data[current_experience]

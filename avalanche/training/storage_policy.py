@@ -37,12 +37,12 @@ class ExemplarsBuffer(ABC):
         self._buffer: AvalancheDataset = concat_datasets([])
 
     @property
-    def buffer(self) -> make_classification_dataset:
+    def buffer(self) -> AvalancheDataset:
         """Buffer of samples."""
         return self._buffer
 
     @buffer.setter
-    def buffer(self, new_buffer: make_classification_dataset):
+    def buffer(self, new_buffer: AvalancheDataset):
         self._buffer = new_buffer
 
     @abstractmethod
@@ -87,7 +87,7 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         """Update buffer."""
         self.update_from_dataset(strategy.experience.dataset)
 
-    def update_from_dataset(self, new_data: make_classification_dataset):
+    def update_from_dataset(self, new_data: AvalancheDataset):
         """Update the buffer using the given dataset.
 
         :param new_data:
@@ -458,7 +458,7 @@ class ExemplarsSelectionStrategy(ABC):
 
     @abstractmethod
     def make_sorted_indices(
-        self, strategy: "SupervisedTemplate", data: make_classification_dataset
+        self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         """
         Should return the sorted list of indices to keep as exemplars.
@@ -472,7 +472,7 @@ class RandomExemplarsSelectionStrategy(ExemplarsSelectionStrategy):
     """Select the exemplars at random in the dataset"""
 
     def make_sorted_indices(
-        self, strategy: "SupervisedTemplate", data: make_classification_dataset
+        self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         indices = list(range(len(data)))
         random.shuffle(indices)
@@ -487,7 +487,7 @@ class FeatureBasedExemplarsSelectionStrategy(ExemplarsSelectionStrategy, ABC):
 
     @torch.no_grad()
     def make_sorted_indices(
-        self, strategy: "SupervisedTemplate", data: make_classification_dataset
+        self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         self.feature_extractor.eval()
         collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None

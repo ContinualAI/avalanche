@@ -16,10 +16,6 @@ without the hindering of learning continually. This is often referred to as
 "cumulative", "joint-training" or "offline" upper bound.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss

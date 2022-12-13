@@ -9,7 +9,7 @@ description: Powered by ContinualAI
 **Avalanche** is an _End-to-End Continual Learning Library_ based on [**PyTorch**](https://pytorch.org), born within [**ContinualAI**](https://www.continualai.org) with the goal of providing a **shared** and **collaborative** open-source (MIT licensed) **codebase** for _fast prototyping_, _training_ and [_reproducible_ _evaluation_](https://github.com/ContinualAI/reproducible-continual-learning) of continual learning algorithms.
 
 {% hint style="success" %}
-Looking for **continual learning baselines**? In the [CL-Baseline](https://github.com/ContinualAI/reproducible-continual-learning) sibling project based on Avalanche we reproduce seminal papers results you cand directly use in **your experiments!**
+Looking for **continual learning baselines**? In the [CL-Baseline](https://github.com/ContinualAI/reproducible-continual-learning) sibling project based on Avalanche we reproduce seminal papers results you can directly use in **your experiments!**
 {% endhint %}
 
 Avalanche can help _Continual Learning_ researchers and practitioners in several ways:

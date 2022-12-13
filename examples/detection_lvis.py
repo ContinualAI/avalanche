@@ -19,23 +19,15 @@ import logging
 from pathlib import Path
 from typing import Union
 
-from avalanche.benchmarks import StreamUserDef
-from avalanche.benchmarks.datasets import LvisDataset
-from avalanche.benchmarks.scenarios.detection_scenario import (
-    DetectionCLScenario,
-)
-from avalanche.benchmarks.utils import (
-    make_classification_dataset,
-    classification_subset,
-)
+from avalanche.benchmarks.datasets.lvis_dataset import LvisDataset
+from avalanche.evaluation.metrics.detection import make_lvis_metrics
 from avalanche.training.supervised.naive_object_detection import (
     ObjectDetectionTemplate,
 )
 
 from avalanche.evaluation.metrics import (
-    make_lvis_metrics,
     timing_metrics,
-    loss_metrics,
+    loss_metrics
 )
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
@@ -67,7 +59,7 @@ def main(args):
     test_transform = ToTensor()
     # ---------
 
-    # --- SCENARIO CREATION
+    # --- BENCHMARK CREATION
     torch.random.manual_seed(1234)
     n_exps = 100  # Keep it high to run a short exp
     benchmark = split_lvis(

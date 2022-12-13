@@ -16,7 +16,6 @@ dig deeper into the use of Plugin metrics, which are already integrated
 in the Avalanche training and evaluation loops.
 """
 
-
 # import a standalone metric
 import torch
 from avalanche.evaluation.metrics import TaskAwareAccuracy

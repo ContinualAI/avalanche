@@ -13,15 +13,8 @@
 This is a simple example on how to use the Replay strategy.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import argparse
 import torch
-from torch.nn import CrossEntropyLoss
-from torchvision import transforms
-from torchvision.transforms import ToTensor, RandomCrop
 import torch.optim.lr_scheduler
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,7 +22,6 @@ from avalanche.benchmarks import SplitMNIST
 from avalanche.models import MlpVAE
 from avalanche.training.supervised import VAETraining
 from avalanche.training.plugins import GenerativeReplayPlugin
-from avalanche.logging import InteractiveLogger
 
 
 def main(args):
@@ -40,8 +32,8 @@ def main(args):
         else "cpu"
     )
 
-    # --- SCENARIO CREATION
-    scenario = SplitMNIST(n_experiences=10, seed=1234)
+    # --- BENCHMARK CREATION
+    benchmark = SplitMNIST(n_experiences=10, seed=1234)
     # ---------
 
     # MODEL CREATION
@@ -59,9 +51,9 @@ def main(args):
 
     # TRAINING LOOP
     print("Starting experiment...")
-    f, axarr = plt.subplots(scenario.n_experiences, 10)
+    f, axarr = plt.subplots(benchmark.n_experiences, 10)
     k = 0
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
         cl_strategy.train(experience)
         print("Training completed")

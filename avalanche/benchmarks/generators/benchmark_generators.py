@@ -49,7 +49,6 @@ from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.classification_dataset import (
     SupportedDataset,
     make_classification_dataset,
-    classification_subset,
 )
 
 

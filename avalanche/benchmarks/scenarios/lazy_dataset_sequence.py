@@ -16,6 +16,7 @@ from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
 )
+from avalanche.benchmarks.utils.data import AvalancheDataset
 
 
 class LazyDatasetSequence(Sequence[make_classification_dataset]):
@@ -202,7 +203,7 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
 
         for exp_id in range(self._next_exp_id, to_exp + 1):
             try:
-                generated_exp: make_classification_dataset = next(
+                generated_exp: AvalancheDataset = next(
                     self._exp_generator
                 )
             except StopIteration:

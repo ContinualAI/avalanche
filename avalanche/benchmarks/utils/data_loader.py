@@ -15,7 +15,7 @@
     between the current data and the replay memory.
 """
 from itertools import chain
-from typing import Dict, Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 import torch
 from torch.utils.data import RandomSampler, DistributedSampler
@@ -31,6 +31,7 @@ from avalanche.benchmarks.utils.collate_functions import (
 from avalanche.benchmarks.utils.collate_functions import (
     detection_collate_mbatches_fn as _detection_collate_mbatches_fn,
 )
+from avalanche.benchmarks.utils.data import AvalancheDataset
 
 _default_collate_mbatches_fn = classification_collate_mbatches_fn
 
@@ -51,7 +52,7 @@ class TaskBalancedDataLoader:
 
     def __init__(
         self,
-        data: make_classification_dataset,
+        data: AvalancheDataset,
         oversample_small_tasks: bool = False,
         **kwargs
     ):
@@ -316,8 +317,8 @@ class ReplayDataLoader:
 
     def __init__(
         self,
-        data: make_classification_dataset,
-        memory: make_classification_dataset = None,
+        data: AvalancheDataset,
+        memory: Optional[AvalancheDataset] = None,
         oversample_small_tasks: bool = False,
         batch_size: int = 32,
         batch_size_mem: int = 32,

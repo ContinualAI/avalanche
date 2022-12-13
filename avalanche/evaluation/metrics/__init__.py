@@ -5,6 +5,7 @@ from .checkpoint import *
 from .class_accuracy import *
 from .confusion_matrix import *
 from .cpu_usage import *
+from .detection import DetectionMetrics
 from .disk_usage import *
 from .forgetting_bwt import *
 from .forward_transfer import *

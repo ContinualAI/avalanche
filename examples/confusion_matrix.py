@@ -14,10 +14,6 @@ This example shows how to produce confusion matrix during training and
 evaluation.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from os.path import expanduser
 
 import argparse
@@ -62,7 +58,7 @@ def main(args):
     )
     # ---------
 
-    # --- SCENARIO CREATION
+    # --- BENCHMARK CREATION
     mnist_train = MNIST(
         root=expanduser("~") + "/.avalanche/data/mnist/",
         train=True,
@@ -75,13 +71,13 @@ def main(args):
         download=True,
         transform=test_transform,
     )
-    scenario = nc_benchmark(
+    benchmark = nc_benchmark(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234
     )
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = SimpleMLP(num_classes=benchmark.n_classes)
 
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(epoch=True, experience=True, stream=True),
@@ -111,7 +107,7 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
@@ -119,7 +115,7 @@ def main(args):
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
 
 if __name__ == "__main__":

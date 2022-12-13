@@ -1,20 +1,3 @@
-import torch
-from os.path import expanduser
-import argparse
-from torchvision.datasets import MNIST
-from torchvision.transforms import ToTensor
-from avalanche.benchmarks import PermutedMNIST, nc_benchmark
-from avalanche.training.supervised import EWC
-from avalanche.models import SimpleMLP, as_multitask
-from avalanche.evaluation.metrics import (
-    forgetting_metrics,
-    accuracy_metrics,
-    loss_metrics,
-    bwt_metrics,
-)
-from avalanche.logging import InteractiveLogger, TensorboardLogger
-from avalanche.training.plugins import EvaluationPlugin
-
 """
 This example tests EWC on Split MNIST and Permuted MNIST.
 It is possible to choose, among other options, between EWC with separate
@@ -29,6 +12,24 @@ On Split MNIST, on the contrary, EWC is not able to remember previous tasks and
 is subjected to complete forgetting in all configurations. The training accuracy
 is above 90% but the average accuracy on previou tasks is around 20%.
 """
+
+import torch
+from os.path import expanduser
+import argparse
+from torchvision.datasets import MNIST
+from torchvision.transforms import ToTensor
+from avalanche.benchmarks import PermutedMNIST, nc_benchmark
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
+from avalanche.training.supervised import EWC
+from avalanche.models import SimpleMLP, as_multitask
+from avalanche.evaluation.metrics import (
+    forgetting_metrics,
+    accuracy_metrics,
+    loss_metrics,
+    bwt_metrics,
+)
+from avalanche.logging import InteractiveLogger, TensorboardLogger
+from avalanche.training.plugins import EvaluationPlugin
 
 
 def main(args):
@@ -45,39 +46,39 @@ def main(args):
     )
     print(f"Using device: {device}")
 
-    # create scenario
+    # --- BENCHMARK CREATION
     if args.scenario == "pmnist":
-        scenario = PermutedMNIST(n_experiences=args.permutations)
+        benchmark = PermutedMNIST(n_experiences=args.permutations)
     elif args.scenario == "smnist":
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
             transform=ToTensor(),
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
             transform=ToTensor(),
         )
-        scenario = nc_benchmark(
+        benchmark = nc_benchmark(
             mnist_train, mnist_test, 5, task_labels=False, seed=1234
         )
     elif args.scenario == "multitask_smnist":
         mnist_train = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
             transform=ToTensor(),
         )
         mnist_test = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=False,
             download=True,
             transform=ToTensor(),
         )
-        scenario = nc_benchmark(
+        benchmark = nc_benchmark(
             mnist_train,
             mnist_test,
             5,
@@ -94,6 +95,7 @@ def main(args):
             "Allowed pmnist, smnist, "
             "multitask_smnist."
         )
+    # ---------
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
@@ -124,16 +126,16 @@ def main(args):
         evaluator=eval_plugin,
     )
 
-    # train on the selected scenario with the chosen strategy
+    # train on the selected benchmark with the chosen strategy
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start training on experience ", experience.current_experience)
 
         strategy.train(experience)
         print("End training on experience", experience.current_experience)
         print("Computing accuracy on the test set")
-        results.append(strategy.eval(scenario.test_stream[:]))
+        results.append(strategy.eval(benchmark.test_stream[:]))
 
 
 if __name__ == "__main__":
