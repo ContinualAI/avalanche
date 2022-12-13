@@ -21,7 +21,8 @@ Let's first **install Avalanche**. Please, check out our [How to Install](https:
 
 
 ```python
-!pip install avalanche-lib==0.2.0
+!pip install avalanche-lib[all]
+!pip show avalanche-lib
 ```
 
 ## 🏛️ General Architecture
@@ -76,9 +77,9 @@ Datasets can be imported in Avalanche as simply as:
 from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST, \
     QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10, \
     CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
-    VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
-    CelebA, CORe50Dataset, TinyImagenet, CUB200, OpenLORIS, MiniImageNetDataset, Stream51, \
-    CLEARDataset
+    VOCSegmentation, Cityscapes, SBDataset, USPS, HMDB51, UCF101, CelebA, \
+    CORe50Dataset, TinyImagenet, CUB200, OpenLORIS, MiniImageNetDataset, \
+    Stream51, CLEARDataset
 ```
 
 Of course, you can use them as you would use any *PyTorch Dataset*.
@@ -194,7 +195,7 @@ cl_strategy = Naive(
 
 The simplest way to build your own strategy is to create a python class that implements the main `train` and `eval` methods.
 
-Let's define our Continual Learning algorithm *"MyStrategy"* as a simple python class:
+Let's define our Continual Learning algorithm **"MyStrategy"** as a simple python class:
 
 
 
@@ -268,9 +269,9 @@ for exp_id, experience in enumerate(benchmark.train_stream):
     cl_strategy.eval(benchmark.test_stream[exp_id])
 ```
 
-While this is the easiest possible way to add your own strategy, *Avalanche* supports more sophisticated modalities (based on *callbacks*) that lets you write **more neat**, modular and reusable code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
+While this is the easiest possible way to add your own strategy, *Avalanche* supports more sophisticated modalities (based on *callbacks*) that lets you write **more neat, modular and reusable code**, inheriting functionality from a parent classes and using **pre-implemented plugins**.
 
-Check out more details about what Avalanche can offer in this module following the *"Training"* chapter of the **"From Zero to Hero"** tutorial!
+Check out more details about what Avalanche can offer in this module following the "*Training*" chapter of the **"From Zero to Hero"** tutorial!
 
 ## 📈 Evaluation
 
@@ -357,8 +358,7 @@ eval_plugin = EvaluationPlugin(
     forgetting_metrics(experience=True, stream=True),
     StreamConfusionMatrix(num_classes=benchmark.n_classes, save_image=False),
     disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-    loggers=[interactive_logger, text_logger, tb_logger],
-    benchmark=benchmark
+    loggers=[interactive_logger, text_logger, tb_logger]
 )
 
 # CREATE THE STRATEGY INSTANCE (NAIVE)
