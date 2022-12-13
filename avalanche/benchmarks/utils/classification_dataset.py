@@ -566,7 +566,12 @@ def make_tensor_classification_dataset(
         targets = dataset_tensors[1]
     elif isinstance(targets, int):
         targets = dataset_tensors[targets]
-    dataset = _TensorClassificationDataset(*dataset_tensors)
+    tts = []
+    for tt in dataset_tensors:  # TorchTensor requires a pytorch tensor
+        if not hasattr(tt, 'size'):
+            tt = torch.tensor(tt)
+        tts.append(tt)
+    dataset = _TensorClassificationDataset(*tts)
 
     transform_gs = _init_transform_groups(
         transform_groups,

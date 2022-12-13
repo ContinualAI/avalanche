@@ -28,6 +28,7 @@ from avalanche.evaluation.metrics import (
     confusion_matrix_metrics,
     disk_usage_metrics,
 )
+from avalanche.evaluation.metrics.accuracy import AccuracyPluginMetric
 from avalanche.logging import InteractiveLogger, TextLogger, TensorboardLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
@@ -56,7 +57,7 @@ MODEL_ROOT.mkdir(parents=True, exist_ok=True)
 # Define hyperparameters/model/scheduler/augmentation
 HPARAM = {
     "batch_size": 512,
-    "num_epoch": 10,
+    "num_epoch": 1,
     "step_scheduler_decay": 60,
     "scheduler_step": 0.1,
     "start_lr": 1,
@@ -85,15 +86,15 @@ def main():
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, experience=True, 
+        accuracy_metrics(minibatch=True, epoch=True, experience=True,
                          stream=True),
-        loss_metrics(minibatch=True, epoch=True, experience=True, 
+        loss_metrics(minibatch=True, epoch=True, experience=True,
                      stream=True),
         timing_metrics(epoch=True, epoch_running=True),
         forgetting_metrics(experience=True, stream=True),
         cpu_usage_metrics(experience=True),
         confusion_matrix_metrics(
-            num_classes=NUM_CLASSES[DATASET_NAME], save_image=False, 
+            num_classes=NUM_CLASSES[DATASET_NAME], save_image=False,
             stream=True
         ),
         disk_usage_metrics(
@@ -165,9 +166,8 @@ def main():
     accuracy_matrix = np.zeros((num_timestamp, num_timestamp))
     for train_idx in range(num_timestamp):
         for test_idx in range(num_timestamp):
-            accuracy_matrix[train_idx][test_idx] = results[train_idx][
-                f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}"
-            ]
+            mname = f'Top1_Acc_Exp/eval_phase/test_stream/Exp00{test_idx}'
+            accuracy_matrix[train_idx][test_idx] = results[train_idx][mname]
     print("Accuracy_matrix : ")
     print(accuracy_matrix)
     metric = CLEARMetric().get_metrics(accuracy_matrix)

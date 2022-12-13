@@ -378,6 +378,8 @@ class BaseSGDTemplate(BaseTemplate):
         # First verify the mini-batch
         self._check_minibatch()
 
+        if isinstance(self.mbatch, tuple):
+            self.mbatch = list(self.mbatch)
         for i in range(len(self.mbatch)):
             self.mbatch[i] = self.mbatch[i].to(self.device)
 
