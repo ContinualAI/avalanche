@@ -303,10 +303,6 @@ class FileSystemCheckpointStorage(CheckpointStorage):
             checkpoint_name: str,
             checkpoint_writer: Callable[[IO[bytes]], None]):
         checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
-        if checkpoint_file.exists():
-            raise RuntimeError(
-                f'Checkpoint file {str(checkpoint_file)} already exists.')
-
         checkpoint_file.parent.mkdir(exist_ok=True, parents=True)
 
         try:
