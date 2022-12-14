@@ -124,7 +124,7 @@ class MIRPlugin(SupervisedPlugin):
                 if int(key) not in torch.unique(strategy.mb_y).cpu()
             ]
         )
-        if len(buffer) > 0:
+        if len(buffer) > self.batch_size_mem:
             self.replay_loader = cycle(
                 torch.utils.data.DataLoader(
                     buffer,
