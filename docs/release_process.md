@@ -5,7 +5,7 @@ Place yourself in the Avalanche project directory.
 
 1. Create the release statement with the new candidate tag version
 
-2. Change the version in avalanche/__init__.py
+2. Change the version in avalanche/__init__.py and in the notebooks.
 
 3. Execute the following commands via bash:
     ```bash 
