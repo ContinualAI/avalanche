@@ -55,7 +55,7 @@ jobs:
           python -m unittest discover tests &&
           echo "Checking that optional dependencies are not needed" &&
           pip uninstall -y higher ctrl-benchmark torchaudio gym pycocotools lvis &&
-          python examples/eval_plugin.py &&
+          PYTHONPATH=. python examples/eval_plugin.py &&
           echo "Running checkpointing tests..." &&
           bash ./tests/checkpointing/test_checkpointing.sh &&
           echo "While running unit tests, the following datasets were downloaded:" &&
