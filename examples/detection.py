@@ -29,9 +29,9 @@ from avalanche.training.supervised.naive_object_detection import (
 
 from avalanche.evaluation.metrics import (
     timing_metrics,
-    loss_metrics,
-    DetectionMetrics
+    loss_metrics
 )
+from avalanche.evaluation.metrics.detection import DetectionMetrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
 import argparse
