@@ -8,7 +8,7 @@ Welcome to the "_Evaluation_" tutorial of the "_From Zero to Hero_" series. In t
 
 
 ```python
-!pip install avalanche-lib==0.3.0
+!pip install avalanche-lib==0.3.1
 ```
 
 ## 📈 The Evaluation Module
