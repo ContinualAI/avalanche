@@ -6,7 +6,7 @@ description: 'Avalnche Features: Benchmarks, Strategies & Metrics'
 
 _Avalanche_ is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org) community and its active members we plan to **extend its features** and **improve its usability** based on the demands of our research community!\
 \
-A the moment, _Avalanche_ is in **Beta (v0.3.0).** We support a large number of _Benchmarks_, _Strategies_ and _Metrics_, that makes it, we believe, **the best tool out there for your continual learning research!** 💪
+A the moment, _Avalanche_ is in **Beta (v0.3.1).** We support a large number of _Benchmarks_, _Strategies_ and _Metrics_, that makes it, we believe, **the best tool out there for your continual learning research!** 💪
 
 {% hint style="success" %}
 You can find the **full list of available features** on the [API documentation](https://avalanche-api.continualai.org).
