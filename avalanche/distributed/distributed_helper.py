@@ -2,14 +2,21 @@ import os
 import pickle
 import warnings
 from io import BytesIO
-from typing import Optional, List, Any, Iterable, Dict
+from typing import Optional, List, Any, Iterable, Dict, TypeVar
 
 import torch
 from torch import Tensor
-from torch.distributed import init_process_group
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel
 from typing_extensions import Literal
+from torch.distributed import (
+    init_process_group,
+    broadcast_object_list
+)
+
+
+BroadcastT = TypeVar('BroadcastT')
+
 
 from avalanche.distributed.distributed_consistency_verification import \
     hash_tensor
@@ -240,8 +247,20 @@ class _DistributedHelperCls(object):
         tensor = self._revert_to_original_device(tensor_distrib, orig_data)
 
         return tensor
+    
+    def broadcast_object(self, obj: BroadcastT, src=0) -> BroadcastT:
+        if not self.is_distributed:
+            return obj
+
+        io_list = [obj]
+
+        broadcast_object_list(io_list, src=src)
+        return io_list[0]
 
     def cat_all(self, tensor: Tensor):
+        # TODO: use all_gather_into_tensor (if available and
+        # if NCCL and tensor.device == 'default device')
+
         if not self.is_distributed:
             return tensor
 
@@ -258,8 +277,16 @@ class _DistributedHelperCls(object):
             self,
             tensor: Tensor,
             out_tensors: Optional[List[Tensor]] = None,
-            different_shape0: bool = None,
-            different_shape1_n: bool = None):
+            different_shape0: Optional[bool] = None,
+            different_shape1_n: Optional[bool] = None):
+        """
+        Gather all for tensors only.
+        
+        Note: differently from the original Pytorch function, which requires that input tensor is to be moved
+        to the default device (forced to CUDA if using NCCL), this function also manages input tensors residing on 
+        arbitrary devices. The resulting list of tensors will be moved to the same device
+        of the input tensor.
+        """
         if not self.is_distributed:
             return [tensor]
 
@@ -297,7 +324,10 @@ class _DistributedHelperCls(object):
             else:
                 # TODO: needs unit test (especially for 0-shaped tensors)
                 # Same size for all tensors
-                tensor_size = torch.tensor(tensor.shape, dtype=torch.int64)
+                if len(tensor.shape) > 0:
+                    tensor_size = torch.tensor(tensor.shape, dtype=torch.int64)
+                else:
+                    tensor_size = torch.tensor([0], dtype=torch.int64)
                 all_tensors_shape = \
                     [tensor_size for _ in range(self.world_size)]
 
@@ -353,12 +383,16 @@ class _DistributedHelperCls(object):
         orig_device = tensor.device
         tensor, _ = self._prepare_for_distributed_comm(tensor)
         out_tensors = [self._prepare_for_distributed_comm(t)[0]
-                       for t in out_tensors]
+                       for t in out_tensors]      
         torch.distributed.all_gather(out_tensors, tensor)
         out_tensors = [t.to(orig_device) for t in out_tensors]
         return out_tensors
 
-    def gather_all_objects(self, obj):
+    def gather_all_objects(self, obj: BroadcastT) -> List[BroadcastT]:
+        """
+        Gather all for objects. This will also take care of moving cuda tensors 
+        (even the ones nested inside objects) to the correct default device.
+        """
         out_list = [None for _ in range(self.world_size)]
         torch.distributed.all_gather_object(out_list, obj)
         return out_list
