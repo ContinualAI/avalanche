@@ -23,6 +23,19 @@ class EWCPlugin(SupervisedPlugin):
     training set. This plugin does not use task identities.
     """
 
+    supports_distributed = False
+    """
+    EwC does not support distributed training.
+
+    This is because the plugin needs to compute an additional component of the
+    loss function that involves model parameters. It is not possible, in 
+    distributed training, to use model parameters to compute grad elements 
+    outside the forward function.
+    This is a limitation of PyTorch DistributedDataParallel.
+
+    Setting parameters like `find_unused_parameters` do not solve this problem.
+    """
+
     def __init__(
         self,
         ewc_lambda,

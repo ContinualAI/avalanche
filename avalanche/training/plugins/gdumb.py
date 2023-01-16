@@ -21,6 +21,8 @@ class GDumbPlugin(SupervisedPlugin):
     https://www.robots.ox.ac.uk/~tvg/publications/2020/gdumb.pdf
     """
 
+    supports_distributed = True
+
     def __init__(self, mem_size: int = 200):
         super().__init__()
         self.mem_size = mem_size
@@ -39,7 +41,7 @@ class GDumbPlugin(SupervisedPlugin):
         if self.init_model is None:
             self.init_model = copy.deepcopy(strategy.model)
         else:
-            strategy.model = copy.deepcopy(self.init_model)
+            strategy.model = copy.deepcopy(self.init_model)      
         strategy.model_adaptation(self.init_model)
 
     def before_eval_dataset_adaptation(

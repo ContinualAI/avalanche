@@ -44,13 +44,13 @@ EXP_RUN_LINE="torchrun --standalone --nnodes=1 --nproc_per_node=$TESTS_PARALLELI
 
 run_and_check() {
   set -x
-  # Without distributed training
-  python distributed_training_main.py $GPU_PARAM \
-    --plugins "$@" --benchmark $BENCHMARK --log_metrics_to './metrics_no_distributed'
-
   # Run distributed training
   $EXP_RUN_LINE distributed_training_main.py $GPU_PARAM \
     --plugins "$@" --benchmark $BENCHMARK --log_metrics_to './metrics_distributed'
+
+  # Without distributed training
+  python distributed_training_main.py $GPU_PARAM \
+    --plugins "$@" --benchmark $BENCHMARK --log_metrics_to './metrics_no_distributed'
 
   #python -u check_metrics_aligned.py \
   #  "./metrics_no_distributed" "./metrics_distributed"
@@ -67,7 +67,6 @@ if [ "$RUN_FAST_TESTS" = "false" ]
 then
   echo "Running slow tests..."
   run_and_check "lwf"
-  run_and_check "ewc"
   run_and_check "gdumb"
   run_and_check "cwr" "replay"
 fi

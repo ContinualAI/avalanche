@@ -22,6 +22,8 @@ class CWRStarPlugin(SupervisedPlugin):
     This plugin does not use task identities.
     """
 
+    supports_distributed = True
+
     def __init__(self, model, cwr_layer_name=None, freeze_remaining_model=True):
         """
         :param model: the model.
@@ -47,23 +49,26 @@ class CWRStarPlugin(SupervisedPlugin):
         self.cur_class = None
 
     def after_training_exp(self, strategy, **kwargs):
-        self.consolidate_weights()
-        self.set_consolidate_weights()
+        with strategy.use_local_model():
+            self.consolidate_weights()
+            self.set_consolidate_weights()
 
     def before_training_exp(self, strategy, **kwargs):
-        if self.freeze_remaining_model and strategy.clock.train_exp_counter > 0:
-            self.freeze_other_layers()
+        with strategy.use_local_model():
+            if self.freeze_remaining_model and \
+                    strategy.clock.train_exp_counter > 0:
+                self.freeze_other_layers()
 
-        # Count current classes and number of samples for each of them.
-        data = strategy.experience.dataset
-        self.model.cur_j = examples_per_class(data.targets)
-        self.cur_class = [
-            cls
-            for cls in set(self.model.cur_j.keys())
-            if self.model.cur_j[cls] > 0
-        ]
+            # Count current classes and number of samples for each of them.
+            data = strategy.experience.dataset
+            self.model.cur_j = examples_per_class(data.targets)
+            self.cur_class = [
+                cls
+                for cls in set(self.model.cur_j.keys())
+                if self.model.cur_j[cls] > 0
+            ]
 
-        self.reset_weights(self.cur_class)
+            self.reset_weights(self.cur_class)
 
     def consolidate_weights(self):
         """Mean-shift for the target layer weights"""

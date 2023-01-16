@@ -190,6 +190,7 @@ class _DistributedHelperCls(object):
         return ref_device
 
     def wrap_model(self, model: Module) -> Module:
+        # Note: find_unused_parameters is needed for multi task models.
         if self.is_distributed:
             if self.forced_cuda_comm or self.use_cuda:
                 # forced_cuda_comm is True if using NCCL; use_cuda may be true
@@ -264,8 +265,7 @@ class _DistributedHelperCls(object):
         if not self.is_distributed:
             return tensor
 
-        gathered_tensors = self.gather_all(
-            tensor, different_shape0=True, different_shape1_n=False)
+        gathered_tensors = self.gather_all(tensor)
         for i, t in enumerate(gathered_tensors):
             if len(t.shape) == 0:
                 # Tensor with 0-length shape
@@ -273,124 +273,140 @@ class _DistributedHelperCls(object):
 
         return torch.cat(gathered_tensors)
 
+    def gather_tensor_shapes(self, tensor: Tensor, max_shape_len=10) \
+            -> List[List[int]]:
+        """
+        Gathers the shapes of all the tensors.
+        """
+        # Tensor differ by whole shape
+        tensor_size = torch.zeros(max_shape_len, dtype=torch.int64)
+        for i in range(len(tensor.shape)):
+            tensor_size[i] = tensor.shape[i]
+        all_tensors_shape = [
+            self._prepare_for_distributed_comm(
+                torch.zeros_like(tensor_size))[0]
+            for _ in range(self.world_size)]
+        tensor_size, _ = self._prepare_for_distributed_comm(tensor_size)
+
+        torch.distributed.all_gather(all_tensors_shape, tensor_size)
+
+        all_tensors_shape = [t.cpu() for t in all_tensors_shape]
+        
+        # Trim shape
+        for i, t in enumerate(all_tensors_shape):
+            for x in range(len(t)):
+                if t[x] == 0:
+                    if x == 0:
+                        # Tensor with 0-length shape
+                        all_tensors_shape[i] = t[:x+1]
+                    else:
+                        all_tensors_shape[i] = t[:x]
+
+                    break
+        
+        return [t_shape.tolist() for t_shape in all_tensors_shape]
+
     def gather_all(
             self,
             tensor: Tensor,
-            out_tensors: Optional[List[Tensor]] = None,
-            different_shape0: Optional[bool] = None,
-            different_shape1_n: Optional[bool] = None):
+            same_shape: bool = False,
+            shapes: Optional[List[List[int]]] = None):
         """
         Gather all for tensors only.
         
-        Note: differently from the original Pytorch function, which requires that input tensor is to be moved
-        to the default device (forced to CUDA if using NCCL), this function also manages input tensors residing on 
-        arbitrary devices. The resulting list of tensors will be moved to the same device
-        of the input tensor.
+        Note: differently from the original Pytorch function, which requires
+        that input tensor is to be moved to the default device (forced to 
+        CUDA if using NCCL), this function also manages input tensors
+        residing on a different devics. The resulting list of tensors will
+        be moved to the same device of the input tensor.
+
+        This will also manage tensors of different shapes. If you
+        are sure that the tensors will be of the same shape, consider
+        passing same_shape to speed up the communication.
+
+        Beware that, if you are in need of concatenating multiple tensors,
+        method `cat_all` may be more suitable.
         """
         if not self.is_distributed:
             return [tensor]
 
-        if different_shape0 is None or different_shape1_n is None:
-            warnings.warn('different_shape0 and different_shape1_n not set. '
-                          'This may lead to inefficiencies.')
-
-        if different_shape0 is None:
-            different_shape0 = True
-
-        if different_shape1_n is None:
-            different_shape1_n = True
-
         # Based on:
         # https://discuss.pytorch.org/t/how-to-concatenate-different-size-tensors-from-distributed-processes/44819/4
 
-        if out_tensors is None:
-            all_tensors_shape = None
-            if different_shape1_n:
-                # TODO: needs unit test (especially for 0-shaped tensors)
-                # Tensor differ by whole shape (not very common case)
-                tensor_size = torch.zeros(10, dtype=torch.int64)
-                for i in range(len(tensor.shape)):
-                    tensor_size[i] = tensor.shape[i]
-
-            elif different_shape0:
-                # Tensors differ by shape[0] (most common case)
-                if len(tensor.shape) > 0:
-                    # Usual case
-                    tensor_size = torch.tensor([tensor.shape[0]],
-                                               dtype=torch.int64)
-                else:
-                    # Some tensors, especially loss tensors, have 0-length shape
-                    tensor_size = torch.tensor([0], dtype=torch.int64)
+        if same_shape:
+            # Same size for all tensors
+            if len(tensor.shape) > 0:
+                tensor_size = list(tensor.shape)
             else:
-                # TODO: needs unit test (especially for 0-shaped tensors)
-                # Same size for all tensors
-                if len(tensor.shape) > 0:
-                    tensor_size = torch.tensor(tensor.shape, dtype=torch.int64)
-                else:
-                    tensor_size = torch.tensor([0], dtype=torch.int64)
-                all_tensors_shape = \
-                    [tensor_size for _ in range(self.world_size)]
-
-            if all_tensors_shape is None:
-                all_tensors_shape = [
-                    self._prepare_for_distributed_comm(
-                        torch.zeros_like(tensor_size))[0]
-                    for _ in range(self.world_size)]
-                tensor_size, _ = self._prepare_for_distributed_comm(tensor_size)
-
-                torch.distributed.all_gather(all_tensors_shape, tensor_size)
-
-                all_tensors_shape = [t.cpu() for t in all_tensors_shape]
-
-                if different_shape1_n:
-                    # TODO: needs unit test (especially for 0-shaped tensors)
-                    # Trim shape
-                    for i, t in enumerate(all_tensors_shape):
-                        for x in range(len(t)):
-                            if t[x] == 0:
-                                if x == 0:
-                                    # Tensor with 0-length shape
-                                    all_tensors_shape[i] = t[:x+1]
-                                else:
-                                    all_tensors_shape[i] = t[:x]
-
-                                break
-
-                elif different_shape0:
-                    if len(tensor.shape[1:]) == 0:
-                        # To manage tensors with 0-length shape
-                        pass
-                    else:
-                        all_tensors_shape = \
-                            [torch.cat(
-                                [t,
-                                 torch.as_tensor(tensor.shape[1:],
-                                                 dtype=torch.int64)])
-                                for t in all_tensors_shape]
-
+                tensor_size = [0]
             all_tensors_shape = \
-                [t_shape.tolist() for t_shape in all_tensors_shape]
-            dtype = tensor.dtype
+                [tensor_size for _ in range(self.world_size)]
+        elif shapes is not None:
+            # Shapes given by the user
+            # make sure it is a list of lists
+            all_tensors_shape = [list(s) for s in shapes]
+        else:
+            # Tensor differ by whole shape
+            all_tensors_shape = self.gather_tensor_shapes(tensor)
+        
+        same_shape = all(all_tensors_shape[0] == x for x in all_tensors_shape)
+        orig_device = tensor.device
 
-            out_tensors = []
+        if same_shape:
+            # Same shape: create identical tensors and proceed with all_gather
+            out_tensors = [torch.empty_like(tensor) for _ in all_tensors_shape]
+        else:
+            # Different shapes: create a tensors of the size of the bigger one
+            all_tensors_numel = []
+            dtype = tensor.dtype
             for t_shape in all_tensors_shape:
                 if t_shape[0] == 0 and len(t_shape) == 1:
                     # Tensor with 0-length shape
-                    out_tensors.append(torch.zeros(tuple(), dtype=dtype))
+                    curr_size = 1
                 else:
-                    out_tensors.append(torch.zeros(*t_shape, dtype=dtype))
+                    curr_size = 1
+                    for t_s in t_shape:
+                        curr_size *= t_s
+                all_tensors_numel.append(curr_size)
 
-        orig_device = tensor.device
+            max_numel = max(all_tensors_numel)
+            out_tensors = [torch.empty((max_numel,), dtype=dtype) 
+                           for _ in all_tensors_shape]
+            
+            tensor = tensor.flatten()
+            n_padding = max_numel - tensor.numel()
+            if n_padding > 0:
+                padding = torch.zeros((n_padding,), 
+                                      dtype=tensor.dtype,
+                                      device=orig_device)
+                tensor = torch.cat((tensor, padding), dim=0)
+
         tensor, _ = self._prepare_for_distributed_comm(tensor)
         out_tensors = [self._prepare_for_distributed_comm(t)[0]
-                       for t in out_tensors]      
+                       for t in out_tensors]
+                        
         torch.distributed.all_gather(out_tensors, tensor)
+
+        if not same_shape:
+            # The tensors are flat and of the wrong dimension: re-shape them
+            for tensor_idx, (tensor_sz, tensor_numel, out_t) in \
+                    enumerate(zip(all_tensors_shape, 
+                                  all_tensors_numel,
+                                  out_tensors)):
+                if tensor_sz[0] == 0:
+                    # Tensor with 0-length shape
+                    out_tensors[tensor_idx] = \
+                        out_t[:tensor_numel].reshape(tuple())
+                else:
+                    out_tensors[tensor_idx] = \
+                        out_t[:tensor_numel].reshape(tensor_sz)
+
         out_tensors = [t.to(orig_device) for t in out_tensors]
         return out_tensors
 
     def gather_all_objects(self, obj: BroadcastT) -> List[BroadcastT]:
         """
-        Gather all for objects. This will also take care of moving cuda tensors 
+        Gather all for objects. This will also take care of moving cuda tensors
         (even the ones nested inside objects) to the correct default device.
         """
         out_list = [None for _ in range(self.world_size)]
@@ -401,10 +417,7 @@ class _DistributedHelperCls(object):
         if not DistributedHelper.is_distributed:
             return
 
-        all_tensors = self.gather_all(
-            tensor,
-            different_shape0=True,
-            different_shape1_n=True)
+        all_tensors = self.gather_all(tensor)
 
         tensors_hashes = [hash_tensor(t) for t in all_tensors]
 

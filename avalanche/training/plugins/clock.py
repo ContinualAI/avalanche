@@ -18,6 +18,8 @@ class Clock(SupervisedPlugin):
     wrong for plugins called after it.
     """
 
+    supports_distributed = True
+
     def __init__(self):
         """Init."""
         super().__init__()

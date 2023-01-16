@@ -163,6 +163,8 @@ class DistributedStrategySupportTests(unittest.TestCase):
 
         class IterationCheckerPlugin(SupervisedPlugin):
 
+            supports_distributed = True
+
             def __init__(self, test_suite):
                 super().__init__()
                 self.test_suite = test_suite

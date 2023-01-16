@@ -10,6 +10,8 @@ class LwFPlugin(SupervisedPlugin):
     When used with multi-headed models, all heads are distilled.
     """
 
+    supports_distributed = True
+
     def __init__(self, alpha=1, temperature=2):
         """
         :param alpha: distillation hyperparameter. It can be either a float
@@ -24,13 +26,16 @@ class LwFPlugin(SupervisedPlugin):
         Add distillation loss
         """
 
-        strategy.loss += self.lwf(
-            strategy.mb_x, strategy.mb_output, strategy.model
-        )
+        with strategy.use_local_loss():
+            with strategy.use_local_input_batch():
+                with strategy.use_local_output_batch():
+                    strategy.loss += self.lwf(
+                        strategy.mb_x, strategy.mb_output, strategy.model
+                    )
 
     def after_training_exp(self, strategy, **kwargs):
         """
         Save a copy of the model after each experience and
         update self.prev_classes to include the newly learned classes.
         """
-        self.lwf.update(strategy.experience, strategy.model)
+        self.lwf.update(strategy.experience, strategy.local_model)

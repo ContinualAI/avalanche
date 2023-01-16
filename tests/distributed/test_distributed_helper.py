@@ -1,10 +1,8 @@
-import itertools
 import os
 import random
 import shutil
 import tempfile
 import time
-import timeit
 import unittest
 import numpy as np
 
@@ -12,8 +10,10 @@ import torch
 import torch.distributed as dst
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
-from avalanche.benchmarks.generators.benchmark_generators import dataset_benchmark
-from avalanche.benchmarks.utils.classification_dataset import make_tensor_classification_dataset
+from avalanche.benchmarks.generators.benchmark_generators import \
+    dataset_benchmark
+from avalanche.benchmarks.utils.classification_dataset import \
+    make_tensor_classification_dataset
 
 from avalanche.distributed import DistributedHelper
 from avalanche.distributed.distributed_helper import \
@@ -23,8 +23,8 @@ from avalanche.models.utils import avalanche_model_adaptation
 
 from avalanche.training.determinism.rng_manager import RNGManager
 from tests.distributed.distributed_test_utils import \
-    check_skip_distributed_slow_test, check_skip_distributed_test, suppress_dst_tests_output, \
-    common_dst_tests_setup
+    check_skip_distributed_slow_test, check_skip_distributed_test, \
+    suppress_dst_tests_output, common_dst_tests_setup
 
 
 class DistributedHelperTests(unittest.TestCase):
@@ -148,7 +148,7 @@ class DistributedHelperTests(unittest.TestCase):
 
         for rank in range(DistributedHelper.world_size):
             expect = {
-                'a': 0, 
+                'a': rank,
                 'b': torch.full((10,), rank, dtype=torch.long).tolist()}
         
             self.assertEqual(device, all_objects[rank]['b'].device)
@@ -158,11 +158,14 @@ class DistributedHelperTests(unittest.TestCase):
     @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_cat_all(self):
-        ts = torch.full((10, 5), DistributedHelper.rank, dtype=torch.long)
+        if DistributedHelper.rank == 0:
+            ts = torch.full((10+1, 5), DistributedHelper.rank, dtype=torch.long)
+        else:
+            ts = torch.full((10, 5), DistributedHelper.rank, dtype=torch.long)
         device = DistributedHelper.make_device()
 
         if device.type == 'cuda':
-            # Additional test: the tensor do not need to be on the default device
+            # Additional test: tensors do not need to be on the default device
             DistributedHelper.cat_all(ts)
             
         ts = ts.to(device)
@@ -171,56 +174,67 @@ class DistributedHelperTests(unittest.TestCase):
 
         self.assertEqual(device, concatenated_tensor.device)
 
-        expect = torch.empty((DistributedHelper.world_size * 10, 5), dtype=torch.long).to(device)
+        expect = torch.empty((DistributedHelper.world_size * 10 + 1, 5), 
+                             dtype=torch.long).to(device)
         for rank in range(DistributedHelper.world_size):
-            expect[rank * 10: (rank + 1) * 10] = rank
+            if rank == 0:
+                expect[rank * 10: (rank + 1) * 10 + 1] = rank
+            else:
+                expect[1 + rank * 10: 1 + (rank + 1) * 10] = rank
         
         self.assertTrue(torch.equal(concatenated_tensor, expect))
 
     @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_gather_all_same_size(self):
-        # TODO: implement test
         ts = torch.full((10, 5), DistributedHelper.rank, dtype=torch.long)
         device = DistributedHelper.make_device()
 
         if device.type == 'cuda':
-            # Additional test: the tensor do not need to be on the default device
+            # Additional test: tensors do not need to be on the default device
             DistributedHelper.gather_all(ts)
 
-            # On the other hand, PyTorch all_gather requires tensors to be on the default device
+            # On the other hand, PyTorch all_gather requires tensors to be on
+            # the default device
             with self.assertRaises(Exception):
                 
-                out_t = [torch.empty_like(ts) for _ in range(DistributedHelper.world_size)]
+                out_t = [torch.empty_like(ts)
+                         for _ in range(DistributedHelper.world_size)]
                 torch.distributed.all_gather(out_t, ts)
             
             # ... while this should work
-            out_t = [torch.empty_like(ts).to(device) for _ in range(DistributedHelper.world_size)]
+            out_t = [torch.empty_like(ts).to(device)
+                     for _ in range(DistributedHelper.world_size)]
             torch.distributed.all_gather(out_t, ts.to(device))
 
         ts = ts.to(device)
 
-        for different_shape0, different_shape1_n in itertools.product([None, False], [None, False]):
-            with self.subTest(different_shape0=different_shape0, different_shape1_n=different_shape1_n):
-                tensor_list = DistributedHelper.gather_all(ts, different_shape0=different_shape0, different_shape1_n=different_shape1_n)
+        for same_shape in [False, True]:
+            print(f'same_shape={same_shape}')
+            # with self.subTest(same_shape=same_shape):
+            tensor_list = DistributedHelper.gather_all(
+                ts, same_shape=same_shape)
 
-                self.assertEqual(DistributedHelper.world_size, len(tensor_list))
+            self.assertEqual(DistributedHelper.world_size, len(tensor_list))
 
-                for t in tensor_list:
-                    self.assertEqual(device, t.device)
+            for t in tensor_list:
+                self.assertEqual(device, t.device)
 
-                for rank in range(DistributedHelper.world_size):
-                    expect = torch.full((10, 5), rank, dtype=torch.long).to(device)
-                    self.assertTrue(torch.equal(tensor_list[rank], expect))
+            for rank in range(DistributedHelper.world_size):
+                expect = torch.full((10, 5), rank, dtype=torch.long).to(device)
+                self.assertTrue(torch.equal(tensor_list[rank], expect))
 
     @unittest.skipIf(check_skip_distributed_slow_test(),
                      'Distributed tests ignored')
     def test_gather_all_performance_known_same_shape(self):
-        ts = torch.full((128, 224, 224, 3), DistributedHelper.rank, dtype=torch.float32)
+        ts = torch.full((128, 224, 224, 3),
+                        DistributedHelper.rank,
+                        dtype=torch.float32)
         device = DistributedHelper.make_device()
         ts = ts.to(device)
 
-        resulting_tensors = [torch.empty_like(ts).to(device) for _ in range(DistributedHelper.world_size)]
+        resulting_tensors = [torch.empty_like(ts).to(device)
+                             for _ in range(DistributedHelper.world_size)]
 
         from tqdm import tqdm
         n_times = 30
@@ -229,7 +243,8 @@ class DistributedHelperTests(unittest.TestCase):
         for _ in tqdm(range(n_times)):
             torch.distributed.all_gather(resulting_tensors, ts)
         end_time = time.time()
-        print('Time taken by PyTorch all_gather', end_time-start_time, 'avg', (end_time-start_time) / n_times)
+        print('Time taken by PyTorch all_gather', end_time-start_time,
+              'avg', (end_time-start_time) / n_times)
 
         start_time = time.time()
         out_list = [None for _ in range(DistributedHelper.world_size)]
@@ -238,47 +253,105 @@ class DistributedHelperTests(unittest.TestCase):
         for _ in tqdm(range(n_times)):
             torch.distributed.all_gather_object(out_list, ts)
         end_time = time.time()
-        print('Time taken by PyTorch all_gather_object', end_time-start_time, 'avg', (end_time-start_time) / n_times)
+        print('Time taken by PyTorch all_gather_object', end_time-start_time,
+              'avg', (end_time-start_time) / n_times)
+    
+    @unittest.skipIf(check_skip_distributed_slow_test(),
+                     'Distributed tests ignored')
+    def test_gather_all_performance_sync_shape(self):
+        max_shape_size = 10
+        shape = [128, 6, DistributedHelper.rank+1] + \
+            ([3] * DistributedHelper.rank)
 
+        device = DistributedHelper.make_device()
+
+        def shape_all_gather():
+            ts = torch.zeros((max_shape_size,), dtype=torch.int64)
+            for i in range(len(shape)):
+                ts[i] = shape[i]
+            
+            ts = ts.to(device)
+            all_tensors_shape = [torch.empty_like(ts)
+                                 for _ in range(DistributedHelper.world_size)]
+            torch.distributed.all_gather(all_tensors_shape, ts)
+            all_tensors_shape = [t.cpu() for t in all_tensors_shape]
+
+            for i, t in enumerate(all_tensors_shape):
+                for x in range(len(t)):
+                    if t[x] == 0:
+                        if x == 0:
+                            # Tensor with 0-length shape
+                            all_tensors_shape[i] = t[:x+1]
+                        else:
+                            all_tensors_shape[i] = t[:x]
+                        break
+
+        def shape_all_gather_objects():
+            out_list = [None for _ in range(DistributedHelper.world_size)]
+            torch.distributed.all_gather_object(out_list, shape)
+
+        from tqdm import tqdm
+        n_times = 1000
+        shape_all_gather()
+        start_time = time.time()
+        for _ in tqdm(range(n_times)):
+            shape_all_gather()
+        end_time = time.time()
+        print('Time taken by PyTorch all_gather', end_time-start_time,
+              'avg', (end_time-start_time) / n_times)
+
+        start_time = time.time()
+        shape_all_gather_objects()
+
+        for _ in tqdm(range(n_times)):
+            shape_all_gather_objects()
+        end_time = time.time()
+        print('Time taken by PyTorch all_gather_object', end_time-start_time,
+              'avg', (end_time-start_time) / n_times)
+    
     @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_gather_all_same_dim0(self):
-        ts = torch.full((10, DistributedHelper.rank+1), DistributedHelper.rank, dtype=torch.long)
+        ts = torch.full((10, DistributedHelper.rank+1),
+                        DistributedHelper.rank,
+                        dtype=torch.long)
         device = DistributedHelper.make_device()
 
         ts = ts.to(device)
 
-        for different_shape0, different_shape1_n in itertools.product([None, False], [None, True]):
-            with self.subTest(different_shape0=different_shape0, different_shape1_n=different_shape1_n):
-                tensor_list = DistributedHelper.gather_all(ts, different_shape0=different_shape0, different_shape1_n=different_shape1_n)
-                self.assertEqual(DistributedHelper.world_size, len(tensor_list))
+        tensor_list = DistributedHelper.gather_all(ts)
+        self.assertEqual(DistributedHelper.world_size, len(tensor_list))
 
-                for t in tensor_list:
-                    self.assertEqual(device, t.device)
+        for t in tensor_list:
+            self.assertEqual(device, t.device)
 
-                for rank in range(DistributedHelper.world_size):
-                    expect = torch.full((10, rank+1), rank, dtype=torch.long).to(device)
-                    self.assertTrue(torch.equal(tensor_list[rank], expect))
+        for rank in range(DistributedHelper.world_size):
+            expect = torch.full((10, rank+1),
+                                rank,
+                                dtype=torch.long).to(device)
+            self.assertTrue(torch.equal(tensor_list[rank], expect))
 
     @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
     def test_gather_all_same_dim1_n(self):
-        ts = torch.full((10+DistributedHelper.rank, 5), DistributedHelper.rank, dtype=torch.long)
+        ts = torch.full((10+DistributedHelper.rank, 5),
+                        DistributedHelper.rank,
+                        dtype=torch.long)
         device = DistributedHelper.make_device()
 
         ts = ts.to(device)
 
-        for different_shape0, different_shape1_n in itertools.product([None, True], [None, False]):
-            with self.subTest(different_shape0=different_shape0, different_shape1_n=different_shape1_n):
-                tensor_list = DistributedHelper.gather_all(ts, different_shape0=different_shape0, different_shape1_n=different_shape1_n)
-                self.assertEqual(DistributedHelper.world_size, len(tensor_list))
+        tensor_list = DistributedHelper.gather_all(ts)
+        self.assertEqual(DistributedHelper.world_size, len(tensor_list))
 
-                for t in tensor_list:
-                    self.assertEqual(device, t.device)
+        for t in tensor_list:
+            self.assertEqual(device, t.device)
 
-                for rank in range(DistributedHelper.world_size):
-                    expect = torch.full((10+DistributedHelper.rank, 5), rank, dtype=torch.long).to(device)
-                    self.assertTrue(torch.equal(tensor_list[rank], expect))
+        for rank in range(DistributedHelper.world_size):
+            expect = torch.full((10+rank, 5), 
+                                rank,
+                                dtype=torch.long).to(device)
+            self.assertTrue(torch.equal(tensor_list[rank], expect))
 
     @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
@@ -288,17 +361,20 @@ class DistributedHelperTests(unittest.TestCase):
 
         ts = ts.to(device)
 
-        for different_shape0, different_shape1_n in itertools.product([None, False, True], [None, False, True]):
-            with self.subTest(different_shape0=different_shape0, different_shape1_n=different_shape1_n):
-                tensor_list = DistributedHelper.gather_all(ts, different_shape0=different_shape0, different_shape1_n=different_shape1_n)
-                self.assertEqual(DistributedHelper.world_size, len(tensor_list))
+        for same_shape in [False, True]:
+            print(f'same_shape={same_shape}')
+            # with self.subTest(same_shape=same_shape):
+            tensor_list = DistributedHelper.gather_all(
+                ts, 
+                same_shape=same_shape)
+            self.assertEqual(DistributedHelper.world_size, len(tensor_list))
 
-                for t in tensor_list:
-                    self.assertEqual(device, t.device)
+            for t in tensor_list:
+                self.assertEqual(device, t.device)
 
-                for rank in range(DistributedHelper.world_size):
-                    expect = torch.full(tuple(), rank, dtype=torch.long).to(device)
-                    self.assertTrue(torch.equal(tensor_list[rank], expect))
+            for rank in range(DistributedHelper.world_size):
+                expect = torch.full(tuple(), rank, dtype=torch.long).to(device)
+                self.assertTrue(torch.equal(tensor_list[rank], expect))
 
     @unittest.skipIf(check_skip_distributed_test(),
                      'Distributed tests ignored')
@@ -386,12 +462,9 @@ class DistributedHelperTests(unittest.TestCase):
             
             tmpdirname = DistributedHelper.broadcast_object(tmpdirname)
         
-            #print('Entering exclusive section', my_rank)
             with DistributedHelper.main_process_first():
-                #print('Entered exclusive section', my_rank)
                 
                 for _ in range(2):
-                    #print('Checking files before', my_rank)
                     time.sleep(0.1 + my_rank * 0.05)
                     files = list(os.listdir(tmpdirname))
                     if DistributedHelper.is_main_process:
@@ -400,12 +473,11 @@ class DistributedHelperTests(unittest.TestCase):
                         self.assertIn(f'rank0', files)
                         self.assertNotIn(f'rank{my_rank}', files)
 
-                #print('Writing my file', my_rank)
-                with open(os.path.join(tmpdirname, f'rank{my_rank}'), 'w') as f:
+                with open(os.path.join(tmpdirname, f'rank{my_rank}'), 'w') \
+                        as f:
                     f.write('ok')
                 
                 for _ in range(2):
-                    #print('Checking files after', my_rank)
                     time.sleep(0.1 + my_rank * 0.05)
                     files = list(os.listdir(tmpdirname))
                     if DistributedHelper.is_main_process:
@@ -414,11 +486,11 @@ class DistributedHelperTests(unittest.TestCase):
                     else:
                         self.assertIn(f'rank0', files)
                         self.assertIn(f'rank{my_rank}', files)
-                #print('Exiting exclusive section', my_rank)
             
             DistributedHelper.barrier()
             files = set(os.listdir(tmpdirname))
-            expect = set([f'rank{rnk}' for rnk in range(DistributedHelper.world_size)])
+            expect = set([f'rank{rnk}'
+                          for rnk in range(DistributedHelper.world_size)])
             self.assertSetEqual(expect, files)
             DistributedHelper.barrier()
         finally:

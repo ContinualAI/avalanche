@@ -41,4 +41,9 @@ class BatchObservation:
         with self.use_local_model():
             self.model = self.model_adaptation()
             self.model = self.wrap_distributed_model(self.model)
-            self.make_optimizer()
+        self.make_optimizer()
+
+
+__all__ = [
+    'BatchObservation'
+]

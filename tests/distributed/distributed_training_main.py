@@ -56,6 +56,9 @@ MODEL_HASH = \
 
 
 class CheckModelAlignedPlugin(SupervisedPlugin):
+
+    supports_distributed = True
+    
     def after_update(self, strategy, *args, **kwargs):
         DistributedHelper.check_equal_objects(
             hash_model(strategy.model, include_buffers=True))
@@ -114,13 +117,6 @@ def main(args):
     test_stream: Sequence[CLExperience] = scenario.test_stream
 
     print('Testing using the', args.benchmark, 'benchmark')
-    for train_exp in train_stream:
-        print('Train experience', train_exp.current_experience,
-              'has', len(train_exp.dataset), 'samples')
-        
-    for test_exp in test_stream:
-        print('Test experience', test_exp.current_experience,
-              'has', len(test_exp.dataset), 'samples')
     # ---------
 
     # MODEL CREATION
@@ -168,7 +164,7 @@ def main(args):
             plugin_instance = SynapticIntelligencePlugin(0.001)
         elif cli_plugin == 'ewc':
             plugin_instance = EWCPlugin(0.001)
-        elif cli_plugin == 'reduccre_on_plateau':
+        elif cli_plugin == 'reduce_on_plateau':
             plugin_instance = LRSchedulerPlugin(
                 ReduceLROnPlateau(optimizer), step_granularity='iteration',
                 metric='train_loss'
@@ -183,9 +179,11 @@ def main(args):
     if DistributedHelper.is_main_process:
         use_cuda_str = 'cuda' if args.cuda else 'cpu'
         is_dist_str = 'distributed' if is_dist else 'single'
+        eval_every = f'peval{args.eval_every}'
+
         log_location: Path = Path('logs') / \
             (f'distributed_{args.benchmark}_' + 
-             f'{use_cuda_str}_{is_dist_str}_{cli_plugin_names}')
+             f'{use_cuda_str}_{is_dist_str}_{eval_every}_{cli_plugin_names}')
 
         #  Loggers should be created in the main process only
         os.makedirs(log_location, exist_ok=True)
@@ -200,7 +198,7 @@ def main(args):
                 project_name='AvalancheDistributedTraining',
                 run_name=f'distributed_{args.benchmark}_'
                          f'{use_cuda_str}_{is_dist_str}_'
-                         f'{cli_plugin_names}'
+                         f'{eval_every}_{cli_plugin_names}'
             ))
         Path(args.log_metrics_to).mkdir(parents=True, exist_ok=True)
     
@@ -224,6 +222,8 @@ def main(args):
         train_mb_size=mb_size,
         train_epochs=2,
         eval_mb_size=mb_size,
+        eval_every=args.eval_every,
+        peval_mode=args.eval_every_mode,
         device=device,
         plugins=plugins,
         evaluator=evaluation_plugin
@@ -268,6 +268,18 @@ if __name__ == '__main__':
         type=str,
         default='SplitCifar100',
         help="The benchmark to use."
+    )
+    parser.add_argument(
+        "--eval_every",
+        type=int,
+        default=-1,
+        help="Evaluation frequency."
+    )
+    parser.add_argument(
+        "--eval_every_mode",
+        type=str,
+        default="epoch",
+        help="Periodic evaluation mode (epoch, experience, iteration)."
     )
     parser.add_argument(
         "--log_metrics_to",

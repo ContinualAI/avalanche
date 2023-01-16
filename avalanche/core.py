@@ -27,6 +27,13 @@ class BasePlugin(Generic[Template], ABC):
     and loggers.
     """
 
+    supports_distributed = False
+    """
+    A class-level attribute that indicates whether the plugin is supported
+    in distributed training. If False, Avalanche will warn when the plugin
+    is used in distributed training.
+    """
+
     def __init__(self):
         pass
 

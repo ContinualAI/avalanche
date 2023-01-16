@@ -14,7 +14,6 @@ networks, ...).
 """
 import torch
 from torch.nn import Module
-import numpy as np
 
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 from avalanche.benchmarks.scenarios import CLExperience
@@ -366,7 +365,7 @@ class MultiHeadClassifier(MultiTaskModule):
             # head adaptation
             if tid not in self.classifiers:  # create new head
                 new_head = IncrementalClassifier(
-                    self.in_features, self.starting_out_features
+                    self.in_features, self.starting_out_features, masking=False
                 ).to(device)
                 self.classifiers[tid] = new_head
 

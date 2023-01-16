@@ -44,6 +44,8 @@ class ReplayPlugin(SupervisedPlugin):
                            in memory
     """
 
+    supports_distributed = True
+
     def __init__(
         self,
         mem_size: int = 200,

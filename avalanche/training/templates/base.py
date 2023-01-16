@@ -1,3 +1,4 @@
+import sys
 import warnings
 from typing import Iterable, Sequence, Optional, Union, List
 
@@ -6,6 +7,7 @@ from torch.nn import Module
 
 from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BasePlugin
+from avalanche.distributed.distributed_helper import DistributedHelper
 from avalanche.distributed.strategies import DistributedModelStrategySupport
 from avalanche.training.utils import trigger_plugins
 
@@ -69,6 +71,12 @@ class BaseTemplate(DistributedModelStrategySupport):
         self.current_eval_stream: Optional[ExpSequence] = None
         """ Current evaluation stream. """
 
+        self._distributed_check: bool = False
+        """
+        Internal flag used to verify the support for distributed
+        training only once.
+        """
+
     @property
     def is_eval(self):
         """True if the strategy is in evaluation mode."""
@@ -94,6 +102,12 @@ class BaseTemplate(DistributedModelStrategySupport):
             If None: use training experiences for evaluation.
             Use [] if you do not want to evaluate during training.
         """
+        if not self._distributed_check:
+            # Checks if the strategy elements are compatible with 
+            # distributed training
+            self._check_distributed_training_compatibility()
+            self._distributed_check = True
+
         self.is_training = True
         self._stop_training = False
 
@@ -134,6 +148,12 @@ class BaseTemplate(DistributedModelStrategySupport):
         :return: dictionary containing last recorded value for
             each metric name
         """
+        if not self._distributed_check:
+            # Checks if the strategy elements are compatible with 
+            # distributed training
+            self._check_distributed_training_compatibility()
+            self._distributed_check = True
+        
         # eval can be called inside the train method.
         # Save the shared state here to restore before returning.
         prev_train_state = self._save_train_state()
@@ -219,6 +239,29 @@ class BaseTemplate(DistributedModelStrategySupport):
                     f"callbacks: {cb_p - cb_supported}",
                 )
                 return
+    
+    def _check_distributed_training_compatibility(self):
+        """
+        Check if strategy elements (plugins, ...) are compatible with
+        distributed training.
+
+        This check does nothing if not training in distributed mode.
+        """
+        if not DistributedHelper.is_distributed:
+            return True
+        
+        unsupported_plugins = []
+        for plugin in self.plugins:
+            if not getattr(plugin, "supports_distributed", False):
+                unsupported_plugins.append(plugin)
+
+        if len(unsupported_plugins) > 0:
+            warnings.warn('You are using plugins that are not compatible'
+                          'with distributed training:')
+            for plugin in unsupported_plugins:
+                print(type(plugin), file=sys.stderr)
+
+        return len(unsupported_plugins) == 0
 
     #########################################################
     # Plugin Triggers                                       #

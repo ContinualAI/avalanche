@@ -61,7 +61,7 @@ def run_distributed_suites(test_cases):
         nproc_per_node = torch.cuda.device_count()
     else:
         print('Running tests using CPU only')
-        nproc_per_node = 4
+        nproc_per_node = 2
 
     for case_name in cases_names:
         if exited:

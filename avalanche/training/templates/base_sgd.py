@@ -542,6 +542,8 @@ class PeriodicEval(SupervisedPlugin):
     This plugin is automatically configured and added by the BaseTemplate.
     """
 
+    supports_distributed = True
+
     def __init__(self, eval_every=-1, peval_mode="epoch", do_initial=True):
         """Init.
 

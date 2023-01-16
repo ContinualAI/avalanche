@@ -30,6 +30,8 @@ class EvaluationPlugin:
     This plugin also logs metrics using the provided loggers.
     """
 
+    supports_distributed = True
+
     def __init__(
         self,
         *metrics: Union["PluginMetric", Sequence["PluginMetric"]],
