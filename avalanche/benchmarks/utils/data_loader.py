@@ -433,31 +433,6 @@ class ReplayDataLoader:
                     )[0]
                 )
 
-        if isinstance(self.memory_batch_sizes, int):
-            loaders_for_len_estimation.append(
-                _make_data_loader(
-                    memory,
-                    distributed_sampling,
-                    kwargs,
-                    self.memory_batch_sizes,
-                    force_no_workers=True,
-                )[0]
-            )
-        else:
-            for task_id in memory.task_set:
-                dataset = memory.task_set[task_id]
-                mb_sz = self.memory_batch_sizes[task_id]
-
-                loaders_for_len_estimation.append(
-                    _make_data_loader(
-                        dataset,
-                        distributed_sampling,
-                        kwargs,
-                        mb_sz,
-                        force_no_workers=True,
-                    )[0]
-                )
-
         self.max_len = max([len(d) for d in loaders_for_len_estimation])
 
     def __iter__(self):
@@ -477,15 +452,7 @@ class ReplayDataLoader:
         for t in loader_memory.keys():
             iter_buffer_dataloaders[t] = iter(loader_memory[t])
 
-        max_len = max(
-            [
-                len(d)
-                for d in chain(
-                    loader_data.values(),
-                    loader_memory.values(),
-                )
-            ]
-        )
+        max_len = max([len(d) for d in loader_data.values()])
 
         try:
             for it in range(max_len):
