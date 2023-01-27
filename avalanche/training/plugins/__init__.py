@@ -21,3 +21,4 @@ from .rwalk import RWalkPlugin
 from .mas import MASPlugin
 from .bic import BiCPlugin
 from .mir import MIRPlugin
+from .from_scratch_training import FromScratchTrainingPlugin
