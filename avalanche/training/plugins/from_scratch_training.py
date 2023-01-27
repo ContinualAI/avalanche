@@ -1,11 +1,11 @@
 from copy import deepcopy
 
-from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.templates import SupervisedTemplate
+from avalanche.core import BaseSGDPlugin
+from avalanche.training.templates import BaseSGDTemplate
 from avalanche.models.dynamic_optimizers import reset_optimizer
 
 
-class FromScratchTrainingPlugin(SupervisedPlugin):
+class FromScratchTrainingPlugin(BaseSGDPlugin):
     """ From Scratch Training Plugin.
 
     This plugin resets the strategy's model weights and optimizer state after
@@ -29,7 +29,7 @@ class FromScratchTrainingPlugin(SupervisedPlugin):
         self.reset_optimizer = reset_optimizer
         self.initial_weights = None
 
-    def before_training(self, strategy, *args, **kwargs):
+    def before_training(self, strategy: BaseSGDTemplate, *args, **kwargs):
         """Called before `train` by the `BaseTemplate`."""
 
         # Save model's initial weights in the first experience training step
@@ -37,8 +37,7 @@ class FromScratchTrainingPlugin(SupervisedPlugin):
             # Save initial weights
             self.initial_weights = deepcopy(strategy.model.state_dict())
 
-    def before_training_exp(self, strategy: SupervisedTemplate,
-                            *args, **kwargs):
+    def before_training_exp(self, strategy: BaseSGDTemplate, *args, **kwargs):
         """Called after `train_exp` by the `BaseTemplate`."""
         # Copy the initial weights to the model
         for (n, p) in strategy.model.named_parameters():
