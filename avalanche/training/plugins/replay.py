@@ -75,6 +75,7 @@ class ReplayPlugin(SupervisedPlugin):
         strategy: "SupervisedTemplate",
         num_workers: int = 0,
         shuffle: bool = True,
+        drop_last: bool = False,
         **kwargs
     ):
         """
@@ -103,6 +104,7 @@ class ReplayPlugin(SupervisedPlugin):
             task_balanced_dataloader=self.task_balanced_dataloader,
             num_workers=num_workers,
             shuffle=shuffle,
+            drop_last=drop_last,
         )
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):

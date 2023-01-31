@@ -334,6 +334,10 @@ class ReplayDataLoader:
         balanced using the task label (i.e. each mini-batch contains a balanced
         number of examples from all the tasks in the `data` and `memory`).
 
+        The length of the loader is determined only by the current 
+        task data and is the same than what it would be when creating a 
+        data loader for this dataset.
+
         If `oversample_small_tasks == True` smaller tasks are oversampled to
         match the largest task.
 
