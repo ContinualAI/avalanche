@@ -40,6 +40,7 @@ class TestReplayDataLoader(unittest.TestCase):
             self.memory_set,
             batch_size=self._batch_size,
             batch_size_mem=self._batch_size,
+            oversample_small_tasks=True,
             drop_last=True,
             **kwargs
         )
