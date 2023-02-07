@@ -1,14 +1,13 @@
 from typing import List, Optional
 
-#import _vision_transformer  # do not remove, or else the registry for custom models will not be "compiled"
 import numpy as np
 import torch
+from torch.optim import Optimizer
 import torch.nn as nn
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.models.vit import create_model
-#from timm.models import create_model
 
 
 MODEL = "vit_base_patch16_224"
@@ -23,11 +22,12 @@ class L2PTemplate(SupervisedTemplate):
     Pattern Recognition. 2022."
 
     Implementation based on:
-    https://github.com/JH-LEE-KR/l2p-pytorch
+    - https://github.com/JH-LEE-KR/l2p-pytorch
+    - And implementations by Dario Salvati
     """
     def __init__(
         self,
-        model_name: str = MODEL,
+        model_name: str,
         criterion: nn.Module = nn.CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -43,10 +43,9 @@ class L2PTemplate(SupervisedTemplate):
         top_k: int = 5,
         prompt_key: bool = True,
         pretrained: bool = True,
-        num_classes: int = 29,
+        num_classes: int = 10,
         drop_rate: float = 0.1,
         drop_path_rate: float = 0.0,
-        drop_block_rate: float = None,
         embedding_key: str = "cls",
         prompt_init: str = "uniform",
         batchwise_prompt: bool = False,
@@ -68,7 +67,6 @@ class L2PTemplate(SupervisedTemplate):
             num_classes=num_classes,
             drop_rate=drop_rate,
             drop_path_rate=drop_path_rate,
-            drop_block_rate=drop_block_rate,
             embedding_key=embedding_key,
             prompt_init=prompt_init,
             batchwise_prompt=batchwise_prompt,
@@ -76,17 +74,17 @@ class L2PTemplate(SupervisedTemplate):
             use_prompt_mask=use_prompt_mask,
         )
 
-        for n, p in model.named_parameters():
-            if n.startswith(tuple(["blocks", "patch_embed", "cls_token", "norm", "pos_embed"])):
-                p.requires_grad = False
-
-        model.head = torch.nn.Linear(768, num_classes).to(device)
-
         optimizer = torch.optim.Adam(
             model.parameters(),
             betas=(0.9, 0.999),
             lr=0.01,
         )
+
+        for n, p in model.named_parameters():
+            if n.startswith(tuple(["blocks", "patch_embed", "cls_token", "norm", "pos_embed"])):
+                p.requires_grad = False
+
+        model.head = torch.nn.Linear(768, num_classes).to(device)
 
         super().__init__(
             model,
@@ -114,10 +112,9 @@ class L2PTemplate(SupervisedTemplate):
                 num_classes=num_classes,
                 drop_rate=drop_rate,
                 drop_path_rate=drop_path_rate,
-                drop_block_rate=drop_block_rate,
             ).to(device)
 
-            self.original_vit.head = torch.nn.Linear(768, num_classes).to(device)
+            self.original_vit.reset_classifier(0)
 
             for p in self.original_vit.parameters():
                 p.requires_grad = False
@@ -145,7 +142,7 @@ class L2PTemplate(SupervisedTemplate):
         )
         logits = self.res["logits"]
 
-        if self.use_mask:
+        if self.use_mask and self.is_training:
             mask = self.experience.classes_in_this_experience
             not_mask = np.setdiff1d(np.arange(self.num_classes), mask)
             not_mask = torch.tensor(not_mask, dtype=torch.int64).to(self.device)

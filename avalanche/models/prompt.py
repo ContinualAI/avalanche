@@ -151,4 +151,4 @@ class Prompt(nn.Module):
         out["total_prompt_len"] = batched_prompt.shape[1]
         out["prompted_embedding"] = torch.cat([batched_prompt, x_embed], dim=1)
 
-        return
+        return out
