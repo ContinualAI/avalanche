@@ -221,7 +221,8 @@ class OnlineCLScenario(CLScenario):
             :func:`fixed_size_experience_split_strategy`.
         : param access_task_boundaries: If True the attributes related to task
             boundaries such as `is_first_subexp` and `is_last_subexp` become
-            accessible during training.
+            accessible during training. For models with dynamic modules, this
+            parameter must be set to True.
         """
         if stream_split_strategy == "fixed_size_split":
 
