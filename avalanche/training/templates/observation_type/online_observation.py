@@ -12,10 +12,18 @@ class OnlineObservation:
 
         Called before each training experience to configure the optimizer.
         """
-        # We reset the optimizer's state after an experience only if task
+        # Reset the optimizer's state after an experience only if task
         # boundaries are given and the current experience is the first
         # sub-experience or original experience.
-        reset_optimizer(self.optimizer, self.model)
+        if self.experience.access_task_boundaries:
+            reset_optimizer(self.optimizer, self.model)
+
+        # Otherwise, update the optimizer
+        else:
+            update_optimizer(self.optimizer,
+                             self.model_params_before_adaptation,
+                             self.model.parameters(),
+                             reset_state=False)
 
     def model_adaptation(self, model=None):
         """Adapts the model to the current data.
@@ -28,8 +36,13 @@ class OnlineObservation:
         # For training:
         if isinstance(self.experience, OnlineCLExperience):
             # If the strategy has access to task boundaries, adapt the model
-            # using the origin_experience.
-            avalanche_model_adaptation(model, self.experience.origin_experience)
+            # for the whole origin experience to add the
+            if self.experience.access_task_boundaries:
+                avalanche_model_adaptation(model,
+                                           self.experience.origin_experience)
+            else:
+                self.model_params_before_adaptation = list(model.parameters())
+                avalanche_model_adaptation(model, self.experience)
 
         # For evaluation, the experience is not necessarily an online
         # experience:
@@ -46,3 +59,7 @@ class OnlineObservation:
             if self.experience.is_first_subexp:
                 self.model = self.model_adaptation()
                 self.make_optimizer()
+        # Otherwise, adapt to the current sub-experience:
+        else:
+            self.model = self.model_adaptation()
+            self.make_optimizer()

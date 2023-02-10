@@ -94,6 +94,7 @@ def fixed_size_experience_split(
     def gen():
         exp_dataset = experience.dataset
         exp_indices = list(range(len(exp_dataset)))
+        exp_targets = torch.LongTensor(list(exp_dataset.targets))
 
         if shuffle:
             exp_indices = torch.as_tensor(exp_indices)[
@@ -124,6 +125,12 @@ def fixed_size_experience_split(
                 access_task_boundaries=access_task_boundaries,
             )
             exp.dataset = exp_dataset.subset(exp_indices[init_idx:final_idx])
+
+            # Add sub-experience attributes
+            exp.classes_in_this_experience = list(
+                exp_targets[exp_indices[init_idx:final_idx]].unique().numpy())
+            exp.task_labels = experience.task_labels
+
             is_first = False
             yield exp
             init_idx = final_idx
