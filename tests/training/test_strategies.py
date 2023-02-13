@@ -45,6 +45,7 @@ from avalanche.training.supervised import (
     BiC,
     MIR,
     ER_ACE,
+    L2PTemplate,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
