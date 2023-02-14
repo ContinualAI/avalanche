@@ -994,7 +994,7 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
     
     def test_l2p(self):
-        benchmark = self.get_fast_benchmark(use_task_labels=False, n_classes=10)
+        benchmark = get_fast_benchmark(use_task_labels=False, n_classes=10)
 
         strategy = L2PTemplate(
             model_name="vit_base_patch16_224",
@@ -1003,7 +1003,7 @@ class StrategyTest(unittest.TestCase):
             device=self.device,
             train_epochs=1,
             num_classes=10,
-            eval_mb_size = 50,
+            eval_mb_size=50,
         )
 
         self.run_strategy(benchmark, strategy)

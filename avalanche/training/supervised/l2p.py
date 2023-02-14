@@ -2,7 +2,6 @@ from typing import List, Optional
 
 import numpy as np
 import torch
-from torch.optim import Optimizer
 import torch.nn as nn
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
@@ -11,6 +10,7 @@ from avalanche.models.vit import create_model
 
 
 MODEL = "vit_base_patch16_224"
+
 
 class L2PTemplate(SupervisedTemplate):
     """
@@ -81,7 +81,8 @@ class L2PTemplate(SupervisedTemplate):
         )
 
         for n, p in model.named_parameters():
-            if n.startswith(tuple(["blocks", "patch_embed", "cls_token", "norm", "pos_embed"])):
+            if n.startswith(tuple(["blocks", "patch_embed", 
+                                   "cls_token", "norm", "pos_embed"])):
                 p.requires_grad = False
 
         model.head = torch.nn.Linear(768, num_classes).to(device)
@@ -146,7 +147,9 @@ class L2PTemplate(SupervisedTemplate):
             mask = self.experience.classes_in_this_experience
             not_mask = np.setdiff1d(np.arange(self.num_classes), mask)
             not_mask = torch.tensor(not_mask, dtype=torch.int64).to(self.device)
-            logits = logits.index_fill(dim=1, index=not_mask, value=float("-inf"))
+            logits = logits.index_fill(dim=1, 
+                                       index=not_mask, 
+                                       value=float("-inf"))
 
         return logits
 
