@@ -113,6 +113,29 @@ def load_tensor_benchmark():
     return TensorDataset(x, y)
 
 
+def get_fast_benchmark_large(
+    use_task_labels=False, shuffle=True, n_samples=100,
+    n_classes=10, seed=None
+):
+    train_x = torch.rand(n_samples, 3, 224, 224)
+    train_y = torch.rand(n_samples, 10)
+
+    test_x = torch.rand(n_samples, 3, 224, 224)
+    test_y = torch.rand(n_samples, n_classes)
+
+    train_dataset = TensorDataset(train_x, train_y)
+    test_dataset = TensorDataset(test_x, test_y)
+    my_nc_benchmark = nc_benchmark(
+        train_dataset,
+        test_dataset,
+        2,
+        task_labels=use_task_labels,
+        shuffle=shuffle,
+        seed=seed
+    )
+    return my_nc_benchmark
+
+
 def get_fast_benchmark(
     use_task_labels=False, shuffle=True, n_samples_per_class=100,
     n_classes=10, n_features=6, seed=None
@@ -210,6 +233,7 @@ __all__ = [
     "common_setups",
     "load_benchmark",
     "get_fast_benchmark",
+    "get_fast_benchmark_large",
     "load_experience_train_eval",
     "get_device",
     "set_deterministic_run",

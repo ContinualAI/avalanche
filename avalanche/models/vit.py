@@ -269,10 +269,16 @@ default_cfgs = {
             download/v0.1-tpu-weights/vit_base_patch16_rpn_224-sw-3b07e89d.pth"
     ),
     # experimental (may be removed)
-    "vit_base_patch32_plus_256": _cfg(url="", 
-                                    input_size=(3, 256, 256), crop_pct=0.95),
-    "vit_base_patch16_plus_240": _cfg(url="", 
-                                    input_size=(3, 240, 240), crop_pct=0.95),
+    "vit_base_patch32_plus_256": _cfg(
+        url="", 
+        input_size=(3, 256, 256), 
+        crop_pct=0.95
+    ),
+    "vit_base_patch16_plus_240": _cfg(
+        url="", 
+        input_size=(3, 240, 240), 
+        crop_pct=0.95
+    ),
     "vit_small_patch16_36x1_224": _cfg(url=""),
     "vit_small_patch16_18x2_224": _cfg(url=""),
     "vit_base_patch16_18x2_224": _cfg(url=""),
@@ -301,8 +307,9 @@ class Attention(nn.Module):
     def forward(self, x):
         B, N, C = x.shape
         qkv = (
-            self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).\
-                permute(2, 0, 3, 1, 4)
+            self.qkv(x).
+                    reshape(B, N, 3, self.num_heads, C // self.num_heads).
+                    permute(2, 0, 3, 1, 4)
         )
         # make torchscript happy (cannot use tensor as tuple)
         q, k, v = qkv.unbind(0)  
@@ -751,15 +758,18 @@ class VisionTransformer(nn.Module):
                 start = task_id * self.prompt.top_k
                 end = (task_id + 1) * self.prompt.top_k
                 single_prompt_mask = torch.arange(start, end).to(x.device)
-                prompt_mask = single_prompt_mask.unsqueeze(0).\
-                                expand(x.shape[0], -1)
+                prompt_mask = single_prompt_mask.\
+                                        unsqueeze(0).\
+                                        expand(x.shape[0], -1)
                 if end > self.prompt.pool_size:
                     prompt_mask = None
             else:
                 prompt_mask = None
-            res = self.prompt(  x, 
-                                prompt_mask=prompt_mask, 
-                                cls_features=cls_features)
+            res = self.prompt(
+                            x, 
+                            prompt_mask=prompt_mask, 
+                            cls_features=cls_features
+                        )
             self.total_prompt_len = res["total_prompt_len"]
             x = res["prompted_embedding"]
         else:
@@ -809,10 +819,12 @@ class VisionTransformer(nn.Module):
         return res
 
     def forward(self, x, task_id=-1, cls_features=None, train=False):
-        res = self.forward_features(    x, 
-                                        task_id=task_id, 
-                                        cls_features=cls_features, 
-                                        train=train)
+        res = self.forward_features(    
+                                x, 
+                                task_id=task_id, 
+                                cls_features=cls_features, 
+                                train=train
+                            )
         res = self.forward_head(res)
         return res
 
@@ -860,8 +872,8 @@ def init_weights_vit_moco(module: nn.Module, name: str = ""):
     if isinstance(module, nn.Linear):
         if "qkv" in name:
             # treat the weights of Q, K, V separately
-            val = math.sqrt(6.0 / float(module.weight.shape[0] // 3 +\
-                                 module.weight.shape[1]))
+            val = math.sqrt(6.0 / float(module.weight.shape[0] // 3 +
+                                            module.weight.shape[1]))
             nn.init.uniform_(module.weight, -val, val)
         else:
             nn.init.xavier_uniform_(module.weight)
@@ -913,8 +925,8 @@ def _load_weights(
         stem_only = not hasattr(backbone, "stem")
         stem = backbone if stem_only else backbone.stem
         stem.conv.weight.copy_(
-            adapt_input_conv(stem.conv.weight.shape[1], \
-                            _n2p(w[f"{prefix}conv_root/kernel"]))
+            adapt_input_conv(stem.conv.weight.shape[1],
+                                _n2p(w[f"{prefix}conv_root/kernel"]))
         )
         stem.norm.weight.copy_(_n2p(w[f"{prefix}gn_root/scale"]))
         stem.norm.bias.copy_(_n2p(w[f"{prefix}gn_root/bias"]))
@@ -923,30 +935,35 @@ def _load_weights(
                 for j, block in enumerate(stage.blocks):
                     bp = f"{prefix}block{i + 1}/unit{j + 1}/"
                     for r in range(3):
-                        getattr(block, f"conv{r + 1}").weight.copy_(
-                            _n2p(w[f"{bp}conv{r + 1}/kernel"])
-                        )
-                        getattr(block, f"norm{r + 1}").weight.\
-                                        copy_(_n2p(w[f"{bp}gn{r + 1}/scale"]))
-                        getattr(block, f"norm{r + 1}").bias.\
-                                        copy_(_n2p(w[f"{bp}gn{r + 1}/bias"]))
+                        getattr(
+                            block, 
+                            f"conv{r + 1}").\
+                                weight.copy_(_n2p(w[f"{bp}conv{r + 1}/kernel"]))
+                        getattr(
+                            block, 
+                            f"norm{r + 1}").\
+                                weight.copy_(_n2p(w[f"{bp}gn{r + 1}/scale"]))
+                        getattr(
+                            block, 
+                            f"norm{r + 1}").\
+                                bias.copy_(_n2p(w[f"{bp}gn{r + 1}/bias"]))
                     if block.downsample is not None:
-                        block.downsample.conv.weight.\
-                                        copy_(_n2p(w[f"{bp}conv_proj/kernel"]))
-                        block.downsample.norm.weight.\
-                                        copy_(_n2p(w[f"{bp}gn_proj/scale"]))
-                        block.downsample.norm.bias.\
-                                        copy_(_n2p(w[f"{bp}gn_proj/bias"]))
+                        block.downsample.\
+                            conv.weight.copy_(_n2p(w[f"{bp}conv_proj/kernel"]))
+                        block.downsample.\
+                            norm.weight.copy_(_n2p(w[f"{bp}gn_proj/scale"]))
+                        block.downsample.\
+                            norm.bias.copy_(_n2p(w[f"{bp}gn_proj/bias"]))
         embed_conv_w = _n2p(w[f"{prefix}embedding/kernel"])
     else:
         embed_conv_w = adapt_input_conv(
-            model.patch_embed.proj.weight.\
-                        shape[1], _n2p(w[f"{prefix}embedding/kernel"])
+            model.patch_embed.proj.weight.shape[1], 
+            _n2p(w[f"{prefix}embedding/kernel"])
         )
     model.patch_embed.proj.weight.copy_(embed_conv_w)
     model.patch_embed.proj.bias.copy_(_n2p(w[f"{prefix}embedding/bias"]))
     model.cls_token.copy_(_n2p(w[f"{prefix}cls"], t=False))
-    pos_embed_w = _n2p( w[f"{prefix}Transformer/posembed_input/pos_embedding"], 
+    pos_embed_w = _n2p(w[f"{prefix}Transformer/posembed_input/pos_embedding"], 
                         t=False)
     if pos_embed_w.shape != model.pos_embed.shape:
         pos_embed_w = (
@@ -996,9 +1013,10 @@ def _load_weights(
                 ]
             )
         )
-        block.attn.proj.weight.\
-                        copy_(_n2p(w[f"{mha_prefix}out/kernel"]).flatten(1))
-        block.attn.proj.bias.copy_(_n2p(w[f"{mha_prefix}out/bias"]))
+        block.attn.\
+                proj.weight.copy_(_n2p(w[f"{mha_prefix}out/kernel"]).flatten(1))
+        block.attn.\
+                proj.bias.copy_(_n2p(w[f"{mha_prefix}out/bias"]))
         for r in range(2):
             getattr(block.mlp, f"fc{r + 1}").weight.copy_(
                 _n2p(w[f"{block_prefix}MlpBlock_3/Dense_{r}/kernel"])
@@ -1037,16 +1055,17 @@ def resize_pos_embed(posemb, posemb_new, num_prefix_tokens=1, gs_new=()):
         gs_new = [int(math.sqrt(ntok_new))] * 2
     assert len(gs_new) >= 2
 
-    _logger.info("Position embedding grid-size from %s to %s", 
-                 [gs_old, gs_old], 
-                 gs_new)
+    _logger.info(
+            "Position embedding grid-size from %s to %s", 
+            [gs_old, gs_old], 
+            gs_new)
     posemb_grid = posemb_grid.reshape(1, gs_old, gs_old, -1).permute(0, 3, 1, 2)
     posemb_grid = F.interpolate(posemb_grid, 
                                 size=gs_new, 
                                 mode="bicubic", 
                                 align_corners=False)
-    posemb_grid = posemb_grid.permute(0, 2, 3, 1).\
-                                        reshape(1, gs_new[0] * gs_new[1], -1)
+    posemb_grid = posemb_grid.\
+                    permute(0, 2, 3, 1).reshape(1, gs_new[0] * gs_new[1], -1)
     posemb = torch.cat([posemb_prefix, posemb_grid], dim=1)
     return posemb
 
