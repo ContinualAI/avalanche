@@ -114,7 +114,7 @@ def load_tensor_benchmark():
 
 
 def get_fast_benchmark_large(
-    use_task_labels=False, shuffle=True, n_samples=100,
+    use_task_labels=False, shuffle=True, n_samples=50,
     n_classes=10, seed=None
 ):
     train_x = torch.rand(n_samples, 3, 224, 224)
