@@ -27,7 +27,7 @@
   * [avalanche-datasets](how-tos/avalanchedataset/avalanche-datasets.md)
   * [avalanche-transformations](how-tos/avalanchedataset/avalanche-transformations.md)
 * [Dataloaders, Buffers, and Replay](how-tos/dataloading\_buffers\_replay.md)
-* [checkpoints](how-tos/checkpoints.md)
+* [Save and load checkpoints](how-tos/checkpoints.md)
 
 ## 📝 Examples
 

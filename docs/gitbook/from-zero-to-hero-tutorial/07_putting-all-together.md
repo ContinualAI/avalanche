@@ -7,7 +7,7 @@ Welcome to the "_Putting All Together_" tutorial of the "_From Zero to Hero_" se
 
 
 ```python
-!pip install avalanche-lib==0.3.0
+!pip install avalanche-lib==0.3.1
 ```
 
 ## 🛴 A Comprehensive Example

@@ -54,7 +54,6 @@ class CoPEPlugin(SupervisedPlugin):
         self.max_it_cnt = max_it_cnt
 
         # Operational memory: replay memory
-        self.replay_mem = {}
         self.mem_size = mem_size  # replay memory size
         self.storage_policy = ClassBalancedBuffer(
             max_size=self.mem_size, adaptive_size=True
@@ -112,16 +111,16 @@ class CoPEPlugin(SupervisedPlugin):
         This implementation requires the use of early stopping, otherwise the
         entire memory will be iterated.
         """
-        if len(self.replay_mem) == 0:
+        if len(self.storage_policy.buffer) == 0:
             return
         self.it_cnt = 0
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            concat_datasets(self.replay_mem.values()),
+            self.storage_policy.buffer,
             oversample_small_tasks=False,
             num_workers=num_workers,
-            batch_size=strategy.train_mb_size * 2,
-            force_data_batch_size=strategy.train_mb_size,
+            batch_size=strategy.train_mb_size,
+            batch_size_mem=strategy.train_mb_size,
             shuffle=shuffle,
         )
 
