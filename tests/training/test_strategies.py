@@ -995,18 +995,21 @@ class StrategyTest(unittest.TestCase):
         self.run_strategy(benchmark, strategy)
     
     def test_l2p(self):
-        benchmark = get_fast_benchmark_large(
-                        use_task_labels=False, 
-                        n_classes=10)
+        _, _, _, benchmark = self.init_scenario(
+            multi_task=False
+        )
 
         strategy = L2PTemplate(
-            model_name="vit_base_patch16_224",
+            model_name="simpleMLP",
             criterion=CrossEntropyLoss(),
             train_mb_size=10,
             device=self.device,
             train_epochs=1,
             num_classes=10,
             eval_mb_size=50,
+            use_cls_features=False,
+            use_mask=False,
+            use_logits=False,
         )
 
         self.run_strategy(benchmark, strategy)

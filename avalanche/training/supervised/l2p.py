@@ -24,6 +24,11 @@ class L2PTemplate(SupervisedTemplate):
     Implementation based on:
     - https://github.com/JH-LEE-KR/l2p-pytorch
     - And implementations by Dario Salvati
+
+    As a model_name, we expect to receive one of the model list in 
+    avalanche.models.vit
+    
+    Those models are based on the library timm.
     """
     def __init__(
         self,
@@ -53,6 +58,8 @@ class L2PTemplate(SupervisedTemplate):
         use_prompt_mask: bool = False,
         train_prompt_mask: bool = False,
         use_cls_features: bool = True,
+        use_mask: bool = True,
+        use_logits: bool = True,
         **kwargs,
     ):
         self.num_classes = num_classes
@@ -104,7 +111,8 @@ class L2PTemplate(SupervisedTemplate):
         self._criterion = criterion
         self.use_cls_features = use_cls_features
         self.train_prompt_mask = train_prompt_mask
-        self.use_mask = True
+        self.use_mask = use_mask
+        self.use_logits = use_logits
 
         if use_cls_features:
             self.original_vit = create_model(
@@ -141,7 +149,11 @@ class L2PTemplate(SupervisedTemplate):
             cls_features=cls_features,
             train=self.train_prompt_mask,
         )
-        logits = self.res["logits"]
+
+        if self.use_logits:
+            logits = self.res["logits"]
+        else:
+            logits = self.res
 
         if self.use_mask and self.is_training:
             mask = self.experience.classes_in_this_experience

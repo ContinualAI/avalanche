@@ -34,22 +34,33 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint
 from avalanche.models import Prompt
-from timm.data import (
-    IMAGENET_DEFAULT_MEAN,
-    IMAGENET_DEFAULT_STD,
-    IMAGENET_INCEPTION_MEAN,
-    IMAGENET_INCEPTION_STD,
-)
-from timm.models.helpers import (
-    adapt_input_conv,
-    build_model_with_cfg,
-    checkpoint_seq,
-    named_apply,
-    resolve_pretrained_cfg,
-)
-from timm.models.layers import DropPath, Mlp, PatchEmbed, \
-                                    lecun_normal_, trunc_normal_
-from timm.models.registry import register_model
+from avalanche.models import SimpleMLP
+
+try:
+    from timm.data import (
+        IMAGENET_DEFAULT_MEAN,
+        IMAGENET_DEFAULT_STD,
+        IMAGENET_INCEPTION_MEAN,
+        IMAGENET_INCEPTION_STD,
+    )
+    from timm.models.helpers import (
+        adapt_input_conv,
+        build_model_with_cfg,
+        checkpoint_seq,
+        named_apply,
+        resolve_pretrained_cfg,
+    )
+    from timm.models.layers import DropPath, Mlp, PatchEmbed, \
+                                        lecun_normal_, trunc_normal_
+    from timm.models.registry import register_model
+except ImportError:
+    raise ModuleNotFoundError(
+        "timm is not found, "
+        "if you want to use L2P "
+        "please install avalanche with the "
+        "detection dependencies: "
+        "pip install avalanche-lib[l2p]"
+    )
 
 _logger = logging.getLogger(__name__)
 
@@ -1796,6 +1807,12 @@ def vit_base_patch16_18x2_224(pretrained=False, **kwargs):
     model = _create_vision_transformer(
         "vit_base_patch16_18x2_224", pretrained=pretrained, **model_kwargs
     )
+    return model
+
+
+# Only for unittest
+def simpleMLP(**kwargs):
+    model = SimpleMLP(input_size=6, hidden_size=10)
     return model
 
 
