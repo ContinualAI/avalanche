@@ -1,5 +1,5 @@
 from avalanche.models import SimpleMLP
-from avalanche.model.timm_vit import _create_vision_transformer
+from avalanche.models.timm_vit import _create_vision_transformer
 
 
 def vit_tiny_patch16_224(pretrained=False, **kwargs):
