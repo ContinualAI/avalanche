@@ -1009,7 +1009,7 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             use_cls_features=False,
             use_mask=False,
-            use_logits=False,
+            use_vit=False,
         )
 
         self.run_strategy(benchmark, strategy)

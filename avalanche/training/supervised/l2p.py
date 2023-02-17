@@ -59,7 +59,7 @@ class L2PTemplate(SupervisedTemplate):
         train_prompt_mask: bool = False,
         use_cls_features: bool = True,
         use_mask: bool = True,
-        use_logits: bool = True,
+        use_vit: bool = True,
         **kwargs,
     ):
         self.num_classes = num_classes
@@ -112,7 +112,7 @@ class L2PTemplate(SupervisedTemplate):
         self.use_cls_features = use_cls_features
         self.train_prompt_mask = train_prompt_mask
         self.use_mask = use_mask
-        self.use_logits = use_logits
+        self.use_vit = use_vit
 
         if use_cls_features:
             self.original_vit = create_model(
@@ -143,17 +143,19 @@ class L2PTemplate(SupervisedTemplate):
         else:
             cls_features = None
 
-        self.res = self.model(
-            x=self.mb_x,
-            task_id=self.mb_task_id,
-            cls_features=cls_features,
-            train=self.train_prompt_mask,
-        )
-
-        if self.use_logits:
-            logits = self.res["logits"]
+        if self.use_vit:
+            self.res = self.model(
+                x=self.mb_x,
+                task_id=self.mb_task_id,
+                cls_features=cls_features,
+                train=self.train_prompt_mask,
+            )
         else:
-            logits = self.res
+            self.res = {}
+            self.res["logits"] = self.model(x=self.mb_x)
+            self.res["reduce_sim"] = 0
+        
+        logits = self.res["logits"]
 
         if self.use_mask and self.is_training:
             mask = self.experience.classes_in_this_experience
