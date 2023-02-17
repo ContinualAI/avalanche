@@ -54,8 +54,7 @@ from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.templates.base import _group_experiences_by_stream
 from avalanche.training.utils import get_last_fc_layer
-from tests.unit_tests_utils import get_fast_benchmark, get_device, \
-                                        get_fast_benchmark_large
+from tests.unit_tests_utils import get_fast_benchmark, get_device
 
 
 class BaseStrategyTest(unittest.TestCase):

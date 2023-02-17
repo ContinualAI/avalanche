@@ -210,7 +210,6 @@ __all__ = [
     "common_setups",
     "load_benchmark",
     "get_fast_benchmark",
-    "get_fast_benchmark_large",
     "load_experience_train_eval",
     "get_device",
     "set_deterministic_run",
