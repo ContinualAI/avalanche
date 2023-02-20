@@ -41,7 +41,7 @@ class L2PTemplate(SupervisedTemplate):
         eval_mb_size: Optional[int] = 1,
         device: str = "cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every: int = -1,
         peval_mode: str = "epoch",
         prompt_pool: bool = True,
