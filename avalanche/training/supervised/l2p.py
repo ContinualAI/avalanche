@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.models.vit import create_model
 
@@ -40,7 +41,7 @@ class L2PTemplate(SupervisedTemplate):
         eval_mb_size: Optional[int] = 1,
         device: str = "cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = ...,
+        evaluator: EvaluationPlugin = default_evaluator,
         eval_every: int = -1,
         peval_mode: str = "epoch",
         prompt_pool: bool = True,
