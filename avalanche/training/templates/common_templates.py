@@ -16,11 +16,11 @@ class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
                          BaseSGDTemplate):
     """Base class for continual learning strategies.
 
-    BaseTemplate is the super class of all task-based continual learning
-    strategies. It implements a basic training loop and callback system
-    that allows to execute code at each experience of the training loop.
-    Plugins can be used to implement callbacks to augment the training
-    loop with additional behavior (e.g. a memory buffer for replay).
+    SupervisedTemplate is the super class of all supervised task-based
+    continual learning strategies. It implements a basic training loop and
+    callback system that allows to execute code at each experience of the
+    training loop. Plugins can be used to implement callbacks to augment the
+    training loop with additional behavior (e.g. a memory buffer for replay).
 
     **Scenarios**
     This strategy supports several continual learning scenarios:
@@ -55,8 +55,6 @@ class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
                 make_eval_dataloader
                 eval_epoch  # for each epoch
                     # forward
-                    # backward
-                    # model update
 
     """
 
@@ -81,7 +79,10 @@ class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
-        :param train_mb_size: mini-batch size for training.
+        :param train_mb_size: mini-batch size for training. The default
+            dataloader is a task-balanced dataloader that divides each
+            mini-batch evenly between samples from all existing tasks in
+            the dataset.
         :param train_epochs: number of training epochs.
         :param eval_mb_size: mini-batch size for eval.
         :param device: PyTorch device where the model will be allocated.
@@ -129,11 +130,12 @@ class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
                                      MetaUpdate, BaseSGDTemplate):
     """Base class for continual learning strategies.
 
-    BaseTemplate is the super class of all task-based continual learning
-    strategies. It implements a basic training loop and callback system
-    that allows to execute code at each experience of the training loop.
-    Plugins can be used to implement callbacks to augment the training
-    loop with additional behavior (e.g. a memory buffer for replay).
+    SupervisedMetaLearningTemplate is the super class of all supervised
+    meta-learning task-based continual learning strategies. It implements a
+    basic training loop and callback system that allows to execute code at
+    each experience of the training loop. Plugins can be used to implement
+    callbacks to augment the training loop with additional behavior
+    (e.g. a memory buffer for replay).
 
     **Scenarios**
     This strategy supports several continual learning scenarios:
@@ -154,9 +156,8 @@ class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
                 train_dataset_adaptation
                 make_train_dataloader
                 train_epoch  # for each epoch
-                    # forward
-                    # backward
-                    # model update
+                    # inner_updates
+                    # outer_update
 
     **Evaluation loop**
     The evaluation loop is organized as follows::
@@ -168,8 +169,6 @@ class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
                 make_eval_dataloader
                 eval_epoch  # for each epoch
                     # forward
-                    # backward
-                    # model update
 
     """
 
@@ -194,7 +193,10 @@ class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
-        :param train_mb_size: mini-batch size for training.
+        :param train_mb_size: mini-batch size for training. The default
+            dataloader is a task-balanced dataloader that divides each
+            mini-batch evenly between samples from all existing tasks in
+            the dataset.
         :param train_epochs: number of training epochs.
         :param eval_mb_size: mini-batch size for eval.
         :param device: PyTorch device where the model will be allocated.
@@ -242,11 +244,11 @@ class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
                                BaseSGDTemplate):
     """Base class for continual learning strategies.
 
-    BaseTemplate is the super class of all task-based continual learning
-    strategies. It implements a basic training loop and callback system
-    that allows to execute code at each experience of the training loop.
-    Plugins can be used to implement callbacks to augment the training
-    loop with additional behavior (e.g. a memory buffer for replay).
+    OnlineSupervisedTemplate is the super class of all online supervised
+    task-based continual learning strategies. It implements a basic training
+    loop and callback system that allows to execute code at each experience of
+    the training loop. Plugins can be used to implement callbacks to augment the
+    training loop with additional behavior (e.g. a memory buffer for replay).
 
     **Scenarios**
     This strategy supports several continual learning scenarios:
@@ -281,8 +283,6 @@ class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
                 make_eval_dataloader
                 eval_epoch  # for each epoch
                     # forward
-                    # backward
-                    # model update
 
     """
 
@@ -307,7 +307,10 @@ class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
-        :param train_mb_size: mini-batch size for training.
+        :param train_mb_size: mini-batch size for training. The default
+            dataloader is a task-balanced dataloader that divides each
+            mini-batch evenly between samples from all existing tasks in
+            the dataset.
         :param train_passes: number of training passes.
         :param eval_mb_size: mini-batch size for eval.
         :param device: PyTorch device where the model will be allocated.
@@ -344,11 +347,12 @@ class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
                                            MetaUpdate, BaseSGDTemplate):
     """Base class for continual learning strategies.
 
-    BaseTemplate is the super class of all task-based continual learning
-    strategies. It implements a basic training loop and callback system
-    that allows to execute code at each experience of the training loop.
-    Plugins can be used to implement callbacks to augment the training
-    loop with additional behavior (e.g. a memory buffer for replay).
+    OnlineSupervisedMetaLearningTemplate is the super class of all online
+    supervised meta-learning task-based continual learning strategies.
+    It implements a basic training loop and callback system that allows
+    to execute code at each experience of the training loop. Plugins can be
+    used to implement callbacks to augment the training loop with additional
+    behavior (e.g. a memory buffer for replay).
 
     **Scenarios**
     This strategy supports several continual learning scenarios:
@@ -369,9 +373,8 @@ class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
                 train_dataset_adaptation
                 make_train_dataloader
                 train_epoch  # for each epoch
-                    # forward
-                    # backward
-                    # model update
+                    # inner_updates
+                    # outer_update
 
     **Evaluation loop**
     The evaluation loop is organized as follows::
@@ -383,8 +386,6 @@ class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
                 make_eval_dataloader
                 eval_epoch  # for each epoch
                     # forward
-                    # backward
-                    # model update
 
     """
 
@@ -409,7 +410,10 @@ class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
-        :param train_mb_size: mini-batch size for training.
+        :param train_mb_size: mini-batch size for training. The default
+            dataloader is a task-balanced dataloader that divides each
+            mini-batch evenly between samples from all existing tasks in
+            the dataset.
         :param train_passes: number of training passes.
         :param eval_mb_size: mini-batch size for eval.
         :param device: PyTorch device where the model will be allocated.
