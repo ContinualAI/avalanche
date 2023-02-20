@@ -1,5 +1,27 @@
 from avalanche.models import SimpleMLP
-from avalanche.models.timm_vit import _create_vision_transformer
+
+
+def _create_vision_transformer(variant, pretrained=False, **kwargs):
+    from avalanche.models.timm_vit import resolve_pretrained_cfg, \
+                build_model_with_cfg, VisionTransformer, checkpoint_filter_fn
+
+    if kwargs.get("features_only", None):
+        raise RuntimeError("features_only not implemented for \
+                            Vision Transformer models.")
+
+    pretrained_cfg = resolve_pretrained_cfg(
+        variant, pretrained_cfg=kwargs.pop("pretrained_cfg", None)
+    )
+    model = build_model_with_cfg(
+        VisionTransformer,
+        variant,
+        pretrained,
+        pretrained_cfg=pretrained_cfg,
+        pretrained_filter_fn=checkpoint_filter_fn,
+        pretrained_custom_load="npz" in pretrained_cfg["url"],
+        **kwargs,
+    )
+    return model
 
 
 def vit_tiny_patch16_224(pretrained=False, **kwargs):

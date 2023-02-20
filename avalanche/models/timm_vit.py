@@ -1116,23 +1116,3 @@ def checkpoint_filter_fn(state_dict, model, adapt_layer_scale=False):
             continue
         out_dict[k] = v
     return out_dict
-
-
-def _create_vision_transformer(variant, pretrained=False, **kwargs):
-    if kwargs.get("features_only", None):
-        raise RuntimeError("features_only not implemented for \
-                            Vision Transformer models.")
-
-    pretrained_cfg = resolve_pretrained_cfg(
-        variant, pretrained_cfg=kwargs.pop("pretrained_cfg", None)
-    )
-    model = build_model_with_cfg(
-        VisionTransformer,
-        variant,
-        pretrained,
-        pretrained_cfg=pretrained_cfg,
-        pretrained_filter_fn=checkpoint_filter_fn,
-        pretrained_custom_load="npz" in pretrained_cfg["url"],
-        **kwargs,
-    )
-    return model

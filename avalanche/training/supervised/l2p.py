@@ -27,9 +27,10 @@ class L2PTemplate(SupervisedTemplate):
 
     As a model_name, we expect to receive one of the model list in 
     avalanche.models.vit
-    
+
     Those models are based on the library timm.
     """
+
     def __init__(
         self,
         model_name: str,
@@ -154,7 +155,7 @@ class L2PTemplate(SupervisedTemplate):
             self.res = {}
             self.res["logits"] = self.model(x=self.mb_x)
             self.res["reduce_sim"] = 0
-        
+
         logits = self.res["logits"]
 
         if self.use_mask and self.is_training:
