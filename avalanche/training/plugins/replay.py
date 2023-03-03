@@ -1,6 +1,6 @@
 from typing import Optional, TYPE_CHECKING
 
-from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.benchmarks.utils import concat_classification_datasets
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import (
@@ -9,7 +9,7 @@ from avalanche.training.storage_policy import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class ReplayPlugin(SupervisedPlugin):
@@ -75,6 +75,7 @@ class ReplayPlugin(SupervisedPlugin):
         strategy: "SupervisedTemplate",
         num_workers: int = 0,
         shuffle: bool = True,
+        drop_last: bool = False,
         **kwargs
     ):
         """
@@ -103,6 +104,7 @@ class ReplayPlugin(SupervisedPlugin):
             task_balanced_dataloader=self.task_balanced_dataloader,
             num_workers=num_workers,
             shuffle=shuffle,
+            drop_last=drop_last,
         )
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):

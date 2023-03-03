@@ -26,7 +26,8 @@ import weakref
 
 
 class TensorboardLogger(BaseLogger):
-    """
+    """Tensorboard logger.
+
     The `TensorboardLogger` provides an easy integration with
     Tensorboard logging. Each monitored metric is automatically
     logged to Tensorboard.
@@ -38,7 +39,9 @@ class TensorboardLogger(BaseLogger):
 
     If no parameters are provided, the default folder in which tensorboard
     log files are placed is "./runs/".
+
     .. note::
+
         We rely on PyTorch implementation of Tensorboard. If you
         don't have Tensorflow installed in your environment,
         tensorboard will tell you that it is running with reduced
@@ -50,8 +53,7 @@ class TensorboardLogger(BaseLogger):
         tb_log_dir: Union[str, Path] = "./tb_data",
         filename_suffix: str = "",
     ):
-        """
-        Creates an instance of the `TensorboardLogger`.
+        """Creates an instance of the `TensorboardLogger`.
 
         :param tb_log_dir: path to the directory where tensorboard log file
             will be stored. Default to "./tb_data".
@@ -61,13 +63,7 @@ class TensorboardLogger(BaseLogger):
 
         super().__init__()
         tb_log_dir = _make_path_if_local(tb_log_dir)
-        self.writer = SummaryWriter(tb_log_dir, filename_suffix=filename_suffix)
-
-        # Shuts down the writer gracefully on process exit
-        # or when this logger gets GCed. Fixes issue #864.
-        # For more info see:
-        # https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
-        weakref.finalize(self, SummaryWriter.close, self.writer)
+        self.writer = self._make_writer(tb_log_dir, filename_suffix)
 
     def log_single_metric(self, name, value, x_plot):
         if isinstance(value, AlternativeValues):
@@ -89,6 +85,22 @@ class TensorboardLogger(BaseLogger):
 
         elif isinstance(value, TensorImage):
             self.writer.add_image(name, value.image, global_step=x_plot)
+
+    def _make_writer(self, tb_log_dir, filename_suffix):
+        writer = SummaryWriter(tb_log_dir, filename_suffix=filename_suffix)
+
+        # Shuts down the writer gracefully on process exit
+        # or when this logger gets GCed. Fixes issue #864.
+        # For more info see:
+        # https://docs.python.org/3/library/weakref.html#comparing-finalizers-with-del-methods
+        weakref.finalize(self, SummaryWriter.close, writer)
+        return writer
+
+    def __getstate__(self):
+        return self.writer.log_dir, self.writer.filename_suffix
+
+    def __setstate__(self, state):
+        self.writer = self._make_writer(*state)
 
 
 def _make_path_if_local(tb_log_dir: Union[str, Path]) -> Union[str, Path]:

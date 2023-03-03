@@ -56,7 +56,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
         peval_mode="epoch",
         scaler=None,
@@ -157,7 +157,6 @@ class ObjectDetectionTemplate(SupervisedTemplate):
             batch_size=self.train_mb_size,
             shuffle=shuffle,
             pin_memory=pin_memory,
-            collate_mbatches=detection_collate_mbatches_fn,
             collate_fn=detection_collate_fn,
             **other_dataloader_args
         )
@@ -228,8 +227,10 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         targets = [
             {k: v.to(self.device) for k, v in t.items()} for t in self.mbatch[1]
         ]
-        self.mbatch[0] = images
-        self.mbatch[1] = targets
+        
+        mbatch = [images, targets, 
+                  torch.as_tensor(self.mbatch[2]).to(self.device)]
+        self.mbatch = tuple(mbatch)
 
     def backward(self):
         if self.scaler is not None:

@@ -19,12 +19,12 @@ from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
 from avalanche.evaluation.metric_results import MetricResult
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class MaxRAM(Metric[float]):
-    """
-    The standalone RAM usage metric.
+    """The standalone RAM usage metric.
+
     Important: this metric approximates the real maximum RAM usage since
     it sample at discrete amount of time the RAM values.
 
@@ -39,23 +39,18 @@ class MaxRAM(Metric[float]):
     """
 
     def __init__(self, every=1):
-        """
-        Creates an instance of the RAM usage metric.
-        :param every: seconds after which update the maximum RAM
-            usage
+        """Creates an instance of the RAM usage metric.
+
+        :param every: seconds after which update the maximum RAM usage.
         """
 
         self._process_handle: Optional[Process] = Process(os.getpid())
-        """
-        The process handle, lazily initialized.
-        """
+        """The process handle, lazily initialized."""
 
         self.every = every
 
         self.stop_f = False
-        """
-        Flag to stop the thread
-        """
+        """Flag to stop the thread."""
 
         self.max_usage = 0
         """
@@ -132,14 +127,14 @@ class RAMPluginMetric(GenericPluginMetric[float]):
 
 
 class MinibatchMaxRAM(RAMPluginMetric):
-    """
-    The Minibatch Max RAM metric.
+    """The Minibatch Max RAM metric.
+
     This plugin metric only works at training time.
     """
 
     def __init__(self, every=1):
-        """
-        Creates an instance of the Minibatch Max RAM metric
+        """Creates an instance of the Minibatch Max RAM metric.
+
         :param every: seconds after which update the maximum RAM
             usage
         """
@@ -160,16 +155,15 @@ class MinibatchMaxRAM(RAMPluginMetric):
 
 
 class EpochMaxRAM(RAMPluginMetric):
-    """
-    The Epoch Max RAM metric.
+    """The Epoch Max RAM metric.
+
     This plugin metric only works at training time.
     """
 
     def __init__(self, every=1):
-        """
-        Creates an instance of the epoch Max RAM metric.
-        :param every: seconds after which update the maximum RAM
-            usage
+        """Creates an instance of the epoch Max RAM metric.
+
+        :param every: seconds after which update the maximum RAM usage.
         """
         super(EpochMaxRAM, self).__init__(
             every, reset_at="epoch", emit_at="epoch", mode="train"
@@ -188,16 +182,15 @@ class EpochMaxRAM(RAMPluginMetric):
 
 
 class ExperienceMaxRAM(RAMPluginMetric):
-    """
-    The Experience Max RAM metric.
+    """The Experience Max RAM metric.
+
     This plugin metric only works at eval time.
     """
 
     def __init__(self, every=1):
-        """
-        Creates an instance of the Experience CPU usage metric.
-        :param every: seconds after which update the maximum RAM
-            usage
+        """Creates an instance of the Experience CPU usage metric.
+
+        :param every: seconds after which update the maximum RAM usage.
         """
         super(ExperienceMaxRAM, self).__init__(
             every, reset_at="experience", emit_at="experience", mode="eval"
@@ -216,16 +209,15 @@ class ExperienceMaxRAM(RAMPluginMetric):
 
 
 class StreamMaxRAM(RAMPluginMetric):
-    """
-    The Stream Max RAM metric.
+    """The Stream Max RAM metric.
+
     This plugin metric only works at eval time.
     """
 
     def __init__(self, every=1):
-        """
-        Creates an instance of the Experience CPU usage metric.
-        :param every: seconds after which update the maximum RAM
-            usage
+        """Creates an instance of the Experience CPU usage metric.
+
+        :param every: seconds after which update the maximum RAM usage.
         """
         super(StreamMaxRAM, self).__init__(
             every, reset_at="stream", emit_at="stream", mode="eval"
@@ -247,8 +239,7 @@ class StreamMaxRAM(RAMPluginMetric):
 def ram_usage_metrics(
     *, every=1, minibatch=False, epoch=False, experience=False, stream=False
 ) -> List[PluginMetric]:
-    """
-    Helper method that can be used to obtain the desired set of
+    """Helper method that can be used to obtain the desired set of
     plugin metrics.
 
     :param every: seconds after which update the maximum RAM

@@ -10,14 +10,16 @@
 ################################################################################
 from pathlib import Path
 from typing import Sequence, Optional, Union, Any
-from torchvision.datasets import CIFAR10
+
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark, NCScenario
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets import default_dataset_location
+
+from avalanche.benchmarks.datasets.external_datasets.cifar import \
+    get_cifar10_dataset
 
 _default_cifar10_train_transform = transforms.Compose(
     [
@@ -48,6 +50,7 @@ def SplitCIFAR10(
     seed: Optional[int] = None,
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
+    class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_cifar10_train_transform,
     eval_transform: Optional[Any] = _default_cifar10_eval_transform,
     dataset_root: Union[str, Path] = None
@@ -96,7 +99,11 @@ def SplitCIFAR10(
         order. If not None, the ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to false.
+        randomly shuffled. Default to True.
+    :param class_ids_from_zero_in_each_exp: If True, original class IDs
+        will be mapped to range [0, n_classes_in_exp) for each experience.
+        Defaults to False. Mutually exclusive with the
+        ``class_ids_from_zero_from_first_exp`` parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -114,45 +121,21 @@ def SplitCIFAR10(
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
-    cifar_train, cifar_test = _get_cifar10_dataset(dataset_root)
+    cifar_train, cifar_test = get_cifar10_dataset(dataset_root)
 
-    if return_task_id:
-        return nc_benchmark(
-            train_dataset=cifar_train,
-            test_dataset=cifar_test,
-            n_experiences=n_experiences,
-            task_labels=True,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            per_exp_classes={0: 5} if first_exp_with_half_classes else None,
-            class_ids_from_zero_in_each_exp=True,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            train_dataset=cifar_train,
-            test_dataset=cifar_test,
-            n_experiences=n_experiences,
-            task_labels=False,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            per_exp_classes={0: 5} if first_exp_with_half_classes else None,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-
-
-def _get_cifar10_dataset(dataset_root):
-    if dataset_root is None:
-        dataset_root = default_dataset_location("cifar10")
-
-    train_set = CIFAR10(dataset_root, train=True, download=True)
-    test_set = CIFAR10(dataset_root, train=False, download=True)
-
-    return train_set, test_set
+    return nc_benchmark(
+        train_dataset=cifar_train,
+        test_dataset=cifar_test,
+        n_experiences=n_experiences,
+        task_labels=return_task_id,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        shuffle=shuffle,
+        per_exp_classes={0: 5} if first_exp_with_half_classes else None,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 if __name__ == "__main__":
@@ -162,4 +145,6 @@ if __name__ == "__main__":
     check_vision_benchmark(benchmark_instance)
     sys.exit(0)
 
-__all__ = ["SplitCIFAR10"]
+__all__ = [
+    "SplitCIFAR10"
+]

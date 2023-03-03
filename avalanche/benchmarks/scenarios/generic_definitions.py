@@ -12,6 +12,9 @@
 from abc import abstractmethod
 import warnings
 
+from avalanche.benchmarks.utils.classification_dataset import \
+    ClassificationDataset
+
 try:
     from typing import (
         TypeVar,
@@ -26,6 +29,7 @@ try:
         Generic,
         TYPE_CHECKING,
     )
+
     if TYPE_CHECKING:
         from .generic_scenario import CLScenario, CLStream, CLExperience
 except ImportError:
@@ -41,7 +45,7 @@ except ImportError:
     )
     from typing_extensions import Protocol, runtime_checkable
 
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 
 
 TCLScenario = TypeVar("TCLScenario", bound="CLScenario")
@@ -89,7 +93,7 @@ class ClassificationExperience(Protocol[TCLScenario, TCLStream]):
     encounter experiences.
     """
 
-    dataset: AvalancheDataset
+    dataset: ClassificationDataset
     """
     The dataset containing the patterns available in this experience.
     """

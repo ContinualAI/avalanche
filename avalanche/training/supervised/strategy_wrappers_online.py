@@ -15,13 +15,13 @@ from torch.optim import Optimizer
 
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
-from avalanche.training.templates.online_supervised import (
-    SupervisedOnlineTemplate,
+from avalanche.training.templates import (
+    OnlineSupervisedTemplate,
 )
 
 
-class OnlineNaive(SupervisedOnlineTemplate):
-    """Naive finetuning.
+class OnlineNaive(OnlineSupervisedTemplate):
+    """Online naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just
     incrementally fine tunes a single model without employing any method
@@ -37,7 +37,7 @@ class OnlineNaive(SupervisedOnlineTemplate):
         model: Module,
         optimizer: Optimizer,
         criterion=CrossEntropyLoss(),
-        num_passes: int = 1,
+        train_passes: int = 1,
         train_mb_size: int = 1,
         eval_mb_size: int = None,
         device=None,
@@ -69,7 +69,7 @@ class OnlineNaive(SupervisedOnlineTemplate):
             model,
             optimizer,
             criterion,
-            num_passes=num_passes,
+            train_passes=train_passes,
             train_mb_size=train_mb_size,
             eval_mb_size=eval_mb_size,
             device=device,

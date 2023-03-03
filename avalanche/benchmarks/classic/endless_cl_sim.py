@@ -15,7 +15,9 @@ generator. It returns an iterable scenario object
 ``GenericCLScenario`` given a number of configuration parameters.
 """
 
-from avalanche.benchmarks.utils.avalanche_dataset import AvalancheDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    make_classification_dataset,
+)
 from avalanche.benchmarks.datasets.endless_cl_sim.endless_cl_sim import (
     EndlessCLSimDataset,
 )
@@ -30,7 +32,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 )
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators import dataset_benchmark
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 
 _default_transform = Compose([ToTensor()])
 
@@ -48,15 +50,14 @@ def EndlessCLSim(
     dataset_root: Union[str, Path] = None,
     semseg=False
 ):
-    """
-    Creates a CL scenario for the Endless-Continual-Learning Simulator's
-    derived datasets, which are available at:
-    https://zenodo.org/record/4899267, or custom datasets created from
-    the Endless-Continual-Learning-Simulator's standalone application,
-    available at: https://zenodo.org/record/4899294.
+    """Creates a CL scenario for the Endless-Continual-Learning Simulator's
+    derived `datasets <https://zenodo.org/record/4899267>`__, or custom
+    datasets created from
+    the Endless-Continual-Learning-Simulator's `standalone application <
+    https://zenodo.org/record/4899294>`__.
     Both are part of the publication of `A Procedural World Generation
     Framework for Systematic Evaluation of Continual Learning
-    (https://arxiv.org/abs/2106.02585).
+    <https://arxiv.org/abs/2106.02585>`__.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
@@ -135,10 +136,14 @@ def EndlessCLSim(
         eval_data.transform = eval_transform
 
         train_datasets.append(
-            AvalancheDataset(dataset=train_data, task_labels=task_order[i])
+            make_classification_dataset(
+                dataset=train_data, task_labels=task_order[i]
+            )
         )
         eval_datasets.append(
-            AvalancheDataset(dataset=eval_data, task_labels=task_order[i])
+            make_classification_dataset(
+                dataset=eval_data, task_labels=task_order[i]
+            )
         )
 
     scenario_obj = dataset_benchmark(train_datasets, eval_datasets)

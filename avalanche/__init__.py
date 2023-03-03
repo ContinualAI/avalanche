@@ -5,13 +5,13 @@ from avalanche import models
 from avalanche import training
 
 
-__version__ = "0.1.0a0"
+__version__ = "0.3.1"
 
 _dataset_add = None
 
 
 def _avdataset_radd(self, other, *args, **kwargs):
-    from avalanche.benchmarks.utils import AvalancheDataset
+    from avalanche.benchmarks.utils.data import AvalancheDataset
 
     global _dataset_add
     if isinstance(other, AvalancheDataset):

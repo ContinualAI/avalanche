@@ -32,7 +32,6 @@ class TestStreamCompleteness(unittest.TestCase):
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(stream=True),
             loggers=None,
-            benchmark=self.benchmark,
             strict_checks=True,
         )
         strategy = Naive(
@@ -49,32 +48,10 @@ class TestStreamCompleteness(unittest.TestCase):
         with self.assertRaises(ValueError):
             strategy.eval(self.benchmark.test_stream[:2])
 
-    def test_raise_warning(self):
-        eval_plugin = EvaluationPlugin(
-            accuracy_metrics(stream=True),
-            loggers=None,
-            benchmark=self.benchmark,
-            strict_checks=False,
-        )
-        strategy = Naive(
-            self.model,
-            self.optimizer,
-            self.criterion,
-            train_epochs=2,
-            eval_every=-1,
-            evaluator=eval_plugin,
-        )
-        for exp in self.benchmark.train_stream:
-            strategy.train(exp)
-            strategy.eval(self.benchmark.test_stream)
-        with self.assertWarns(UserWarning):
-            strategy.eval(self.benchmark.test_stream[:2])
-
     def test_no_errors(self):
         eval_plugin = EvaluationPlugin(
             accuracy_metrics(stream=True),
             loggers=None,
-            benchmark=self.benchmark,
             strict_checks=True,
         )
         strategy = Naive(

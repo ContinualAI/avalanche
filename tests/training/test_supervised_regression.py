@@ -26,7 +26,6 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks.scenarios import ClassificationExperience
-from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.models import DynamicModule, SimpleMLP, MTSimpleMLP
 from avalanche.models.dynamic_optimizers import reset_optimizer
@@ -374,7 +373,7 @@ class OldBaseStrategy:
 
         for module in model.modules():
             if isinstance(module, DynamicModule):
-                module.adaptation(self.experience.dataset)
+                module.adaptation(self.experience)
         return model.to(self.device)
 
     def forward(self):
@@ -422,9 +421,7 @@ class OldCumulative(OldBaseStrategy):
         if self.dataset is None:
             self.dataset = self.experience.dataset
         else:
-            self.dataset = AvalancheConcatDataset(
-                [self.dataset, self.experience.dataset]
-            )
+            self.dataset = self.dataset.concat(self.experience.dataset)
         self.adapted_dataset = self.dataset
 
 

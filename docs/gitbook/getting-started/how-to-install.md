@@ -14,19 +14,37 @@ you can install Avalanche with pip:
 pip install avalanche-lib
 ```
 
-That's it. Now you can start using Avalanche.
+This will install the core version of Avalanche, without extra packages (e.g., object detection support, reinforcement learning support). To install all the extra packages run:
 
-## Install the Master Branch Using Pip
+```bash
+pip install avalanche-lib[all]
+```
+
+You can install also specific extra packages by specifying the appropriate code name within the square brackets. This is the complete list of options:
+
+```bash
+pip install avalanche-lib[extra] # supports for specific functionalities (e.g. specific strategies)
+pip install avalanche-lib[rl] # reinforcement learning support
+pip install avalanche-lib[detection] # object detection support
+```
+
+Avalanche will raise an error if you need one extra package and will suggest the appropriate package to install.
+
+**Note** that in some alternatives to bash like zsh you may need to enclose \`avalanche-lib\[code]\` into quotation marks ( " " ), since square brackets are used as special characters.
+
+## 📥 Install the Master Branch Using Pip
 
 If you want, you can install Avalanche directly from the master branch (latest version) in a single command. Make sure to have **pytorch** already installed in your environment, then execute
 
-`pip install git+https://github.com/ContinualAI/avalanche.git`
+```shell
+pip install git+https://github.com/ContinualAI/avalanche.git
+```
 
 To update avalanche to the latest version, uninstall the package with `pip uninstall avalanche-lib` and then execute again the pip install command.
 
-## Install the Master Branch Using Anaconda
+## 🐍 Install the Master Branch Using Anaconda
 
-We suggest you to use the pip package, but if you need some recent features you may want to install directly from the master branch. In general, the master branch is well tested and safe to use. However, the API of new features may change more frequently or break backward compatibility. Reproducibility is also easier if you use the pip package.
+We suggest you to use the _pip package_, but if you need some recent features you may want to install directly from the **master branch**. In general, the master branch is well tested and safe to use. However, the API of new features may change more frequently or break backward compatibility. _Reproducibility is also easier if you use the pip package._
 
 ```bash
 # choose your python version

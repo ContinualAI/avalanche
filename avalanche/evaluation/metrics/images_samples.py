@@ -13,6 +13,7 @@ from avalanche.evaluation.metric_results import (
     MetricValue,
 )
 from avalanche.evaluation.metric_utils import get_metric_name
+from avalanche.benchmarks.utils import DefaultTransformGroups
 
 try:
     from typing import Literal
@@ -21,8 +22,8 @@ except ImportError:
 
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
-    from avalanche.benchmarks.utils import AvalancheDataset
+    from avalanche.training.templates import SupervisedTemplate
+    from avalanche.benchmarks.utils import make_classification_dataset
 
 
 class ImagesSamplePlugin(PluginMetric):
@@ -137,21 +138,20 @@ class ImagesSamplePlugin(PluginMetric):
         ]
 
     def _make_dataloader(
-        self, data: "AvalancheDataset", mb_size: int
+        self, data: "make_classification_dataset", mb_size: int
     ) -> DataLoader:
         if self.disable_augmentations:
-            data = data.replace_transforms(
-                transform=MaybeToTensor(),
-                target_transform=None,
-            )
+            data = data.replace_current_transform_group(_MaybeToTensor())
+        collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
         return DataLoader(
             dataset=data,
             batch_size=min(mb_size, self.n_wanted_images),
             shuffle=True,
+            collate_fn=collate_fn,
         )
 
 
-class MaybeToTensor(ToTensor):
+class _MaybeToTensor(ToTensor):
     """Convert a ``PIL Image`` or ``numpy.ndarray`` to tensor. Pytorch tensors
     are left as is.
     """

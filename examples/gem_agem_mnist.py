@@ -1,16 +1,3 @@
-import torch
-import argparse
-from avalanche.benchmarks import PermutedMNIST, SplitMNIST
-from avalanche.training.supervised import GEM, AGEM
-from avalanche.models import SimpleMLP
-from avalanche.evaluation.metrics import (
-    forgetting_metrics,
-    accuracy_metrics,
-    loss_metrics,
-)
-from avalanche.logging import InteractiveLogger
-from avalanche.training.plugins import EvaluationPlugin
-
 """
 This example tests both GEM and A-GEM on Split MNIST and Permuted MNIST.
 GEM is a streaming strategy, that is it uses only 1 training epochs.
@@ -45,8 +32,20 @@ Hidden size 256.
 Results for 1024 patterns per experience and sample size, 1 training epoch.
 Average Accuracy over all experiences at the end of training on the last 
 experience: 67.0%
-
 """
+
+import torch
+import argparse
+from avalanche.benchmarks import PermutedMNIST, SplitMNIST
+from avalanche.training.supervised import GEM, AGEM
+from avalanche.models import SimpleMLP
+from avalanche.evaluation.metrics import (
+    forgetting_metrics,
+    accuracy_metrics,
+    loss_metrics,
+)
+from avalanche.logging import InteractiveLogger
+from avalanche.training.plugins import EvaluationPlugin
 
 
 def main(args):
@@ -63,11 +62,11 @@ def main(args):
     )
     print(f"Using device: {device}")
 
-    # create scenario
+    # create benchmark
     if args.scenario == "pmnist":
-        scenario = PermutedMNIST(n_experiences=args.permutations)
+        benchmark = PermutedMNIST(n_experiences=args.permutations)
     elif args.scenario == "smnist":
-        scenario = SplitMNIST(n_experiences=5, return_task_id=False)
+        benchmark = SplitMNIST(n_experiences=5, return_task_id=False)
     else:
         raise ValueError("Wrong scenario name. Allowed pmnist, smnist.")
 
@@ -113,13 +112,13 @@ def main(args):
     # train on the selected scenario with the chosen strategy
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start training on experience ", experience.current_experience)
 
         strategy.train(experience)
         print("End training on experience ", experience.current_experience)
         print("Computing accuracy on the test set")
-        results.append(strategy.eval(scenario.test_stream[:]))
+        results.append(strategy.eval(benchmark.test_stream[:]))
 
 
 if __name__ == "__main__":

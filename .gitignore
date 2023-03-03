@@ -9,3 +9,6 @@ logs/
 *.pyc
 doc_html/*
 .coverage
+tb_data/
+csvlogs/
+docs/generated/

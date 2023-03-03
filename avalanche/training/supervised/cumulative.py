@@ -4,10 +4,11 @@ from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import ConcatDataset
 
-from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.benchmarks.utils import concat_classification_datasets
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 
 
 class Cumulative(SupervisedTemplate):
@@ -27,7 +28,7 @@ class Cumulative(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """Init.
@@ -71,7 +72,7 @@ class Cumulative(SupervisedTemplate):
         if self.dataset is None:
             self.dataset = self.experience.dataset
         else:
-            self.dataset = AvalancheConcatDataset(
+            self.dataset = concat_datasets(
                 [self.dataset, self.experience.dataset]
             )
         self.adapted_dataset = self.dataset

@@ -2,29 +2,14 @@
 This is a simple example on how to use the Dataset inspection plugins.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-
 import argparse
 from datetime import datetime
 
 import torch
 import torch.optim.lr_scheduler
 from torch.optim import Adam
-from torchvision.transforms import (
-    Compose,
-    RandomCrop,
-    ToTensor,
-    RandomHorizontalFlip,
-    Normalize,
-)
 
 from avalanche.benchmarks import SplitCIFAR10
-from avalanche.evaluation.metric_utils import (
-    repartition_bar_chart_image_creator,
-)
 from avalanche.evaluation.metrics.labels_repartition import (
     labels_repartition_metrics,
 )
@@ -43,12 +28,12 @@ def main(cuda: int):
     device = torch.device(
         f"cuda:{cuda}" if torch.cuda.is_available() else "cpu"
     )
-    # --- SCENARIO CREATION
-    scenario = SplitCIFAR10(n_experiences=2, seed=42)
+    # --- BENCHMARK CREATION
+    benchmark = SplitCIFAR10(n_experiences=2, seed=42)
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes, input_size=196608 // 64)
+    model = SimpleMLP(num_classes=benchmark.n_classes, input_size=196608 // 64)
 
     # choose some metrics and evaluation method
     eval_plugin = EvaluationPlugin(
@@ -83,9 +68,9 @@ def main(cuda: int):
     )
 
     # TRAINING LOOP
-    for i, experience in enumerate(scenario.train_stream, 1):
+    for i, experience in enumerate(benchmark.train_stream, 1):
         cl_strategy.train(experience)
-        cl_strategy.eval(scenario.test_stream[:i])
+        cl_strategy.eval(benchmark.test_stream[:i])
 
 
 if __name__ == "__main__":

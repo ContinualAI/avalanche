@@ -23,13 +23,20 @@
 #
 import os
 import sys
+
+import pkgutil
+from importlib import import_module
+
+from jinja2.filters import FILTERS
+
+
 sys.path.insert(0, os.path.abspath('..'))
 
 
 # -- Project information -----------------------------------------------------
 
 project = u'Avalanche'
-copyright = u'2021, ContinualAI'
+copyright = u'2022, ContinualAI'
 author = u'ContinualAI'
 
 # The short X.Y version
@@ -55,13 +62,17 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.githubpages',
+    'sphinx.ext.coverage',
     'sphinx_rtd_theme',
+    'sphinx_copybutton'
 ]
 
 autosummary_generate = True
 
+coverage_show_missing_items = True
+
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['./_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -77,12 +88,12 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = [u'_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = [u'_build', 'Thumbs.db', '.DS_Store', '_templates']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -224,3 +235,212 @@ epub_exclude_files = ['search.html']
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+
+# -- Doc Coverage -------------------------------------------------------------
+from sphinx.ext.coverage import CoverageBuilder
+import avalanche
+import inspect
+import pkgutil
+
+
+# These classes are currently not documented in the api-doc. Some of these may
+# be private, so it's ok not to add them. If you feel they should be documented
+# remove them from this list and add them in some .rst file.
+# You can check coverage with the command:
+#   sphinx-build -b coverage . _build
+undocumented_classes_to_ignore = [
+    # benchmarks
+    'IDataset',
+    'TensorMNIST',
+    'SpeechCommandsData',
+    'ClassAccuracyPluginMetric',
+    'MeanScoresTrainPluginMetric',
+    'MeanScoresEvalPluginMetric',
+    'AMCAPluginMetric',
+    'DictLVIS',
+    'LvisEvaluator',
+    'CocoEvaluator',
+    'DetectionEvaluator',
+
+    'ClassificationDataset',
+    'LazyClassMapping',
+    'TupleTLabel',
+    'YTransformDef',
+    'StreamDef',
+    'Flatten',
+    'XComposedTransformDef',
+    'SubSequence',
+    'SimpleDownloadableDataset',
+    'LazyDatasetSequence',
+    'AbstractClassificationExperience',
+    'INATURALIST_DATA',
+    'FilelistDataset',
+    'ClassificationScenarioStream',
+    'LazySubsequence',
+
+    'MaskedAttributeError',
+    'MultiParamTransform',
+    'PixelsPermutation',
+    'SubsetWithTargets',
+    'IClassificationDataset',
+    'StreamUserDef',
+    'ClassificationSubSequence',
+    'ConstantSequence',
+    'SequenceDataset',
+    'DownloadableDataset',
+    'LazyConcatIntTargets',
+    'ClassificationSubset',
+    'PathsDataset',
+    'Compose',
+    'VideoSubSequence',
+    'LazyConcatTargets',
+    'PennFudanDataset',
+    'IDatasetWithTargets',
+    'ISupportedClassificationDataset',
+    'LazyStreamDefinition',
+    'ITensorDataset',
+    'XTransformDef',
+    'LazyClassesInExps',
+    'LazyStreamClassesInExps',
+
+
+    # evaluation
+    'MACPluginMetric',
+    'CPUPluginMetric',
+    'TimePluginMetric',
+    'RAMPluginMetric',
+    'GPUPluginMetric',
+    'DiskPluginMetric',
+    'TopkAccuracyPluginMetric',
+    'AccuracyPluginMetric',
+    'MeanScoresPluginMetricABC',
+    'GenericStreamForgetting',
+    'GenericStreamForwardTransfer',
+    'GenericExperienceForwardTransfer',
+    'GenericExperienceForgetting',
+    'LossPluginMetric',
+
+    'TensorEncoder',
+    'TensorImage',
+    'AlternativeValues',
+    'LabelsRepartitionPlugin',
+
+    # Training
+    'AlreadyTrainedError',
+
+    'VAETraining',
+    'Clock',
+    'PeriodicEval',
+
+    # Utils
+    'LayerAndParameter',
+    'ComposeMaxParamsWarning',
+
+    # Models
+    'IdentityShortcut',
+    'ResidualBlock',
+    'Generator',
+
+    # Other
+    'L2Normalization',
+    'PPPloss',
+
+    'COCO',
+    'GenericClassificationExperience',
+    'LVISAnnotationEntry',
+    'ExperienceMode',
+    'LVISImgEntry',
+    'VAEMLPDecoder',
+    'MultiTaskDecorator',
+    'CLEARMetric',
+    'LVISDetectionTargets',
+    'LVIS',
+    'GenericCLScenario',
+    'BatchRenorm2D',
+    'OpenLORISDataset',
+    'VAEMLPEncoder',
+    'LvisDataset',
+]
+undocumented_classes_to_ignore = set(undocumented_classes_to_ignore)
+
+
+def coverage_post_process(app, exception):
+    if exception is not None:
+        return
+
+    # Only run this test for the coverage build
+    if not isinstance(app.builder, CoverageBuilder):
+        return
+
+    # we collected what has been already documented by sphinx to compare it
+    # with the full list of classes of Avalanche.
+    doc_classes = app.env.domaindata['py']['objects']
+    doc_classes = set([s.split('.')[-1] for s in doc_classes])
+    # print(doc_classes)
+    # STRONG ASSUMPTION HERE: unique names for classes in different namespaces.
+    # Otherwise, we need to detect the case when mylib.Type is documented but
+    # mylib.a.Type (submodule) is not, and I don't want to do this. Also,
+    # uniqueness hold in Avalanche (for the moment).
+
+    def is_not_internal(name):
+        """Internal modules/classes start with underscores."""
+        split_name = name.split(".")
+        for name in split_name:
+            if name[0] == "_":
+                return False
+        return True
+
+    # print("Search classes:")
+    try:
+        lib_classes = set()
+        for _, modname, ispkg in pkgutil.walk_packages(
+                path=avalanche.__path__,
+                prefix=avalanche.__name__ + '.'):
+
+            # print("MODULE: " + modname)
+            try:
+                for name, obj in inspect.getmembers(sys.modules[modname]):
+                    # print(name)
+                    if inspect.isclass(obj) and obj.__module__.startswith('avalanche') and is_not_internal(obj.__module__ + '.' + name):
+                        # print("CLASS: " + obj.__module__ + '.' + obj.__name__)
+                        lib_classes.add(name)
+            except Exception as e:
+                # TODO: I got some errors on lvis.
+                # Also seems to crash on module attributes that are
+                # instance variables instead of classes/functions/modules.
+                # No idea why, but we can ignore them for the moment.
+                print(f"KeyError on module {modname}, class {name}, exception "
+                      f"type {type(e)}")
+
+    except Exception as e:
+        print("ERROR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print(f"on module {modname}, class {name}, exception type {type(e)}")
+        print("ERROR MESSAGE: ", e)
+
+    print(lib_classes)
+
+    missing_classes = lib_classes - doc_classes
+    missing_classes = missing_classes - undocumented_classes_to_ignore
+    print("MISSING CLASSES: ")
+    for el in missing_classes:
+        print(f"\t- {el}")
+
+
+# Called automatically by Sphinx, making this `conf.py` an "extension".
+def setup(app):
+    app.connect("build-finished", coverage_post_process)
+
+
+def get_attributes(item, obj, modulename):
+    """Filters attributes to be used in autosummary.
+    Fixes import errors when documenting inherited attributes with autosummary.
+    """
+    module = import_module(modulename)
+    if hasattr(getattr(module, obj), item):
+        return f"~{obj}.{item}"
+    else:
+        return ""
+
+
+FILTERS["get_attributes"] = get_attributes

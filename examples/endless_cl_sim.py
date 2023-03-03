@@ -9,14 +9,12 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-
 """
 This example makes use of the Endless-Continual-Learning-Simulator's derived 
 dataset scenario, trained with a Naive strategy. The default scenario is an
 incremental classification learning setting ('scenario = Classes'), however
 also the 'Illumination' and 'Weather' learning scenarios can be selected.
 """
-
 
 import argparse
 
@@ -42,7 +40,7 @@ def main(args):
     model = SimpleCNN(num_classes=5)
 
     # CL Benchmark Creation
-    scenario = EndlessCLSim(
+    benchmark = EndlessCLSim(
         scenario=args.scenario,  # "Classes", "Illumination", "Weather"
         sequence_order=None,
         task_order=None,
@@ -50,8 +48,8 @@ def main(args):
         dataset_root=args.dataset_root,
     )
 
-    train_stream = scenario.train_stream
-    test_stream = scenario.test_stream
+    train_stream = benchmark.train_stream
+    test_stream = benchmark.test_stream
 
     # Prepare for training & testing
     optimizer = Adam(model.parameters(), lr=0.001)
@@ -70,7 +68,7 @@ def main(args):
 
     # Train and test loop
     for train_task in train_stream:
-        strategy.train(train_task, num_worker=0)
+        strategy.train(train_task)
         strategy.eval(test_stream)
 
     return

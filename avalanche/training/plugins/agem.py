@@ -1,10 +1,9 @@
 import warnings
+import random
 from typing import List
-
 import torch
-from torch.utils.data import random_split
 
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.data_loader import (
     GroupBalancedInfiniteDataLoader,
 )
@@ -35,18 +34,19 @@ class AGEMPlugin(SupervisedPlugin):
         self.patterns_per_experience = int(patterns_per_experience)
         self.sample_size = int(sample_size)
 
-        self.buffers: List[AvalancheDataset] = []  # one AvalancheDataset for
+        self.buffers: List[
+            make_classification_dataset
+        ] = []  # one AvalancheDataset for
         # each experience.
         self.buffer_dataloader = None
         self.buffer_dliter = None
-
         self.reference_gradients = None
-        self.memory_x, self.memory_y = None, None
 
     def before_training_iteration(self, strategy, **kwargs):
         """
         Compute reference gradient on memory sample.
         """
+
         if len(self.buffers) > 0:
             strategy.model.train()
             strategy.optimizer.zero_grad()
@@ -125,16 +125,18 @@ class AGEMPlugin(SupervisedPlugin):
             )
         removed_els = len(dataset) - self.patterns_per_experience
         if removed_els > 0:
-            dataset, _ = random_split(
-                dataset, [self.patterns_per_experience, removed_els]
-            )
+            indices = list(range(len(dataset)))
+            random.shuffle(indices)
+            dataset = dataset.subset(indices[:self.patterns_per_experience])
+
         self.buffers.append(dataset)
+
         persistent_workers = num_workers > 0
         self.buffer_dataloader = GroupBalancedInfiniteDataLoader(
             self.buffers,
-            batch_size=self.sample_size // len(self.buffers),
+            batch_size=(self.sample_size // len(self.buffers)),
             num_workers=num_workers,
-            pin_memory=True,
+            pin_memory=False,
             persistent_workers=persistent_workers,
         )
         self.buffer_dliter = iter(self.buffer_dataloader)

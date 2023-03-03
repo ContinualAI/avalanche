@@ -1,7 +1,9 @@
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.models.dynamic_modules import MultiTaskModule, DynamicModule
 import torch.nn as nn
 from collections import OrderedDict
+
+from avalanche.benchmarks.scenarios import CLExperience
 
 
 def avalanche_forward(model, x, task_labels):
@@ -11,10 +13,10 @@ def avalanche_forward(model, x, task_labels):
         return model(x)
 
 
-def avalanche_model_adaptation(model: nn.Module, dataset: AvalancheDataset):
+def avalanche_model_adaptation(model: nn.Module, experience: CLExperience):
     for module in model.modules():
         if isinstance(module, DynamicModule):
-            module.adaptation(dataset)
+            module.adaptation(experience)
 
 
 class FeatureExtractorBackbone(nn.Module):

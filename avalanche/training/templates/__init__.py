@@ -11,5 +11,9 @@ Templates are the backbone that supports the plugin systems.
 """
 from .base import BaseTemplate
 from .base_sgd import BaseSGDTemplate
-from .online_supervised import SupervisedOnlineTemplate
-from .supervised import SupervisedTemplate
+from .common_templates import (
+    SupervisedTemplate,
+    SupervisedMetaLearningTemplate,
+    OnlineSupervisedTemplate,
+    OnlineSupervisedMetaLearningTemplate
+)

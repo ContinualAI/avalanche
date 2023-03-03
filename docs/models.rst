@@ -14,7 +14,7 @@ models
 .. currentmodule:: avalanche.models
 
 Dynamic Modules
-^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
 
 Dynamic Modules are Pytorch modules that can be incrementally expanded
 to allow architectural modifications (multi-head classifiers, progressive
@@ -23,39 +23,67 @@ networks, ...).
 .. autosummary::
     :toctree: generated
 
+    DynamicModule
     MultiTaskModule
     IncrementalClassifier
     MultiHeadClassifier
-    TrainEvalModel
+
 
 Models
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+| Neural network architectures that can be used as backbones for CL experiments.
+
 .. autosummary::
     :toctree: generated
 
-    PNN
+    MLP
     make_icarl_net
+    IcarlNet
     SimpleMLP_TinyImageNet
     SimpleCNN
     MTSimpleCNN
     SimpleMLP
     MTSimpleMLP
+    SimpleSequenceClassifier
+    MTSimpleSequenceClassifier
     MobilenetV1
     NCMClassifier
-    SLDAResNetModel
-    pytorchcv_wrapper.get_model
+    SLDAResNetModel  
+    MlpVAE
+    LeNet5
+    SlimResNet18
+    MTSlimResNet18
 
 
-Model Utilities
-^^^^^^^^^^^^^^^^^^^^
+Progressive Neural Networks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Modules that implement progressive neural networks models, layers, and adapters.
+
+.. autosummary::
+    :toctree: generated
+    
+    PNN
+    PNNLayer
+    PNNColumn    
+    LinearAdapter
+    MLPAdapter
+
+
+Model Wrappers and Utilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Wrappers and functions that add utility support to your models.
 
 .. autosummary::
     :toctree: generated
 
+    TrainEvalModel
+    FeatureExtractorBackbone
+    BaseModel
     avalanche_forward
     as_multitask
     initialize_icarl_net
+    pytorchcv_wrapper.get_model
 
 Dynamic optimizer utilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -8,10 +8,10 @@ from torch.nn import CrossEntropyLoss, Module, Identity
 from torch.optim import SGD
 
 from avalanche.benchmarks.utils import (
-    AvalancheDataset,
-    AvalancheDatasetType,
-    AvalancheTensorDataset,
+    make_classification_dataset,
+    make_tensor_classification_dataset,
 )
+from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.storage_policy import (
@@ -23,7 +23,7 @@ from avalanche.training.storage_policy import (
     ParametricBuffer,
 )
 from avalanche.training.supervised import Naive
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from tests.unit_tests_utils import get_fast_benchmark
 
 
@@ -135,10 +135,8 @@ class SelectionStrategyTest(unittest.TestCase):
         # When
         # Features are [[0], [4], [5]]
         # Center is [3]
-        dataset = AvalancheTensorDataset(
-            tensor([0, -4, 5]).float(),
-            zeros(3),
-            dataset_type=AvalancheDatasetType.CLASSIFICATION,
+        dataset = make_tensor_classification_dataset(
+            tensor([0, -4, 5]).float(), zeros(3)
         )
         strategy = MagicMock(device="cpu", eval_mb_size=8)
 

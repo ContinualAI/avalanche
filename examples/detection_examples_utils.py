@@ -4,7 +4,11 @@ from avalanche.benchmarks import StreamUserDef
 from avalanche.benchmarks.scenarios.detection_scenario import (
     DetectionCLScenario,
 )
-from avalanche.benchmarks.utils import AvalancheDataset, AvalancheSubset
+from avalanche.benchmarks.utils import (
+    make_classification_dataset,
+    classification_subset,
+)
+from avalanche.benchmarks.utils.collate_functions import detection_collate_fn
 
 
 def split_detection_benchmark(
@@ -41,15 +45,20 @@ def split_detection_benchmark(
     exp_n_imgs = len(train_dataset) // n_experiences
     remaining = len(train_dataset) % n_experiences
 
-    train_dataset_avl = AvalancheDataset(
+    # Note: in future versions of Avalanche, the make_classification_dataset
+    # function will be replaced with a more specific function for object 
+    # detection datasets.
+    train_dataset_avl = make_classification_dataset(
         train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
+        collate_fn=detection_collate_fn
     )
-    test_dataset_avl = AvalancheDataset(
+    test_dataset_avl = make_classification_dataset(
         test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
+        collate_fn=detection_collate_fn
     )
 
     exp_sz = [exp_n_imgs for _ in range(n_experiences)]
@@ -72,7 +81,7 @@ def split_detection_benchmark(
         n_imgs = exp_sz[exp_id]
         idx_range = train_indices[last_slice_idx : last_slice_idx + n_imgs]
         train_exps_datasets.append(
-            AvalancheSubset(train_dataset_avl, indices=idx_range)
+            classification_subset(train_dataset_avl, indices=idx_range)
         )
         last_slice_idx += n_imgs
 

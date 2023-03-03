@@ -10,7 +10,7 @@ from avalanche.logging import InteractiveLogger
 if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
     from avalanche.logging import BaseLogger
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class EvaluationPlugin:
@@ -33,9 +33,7 @@ class EvaluationPlugin:
         *metrics: Union["PluginMetric", Sequence["PluginMetric"]],
         loggers: Union["BaseLogger", Sequence["BaseLogger"]] = None,
         collect_all=True,
-        benchmark=None,
-        strict_checks=False,
-        suppress_warnings=False
+        strict_checks=False
     ):
         """Creates an instance of the evaluation plugin.
 
@@ -44,20 +42,13 @@ class EvaluationPlugin:
         :param collect_all: if True, collect in a separate dictionary all
             metric curves values. This dictionary is accessible with
             `get_all_metrics` method.
-        :param benchmark: DEPRECATED. Ignored argument.
         :param strict_checks: if True, checks that the full evaluation streams
             is used when calling `eval`. An error will be raised otherwise.
-            When False only warnings will be raised.
-        :param suppress_warnings: if True, warnings and errors will never be
-            raised from the plugin.
-            If False, warnings and errors will be raised following
-            `benchmark` and `strict_checks` behavior.
         """
         super().__init__()
         self.collect_all = collect_all
-        self.benchmark = benchmark
         self.strict_checks = strict_checks
-        self.suppress_warnings = suppress_warnings
+
         flat_metrics_list = []
         for metric in metrics:
             if isinstance(metric, Sequence):
@@ -70,21 +61,6 @@ class EvaluationPlugin:
             loggers = []
         elif not isinstance(loggers, Sequence):
             loggers = [loggers]
-
-        if benchmark is None:
-            if not suppress_warnings:
-                if strict_checks:
-                    raise ValueError(
-                        "Benchmark cannot be None " "in strict mode."
-                    )
-                else:
-                    warnings.warn(
-                        "No benchmark provided to the evaluation plugin. "
-                        "Metrics may be computed on inconsistent portion "
-                        "of streams, use at your own risk."
-                    )
-        else:
-            self.complete_test_stream = benchmark.test_stream
 
         self.loggers: Sequence["BaseLogger"] = loggers
 
@@ -209,31 +185,27 @@ class EvaluationPlugin:
 
     def before_eval(self, strategy: "SupervisedTemplate", **kwargs):
         self._update_metrics_and_loggers(strategy, "before_eval")
-        msgw = (
-            "Evaluation stream is not equal to the complete test stream. "
-            "This may result in inconsistent metrics. Use at your own risk."
-        )
         msge = (
             "Stream provided to `eval` must be the same of the entire "
             "evaluation stream."
         )
-        curr_stream = strategy.current_eval_stream[0].origin_stream
-        benchmark = curr_stream[0].origin_stream.benchmark
-        full_stream = benchmark.streams[curr_stream.name]
+        if self.strict_checks:
+            curr_stream = strategy.current_eval_stream[0].origin_stream
+            benchmark = curr_stream[0].origin_stream.benchmark
+            full_stream = benchmark.streams[curr_stream.name]
 
-        if not self.suppress_warnings and len(curr_stream) != len(full_stream):
-            if self.strict_checks:
+            if len(curr_stream) != len(full_stream):
                 raise ValueError(msge)
-            else:
-                warnings.warn(msgw)
 
 
-default_evaluator = EvaluationPlugin(
-    accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    loggers=[InteractiveLogger()],
-    suppress_warnings=True,
-)
+def default_evaluator():
+    return EvaluationPlugin(
+        accuracy_metrics(
+            minibatch=False, epoch=True, experience=True, stream=True
+        ),
+        loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        loggers=[InteractiveLogger()],
+    )
 
 
 __all__ = ["EvaluationPlugin", "default_evaluator"]

@@ -6,8 +6,8 @@ import torch
 
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.templates.base_sgd import BaseSGDTemplate
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
+    ParamData
 
 
 class MASPlugin(SupervisedPlugin):
@@ -56,7 +56,7 @@ class MASPlugin(SupervisedPlugin):
         # Progress bar
         self.verbose = verbose
 
-    def _get_importance(self, strategy: BaseSGDTemplate):
+    def _get_importance(self, strategy):
 
         # Initialize importance matrix
         importance = dict(zerolike_params_dict(strategy.model))
@@ -69,9 +69,15 @@ class MASPlugin(SupervisedPlugin):
 
         # Do forward and backward pass to accumulate L2-loss gradients
         strategy.model.train()
+        collate_fn = (
+            strategy.experience.dataset.collate_fn
+            if hasattr(strategy.experience.dataset, "collate_fn")
+            else None
+        )
         dataloader = DataLoader(
             strategy.experience.dataset,
             batch_size=strategy.train_mb_size,
+            collate_fn=collate_fn,
         )  # type: ignore
 
         # Progress bar
@@ -90,11 +96,11 @@ class MASPlugin(SupervisedPlugin):
             x = x.to(strategy.device)
 
             # Forward pass
-            strategy.model.zero_grad()
+            strategy.optimizer.zero_grad()
             out = avalanche_forward(strategy.model, x, t)
 
             # Average L2-Norm of the output
-            loss = torch.norm(out, p="fro", dim=1).mean()
+            loss = torch.norm(out, p="fro", dim=1).pow(2).mean()
             loss.backward()
 
             # Accumulate importance
@@ -104,19 +110,18 @@ class MASPlugin(SupervisedPlugin):
                     # to be None for all the heads different from the
                     # current one.
                     if param.grad is not None:
-                        importance[name] += param.grad.abs() * len(batch)
+                        importance[name].data += param.grad.abs()
 
         # Normalize importance
-        importance = {
-            name: importance[name] / len(dataloader)
-            for name in importance.keys()
-        }
+        for k in importance.keys():
+            importance[k].data /= float(len(dataloader))
 
         return importance
 
-    def before_backward(self, strategy: BaseSGDTemplate, **kwargs):
+    def before_backward(self, strategy, **kwargs):
         # Check if the task is not the first
         exp_counter = strategy.clock.train_exp_counter
+
         if exp_counter == 0:
             return
 
@@ -134,34 +139,38 @@ class MASPlugin(SupervisedPlugin):
         for name, param in strategy.model.named_parameters():
             if name in self.importance.keys():
                 loss_reg += torch.sum(
-                    self.importance[name] * (param - self.params[name]).pow(2)
+                    self.importance[name].expand(param.shape) *
+                    (param - self.params[name].expand(param.shape)).pow(2)
                 )
 
         # Update loss
         strategy.loss += self._lambda * loss_reg
 
-    def before_training(self, strategy: BaseSGDTemplate, **kwargs):
-        # Parameters before the first task starts
-        if not self.params:
-            self.params = dict(copy_params_dict(strategy.model))
-
-        # Initialize Fisher information weight importance
-        if not self.importance:
-            self.importance = dict(zerolike_params_dict(strategy.model))
-
-    def after_training_exp(self, strategy: BaseSGDTemplate, **kwargs):
+    def after_training_exp(self, strategy, **kwargs):
         self.params = dict(copy_params_dict(strategy.model))
+
+        # Get importance
+        exp_counter = strategy.clock.train_exp_counter
+        if exp_counter == 0:
+            self.importance = self._get_importance(strategy)
+            return
+        else:
+            curr_importance = self._get_importance(strategy)
 
         # Check if previous importance is available
         if not self.importance:
             raise ValueError("Importance is not available")
 
-        # Get importance
-        curr_importance = self._get_importance(strategy)
-
         # Update importance
-        for name in self.importance.keys():
-            self.importance[name] = (
-                self.alpha * self.importance[name]
-                + (1 - self.alpha) * curr_importance[name]
-            )
+        for name in curr_importance.keys():
+            new_shape = curr_importance[name].data.shape
+            if name not in self.importance:
+                self.importance[name] = ParamData(
+                    name, curr_importance[name].shape,
+                    device=curr_importance[name].device,
+                    init_tensor=curr_importance[name].data.clone())
+            else:
+                self.importance[name].data = (
+                    self.alpha * self.importance[name].expand(new_shape)
+                    + (1 - self.alpha) * curr_importance[name].data
+                )

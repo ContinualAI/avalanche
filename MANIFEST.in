@@ -1,0 +1,2 @@
+include extra_dependencies.txt
+include avalanche/benchmarks/datasets/mini_imagenet/csv_files/*.csv

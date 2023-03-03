@@ -12,10 +12,14 @@
 from collections import defaultdict
 from typing import Sequence, Iterable, Dict, Optional, Iterator
 
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+)
+from avalanche.benchmarks.utils.data import AvalancheDataset
 
 
-class LazyDatasetSequence(Sequence[AvalancheDataset]):
+class LazyDatasetSequence(Sequence[make_classification_dataset]):
     """
     A lazily initialized sequence of datasets.
 
@@ -30,11 +34,11 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
 
     def __init__(
         self,
-        experience_generator: Iterable[AvalancheDataset],
+        experience_generator: Iterable[make_classification_dataset],
         stream_length: int,
     ):
         self._exp_source: Optional[
-            Iterable[AvalancheDataset]
+            Iterable[make_classification_dataset]
         ] = experience_generator
         """
         The source of the experiences stream, as an Iterable.
@@ -52,7 +56,9 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
         The ID of the next experience that will be generated.
         """
 
-        self._loaded_experiences: Dict[int, AvalancheDataset] = dict()
+        self._loaded_experiences: Dict[
+            int, make_classification_dataset
+        ] = dict()
         """
         The sequence of experiences obtained from the generator.
         """
@@ -62,9 +68,9 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
         The length of the stream.
         """
         try:
-            self._exp_generator: Optional[Iterator[AvalancheDataset]] = iter(
-                self._exp_source
-            )
+            self._exp_generator: Optional[
+                Iterator[make_classification_dataset]
+            ] = iter(self._exp_source)
         except TypeError as e:
             if callable(self._exp_source):
                 # https://stackoverflow.com/a/17092033
@@ -109,7 +115,7 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
         """
         return self._stream_length
 
-    def __getitem__(self, exp_idx: int) -> AvalancheDataset:
+    def __getitem__(self, exp_idx: int) -> make_classification_dataset:
         """
         Gets the dataset associated to an experience.
 
@@ -125,7 +131,7 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
 
     def get_experience_if_loaded(
         self, exp_idx: int
-    ) -> Optional[AvalancheDataset]:
+    ) -> Optional[make_classification_dataset]:
         """
         Gets the dataset associated to an experience.
 
@@ -197,7 +203,9 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
 
         for exp_id in range(self._next_exp_id, to_exp + 1):
             try:
-                generated_exp: AvalancheDataset = next(self._exp_generator)
+                generated_exp: AvalancheDataset = next(
+                    self._exp_generator
+                )
             except StopIteration:
                 raise RuntimeError(
                     f"Unexpected end of stream. The generator was supposed to "
@@ -205,7 +213,7 @@ class LazyDatasetSequence(Sequence[AvalancheDataset]):
                     f"while generating experience {exp_id}."
                 )
 
-            if not isinstance(generated_exp, AvalancheDataset):
+            if not isinstance(generated_exp, ClassificationDataset):
                 raise ValueError(
                     "All experience datasets must be subclasses of"
                     " AvalancheDataset"

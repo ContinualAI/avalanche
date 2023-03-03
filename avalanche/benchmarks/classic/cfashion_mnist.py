@@ -13,14 +13,14 @@
 Fashion MNIST split CL scenario. """
 from pathlib import Path
 from typing import Sequence, Optional, Union, Any
-from torchvision.datasets import FashionMNIST
 from torchvision import transforms
 
 from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.datasets.external_datasets.fmnist import \
+    get_fmnist_dataset
 
 _default_fmnist_train_transform = transforms.Compose(
     [transforms.ToTensor(), transforms.Normalize((0.2860,), (0.3530,))]
@@ -39,6 +39,7 @@ def SplitFMNIST(
     seed: Optional[int] = None,
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
+    class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_fmnist_train_transform,
     eval_transform: Optional[Any] = _default_fmnist_eval_transform,
     dataset_root: Union[str, Path] = None
@@ -90,7 +91,11 @@ def SplitFMNIST(
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to false.
+        randomly shuffled. Default to True.
+    :param class_ids_from_zero_in_each_exp: If True, original class IDs
+        will be mapped to range [0, n_classes_in_exp) for each experience.
+        Defaults to False. Mutually exclusive with the
+        ``class_ids_from_zero_from_first_exp`` parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -109,43 +114,21 @@ def SplitFMNIST(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    fmnist_train, fmnist_test = _get_fmnist_dataset(dataset_root)
+    fmnist_train, fmnist_test = get_fmnist_dataset(dataset_root)
 
-    if return_task_id:
-        return nc_benchmark(
-            train_dataset=fmnist_train,
-            test_dataset=fmnist_test,
-            n_experiences=n_experiences,
-            task_labels=True,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            per_exp_classes={0: 5} if first_batch_with_half_classes else None,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            train_dataset=fmnist_train,
-            test_dataset=fmnist_test,
-            n_experiences=n_experiences,
-            task_labels=False,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            per_exp_classes={0: 5} if first_batch_with_half_classes else None,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-
-
-def _get_fmnist_dataset(dataset_root):
-    if dataset_root is None:
-        dataset_root = default_dataset_location("fashionmnist")
-
-    train_set = FashionMNIST(dataset_root, train=True, download=True)
-    test_set = FashionMNIST(dataset_root, train=False, download=True)
-    return train_set, test_set
+    return nc_benchmark(
+        train_dataset=fmnist_train,
+        test_dataset=fmnist_test,
+        n_experiences=n_experiences,
+        task_labels=return_task_id,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        shuffle=shuffle,
+        per_exp_classes={0: 5} if first_batch_with_half_classes else None,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 __all__ = ["SplitFMNIST"]

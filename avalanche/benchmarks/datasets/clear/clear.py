@@ -3,9 +3,9 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 03-31-2022                                                             #
-# Author: Zhiqiu Lin                                                           #
-# E-mail: zl279@cornell.edu                                                    #
+# Date: 05-17-2022                                                             #
+# Author: Zhiqiu Lin, Jia Shi                                                  #
+# E-mail: zl279@cornell.edu, jiashi@andrew.cmu.edu                             #
 # Website: https://clear-benchmark.github.io                                   #
 ################################################################################
 
@@ -16,7 +16,6 @@ from typing import Union, List
 import json
 import os
 
-import gdown
 import torch
 from torchvision.datasets.folder import default_loader
 
@@ -25,12 +24,13 @@ from avalanche.benchmarks.datasets import (
     default_dataset_location,
 )
 from avalanche.benchmarks.utils import default_flist_reader
-from avalanche.benchmarks.datasets.clear import clear10_data
+from avalanche.benchmarks.datasets.clear import clear_data
 
-_CLEAR_DATA_MODULE = {"clear10": clear10_data}
+_CLEAR_DATA_SPLITS = {"clear10", "clear100_cvpr2022"}
 
 CLEAR_FEATURE_TYPES = {
-    "clear10": ["moco_b0", "moco_imagenet", "byol_imagenet", "imagenet"]
+    "clear10": ["moco_b0", "moco_imagenet", "byol_imagenet", "imagenet"],
+    "clear100_cvpr2022": ["moco_b0"],
 }
 
 SPLIT_OPTIONS = ["all", "train", "test"]
@@ -71,9 +71,9 @@ class CLEARDataset(DownloadableDataset):
         if root is None:
             root = default_dataset_location(data_name)
 
-        assert data_name in _CLEAR_DATA_MODULE
+        assert data_name in _CLEAR_DATA_SPLITS
         self.data_name = data_name
-        self.module = _CLEAR_DATA_MODULE[data_name]
+        self.module = clear_data
 
         super(CLEARDataset, self).__init__(
             root, download=download, verbose=True
@@ -81,20 +81,14 @@ class CLEARDataset(DownloadableDataset):
         self._load_dataset()
 
     def _download_dataset(self) -> None:
-        base_url = self.module.base_gdrive_url
-        all_name_url_md5 = [
-            (item[0], base_url + item[1], item[2])
-            for item in self.module.name_gdriveid_md5
-        ]
+        target_module = getattr(self.module, self.data_name)
 
-        for name, gdrive_url, md5 in all_name_url_md5:
+        for name, base_url in target_module:
             if self.verbose:
                 print("Downloading " + name + "...")
-
+            url = os.path.join(base_url, name)
             filepath = self.root / name
-            gdown.download(gdrive_url, str(filepath), quiet=False)
-            gdown.cached_download(gdrive_url, str(filepath), md5=md5)
-
+            os.system(f"wget -P {str(self.root)} {url}")
             self._extract_archive(filepath, remove_archive=True)
 
     def _load_metadata(self) -> bool:
@@ -137,9 +131,9 @@ class CLEARDataset(DownloadableDataset):
         return True
 
     def _download_error_message(self) -> str:
-        base_url = self.module.base_gdrive_url
         all_urls = [
-            base_url + item[1] for item in self.module.name_gdriveid_md5
+            os.path.join(item[1], item[0])
+            for item in getattr(self.module, self.data_name)
         ]
 
         base_msg = (
@@ -163,8 +157,8 @@ class CLEARDataset(DownloadableDataset):
         return len(self.samples)
 
 
-class CLEARImage(CLEARDataset):
-    """CLEAR Image Dataset (base class for CLEAR10Image)"""
+class _CLEARImage(CLEARDataset):
+    """CLEAR Image Dataset (base class for CLEARImage)"""
 
     def __init__(
         self,
@@ -222,12 +216,12 @@ class CLEARImage(CLEARDataset):
         aligned with target index.
         """
 
-        super(CLEARImage, self).__init__(
+        super(_CLEARImage, self).__init__(
             root, data_name=data_name, download=download, verbose=True
         )
 
     def _load_metadata(self) -> bool:
-        if not super(CLEARImage, self)._load_metadata():
+        if not super(_CLEARImage, self)._load_metadata():
             print("CLEAR has not yet been downloaded")
             return False
 
@@ -290,8 +284,8 @@ class CLEARImage(CLEARDataset):
         return len(self.targets)
 
 
-class CLEARFeature(CLEARDataset):
-    """CLEAR Feature Dataset (base class for CLEAR10Feature)"""
+class _CLEARFeature(CLEARDataset):
+    """CLEAR Feature Dataset (base class for CLEARFeature)"""
 
     def __init__(
         self,
@@ -347,12 +341,12 @@ class CLEARFeature(CLEARDataset):
         assert feature_type in CLEAR_FEATURE_TYPES[data_name]
         self.target_transform = target_transform
 
-        super(CLEARFeature, self).__init__(
+        super(_CLEARFeature, self).__init__(
             root, data_name=data_name, download=download, verbose=True
         )
 
     def _load_metadata(self) -> bool:
-        if not super(CLEARFeature, self)._load_metadata():
+        if not super(_CLEARFeature, self)._load_metadata():
             print("CLEAR has not yet been downloaded")
             return False
 
@@ -433,7 +427,7 @@ if __name__ == "__main__":
     root = f"../avalanche_datasets/{data_name}"
     if not os.path.exists(root):
         Path(root).mkdir(parents=True)
-    clear_dataset_all = CLEARImage(
+    clear_dataset_all = _CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -441,7 +435,7 @@ if __name__ == "__main__":
         seed=None,
         transform=transform,
     )
-    clear_dataset_train = CLEARImage(
+    clear_dataset_train = _CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -449,7 +443,7 @@ if __name__ == "__main__":
         seed=0,
         transform=transform,
     )
-    clear_dataset_test = CLEARImage(
+    clear_dataset_test = _CLEARImage(
         root=root,
         data_name=data_name,
         download=True,
@@ -461,7 +455,7 @@ if __name__ == "__main__":
     print("clear10 size (train): ", len(clear_dataset_train))
     print("clear10 size (test): ", len(clear_dataset_test))
 
-    clear_dataset_all_feature = CLEARFeature(
+    clear_dataset_all_feature = _CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -469,7 +463,7 @@ if __name__ == "__main__":
         split="all",
         seed=None,
     )
-    clear_dataset_train_feature = CLEARFeature(
+    clear_dataset_train_feature = _CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -477,7 +471,7 @@ if __name__ == "__main__":
         split="train",
         seed=0,
     )
-    clear_dataset_test_feature = CLEARFeature(
+    clear_dataset_test_feature = _CLEARFeature(
         root=root,
         data_name=data_name,
         download=True,
@@ -499,4 +493,11 @@ if __name__ == "__main__":
         print(len(y))
         break
 
-__all__ = ["CLEARFeature", "CLEARImage", "SEED_LIST", "CLEAR_FEATURE_TYPES"]
+__all__ = [
+    "CLEARDataset",
+    "_CLEARFeature",
+    "_CLEARImage",
+    "SEED_LIST",
+    "CLEAR_FEATURE_TYPES",
+    "_CLEAR_DATA_SPLITS",
+]

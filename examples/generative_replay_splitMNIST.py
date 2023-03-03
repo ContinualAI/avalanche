@@ -13,11 +13,6 @@
 This is a simple example on how to use the Replay strategy.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -44,12 +39,12 @@ def main(args):
         else "cpu"
     )
 
-    # --- SCENARIO CREATION
-    scenario = SplitMNIST(n_experiences=10, seed=1234)
+    # --- BENCHMARK CREATION
+    benchmark = SplitMNIST(n_experiences=10, seed=1234)
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = SimpleMLP(num_classes=benchmark.n_classes)
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
@@ -78,13 +73,13 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
         cl_strategy.train(experience)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
 
 if __name__ == "__main__":

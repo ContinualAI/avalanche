@@ -14,11 +14,12 @@ from typing import List, TYPE_CHECKING
 from avalanche.core import SupervisedPlugin
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import TextLogger
+from avalanche.benchmarks.scenarios import OnlineCLExperience
 
 from tqdm import tqdm
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class InteractiveLogger(TextLogger, SupervisedPlugin):
@@ -59,6 +60,8 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            return
         super().before_training_epoch(strategy, metric_values, **kwargs)
         self._progress.total = len(strategy.dataloader)
 
@@ -68,8 +71,37 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            return
         self._end_progress()
         super().after_training_epoch(strategy, metric_values, **kwargs)
+
+    def before_training_exp(
+        self,
+        strategy: "SupervisedTemplate",
+        metric_values: List["MetricValue"],
+        **kwargs
+    ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            experience = strategy.experience.logging()
+            if experience.is_first_subexp:
+                super().before_training_exp(strategy, metric_values, **kwargs)
+                self._progress.total = experience.sub_stream_length
+
+    def after_training_exp(
+        self,
+        strategy: "SupervisedTemplate",
+        metric_values: List["MetricValue"],
+        **kwargs
+    ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            experience = strategy.experience.logging()
+            if experience.is_last_subexp:
+                self._end_progress()
+                super().after_training_exp(strategy, metric_values, **kwargs)
+            else:
+                self._progress.update()
+                self._progress.refresh()
 
     def before_eval_exp(
         self,
@@ -95,6 +127,9 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            return
+
         self._progress.update()
         self._progress.refresh()
         super().after_training_iteration(strategy, metric_values, **kwargs)
@@ -119,3 +154,12 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         if self._pbar is not None:
             self._pbar.close()
             self._pbar = None
+
+    def __getstate__(self):
+        out = super().__getstate__()
+        del out['_pbar']
+        return out
+
+    def __setstate__(self, state):
+        state['_pbar'] = None
+        super().__setstate__(state)

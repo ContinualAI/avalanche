@@ -119,7 +119,12 @@ class GEMPlugin(SupervisedPlugin):
         """
         Update replay memory with patterns from current experience.
         """
-        dataloader = DataLoader(dataset, batch_size=batch_size)
+        collate_fn = (
+            dataset.collate_fn if hasattr(dataset, "collate_fn") else None
+        )
+        dataloader = DataLoader(
+            dataset, batch_size=batch_size, collate_fn=collate_fn
+        )
         tot = 0
         for mbatch in dataloader:
             x, y, tid = mbatch[0], mbatch[1], mbatch[-1]

@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict
 
 import torch
@@ -5,8 +6,9 @@ from torch import Tensor
 from torch.nn.functional import normalize
 from torch.nn.modules import Module
 
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training.utils import get_last_fc_layer, swap_last_fc_layer
-from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.benchmarks.utils import concat_classification_datasets
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
@@ -37,12 +39,12 @@ class CoPEPlugin(SupervisedPlugin):
         """
         :param mem_size: max number of input samples in the replay memory.
         :param n_classes: total number of classes that will be encountered. This
-        is used to output predictions for all classes, with zero probability
-        for unseen classes.
+            is used to output predictions for all classes, with zero probability
+            for unseen classes.
         :param p_size: The prototype size, which equals the feature size of the
-        last layer.
+            last layer.
         :param alpha: The momentum for the exponentially moving average of the
-        prototypes.
+            prototypes.
         :param T: The softmax temperature, used as a concentration parameter.
         :param max_it_cnt: How many processing iterations per batch (experience)
         """
@@ -52,7 +54,6 @@ class CoPEPlugin(SupervisedPlugin):
         self.max_it_cnt = max_it_cnt
 
         # Operational memory: replay memory
-        self.replay_mem = {}
         self.mem_size = mem_size  # replay memory size
         self.storage_policy = ClassBalancedBuffer(
             max_size=self.mem_size, adaptive_size=True
@@ -70,6 +71,12 @@ class CoPEPlugin(SupervisedPlugin):
         self.ppp_loss = PPPloss(self.p_mem, T=self.T)
 
         self.initialized = False
+
+        warnings.warn(
+            "The current version of COPE is not working properly."
+            "Please, use it carefully. The performance may not"
+            "be aligned with the actual COPE performance."
+        )
 
     def before_training(self, strategy, **kwargs):
         """Enforce using the PPP-loss and add a NN-classifier."""
@@ -104,16 +111,16 @@ class CoPEPlugin(SupervisedPlugin):
         This implementation requires the use of early stopping, otherwise the
         entire memory will be iterated.
         """
-        if len(self.replay_mem) == 0:
+        if len(self.storage_policy.buffer) == 0:
             return
         self.it_cnt = 0
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            AvalancheConcatDataset(self.replay_mem.values()),
+            self.storage_policy.buffer,
             oversample_small_tasks=False,
             num_workers=num_workers,
-            batch_size=strategy.train_mb_size * 2,
-            force_data_batch_size=strategy.train_mb_size,
+            batch_size=strategy.train_mb_size,
+            batch_size_mem=strategy.train_mb_size,
             shuffle=shuffle,
         )
 

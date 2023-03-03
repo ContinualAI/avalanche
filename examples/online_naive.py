@@ -10,14 +10,9 @@
 ################################################################################
 
 """
-This is a simple example on how to use the Replay strategy.
+This is a simple example on how to use the Naive strategy in an online benchmark
+created using OnlineCLScenario.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from os.path import expanduser
 
 import argparse
 import torch
@@ -27,10 +22,10 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_benchmark
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
-from avalanche.training.plugins import ReplayPlugin
-from avalanche.training.storage_policy import ReservoirSamplingBuffer
+from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -63,26 +58,26 @@ def main(args):
     )
     # ---------
 
-    # --- SCENARIO CREATION
+    # --- BENCHMARK CREATION
     mnist_train = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=True,
         download=True,
         transform=train_transform,
     )
     mnist_test = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=False,
         download=True,
         transform=test_transform,
     )
-    scenario = nc_benchmark(
+    benchmark = nc_benchmark(
         mnist_train, mnist_test, n_batches, task_labels=False, seed=1234
     )
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = SimpleMLP(num_classes=benchmark.n_classes)
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
@@ -99,10 +94,10 @@ def main(args):
     # CREATE THE STRATEGY INSTANCE (ONLINE-NAIVE)
     cl_strategy = OnlineNaive(
         model,
-        torch.optim.Adam(model.parameters(), lr=0.001),
+        torch.optim.Adam(model.parameters(), lr=0.1),
         CrossEntropyLoss(),
-        num_passes=1,
-        train_mb_size=1,
+        train_passes=1,
+        train_mb_size=10,
         eval_mb_size=32,
         device=device,
         evaluator=eval_plugin,
@@ -111,13 +106,21 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
-        print("Start of experience ", experience.current_experience)
-        cl_strategy.train(experience)
-        print("Training completed")
 
-        print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+    # Create online benchmark
+    batch_streams = benchmark.streams.values()
+    # ocl_benchmark = OnlineCLScenario(batch_streams)
+    for i, exp in enumerate(benchmark.train_stream):
+        # Create online scenario from experience exp
+        ocl_benchmark = OnlineCLScenario(original_streams=batch_streams,
+                                         experiences=exp,
+                                         experience_size=10,
+                                         access_task_boundaries=True)
+
+        # Train on the online train stream of the scenario
+        cl_strategy.train(ocl_benchmark.train_stream)
+
+        results.append(cl_strategy.eval(benchmark.original_test_stream))
 
 
 if __name__ == "__main__":

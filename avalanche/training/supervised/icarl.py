@@ -5,12 +5,13 @@ import torch
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.utils import (
-    AvalancheConcatDataset,
-    AvalancheTensorDataset,
-    AvalancheSubset,
+    concat_classification_datasets,
+    make_tensor_classification_dataset,
+    classification_subset,
 )
 from math import ceil
 
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.models import TrainEvalModel, NCMClassifier
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -18,7 +19,7 @@ from avalanche.training.losses import ICaRLLossPlugin
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from torch.nn import Module
 from torch.utils.data import DataLoader
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 
 
 class ICaRL(SupervisedTemplate):
@@ -41,7 +42,7 @@ class ICaRL(SupervisedTemplate):
         eval_mb_size: int = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """Init.
@@ -53,7 +54,7 @@ class ICaRL(SupervisedTemplate):
         :param memory_size: The nuber of patterns saved in the memory.
         :param buffer_transform: transform applied on buffer elements already
             modified by test_transform (if specified) before being used for
-             replay
+            replay
         :param fixed_memory: If True a memory of size memory_size is
             allocated and partitioned between samples from the observed
             experiences. If False every time a new class is observed
@@ -143,14 +144,16 @@ class _ICaRLPlugin(SupervisedPlugin):
         self, strategy: "SupervisedTemplate", **kwargs
     ):
         if strategy.clock.train_exp_counter != 0:
-            memory = AvalancheTensorDataset(
+            memory = make_tensor_classification_dataset(
                 torch.cat(self.x_memory).cpu(),
-                list(itertools.chain.from_iterable(self.y_memory)),
+                torch.tensor(
+                    list(itertools.chain.from_iterable(self.y_memory))
+                ),
                 transform=self.buffer_transform,
                 target_transform=None,
             )
 
-            strategy.adapted_dataset = AvalancheConcatDataset(
+            strategy.adapted_dataset = concat_datasets(
                 (strategy.adapted_dataset, memory)
             )
 
@@ -240,19 +243,31 @@ class _ICaRLPlugin(SupervisedPlugin):
         dataset = strategy.experience.dataset
         targets = torch.tensor(dataset.targets)
         for iter_dico in range(nb_cl):
-            cd = AvalancheSubset(
+            cd = classification_subset(
                 dataset, torch.where(targets == new_classes[iter_dico])[0]
             )
+            collate_fn = cd.collate_fn if hasattr(cd, "collate_fn") else None
 
-            class_patterns, _, _ = next(
-                iter(DataLoader(cd.eval(), batch_size=len(cd)))
+            eval_dataloader = DataLoader(
+                cd.eval(), collate_fn=collate_fn,
+                batch_size=strategy.eval_mb_size
             )
-            class_patterns = class_patterns.to(strategy.device)
 
-            with torch.no_grad():
-                mapped_prototypes = strategy.model.feature_extractor(
-                    class_patterns
-                ).detach()
+            class_patterns = []
+            mapped_prototypes = []
+            for idx, (class_pt, _, _) in enumerate(eval_dataloader):
+                class_pt = class_pt.to(strategy.device)
+                class_patterns.append(class_pt)
+                with torch.no_grad():
+                    mapped_pttp = (
+                        strategy.model.feature_extractor(class_pt)
+                        .detach()
+                    )
+                mapped_prototypes.append(mapped_pttp)
+
+            class_patterns = torch.cat(class_patterns, dim=0)
+            mapped_prototypes = torch.cat(mapped_prototypes, dim=0)
+
             D = mapped_prototypes.T
             D = D / torch.norm(D, dim=0)
 

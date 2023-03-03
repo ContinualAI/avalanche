@@ -16,7 +16,7 @@ from avalanche.training.plugins import (
     SynapticIntelligencePlugin,
     CWRStarPlugin,
 )
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.utils import (
     replace_bn_with_brn,
     get_last_fc_layer,
@@ -44,6 +44,7 @@ class AR1(SupervisedTemplate):
         self,
         criterion=None,
         lr: float = 0.001,
+        inc_lr: float = 5e-5,
         momentum=0.9,
         l2=0.0005,
         train_epochs: int = 4,
@@ -53,14 +54,14 @@ class AR1(SupervisedTemplate):
         max_d_max=0.5,
         inc_step=4.1e-05,
         rm_sz: int = 1500,
-        freeze_below_layer: str = "lat_features.19.bn.beta",
+        freeze_below_layer: str = "lat_features.19.bn",
         latent_layer_num: int = 19,
         ewc_lambda: float = 0,
         train_mb_size: int = 128,
         eval_mb_size: int = 128,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator,
+        evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
     ):
         """
@@ -68,7 +69,8 @@ class AR1(SupervisedTemplate):
 
         :param criterion: The loss criterion to use. Defaults to None, in which
             case the cross entropy loss is used.
-        :param lr: The learning rate (SGD optimizer).
+        :param lr: The initial learning rate (SGD optimizer).
+        :param inc_lr: The incremental learning rate (SGD optimizer).
         :param momentum: The momentum (SGD optimizer).
         :param l2: The L2 penalty used for weight decay.
         :param train_epochs: The number of training epochs. Defaults to 4.
@@ -96,12 +98,10 @@ class AR1(SupervisedTemplate):
         :param evaluator: (optional) instance of EvaluationPlugin for logging
             and metric computations.
         :param eval_every: the frequency of the calls to `eval` inside the
-            training loop.
-                if -1: no evaluation during training.
-                if  0: calls `eval` after the final epoch of each training
-                    experience.
-                if >0: calls `eval` every `eval_every` epochs and at the end
-                    of all the epochs for a single experience.
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
         """
 
         warnings.warn(
@@ -153,6 +153,7 @@ class AR1(SupervisedTemplate):
         self.max_r_max = max_r_max
         self.max_d_max = max_d_max
         self.lr = lr
+        self.inc_lr = inc_lr
         self.momentum = momentum
         self.l2 = l2
         self.rm = None
@@ -206,7 +207,7 @@ class AR1(SupervisedTemplate):
             self.model = self.model.to(self.device)
             self.optimizer = SGD(
                 self.model.parameters(),
-                lr=self.lr,
+                lr=self.inc_lr,
                 momentum=self.momentum,
                 weight_decay=self.l2,
             )
@@ -258,16 +259,23 @@ class AR1(SupervisedTemplate):
         current_batch_mb_size = max(1, current_batch_mb_size)
         self.replay_mb_size = max(0, self.train_mb_size - current_batch_mb_size)
 
+        collate_fn = (
+            self.adapted_dataset.collate_fn
+            if hasattr(self.adapted_dataset, "collate_fn")
+            else None
+        )
         # AR1 only supports SIT scenarios (no task labels).
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
             batch_size=current_batch_mb_size,
             shuffle=shuffle,
+            collate_fn=collate_fn,
         )
 
     def training_epoch(self, **kwargs):
         for mb_it, self.mbatch in enumerate(self.dataloader):
+            self._unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
@@ -284,7 +292,9 @@ class AR1(SupervisedTemplate):
                     * self.replay_mb_size
                 ]
                 lat_mb_y = lat_mb_y.to(self.device)
+                lat_task_id = torch.zeros(lat_mb_y.shape[0]).to(self.device)
                 self.mbatch[1] = torch.cat((self.mb_y, lat_mb_y), 0)
+                self.mbatch[2] = torch.cat((self.mb_task_id, lat_task_id), 0)
             else:
                 lat_mb_x = None
 

@@ -15,9 +15,10 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.scenarios import ClassificationExperience
-from avalanche.benchmarks.utils import AvalancheConcatDataset
+from avalanche.benchmarks.utils import concat_classification_datasets
+from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.models import DynamicModule
 
 if TYPE_CHECKING:
@@ -53,7 +54,7 @@ class JointTraining(SupervisedTemplate):
         eval_mb_size: int = 1,
         device="cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator,
+        evaluator=default_evaluator(),
         eval_every=-1,
     ):
         """Init.
@@ -153,11 +154,10 @@ class JointTraining(SupervisedTemplate):
     def train_dataset_adaptation(self, **kwargs):
         """Concatenates all the datastream."""
         self.adapted_dataset = self._experiences[0].dataset
-        for exp in self._experiences[1:]:
-            cat_data = AvalancheConcatDataset(
-                [self.adapted_dataset, exp.dataset]
-            )
-            self.adapted_dataset = cat_data
+        if len(self._experiences) > 1:
+            for exp in self._experiences[1:]:
+                cat_data = concat_datasets([self.adapted_dataset, exp.dataset])
+                self.adapted_dataset = cat_data
         self.adapted_dataset = self.adapted_dataset.train()
 
     def model_adaptation(self, model=None):
@@ -168,7 +168,7 @@ class JointTraining(SupervisedTemplate):
         for experience in self._experiences:
             for module in model.modules():
                 if isinstance(module, DynamicModule):
-                    module.adaptation(experience.dataset)
+                    module.adaptation(experience)
             model = model.to(self.device)
         return model
 

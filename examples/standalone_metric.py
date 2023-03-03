@@ -16,13 +16,12 @@ dig deeper into the use of Plugin metrics, which are already integrated
 in the Avalanche training and evaluation loops.
 """
 
-
 # import a standalone metric
 import torch
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 
 # all standalone metrics
-from avalanche.evaluation.metrics import Accuracy
+from avalanche.evaluation.metrics import TaskAwareAccuracy
 
 # , Loss, # Loss
 # Forgetting,  # Forgetting
@@ -36,20 +35,20 @@ from avalanche.evaluation.metrics import Accuracy
 
 # create an instance of the standalone Accuracy metric
 # initial accuracy is 0
-acc_metric = Accuracy()
+acc_metric = TaskAwareAccuracy()
 print("Initial Accuracy: ", acc_metric.result())  # output 0
 
 # update method allows to keep the running average accuracy
 # result method returns the current average accuracy
 real_y = torch.tensor([1, 2]).long()
 predicted_y = torch.tensor([1, 0]).float()
-acc_metric.update(real_y, predicted_y)
+acc_metric.update(real_y, predicted_y, task_labels=0)
 acc = acc_metric.result()
 print("Average Accuracy: ", acc)  # output 0.5
 
 # you can continue to update the metric with new values
 predicted_y = torch.tensor([1, 2]).float()
-acc_metric.update(real_y, predicted_y)
+acc_metric.update(real_y, predicted_y, task_labels=0)
 acc = acc_metric.result()
 print("Average Accuracy: ", acc)  # output 0.75
 

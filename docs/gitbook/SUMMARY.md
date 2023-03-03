@@ -24,10 +24,10 @@
 ## How-Tos
 
 * [AvalancheDataset](how-tos/avalanchedataset/README.md)
-  * [Preamble: PyTorch Datasets](how-tos/avalanchedataset/preamble-pytorch-datasets.md)
-  * [Creating AvalancheDatasets](how-tos/avalanchedataset/creating-avalanchedatasets.md)
-  * [Advanced Transformations](how-tos/avalanchedataset/advanced-transformations.md)
+  * [avalanche-datasets](how-tos/avalanchedataset/avalanche-datasets.md)
+  * [avalanche-transformations](how-tos/avalanchedataset/avalanche-transformations.md)
 * [Dataloaders, Buffers, and Replay](how-tos/dataloading\_buffers\_replay.md)
+* [Save and load checkpoints](how-tos/checkpoints.md)
 
 ## 📝 Examples
 
@@ -51,6 +51,7 @@
 * [Add Your Issue](questions-and-issues/add-your-issue.md)
 * [Request a Feature](questions-and-issues/request-a-feature.md)
 * [Give Feedback](questions-and-issues/give-feedback.md)
+* [FAQ](questions-and-issues/faq.md)
 
 ## 👪 About Us <a href="#contacts-and-links" id="contacts-and-links"></a>
 

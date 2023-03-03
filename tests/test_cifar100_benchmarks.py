@@ -1,5 +1,6 @@
 import unittest
 
+import avalanche.benchmarks.datasets.external_datasets.cifar
 from avalanche.benchmarks import (
     ClassificationExperience,
     SplitCIFAR100,
@@ -20,10 +21,12 @@ CIFAR100_DOWNLOAD_METHOD = None
 class CIFAR100BenchmarksTests(unittest.TestCase):
     def setUp(self):
         import avalanche.benchmarks.classic.ccifar100 as ccifar100
+        from avalanche.benchmarks.datasets.external_datasets.cifar import \
+            get_cifar100_dataset
 
         global CIFAR10_DOWNLOAD_METHOD, CIFAR100_DOWNLOAD_METHOD
         CIFAR10_DOWNLOAD_METHOD = ccifar100._get_cifar10_dataset
-        CIFAR100_DOWNLOAD_METHOD = ccifar100._get_cifar100_dataset
+        CIFAR100_DOWNLOAD_METHOD = get_cifar100_dataset
 
         def count_downloads_c10(*args, **kwargs):
             global CIFAR10_DOWNLOADS
@@ -36,7 +39,8 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
             return CIFAR100_DOWNLOAD_METHOD(*args, **kwargs)
 
         ccifar100._get_cifar10_dataset = count_downloads_c10
-        ccifar100._get_cifar100_dataset = count_downloads_c100
+        avalanche.benchmarks.datasets.external_datasets.cifar.\
+            get_cifar100_dataset = count_downloads_c100
 
     def tearDown(self):
         global CIFAR10_DOWNLOAD_METHOD, CIFAR100_DOWNLOAD_METHOD
@@ -49,7 +53,8 @@ class CIFAR100BenchmarksTests(unittest.TestCase):
         if CIFAR100_DOWNLOAD_METHOD is not None:
             import avalanche.benchmarks.classic.ccifar100 as ccifar100
 
-            ccifar100._get_cifar100_dataset = CIFAR100_DOWNLOAD_METHOD
+            avalanche.benchmarks.datasets.external_datasets.cifar.\
+                get_cifar100_dataset = CIFAR100_DOWNLOAD_METHOD
             CIFAR100_DOWNLOAD_METHOD = None
 
     @unittest.skipIf(

@@ -45,12 +45,10 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 )
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils import concat_datasets_sequentially
-from avalanche.benchmarks.utils.avalanche_dataset import (
+from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
+from avalanche.benchmarks.utils.classification_dataset import (
     SupportedDataset,
-    AvalancheDataset,
-    AvalancheDatasetType,
-    AvalancheSubset,
+    make_classification_dataset,
 )
 
 
@@ -82,7 +80,7 @@ def nc_benchmark(
     Task-Incremental benchmarks.
 
     The ``task_labels`` parameter determines if each incremental experience has
-    an increasing task label or if, at the contrary, a default task label "0"
+    an increasing task label or if, at the contrary, a default task label 0
     has to be assigned to all experiences. This can be useful when
     differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
@@ -220,18 +218,16 @@ def nc_benchmark(
     )
 
     # Datasets should be instances of AvalancheDataset
-    train_dataset = AvalancheDataset(
+    train_dataset = make_classification_dataset(
         train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
     )
 
-    test_dataset = AvalancheDataset(
+    test_dataset = make_classification_dataset(
         test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
     )
 
     return NCScenario(
@@ -273,7 +269,7 @@ def ni_benchmark(
     Domain-Incremental benchmarks.
 
     The ``task_labels`` parameter determines if each incremental experience has
-    an increasing task label or if, at the contrary, a default task label "0"
+    an increasing task label or if, at the contrary, a default task label 0
     has to be assigned to all experiences. This can be useful when
     differentiating between Single-Incremental-Task and Multi-Task scenarios.
 
@@ -344,18 +340,16 @@ def ni_benchmark(
     )
 
     # Datasets should be instances of AvalancheDataset
-    seq_train_dataset = AvalancheDataset(
+    seq_train_dataset = make_classification_dataset(
         seq_train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
     )
 
-    seq_test_dataset = AvalancheDataset(
+    seq_test_dataset = make_classification_dataset(
         seq_test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
     )
 
     return NIScenario(
@@ -468,9 +462,7 @@ def fixed_size_experience_split_strategy(
             final_idx = len(exp_indices)
 
         result_datasets.append(
-            AvalancheSubset(
-                exp_dataset, indices=exp_indices[init_idx:final_idx]
-            )
+            exp_dataset.subset(exp_indices[init_idx:final_idx])
         )
         init_idx = final_idx
 
@@ -484,7 +476,7 @@ def data_incremental_benchmark(
     drop_last: bool = False,
     split_streams: Sequence[str] = ("train",),
     custom_split_strategy: Callable[
-        [ClassificationExperience], Sequence[AvalancheDataset]
+        [ClassificationExperience], Sequence[make_classification_dataset]
     ] = None,
     experience_factory: Callable[
         [ClassificationStream, int], ClassificationExperience
@@ -564,7 +556,7 @@ def data_incremental_benchmark(
 
         stream = getattr(benchmark_instance, f"{stream_name}_stream")
 
-        split_datasets: List[AvalancheDataset] = []
+        split_datasets: List[make_classification_dataset] = []
         split_task_labels: List[Set[int]] = []
 
         exp: ClassificationExperience
@@ -647,14 +639,8 @@ def random_validation_split_strategy(
             )
 
     train_n_instances = len(exp_dataset) - valid_n_instances
-
-    result_train_dataset = AvalancheSubset(
-        exp_dataset, indices=exp_indices[:train_n_instances]
-    )
-    result_valid_dataset = AvalancheSubset(
-        exp_dataset, indices=exp_indices[train_n_instances:]
-    )
-
+    result_train_dataset = exp_dataset.subset(exp_indices[:train_n_instances])
+    result_valid_dataset = exp_dataset.subset(exp_indices[train_n_instances:])
     return result_train_dataset, result_valid_dataset
 
 
@@ -666,6 +652,12 @@ def class_balanced_split_strategy(
     This splitting strategy splits `experience` into two experiences
     (train and validation) of size `validation_size` using a class-balanced
     split. Sample of each class are chosen randomly.
+
+    You can use this split strategy to split a benchmark with::
+
+        validation_size = 0.2
+        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
+        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
 
     :param validation_size: The percentage of samples to allocate to the
         validation experience as a float between 0 and 1.
@@ -702,20 +694,18 @@ def class_balanced_split_strategy(
         valid_exp_indices.extend(c_indices[:valid_n_instances])
         train_exp_indices.extend(c_indices[valid_n_instances:])
 
-    result_train_dataset = AvalancheSubset(
-        exp_dataset, indices=train_exp_indices
-    )
-    result_valid_dataset = AvalancheSubset(
-        exp_dataset, indices=valid_exp_indices
-    )
+    result_train_dataset = exp_dataset.subset(train_exp_indices)
+    result_valid_dataset = exp_dataset.subset(valid_exp_indices)
     return result_train_dataset, result_valid_dataset
 
 
 def _gen_split(
-    split_generator: Iterable[Tuple[AvalancheDataset, AvalancheDataset]]
+    split_generator: Iterable[
+        Tuple[make_classification_dataset, make_classification_dataset]
+    ]
 ) -> Tuple[
-    Generator[AvalancheDataset, None, None],
-    Generator[AvalancheDataset, None, None],
+    Generator[make_classification_dataset, None, None],
+    Generator[make_classification_dataset, None, None],
 ]:
     """
     Internal utility function to split the train-validation generator
@@ -734,10 +724,13 @@ def _gen_split(
 
 def _lazy_train_val_split(
     split_strategy: Callable[
-        [ClassificationExperience], Tuple[AvalancheDataset, AvalancheDataset]
+        [ClassificationExperience],
+        Tuple[make_classification_dataset, make_classification_dataset],
     ],
     experiences: Iterable[ClassificationExperience],
-) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
+) -> Generator[
+    Tuple[make_classification_dataset, make_classification_dataset], None, None
+]:
     """
     Creates a generator operating around the split strategy and the
     experiences stream.
@@ -759,7 +752,8 @@ def benchmark_with_validation_stream(
     input_stream: str = "train",
     output_stream: str = "valid",
     custom_split_strategy: Callable[
-        [ClassificationExperience], Tuple[AvalancheDataset, AvalancheDataset]
+        [ClassificationExperience],
+        Tuple[make_classification_dataset, make_classification_dataset],
     ] = None,
     *,
     experience_factory: Callable[
@@ -795,6 +789,13 @@ def benchmark_with_validation_stream(
     Experience splitting can be executed in a lazy way. This behavior can be
     controlled using the `lazy_splitting` parameter. By default, experiences
     are split in a lazy way only when the input stream is lazily generated.
+
+    The default splitting strategy is a random split. A class-balanced split
+    is also available using `class_balanced_split_strategy`::
+
+        validation_size = 0.2
+        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
+        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
 
     :param benchmark_instance: The benchmark to split.
     :param validation_size: The size of the validation experience, as an int
@@ -907,4 +908,6 @@ __all__ = [
     "tensors_benchmark",
     "data_incremental_benchmark",
     "benchmark_with_validation_stream",
+    "random_validation_split_strategy",
+    "class_balanced_split_strategy",
 ]

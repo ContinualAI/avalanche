@@ -14,86 +14,116 @@ This simple profiler measures the amount of time required to finish an
 experience in an online manner using different strategies and options.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from os.path import expanduser
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 import torch.optim.lr_scheduler
 from torch.utils.data import DataLoader
-import copy
 from tqdm import tqdm
-import time
+import cProfile
+import pstats
 
 from avalanche.benchmarks import SplitMNIST
 from avalanche.benchmarks.scenarios.online_scenario import \
     fixed_size_experience_split
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
-from avalanche.training.supervised.strategy_wrappers import Naive
-from avalanche.benchmarks.utils.avalanche_dataset import AvalancheSubset
-from avalanche.evaluation.metrics import forgetting_metrics, \
-    accuracy_metrics, loss_metrics
+from avalanche.benchmarks.scenarios import OnlineCLScenario
+from avalanche.training.plugins import ReplayPlugin
+from avalanche.training.storage_policy import ReservoirSamplingBuffer
+from avalanche.evaluation.metrics import loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
 
 
-class SimpleOnlineStrategy:
+##################################################
+#   Online naive strategy without Avalanche
+##################################################
+def profile_online_naive_no_avl(benchmark, device):
     """
-    The most basic form of an online strategy without any callbacks
-    that simply receives an experience and iterates through its sample
-    one by one and updates the model correspondingly.
+    Online naive strategy without Avalanche.
     """
-    def __init__(self, model, device):
-        self.model = model
-        self.model.to(device)
-        self.device = device
+    print("=" * 30)
+    print("Profiling online naive strategy without Avalanche ...")
 
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=0.01)
-        self.criterion = torch.nn.CrossEntropyLoss()
+    experience_0 = benchmark.train_stream[0]
 
-    def train(self, experience):
-        self.model.train()
-        dataloader = DataLoader(experience.dataset, batch_size=1)
+    with cProfile.Profile() as pr:
+        # Initialize model, optimizer and criterion
+        model = SimpleMLP(num_classes=10)
+        model.train()
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+        criterion = torch.nn.CrossEntropyLoss()
+
+        # Iterate over the dataset and train the model
+        dataloader = DataLoader(experience_0.dataset, batch_size=1)
         pbar = tqdm(dataloader)
         for (x, y, _) in pbar:
-            x, y = x.to(self.device), y.to(self.device)
-            self.optimizer.zero_grad()
-            pred = self.model(x)
-            loss = self.criterion(pred, y)
+            x, y = x.to(device), y.to(device)
+            optimizer.zero_grad()
+            pred = model(x)
+            loss = criterion(pred, y)
             loss.backward()
-            self.optimizer.step()
-            pbar.set_description(f"Loss: {loss.item()}")
+            optimizer.step()
+            pbar.set_description(f"Loss: {loss.item():0.4f}")
+
+    stats = pstats.Stats(pr)
+    stats.sort_stats('tottime').print_stats(15)
 
 
-def run_simple_online(experience, device):
+##################################################
+#   Online naive strategy without Avalanche using lazy stream
+##################################################
+def profile_online_naive_lazy_stream(benchmark, device):
     """
-    Runs simple naive strategy for one experience.
+    Online naive strategy without Avalanche using lazy stream.
     """
 
-    model = SimpleMLP(num_classes=10)
-    cl_strategy = SimpleOnlineStrategy(model, device)
+    print("=" * 30)
+    print("Profiling online naive strategy  using lazy streams (no AVL) ...")
 
-    start = time.time()
-    print("Running SimpleOnlineStrategy ...")
-    cl_strategy.train(experience)
-    end = time.time()
-    duration = end - start
+    experience_0 = benchmark.train_stream[0]
 
-    return duration
+    def load_all_data(data):
+        return next(iter(DataLoader(data, len(data))))
+
+    with cProfile.Profile() as pr:
+        model = SimpleMLP(num_classes=10).to(device)
+        model.train()
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+        criterion = torch.nn.CrossEntropyLoss()
+
+        for exp in tqdm(fixed_size_experience_split(experience_0, 1)):
+            x, y, _ = load_all_data(exp.dataset)
+            x, y = x.to(device), torch.tensor([y]).to(device)
+
+            optimizer.zero_grad()
+            pred = model(x)
+            loss = criterion(pred, y)
+            loss.backward()
+            optimizer.step()
+
+    stats = pstats.Stats(pr)
+    stats.sort_stats('tottime').print_stats(15)
 
 
-def run_base_online(
-        experience,
+##################################################
+#        Online strategy using Avalanche
+##################################################
+def profile_online_avl(
+        benchmark,
         device,
-        use_interactive_logger: bool = False
+        strategy="naive",
+        use_interactive_logger: bool = True
 ):
     """
-    Runs OnlineNaive for one experience.
+    Online strategy using Avalanche.
     """
+    print("=" * 30)
+    print(f"Profiling online {strategy} strategy using Avalanche ...")
+
+    experience_0 = benchmark.train_stream[0]
 
     # Create list of loggers to be used
     loggers = []
@@ -103,149 +133,41 @@ def run_base_online(
 
     # Evaluation plugin
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        forgetting_metrics(experience=True),
         loggers=loggers,
     )
 
-    # Model
-    model = SimpleMLP(num_classes=10)
+    with cProfile.Profile() as pr:
+        # Model
+        model = SimpleMLP(num_classes=10)
 
-    # Create OnlineNaive strategy
-    cl_strategy = OnlineNaive(
-        model,
-        torch.optim.SGD(model.parameters(), lr=0.01),
-        CrossEntropyLoss(),
-        num_passes=1,
-        train_mb_size=1,
-        device=device,
-        evaluator=eval_plugin,
-    )
+        plugins = []
+        if strategy == "er":
+            # CREATE THE STRATEGY INSTANCE (ONLINE-REPLAY)
+            storage_policy = ReservoirSamplingBuffer(max_size=100)
+            replay_plugin = ReplayPlugin(mem_size=100, batch_size=1,
+                                         storage_policy=storage_policy)
+            plugins.append(replay_plugin)
 
-    start = time.time()
-    print("Running OnlineNaive ...")
-    cl_strategy.train(experience)
-    end = time.time()
-    duration = end - start
+        # Create OnlineNaive strategy
+        cl_strategy = OnlineNaive(
+            model,
+            torch.optim.SGD(model.parameters(), lr=0.01),
+            CrossEntropyLoss(),
+            train_passes=1,
+            train_mb_size=1,
+            device=device,
+            evaluator=eval_plugin,
+            plugins=plugins
+        )
+        online_cl_scenario = OnlineCLScenario(benchmark.streams.values(),
+                                              experience_0)
 
-    return duration
+        # Train on the first experience only
+        cl_strategy.train(online_cl_scenario.train_stream)
 
-
-def run_base(
-        experience,
-        device,
-        use_interactive_logger: bool = False
-):
-    """
-        Runs Naive (from BaseStrategy) for one experience.
-    """
-
-    def create_sub_experience_list(experience):
-        """Creates a list of sub-experiences from an experience.
-        It returns a list of experiences, where each experience is
-        a subset of the original experience.
-
-        :param experience: single Experience.
-
-        :return: list of Experience.
-        """
-
-        # Shuffle the indices
-        indices = torch.randperm(len(experience.dataset))
-        num_sub_exps = len(indices)
-        mb_size = 1
-        sub_experience_list = []
-        for subexp_id in range(num_sub_exps):
-            subexp_indices = indices[
-                             subexp_id * mb_size: (subexp_id + 1) * mb_size]
-            sub_experience = copy.copy(experience)
-            subexp_ds = AvalancheSubset(
-                sub_experience.dataset, indices=subexp_indices
-            )
-            sub_experience.dataset = subexp_ds
-            sub_experience_list.append(sub_experience)
-
-        return sub_experience_list
-
-    # Create list of loggers to be used
-    loggers = []
-    if use_interactive_logger:
-        interactive_logger = InteractiveLogger()
-        loggers.append(interactive_logger)
-
-    # Evaluation plugin
-    eval_plugin = EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
-        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
-        forgetting_metrics(experience=True),
-        loggers=loggers,
-    )
-
-    # Model
-    model = SimpleMLP(num_classes=10)
-
-    # Create OnlineNaive strategy
-    cl_strategy = Naive(
-        model,
-        torch.optim.SGD(model.parameters(), lr=0.01),
-        CrossEntropyLoss(),
-        train_mb_size=1,
-        device=device,
-        evaluator=eval_plugin,
-    )
-
-    start = time.time()
-    sub_experience_list = create_sub_experience_list(experience)
-
-    # !!! This is only for profiling purpose. This method may not work
-    # in practice for dynamic modules since the model adaptation step
-    # can go wrong.
-
-    # Train for each sub-experience
-    print("Running OnlineNaive ...")
-    for i, sub_experience in enumerate(sub_experience_list):
-        experience = sub_experience
-        cl_strategy.train(experience)
-    end = time.time()
-    duration = end - start
-
-    return duration
-
-
-def run_ocl_lazy_stream(experience, device):
-    """
-    Runs simple naive strategy for one experience.
-    """
-
-    model = SimpleMLP(num_classes=10).to(device)
-    model.train()
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    criterion = torch.nn.CrossEntropyLoss()
-
-
-    start = time.time()
-    print("Running ocl_lazy_stream ...")
-
-    for exp in tqdm(fixed_size_experience_split(experience, 1)):
-        x, y, _ = exp.dataset[:]
-        x, y = x.to(device), torch.tensor([y]).to(device)
-
-        x, y = x.to(device), y.to(device)
-        optimizer.zero_grad()
-        pred = model(x)
-        loss = criterion(pred, y)
-        loss.backward()
-        optimizer.step()
-
-    end = time.time()
-    duration = end - start
-
-    return duration
+    stats = pstats.Stats(pr)
+    stats.sort_stats('tottime').print_stats(40)
 
 
 def main(args):
@@ -259,29 +181,14 @@ def main(args):
         dataset_root=expanduser("~") + "/.avalanche/data/mnist/",
     )
 
-    # Train for the first experience only
-    experience_0 = benchmark.train_stream[0]
+    # Profilers:
+    profile_online_naive_no_avl(benchmark, device)
 
-    # Run tests
-    dur_simple = run_simple_online(experience_0, device)
-    # dur_base_online = run_base_online(experience_0, device,
-    #                                   use_interactive_logger=False)
-    # dur_base_online_intlog = run_base_online(experience_0, device,
-    #                                          use_interactive_logger=True)
-    # dur_base = run_base(experience_0, device,
-    #                     use_interactive_logger=False)
-    # dur_base_intlog = run_base(experience_0, device,
-    #                            use_interactive_logger=True)
-    dur_ocl_lazy_stream = run_ocl_lazy_stream(experience_0, device)
+    profile_online_naive_lazy_stream(benchmark, device)
 
-    print(f"Duration for SimpleOnlineStrategy: ", dur_simple)
-    # print(f"Duration for BaseOnlineStrategy: ", dur_base_online)
-    # print(f"Duration for BaseOnlineStrategy+IntLogger: ",
-    #       dur_base_online_intlog)
-    # print(f"Duration for BaseStrategy: ", dur_base)
-    # print(f"Duration for BaseStrategy+IntLogger: ",
-    #       dur_base_intlog)
-    print(f"Duration for dur_ocl_lazy_stream: ", dur_ocl_lazy_stream)
+    profile_online_avl(benchmark, device, strategy="naive")
+
+    profile_online_avl(benchmark, device, strategy="er")
 
 
 if __name__ == "__main__":

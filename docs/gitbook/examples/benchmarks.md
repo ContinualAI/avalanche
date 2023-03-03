@@ -4,57 +4,16 @@ description: Benchmarks and DatasetCode Examples
 
 # Benchmarks
 
-{% code title=""All MNIST" Example" %}
-```python
-# Device config
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+_Avalanche_ offers significant support for _defining your own benchmarks_ (instantiation of one scenario with one or multiple datasets) or using "**classic" benchmarks** already consolidate in the literature.
 
-# model
-model = SimpleMLP(num_classes=10)
+You can find **examples** related to the benchmarks here:&#x20;
 
-# Here we show all the MNIST variation we offer in the "classic" benchmarks
-# benchmark = PermutedMNIST(n_experiences=5, seed=1)
-benchmark = RotatedMNIST(n_experiences=5, rotations_list=[30, 60, 90, 120, 150], seed=1)
-# benchmark = SplitMNIST(n_experiences=5, seed=1)
-
-# choose some metrics and evaluation method
-interactive_logger = InteractiveLogger()
-
-eval_plugin = EvaluationPlugin(
-    accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-    timing_metrics(epoch=True, epoch_running=True),
-    cpu_usage_metrics(experience=True),
-    ExperienceForgetting(),
-    loggers=[interactive_logger])
-
-# Than we can extract the parallel train and test streams
-train_stream = benchmark.train_stream
-test_stream = benchmark.test_stream
-
-# Prepare for training & testing
-optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
-criterion = CrossEntropyLoss()
-
-# Continual learning strategy
-cl_strategy = Naive(
-    model, optimizer, criterion, train_mb_size=32, train_epochs=2,
-    test_mb_size=32, device=device, evaluator=eval_plugin
-)
-
-# train and test loop
-results = []
-for train_task in train_stream:
-    print("Current Classes: ", train_task.classes_in_this_experience)
-    cl_strategy.train(train_task, num_workers=4)
-    results.append(cl_strategy.eval(test_stream))
-```
-{% endcode %}
-
-## 🤝 Run it on Google Colab
-
-You can run _this chapter_ and play with it on Google Colaboratory:
-
-{% hint style="danger" %}
-Notebook currently unavailable.
-{% endhint %}
+* [Classic MNIST benchmarks](../../../examples/all\_mnist.py): _in this simple example we show all the different ways you can use MNIST with Avalanche._
+* __[SplitCifar100 benchmark](../../../examples/lamaml\_cifar100.py): _in this example a CIFAR100 is used with its canonical split in 10 experiences, 10 classes each._
+* __[CLEAR benchmark](../../../examples/clear.py): _training and evaluating on CLEAR benchmark (RGB images)_
+* [CLEAR Linear benchmark](../../../examples/clear\_linear.py): _Training and evaluating on CLEAR benchmark (with pre-trained features)_
+* [Detection Benchmark](../../../examples/detection\_examples\_utils.py)_: about the utils you can use create a detection benchmark._
+* [Endless CL Simulator](../../../examples/endless\_cl\_sim.py)_: this example makes use of the Endless-Continual-Learning-Simulator's derived dataset scenario._
+* [Simple CTRL benchmark](../../../examples/simple\_ctrl.py): _In this example we show a simple way to use the ctrl benchmark_.&#x20;
+* [Task-Incremental Learning](../../../examples/task\_incremental.py): _this example trains on Split CIFAR10 with Naive strategy. In this example each experience has a different task label._
+* [Hugging Face integration](../../../examples/nlp.py)_: how to use Hugging Face models and datasets within Avalanche for Natural Language Processing._

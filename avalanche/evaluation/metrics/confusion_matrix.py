@@ -41,12 +41,11 @@ from avalanche.evaluation.metric_utils import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class ConfusionMatrix(Metric[Tensor]):
-    """
-    The standalone confusion matrix metric.
+    """The standalone confusion matrix metric.
 
     Instances of this metric keep track of the confusion matrix by receiving a
     pair of "ground truth" and "prediction" Tensors describing the labels of a
@@ -77,8 +76,7 @@ class ConfusionMatrix(Metric[Tensor]):
         num_classes: int = None,
         normalize: Literal["true", "pred", "all"] = None,
     ):
-        """
-        Creates an instance of the standalone confusion matrix metric.
+        """Creates an instance of the standalone confusion matrix metric.
 
         By default this metric in its initial state will return an empty Tensor.
         The metric can be updated by using the `update` method while the running
@@ -468,8 +466,7 @@ def confusion_matrix_metrics(
     wandb=False,
     absolute_class_order: bool = False,
 ) -> List[PluginMetric]:
-    """
-    Helper method that can be used to obtain the desired set of
+    """Helper method that can be used to obtain the desired set of
     plugin metrics.
 
     :param num_classes: The number of classes. Defaults to None,
@@ -501,7 +498,7 @@ def confusion_matrix_metrics(
     :param absolute_class_order: Not W&B. If true, the labels in the created
         image will be sorted by id, otherwise they will be sorted by order of
         encounter at training time. This parameter is ignored if `save_image` is
-         False, or the scenario is not a NCScenario.
+        False, or the scenario is not a NCScenario.
 
     :return: A list of plugin metrics.
     """

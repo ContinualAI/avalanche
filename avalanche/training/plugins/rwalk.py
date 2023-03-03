@@ -4,7 +4,8 @@ import torch
 import torch.nn.functional as F
 
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
+    ParamData
 from avalanche.models.utils import avalanche_forward
 
 
@@ -102,56 +103,58 @@ class RWalkPlugin(SupervisedPlugin):
     # for a single iteration (Eq. 7 of the RWalk paper for a single t)
     @torch.no_grad()
     def _update_loss(self, strategy):
-        for (k1, old_p), (k2, new_p), (k3, p_grad), (k4, p_loss) in zip(
-            self.iter_params,
-            strategy.model.named_parameters(),
-            self.iter_grad,
-            self.checkpoint_loss,
-        ):
-            assert k1 == k2 == k3 == k4, "Error in delta-loss approximation."
-            p_loss -= p_grad * (new_p - old_p)
+        for k, new_p in strategy.model.named_parameters():
+            if k not in self.iter_grad:
+                continue
+            old_p = self.iter_params[k]
+            p_grad = self.iter_grad[k]
+            shape = new_p.shape
+            self.checkpoint_loss[k].expand(shape)
+            self.checkpoint_loss[k].data -= p_grad.expand(
+                shape) * (new_p - old_p.expand(shape))
 
     # Update parameter importance (EWC++, Eq. 6 of the RWalk paper)
     def _update_importance(self, strategy):
-        importance = [
-            (k, p.grad.data.clone().pow(2))
-            for k, p in strategy.model.named_parameters()
-        ]
+        importance = copy_params_dict(strategy.model, copy_grad=True)
+        for k in importance.keys():
+            importance[k].data = importance[k].data ** 2
 
         if self.iter_importance is None:
             self.iter_importance = importance
         else:
             old_importance = self.iter_importance
-            self.iter_importance = []
+            self.iter_importance = {}
 
-            for (k1, old_imp), (k2, new_imp) in zip(old_importance, importance):
-                assert k1 == k2, "Error in importance computation."
-                self.iter_importance.append(
-                    (
-                        k1,
-                        (
-                            self.ewc_alpha * new_imp
-                            + (1 - self.ewc_alpha) * new_imp
-                        ),
-                    )
-                )
+            for k, new_imp in importance.items():
+                if k not in old_importance:
+                    self.iter_importance[k] = ParamData(
+                        k, device=new_imp.device,
+                        init_tensor=new_imp.data)
+                else:
+                    old_imp = old_importance[k]
+                    self.iter_importance[k] = ParamData(
+                        k, device=new_imp.device,
+                        init_tensor=self.ewc_alpha * new_imp.data + (
+                                1 - self.ewc_alpha) * old_imp.expand(
+                            new_imp.shape))
 
     # Add scores for a single delta_t (referred to as s_t1^t2 in the paper)
     @torch.no_grad()
     def _update_score(self, strategy):
-        for (k1, score), (k2, loss), (k3, imp), (k4, old_p), (k5, new_p) in zip(
-            self.checkpoint_scores,
-            self.checkpoint_loss,
-            self.iter_importance,
-            self.checkpoint_params,
-            strategy.model.named_parameters(),
-        ):
-            assert (
-                k1 == k2 == k3 == k4 == k5
-            ), "Error in RWalk score computation."
+        for k, new_p in strategy.model.named_parameters():
+            if k not in self.iter_importance:
+                # new params do not count
+                continue
+            loss = self.checkpoint_loss[k]
+            imp = self.iter_importance[k]
+            old_p = self.checkpoint_params[k]
 
-            eps = torch.finfo(loss.dtype).eps
-            score += loss / (0.5 * imp * (new_p - old_p).pow(2) + eps)
+            shape = new_p.shape
+            eps = torch.finfo(loss.data.dtype).eps
+            self.checkpoint_scores[k].expand(shape)
+            self.checkpoint_scores[k].data += loss.data / \
+                (0.5 * imp.expand(shape) * (new_p - old_p.expand(shape))
+                 .pow(2) + eps)
 
     # Initialize t_0 checkpoint information
     def before_training(self, strategy, *args, **kwargs):
@@ -171,14 +174,15 @@ class RWalkPlugin(SupervisedPlugin):
         if strategy.clock.train_exp_counter > 0:
             ewc_loss = 0
 
-            for (k1, penalty), (k2, param_exp), (k3, param) in zip(
-                self.exp_penalties,
-                self.exp_params,
-                strategy.model.named_parameters(),
-            ):
-                assert k1 == k2 == k3, "Error in RWalk loss computation."
-
-                ewc_loss += (penalty * (param - param_exp).pow(2)).sum()
+            for k, param in strategy.model.named_parameters():
+                if k not in self.exp_penalties:
+                    # new params do not count
+                    continue
+                penalty = self.exp_penalties[k]
+                param_exp = self.exp_params[k]
+                ewc_loss += (penalty.expand(param.shape) *
+                             (param - param_exp.expand(param.shape))
+                             .pow(2)).sum()
 
             strategy.loss += self.ewc_lambda * ewc_loss
 
@@ -201,31 +205,38 @@ class RWalkPlugin(SupervisedPlugin):
         if self.exp_scores is None:
             self.exp_scores = self.checkpoint_scores
         else:
-            exp_scores = []
+            exp_scores = {}
 
-            for (k1, p_score), (k2, p_cp_score) in zip(
-                self.exp_scores, self.checkpoint_scores
-            ):
-                assert k1 == k2, "Error in RWalk score computation."
-                exp_scores.append((k1, 0.5 * (p_score + p_cp_score)))
-
+            for k, p_cp_score in self.checkpoint_scores.items():
+                if k not in self.exp_scores:
+                    continue
+                p_score = self.exp_scores[k]
+                shape = p_cp_score.data.shape
+                exp_scores[k] = ParamData(k, device=p_score.device,
+                                          init_tensor=0.5 * (p_score.expand(
+                                              shape) + p_cp_score.data))
             self.exp_scores = exp_scores
 
         # Compute weight penalties once for all successive iterations
         # (t_k+1 variables remain constant in Eq. 8 in the paper)
-        self.exp_penalties = []
+        self.exp_penalties = {}
 
         # Normalize terms in [0,1] interval, as suggested in the paper
         # (the importance is already > 0, while negative scores are relu-ed
         # out, hence we scale only the max-values of both terms)
-        max_score = max(map(lambda x: x[1].max(), self.exp_scores))
-        max_imp = max(map(lambda x: x[1].max(), self.exp_importance))
+        max_score = max(map(lambda x: x.data.max(),
+                            self.exp_scores.values()))
+        max_imp = max(map(lambda x: x.data.max(),
+                          self.exp_importance.values()))
 
-        for (k1, imp), (k2, score) in zip(self.exp_importance, self.exp_scores):
-            assert k1 == k2, "Error in RWalk penalties computation."
-
-            self.exp_penalties.append(
-                (k1, imp / max_imp + F.relu(score) / max_score)
-            )
+        for k, score in self.exp_scores.items():
+            if k not in self.exp_scores:
+                continue
+            imp = self.exp_importance[k]
+            shape = imp.data.shape
+            self.exp_penalties[k] = ParamData(
+                k, device=imp.device,
+                init_tensor=imp.data / max_imp + F.relu(
+                    score.expand(shape)) / max_score)
 
         self.checkpoint_scores = zerolike_params_dict(strategy.model)

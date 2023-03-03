@@ -20,7 +20,8 @@ from avalanche.benchmarks import (
     TStreamsUserDict,
     ClassificationStream,
 )
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils.data import AvalancheDataset
 
 TDetectionExperience = TypeVar(
     "TDetectionExperience", bound=GenericClassificationExperience

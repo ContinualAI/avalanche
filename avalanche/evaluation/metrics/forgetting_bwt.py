@@ -13,7 +13,7 @@ from typing import Dict, TYPE_CHECKING, Union, List
 
 from avalanche.evaluation.metric_definitions import Metric, PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
-from avalanche.evaluation.metrics import Accuracy, Mean
+from avalanche.evaluation.metrics import TaskAwareAccuracy, Mean
 from avalanche.evaluation.metric_utils import (
     get_metric_name,
     phase_and_task,
@@ -21,7 +21,7 @@ from avalanche.evaluation.metric_utils import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.training.templates.supervised import SupervisedTemplate
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class Forgetting(Metric[Union[float, None, Dict[int, float]]]):
@@ -267,7 +267,7 @@ class ExperienceForgetting(GenericExperienceForgetting):
 
         super().__init__()
 
-        self._current_metric = Accuracy()
+        self._current_metric = TaskAwareAccuracy()
         """
         The average accuracy over the current evaluation experience
         """
@@ -425,7 +425,7 @@ class StreamForgetting(GenericStreamForgetting):
 
         super().__init__()
 
-        self._current_metric = Accuracy()
+        self._current_metric = TaskAwareAccuracy()
         """
         The average accuracy over the current evaluation experience
         """

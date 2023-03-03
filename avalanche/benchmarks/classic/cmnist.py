@@ -13,7 +13,6 @@ from typing import Optional, Sequence, Union, Any
 import torch
 from PIL.Image import Image
 from torch import Tensor
-from torchvision.datasets import MNIST
 from torchvision.transforms import (
     ToTensor,
     ToPILImage,
@@ -27,15 +26,17 @@ from avalanche.benchmarks import NCScenario, nc_benchmark
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.utils import AvalancheDataset
+from avalanche.benchmarks.datasets.external_datasets.mnist import \
+    get_mnist_dataset
+from ..utils import make_classification_dataset, DefaultTransformGroups
+from ..utils.data import make_avalanche_dataset
 
 _default_mnist_train_transform = Compose(
-    [ToTensor(), Normalize((0.1307,), (0.3081,))]
+    [Normalize((0.1307,), (0.3081,))]
 )
 
 _default_mnist_eval_transform = Compose(
-    [ToTensor(), Normalize((0.1307,), (0.3081,))]
+    [Normalize((0.1307,), (0.3081,))]
 )
 
 
@@ -75,6 +76,7 @@ def SplitMNIST(
     seed: Optional[int] = None,
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
+    class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
     dataset_root: Union[str, Path] = None
@@ -117,7 +119,11 @@ def SplitMNIST(
         order. If non-None, ``seed`` parameter will be ignored.
         Defaults to None.
     :param shuffle: If true, the class order in the incremental experiences is
-        randomly shuffled. Default to false.
+        randomly shuffled. Default to True.
+    :param class_ids_from_zero_in_each_exp: If True, original class IDs
+        will be mapped to range [0, n_classes_in_exp) for each experience.
+        Defaults to False. Mutually exclusive with the
+        ``class_ids_from_zero_from_first_exp`` parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -136,38 +142,26 @@ def SplitMNIST(
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    mnist_train, mnist_test = _get_mnist_dataset(dataset_root)
+    mnist_train, mnist_test = get_mnist_dataset(dataset_root)
 
-    if return_task_id:
-        return nc_benchmark(
-            train_dataset=mnist_train,
-            test_dataset=mnist_test,
-            n_experiences=n_experiences,
-            task_labels=True,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            class_ids_from_zero_in_each_exp=True,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
-    else:
-        return nc_benchmark(
-            train_dataset=mnist_train,
-            test_dataset=mnist_test,
-            n_experiences=n_experiences,
-            task_labels=False,
-            seed=seed,
-            fixed_class_order=fixed_class_order,
-            shuffle=shuffle,
-            train_transform=train_transform,
-            eval_transform=eval_transform,
-        )
+    return nc_benchmark(
+        train_dataset=mnist_train,
+        test_dataset=mnist_test,
+        n_experiences=n_experiences,
+        task_labels=return_task_id,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        shuffle=shuffle,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
+    )
 
 
 def PermutedMNIST(
     n_experiences: int,
     *,
+    return_task_id=False,
     seed: Optional[int] = None,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
@@ -189,12 +183,14 @@ def PermutedMNIST(
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    A progressive task label, starting from "0", is applied to each experience.
+    A progressive task label, starting from 0, is applied to each experience.
 
     The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
     which contains usage examples ranging from "basic" to "advanced".
 
+    :param return_task_id: if True, a progressive task id is returned for every
+        experience. If False, all experiences will have a task ID of 0.
     :param n_experiences: The number of experiences (tasks) in the current
         benchmark. It indicates how many different permutations of the MNIST
         dataset have to be created.
@@ -223,7 +219,7 @@ def PermutedMNIST(
     list_test_dataset = []
     rng_permute = np.random.RandomState(seed)
 
-    mnist_train, mnist_test = _get_mnist_dataset(dataset_root)
+    mnist_train, mnist_test = get_mnist_dataset(dataset_root)
 
     # for every incremental experience
     for _ in range(n_experiences):
@@ -234,22 +230,16 @@ def PermutedMNIST(
 
         permutation = PixelsPermutation(idx_permute)
 
-        permutation_transforms = dict(
-            train=(permutation, None), eval=(permutation, None)
+        # Freeze the permutation
+        permuted_train = make_avalanche_dataset(
+            make_classification_dataset(mnist_train),
+            frozen_transform_groups=DefaultTransformGroups((permutation, None)),
         )
 
-        # Freeze the permutation
-        permuted_train = AvalancheDataset(
-            mnist_train,
-            transform_groups=permutation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
-
-        permuted_test = AvalancheDataset(
-            mnist_test,
-            transform_groups=permutation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        permuted_test = make_avalanche_dataset(
+            make_classification_dataset(mnist_test),
+            frozen_transform_groups=DefaultTransformGroups((permutation, None)),
+        )
 
         list_train_dataset.append(permuted_train)
         list_test_dataset.append(permuted_test)
@@ -258,7 +248,7 @@ def PermutedMNIST(
         list_train_dataset,
         list_test_dataset,
         n_experiences=len(list_train_dataset),
-        task_labels=True,
+        task_labels=return_task_id,
         shuffle=False,
         class_ids_from_zero_in_each_exp=True,
         one_dataset_per_exp=True,
@@ -270,14 +260,14 @@ def PermutedMNIST(
 def RotatedMNIST(
     n_experiences: int,
     *,
+    return_task_id: bool = False,
     seed: Optional[int] = None,
     rotations_list: Optional[Sequence[int]] = None,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
     dataset_root: Union[str, Path] = None
 ) -> NCScenario:
-    """
-    Creates a Rotated MNIST benchmark.
+    """Creates a Rotated MNIST benchmark.
 
     If the dataset is not present in the computer, this method will
     automatically download and store it.
@@ -291,7 +281,7 @@ def RotatedMNIST(
     training and test :class:`Experience`. Each Experience contains the
     `dataset` and the associated task label.
 
-    A progressive task label, starting from "0", is applied to each experience.
+    A progressive task label, starting from 0, is applied to each experience.
 
     The benchmark API is quite simple and is uniform across all benchmark
     generators. It is recommended to check the tutorial of the "benchmark" API,
@@ -345,7 +335,7 @@ def RotatedMNIST(
     list_test_dataset = []
     rng_rotate = np.random.RandomState(seed)
 
-    mnist_train, mnist_test = _get_mnist_dataset(dataset_root)
+    mnist_train, mnist_test = get_mnist_dataset(dataset_root)
 
     # for every incremental experience
     for exp in range(n_experiences):
@@ -357,22 +347,16 @@ def RotatedMNIST(
 
         rotation = RandomRotation(degrees=(rotation_angle, rotation_angle))
 
-        rotation_transforms = dict(
-            train=(rotation, None), eval=(rotation, None)
+        # Freeze the rotation
+        rotated_train = make_avalanche_dataset(
+            make_classification_dataset(mnist_train),
+            frozen_transform_groups=DefaultTransformGroups((rotation, None)),
         )
 
-        # Freeze the rotation
-        rotated_train = AvalancheDataset(
-            mnist_train,
-            transform_groups=rotation_transforms,
-            initial_transform_group="train",
-        ).freeze_transforms()
-
-        rotated_test = AvalancheDataset(
-            mnist_test,
-            transform_groups=rotation_transforms,
-            initial_transform_group="eval",
-        ).freeze_transforms()
+        rotated_test = make_avalanche_dataset(
+            make_classification_dataset(mnist_test),
+            frozen_transform_groups=DefaultTransformGroups((rotation, None)),
+        )
 
         list_train_dataset.append(rotated_train)
         list_test_dataset.append(rotated_test)
@@ -381,24 +365,13 @@ def RotatedMNIST(
         list_train_dataset,
         list_test_dataset,
         n_experiences=len(list_train_dataset),
-        task_labels=True,
+        task_labels=return_task_id,
         shuffle=False,
         class_ids_from_zero_in_each_exp=True,
         one_dataset_per_exp=True,
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
-
-
-def _get_mnist_dataset(dataset_root):
-    if dataset_root is None:
-        dataset_root = default_dataset_location("mnist")
-
-    train_set = MNIST(root=dataset_root, train=True, download=True)
-
-    test_set = MNIST(root=dataset_root, train=False, download=True)
-
-    return train_set, test_set
 
 
 __all__ = ["SplitMNIST", "PermutedMNIST", "RotatedMNIST"]

@@ -21,8 +21,6 @@ from torchvision import transforms
 import math
 import os
 
-from avalanche.benchmarks.utils import AvalancheDatasetType
-
 _mu = [0.485, 0.456, 0.406]
 _std = [0.229, 0.224, 0.225]
 _default_stream51_transform = transforms.Compose(
@@ -287,7 +285,6 @@ def CLStream51(
         complete_test_set_only=scenario == "instance",
         train_transform=train_transform,
         eval_transform=eval_transform,
-        dataset_type=AvalancheDatasetType.CLASSIFICATION,
     )
 
     return benchmark_obj

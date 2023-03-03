@@ -8,15 +8,12 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+
 """
 This example trains on Split CIFAR10 with Naive strategy.
 In this example each experience has a different task label.
-The task label, although available, is not used at test time.
+We use a multi-head model with a separate classifier for each task.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import argparse
 import torch
@@ -24,7 +21,7 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 
 from avalanche.benchmarks.classic import SplitCIFAR10
-from avalanche.models import SimpleMLP
+from avalanche.models import SimpleMLP, as_multitask
 from avalanche.training.supervised import Naive
 
 
@@ -38,11 +35,12 @@ def main(args):
     )
     # model
     model = SimpleMLP(input_size=32 * 32 * 3, num_classes=10)
+    model = as_multitask(model, "classifier")
 
     # CL Benchmark Creation
-    scenario = SplitCIFAR10(n_experiences=5, return_task_id=True)
-    train_stream = scenario.train_stream
-    test_stream = scenario.test_stream
+    benchmark = SplitCIFAR10(n_experiences=5, return_task_id=True)
+    train_stream = benchmark.train_stream
+    test_stream = benchmark.test_stream
 
     # Prepare for training & testing
     optimizer = Adam(model.parameters(), lr=0.01)
