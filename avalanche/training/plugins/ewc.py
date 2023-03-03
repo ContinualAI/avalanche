@@ -130,7 +130,8 @@ class EWCPlugin(SupervisedPlugin):
             del self.saved_params[exp_counter - 1]
 
     def compute_importances(
-        self, model, criterion, optimizer, dataset, device, batch_size, num_workers
+        self, model, criterion, optimizer, dataset, device, batch_size,
+        num_workers
     ):
         """
         Compute EWC importance matrix for each parameter
@@ -158,7 +159,8 @@ class EWCPlugin(SupervisedPlugin):
             dataset.collate_fn if hasattr(dataset, "collate_fn") else None
         )
         dataloader = DataLoader(
-            dataset, batch_size=batch_size, collate_fn=collate_fn, num_workers=num_workers)
+            dataset, batch_size=batch_size, collate_fn=collate_fn,
+            num_workers=num_workers
         )
 
         for i, batch in enumerate(dataloader):
