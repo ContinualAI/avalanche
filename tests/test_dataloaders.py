@@ -157,7 +157,8 @@ class DataLoaderTests(unittest.TestCase):
 
         # test training for one experience
         train_exp = train_stream[0]
-        cl_strategy.train(train_exp, num_workers=4)  # setting num_workers > 0 should not fail
+        # setting num_workers > 0 should not fail
+        cl_strategy.train(train_exp, num_workers=4)
 
 
 if __name__ == "__main__":
