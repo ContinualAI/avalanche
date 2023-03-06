@@ -56,11 +56,13 @@ T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 TTargetType = Union[int]
 
+
 def lookup(indexable, idx):
-    '''
+    """
     A simple function that implements indexing into an indexable object.
-    Together with 'partial' this allows us to circumvent lambda functions that cannot be pickled.
-    '''
+    Together with 'partial' this allows us to circumvent lambda functions
+    that cannot be pickled.
+    """
     return indexable[idx]
 
 
