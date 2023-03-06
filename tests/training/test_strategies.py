@@ -45,6 +45,7 @@ from avalanche.training.supervised import (
     BiC,
     MIR,
     ER_ACE,
+    DER,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -980,6 +981,24 @@ class StrategyTest(unittest.TestCase):
             multi_task=False
         )
         strategy = ER_ACE(
+            model,
+            optimizer,
+            criterion,
+            mem_size=1000,
+            batch_size_mem=10,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        self.run_strategy(benchmark, strategy)
+
+    def test_der(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False
+        )
+        strategy = DER(
             model,
             optimizer,
             criterion,
