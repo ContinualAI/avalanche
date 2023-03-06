@@ -167,6 +167,33 @@ class DER(SupervisedTemplate):
         eval_every=-1,
         peval_mode="epoch",
     ):
+        """
+        :param model: PyTorch model.
+        :param optimizer: PyTorch optimizer.
+        :param criterion: loss function.
+        :param mem_size: int       : Fixed memory size
+        :param batch_size_mem: int : Size of the batch sampled from the buffer
+        :param derpp: bool : When True, uses DER++ 
+                            (add CE loss to the buffer 
+                             samples on top of MSE loss)
+        :param alpha: float : Hyperparameter weighting the MSE loss
+        :param beta: float : Hyperparameter weighting the CE loss (DER++)
+        :param train_mb_size: mini-batch size for training.
+        :param train_passes: number of training passes.
+        :param eval_mb_size: mini-batch size for eval.
+        :param device: PyTorch device where the model will be allocated.
+        :param plugins: (optional) list of StrategyPlugins.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations. None to remove logging.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` experiences and at the end of
+            the learning experience.
+        :param peval_mode: one of {'experience', 'iteration'}. Decides whether
+            the periodic evaluation during training should execute every
+            `eval_every` experience or iterations (Default='experience').
+        """
         super().__init__(
             model=model,
             optimizer=optimizer,
