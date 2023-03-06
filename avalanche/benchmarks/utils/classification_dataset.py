@@ -476,8 +476,7 @@ def classification_subset(
 
     if class_mapping is not None:
         frozen_transform_groups = DefaultTransformGroups(
-            # (None, lambda x: class_mapping[x])
-            (None, partial(lookup, class_mapping))  # replace lambda function to allow pickle to do it's thing for multiprocessing
+            (None, partial(lookup, class_mapping))
         )
     else:
         frozen_transform_groups = None

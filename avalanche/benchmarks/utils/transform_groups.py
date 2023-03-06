@@ -27,6 +27,10 @@ from avalanche.benchmarks.utils.transforms import (
 )
 
 def identity(x):
+    '''
+    this is used together with partial to replace a lambda function
+    that causes pickle to fail
+    '''
     return x
 
 class TransformGroups:
@@ -131,8 +135,6 @@ class DefaultTransformGroups(TransformGroups):
     def __init__(self, transform):
         super().__init__({})
         transform = _normalize_transform(transform)
-        # this used to be a lambda function, which cannot be pickled
-        # self.transform_groups = defaultdict(make_getter(transform))
         self.transform_groups = defaultdict(partial(identity, transform))
 
     def with_transform(self, group_name):
@@ -142,8 +144,6 @@ class DefaultTransformGroups(TransformGroups):
 class EmptyTransformGroups(DefaultTransformGroups):
     def __init__(self):
         super().__init__({})
-        # this was a lambda function before that may bring us into a pickle when using multiple dataloader workers
-        # use identity function with partial in an attempt to circumvent the lambda
         self.transform_groups = defaultdict(partial(identity, None))
 
     def __call__(self, elem, group_name=None):

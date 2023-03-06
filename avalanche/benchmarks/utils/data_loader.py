@@ -163,7 +163,7 @@ class GroupBalancedDataLoader:
 
         # collate is done after we have all batches
         # so we set an empty collate for the internal dataloaders
-        self.loader_kwargs["collate_fn"] = return_identity  # this used to be a lambda function but that breaks pickling for multiple dataloader processes
+        self.loader_kwargs["collate_fn"] = return_identity
 
         # check if batch_size is larger than or equal to the number of datasets
         assert batch_size >= len(datasets)
