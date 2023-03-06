@@ -42,7 +42,8 @@ detection_collate_mbatches_fn = _detection_collate_mbatches_fn
 
 def return_identity(x):
     """
-    The identity function. Can be wrapped in 'partial' to act as a getter function.
+    The identity function. Can be wrapped in 'partial'
+    to act as a getter function.
     Used to avoid lambda functions that cannot be pickled.
     """
     return x
