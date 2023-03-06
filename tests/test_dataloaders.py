@@ -137,6 +137,28 @@ class DataLoaderTests(unittest.TestCase):
                 self.assertLessEqual(sum(lengths), batch_size)
             cl_strategy.train(step)
 
+    def test_dataloader_with_multiple_workers(self):
+        device = torch.device("cpu")
+        # initialize a simple model
+        model = SimpleMLP(num_classes=10, input_size=6)
+
+        # initialize a benchmark
+        benchmark = get_fast_benchmark()
+        train_stream = benchmark.train_stream
+
+        # Prepare for training & testing
+        optimizer = SGD(model.parameters(), lr=0.001, momentum=0.9)
+        criterion = CrossEntropyLoss()
+
+        # Continual learning strategy
+        cl_strategy = Naive(
+            model, optimizer, criterion, train_mb_size=32, train_epochs=1,
+            eval_mb_size=32, device=device)
+
+        # test training for one experience
+        train_exp = train_stream[0]
+        cl_strategy.train(train_exp, num_workers=4)  # setting num_workers > 0 should not fail
+
 
 if __name__ == "__main__":
     unittest.main()
