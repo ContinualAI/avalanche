@@ -153,7 +153,6 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
 
     def _before_training_exp(self, **kwargs):
         self.storage_policy.update(self, **kwargs)
-        self.ace_criterion.update(torch.tensor(self.experience.dataset.targets))
         # Take all classes for ER ACE loss
         buffer = self.storage_policy.buffer
         if len(buffer) >= self.batch_size_mem:
@@ -304,7 +303,6 @@ class ER_ACE(SupervisedTemplate):
     def _before_training_exp(self, **kwargs):
         # Update buffer before training exp so that we have current data in
         self.storage_policy.update(self, **kwargs)
-        self.ace_criterion.update(torch.tensor(self.experience.dataset.targets))
         buffer = self.storage_policy.buffer
         if len(buffer) >= self.batch_size_mem:
             self.replay_loader = cycle(
