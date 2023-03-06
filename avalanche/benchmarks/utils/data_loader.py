@@ -41,11 +41,12 @@ detection_collate_mbatches_fn = _detection_collate_mbatches_fn
 
 
 def return_identity(x):
-    '''
+    """
     The identity function. Can be wrapped in 'partial' to act as a getter function.
     Used to avoid lambda functions that cannot be pickled.
-    '''
+    """
     return x
+
 
 def collate_from_data_or_kwargs(data, kwargs):
     if "collate_fn" in kwargs:

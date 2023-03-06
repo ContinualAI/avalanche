@@ -26,12 +26,14 @@ from avalanche.benchmarks.utils.transforms import (
     MultiParamTransform,
 )
 
+
 def identity(x):
-    '''
+    """
     this is used together with partial to replace a lambda function
     that causes pickle to fail
-    '''
+    """
     return x
+
 
 class TransformGroups:
     """Transformation groups for Avalanche datasets.

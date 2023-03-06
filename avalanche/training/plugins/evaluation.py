@@ -178,8 +178,6 @@ class EvaluationPlugin:
         except AttributeError as e:
             if item.startswith("before_") or item.startswith("after_"):
                 # method is a callback. Forward to metrics.
-
-                # this was a lambda function before, which causes pickle to fail.
                 def fun(strat, **kwargs):
                     return self._update_metrics_and_loggers(strat, item)
                 return fun
