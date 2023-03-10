@@ -45,7 +45,7 @@ from avalanche.training.supervised import (
     BiC,
     MIR,
     ER_ACE,
-    L2PTemplate,
+    LearningToPrompt,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -998,7 +998,7 @@ class StrategyTest(unittest.TestCase):
             multi_task=False
         )
 
-        strategy = L2PTemplate(
+        strategy = LearningToPrompt(
             model_name="simpleMLP",
             criterion=CrossEntropyLoss(),
             train_mb_size=10,
