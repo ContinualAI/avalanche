@@ -8,6 +8,19 @@ import torch.nn as nn
 
 
 class Prompt(nn.Module):
+    """
+    Prompt module for the L2P (Learning to Prompt) strategy.
+
+    Wang, Zifeng, et al. "Learning to prompt for continual learning." 
+    Proceedings of the IEEE/CVF Conference on Computer Vision and \
+    Pattern Recognition. 2022.
+
+    Implementation is based on:
+    - https://github.com/JH-LEE-KR/l2p-pytorch
+
+    These prompts are added to L2P model in models.timm_vit
+    """
+
     def __init__(
         self,
         length=5,
@@ -21,6 +34,22 @@ class Prompt(nn.Module):
         batchwise_prompt=False,
         prompt_key_init="uniform",
     ):
+        """
+        Args:
+            length (int): length of the prompt. Default 5.
+            embed_dim (int): embedding dimension of the prompt. Default 768.
+            embedding_key (str): method to generate embedding to find key \
+                                similary. Default "mean".
+            prompt_init (str): initialization of the prompt pool. \
+                                Default "uniform".
+            prompt_pool (bool): use prompt pool or not. Default False.
+            prompt_key (bool): use learnable prompt keys. Default False.
+            pool_size (int): size of the pool.
+            top_k (int): select the top k similar prompts.
+            batchwise_prompt (bool): use prompt batchwise. Defalt False.
+            prompt_key_init (str): initialization of the key pool. \
+                                Default "uniform",
+        """
         super().__init__()
 
         self.length = length
@@ -58,12 +87,21 @@ class Prompt(nn.Module):
     def l2_normalize(self, x, dim=None, epsilon=1e-12):
         """Normalizes a given vector or matrix."""
         square_sum = torch.sum(x**2, dim=dim, keepdim=True)
-        x_inv_norm = torch.rsqrt(torch.maximum(
-                                    square_sum, 
-                                    torch.tensor(epsilon, device=x.device)))
+        x_inv_norm = torch.rsqrt(
+            torch.maximum(
+                square_sum,
+                torch.tensor(
+                    epsilon,
+                    device=x.device)))
         return x * x_inv_norm
 
     def forward(self, x_embed, prompt_mask=None, cls_features=None):
+        """
+        Args:
+            x_embed: input tensor
+            prompt_mask: mask to select specific prompts.
+            cls_features: key features to find the close prompts
+        """
         out = dict()
         if self.prompt_pool:
             if self.embedding_key == "mean":
@@ -71,32 +109,36 @@ class Prompt(nn.Module):
             elif self.embedding_key == "max":
                 x_embed_mean = torch.max(x_embed, dim=1)[0]
             elif self.embedding_key == "mean_max":
-                x_embed_mean = torch.max(x_embed, dim=1)[0] + \
-                                        2 * torch.mean(x_embed, dim=1)
+                x_embed_mean = torch.max(x_embed, dim=1)[
+                                         0] + 2 * torch.mean(x_embed, dim=1)
             elif self.embedding_key == "cls":
                 if cls_features is None:
-                    x_embed_mean = torch.max(x_embed, dim=1)[0]
+                    x_embed_mean = torch.max(x_embed, dim=1)[0]  # B, C
                 else:
                     x_embed_mean = cls_features
             else:
-                raise NotImplementedError("Not supported way of \
-                                            calculating embedding keys!")
+                raise NotImplementedError(
+                    "Not supported way of calculating embedding keys!")
 
-            # Pool_size, C
-            prompt_norm = self.l2_normalize(self.prompt_key, dim=1) 
-            x_embed_norm = self.l2_normalize(x_embed_mean, dim=1)
+            prompt_norm = self.l2_normalize(
+                self.prompt_key, dim=1)  # Pool_size, C
+            x_embed_norm = self.l2_normalize(x_embed_mean, dim=1)  # B, C
 
-            # B, Pool_size
-            similarity = torch.matmul(x_embed_norm, prompt_norm.t()) 
+            similarity = torch.matmul(
+                x_embed_norm, prompt_norm.t())  # B, Pool_size
 
             if prompt_mask is None:
-                _, idx = torch.topk(similarity, k=self.top_k, dim=1)
+                _, idx = torch.topk(similarity, k=self.top_k, dim=1)  # B, top_k
                 if self.batchwise_prompt:
                     prompt_id, id_counts = torch.unique(
-                                                    idx, 
-                                                    return_counts=True, 
-                                                    sorted=True)
-
+                        idx, return_counts=True, sorted=True)
+                    # In jnp.unique, when the 'size' is specified and there are 
+                    # fewer than the indicated number of elements,
+                    # the remaining elements will be filled with 'fill_value', 
+                    # the default is the minimum value along the specified 
+                    # dimension.
+                    # Unless dimension is specified, this will be flattend if it
+                    # is not already 1D.
                     if prompt_id.shape[0] < self.pool_size:
                         prompt_id = torch.cat(
                             [
@@ -118,17 +160,19 @@ class Prompt(nn.Module):
                                 ),
                             ]
                         )
-                    _, major_idx = torch.topk(id_counts, k=self.top_k)
-                    major_prompt_id = prompt_id[major_idx]
-                    idx = major_prompt_id.expand(x_embed.shape[0], -1)
+                    _, major_idx = torch.topk(id_counts, k=self.top_k)  # top_k
+                    major_prompt_id = prompt_id[major_idx]  # top_k
+                    # expand to batch
+                    idx = major_prompt_id.expand(
+                        x_embed.shape[0], -1)  # B, top_k
             else:
-                idx = prompt_mask
+                idx = prompt_mask  # B, top_k
 
-            batched_prompt_raw = self.prompt[idx]
+            batched_prompt_raw = self.prompt[idx]  # B, top_k, length, C
             batch_size, top_k, length, c = batched_prompt_raw.shape
             batched_prompt = batched_prompt_raw.reshape(
                 batch_size, top_k * length, c
-            )
+            )  # B, top_k * length, C
 
             out["prompt_idx"] = idx
 
@@ -138,30 +182,26 @@ class Prompt(nn.Module):
             out["similarity"] = similarity
 
             # Put pull_constraint loss calculation inside
-            batched_key_norm = prompt_norm[idx]
+            batched_key_norm = prompt_norm[idx]  # B, top_k, C
             out["selected_key"] = batched_key_norm
-            x_embed_norm = x_embed_norm.unsqueeze(1)
-            sim = batched_key_norm * x_embed_norm
-            reduce_sim = torch.sum(sim) / x_embed.shape[0]
+            x_embed_norm = x_embed_norm.unsqueeze(1)  # B, 1, C
+            sim = batched_key_norm * x_embed_norm  # B, top_k, C
+            reduce_sim = torch.sum(sim) / x_embed.shape[0]  # Scalar
 
             out["reduce_sim"] = reduce_sim
         else:
             if self.prompt_init == "zero":
-                self.prompt = nn.Parameter(torch.zeros(
-                                                    self.length, 
-                                                    self.embed_dim))
+                self.prompt = nn.Parameter(
+                    torch.zeros(self.length, self.embed_dim))
             elif self.prompt_init == "uniform":
-                self.prompt = nn.Parameter(torch.randn(
-                                                    self.length, 
-                                                    self.embed_dim))
+                self.prompt = nn.Parameter(
+                    torch.randn(self.length, self.embed_dim))
                 nn.init.uniform_(self.prompt)
-            batched_prompt = self.prompt.unsqueeze(0).expand(
-                                                        x_embed.shape[0],
-                                                        -1,
-                                                        -1)
+            batched_prompt = self.prompt.unsqueeze(
+                0).expand(x_embed.shape[0], -1, -1)
 
-        # The input with the prompt concatenated to the front. 
-        # [B, prompt+token, C]
+        # The input with the prompt concatenated to the front. [B, prompt+token,
+        # C]
         out["total_prompt_len"] = batched_prompt.shape[1]
         out["prompted_embedding"] = torch.cat([batched_prompt, x_embed], dim=1)
 

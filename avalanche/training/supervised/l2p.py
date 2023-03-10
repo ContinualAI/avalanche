@@ -10,12 +10,9 @@ from avalanche.training.templates import SupervisedTemplate
 from avalanche.models.vit import create_model
 
 
-MODEL = "vit_base_patch16_224"
-
-
-class L2PTemplate(SupervisedTemplate):
+class LearningToPrompt(SupervisedTemplate):
     """
-    Learning to Prompt (L2P) plugin.
+    Learning to Prompt (L2P) strategy.
 
     Technique introduced in:
     "Wang, Zifeng, et al. "Learning to prompt for continual learning." 
@@ -48,10 +45,12 @@ class L2PTemplate(SupervisedTemplate):
         pool_size: int = 20,
         prompt_length: int = 5,
         top_k: int = 5,
+        lr: float = 0.03,
+        sim_coefficient: float = 0.1,
         prompt_key: bool = True,
         pretrained: bool = True,
         num_classes: int = 10,
-        drop_rate: float = 0.1,
+        drop_rate: float = 0.0,
         drop_path_rate: float = 0.0,
         embedding_key: str = "cls",
         prompt_init: str = "uniform",
@@ -64,7 +63,34 @@ class L2PTemplate(SupervisedTemplate):
         use_vit: bool = True,
         **kwargs,
     ):
+        """Init.
+
+        :param model_name: Name of the model to use. For a complete list check \
+            models.vit.py
+        :param criterion: Loss functions used during training. \
+            Default CrossEntropyLoss.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
+        :param use_cls_features: Use an external pre-trained model to obtained\
+             features to obtained the prompts.
+        :param use_mask: Use mask to train only classification rows of the \
+            classes of the current task. Default True.
+        :param use_vit: Boolean to confirm the usage of a visual Transformer.\
+            Default True
+        """
         self.num_classes = num_classes
+        self.lr = lr
+        self.sim_coefficient = sim_coefficient
         model = create_model(
             model_name=model_name,
             prompt_pool=prompt_pool,
@@ -83,18 +109,18 @@ class L2PTemplate(SupervisedTemplate):
             use_prompt_mask=use_prompt_mask,
         )
 
-        optimizer = torch.optim.Adam(
-            model.parameters(),
-            betas=(0.9, 0.999),
-            lr=0.01,
-        )
-
         for n, p in model.named_parameters():
             if n.startswith(tuple(["blocks", "patch_embed", 
                                    "cls_token", "norm", "pos_embed"])):
                 p.requires_grad = False
 
         model.head = torch.nn.Linear(768, num_classes).to(device)
+
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            betas=(0.9, 0.999),
+            lr=self.lr,
+        )
 
         super().__init__(
             model,
@@ -135,7 +161,7 @@ class L2PTemplate(SupervisedTemplate):
         self.optimizer = torch.optim.Adam(
             self.model.parameters(),
             betas=(0.9, 0.999),
-            lr=0.01,
+            lr=self.lr,
         )
 
     def forward(self):
@@ -171,5 +197,5 @@ class L2PTemplate(SupervisedTemplate):
 
     def criterion(self):
         loss = self._criterion(self.mb_output, self.mb_y)
-        loss = loss - 0.1 * self.res["reduce_sim"]
+        loss = loss - self.sim_coefficient * self.res["reduce_sim"]
         return loss
