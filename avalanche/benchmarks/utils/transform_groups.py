@@ -18,12 +18,21 @@
 """
 from collections import defaultdict
 from typing import Dict, Union, Callable, Sequence
+from functools import partial
 
 from avalanche.benchmarks.utils.transforms import (
     MultiParamCompose,
     TupleTransform,
     MultiParamTransform,
 )
+
+
+def identity(x):
+    """
+    this is used together with partial to replace a lambda function
+    that causes pickle to fail
+    """
+    return x
 
 
 class TransformGroups:
@@ -128,7 +137,7 @@ class DefaultTransformGroups(TransformGroups):
     def __init__(self, transform):
         super().__init__({})
         transform = _normalize_transform(transform)
-        self.transform_groups = defaultdict(lambda: transform)
+        self.transform_groups = defaultdict(partial(identity, transform))
 
     def with_transform(self, group_name):
         self.current_group = group_name
@@ -137,7 +146,7 @@ class DefaultTransformGroups(TransformGroups):
 class EmptyTransformGroups(DefaultTransformGroups):
     def __init__(self):
         super().__init__({})
-        self.transform_groups = defaultdict(lambda: None)
+        self.transform_groups = defaultdict(partial(identity, None))
 
     def __call__(self, elem, group_name=None):
         """Apply current transformation group to element."""
