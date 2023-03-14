@@ -161,12 +161,6 @@ class BaseSGDTemplate(BaseTemplate):
         super().eval(exp_list, **kwargs)
         return self.evaluator.get_last_metrics()
 
-    def _train_exp(
-        self, experience: CLExperience, eval_streams, **kwargs
-    ):
-        # Should be implemented in Observation Type
-        raise NotImplementedError()
-
     def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
