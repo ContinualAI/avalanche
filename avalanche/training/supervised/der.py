@@ -1,5 +1,5 @@
 import copy
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import numpy as np
 import torch
@@ -26,15 +26,16 @@ def cycle(loader):
 
 
 @torch.no_grad()
-def dataset_with_logits(dataset, model, batch_size, device, _max_size=300):
+def dataset_with_logits(dataset, model, batch_size, device, transforms):
     model = copy.deepcopy(model)
     model.train()
     logits = []
     data = []
     loader = torch.utils.data.DataLoader(
-        dataset, 
-        batch_size=batch_size, 
-        shuffle=False)
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+    )
 
     for x, _, _ in loader:
         x = x.to(device)
@@ -44,22 +45,12 @@ def dataset_with_logits(dataset, model, batch_size, device, _max_size=300):
 
     logits = torch.cat(logits)
     data = torch.cat(data)
-
-    logits = F.pad(logits, (0, _max_size - logits.shape[1]), value=0)
-
-    if len(data.shape) == 4:
-        transform = Compose(
-            [RandomCrop(data[0].shape[2], padding=4), RandomHorizontalFlip()]
-        )
-    else:
-        transform = None
-
     dataset = make_tensor_classification_dataset(
         data,
         torch.tensor(dataset.targets),
         torch.tensor(dataset.targets_task_labels),
         logits,
-        transform=transform,
+        transform=transforms,
     )
     return dataset
 
@@ -74,6 +65,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         max_size: int,
         adaptive_size: bool = True,
         total_num_classes: int = None,
+        transforms: Callable = None,
     ):
         """Init.
 
@@ -82,6 +74,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
                             observed experiences (keys in replay_mem).
         :param total_num_classes: If adaptive size is False, the fixed number
                                   of classes to divide capacity over.
+        :param transforms: transformation to be applied to the buffer
         """
         if not adaptive_size:
             assert (
@@ -92,12 +85,17 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes
         self.seen_classes = set()
+        self.transforms = transforms
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
         new_data = strategy.experience.dataset.eval()
 
         new_data_with_logits = dataset_with_logits(
-            new_data, strategy.model, strategy.train_mb_size, strategy.device,
+            new_data,
+            strategy.model,
+            strategy.train_mb_size,
+            strategy.device,
+            self.transforms,
         )
 
         # Get sample idxs per class
@@ -136,16 +134,19 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
 
         # resize buffers
         for class_id, class_buf in self.buffer_groups.items():
-            self.buffer_groups[class_id].resize(
-                strategy, 
-                class_to_len[class_id])
+            self.buffer_groups[class_id].resize(strategy, 
+                                                class_to_len[class_id])
+
+
+_default_der_transforms = Compose([RandomCrop(32, padding=4), 
+                                  RandomHorizontalFlip()])
 
 
 class DER(SupervisedTemplate):
-    """ 
-    Implements the DER and the DER++ Strategy, 
-    from the "Dark Experience For General Continual Learning" 
-    paper, Buzzega et. al, https://arxiv.org/abs/2004.07211 
+    """
+    Implements the DER and the DER++ Strategy,
+    from the "Dark Experience For General Continual Learning"
+    paper, Buzzega et. al, https://arxiv.org/abs/2004.07211
     """
 
     def __init__(
@@ -155,9 +156,9 @@ class DER(SupervisedTemplate):
         criterion=CrossEntropyLoss(),
         mem_size: int = 200,
         batch_size_mem: int = None,
-        derpp: bool = False,
         alpha: float = 0.1,
         beta: float = 0.5,
+        transforms: Callable = _default_der_transforms,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
@@ -173,11 +174,11 @@ class DER(SupervisedTemplate):
         :param criterion: loss function.
         :param mem_size: int       : Fixed memory size
         :param batch_size_mem: int : Size of the batch sampled from the buffer
-        :param derpp: bool : When True, uses DER++ 
-                            (add CE loss to the buffer 
-                             samples on top of MSE loss)
         :param alpha: float : Hyperparameter weighting the MSE loss
-        :param beta: float : Hyperparameter weighting the CE loss (DER++)
+        :param beta: float : Hyperparameter weighting the CE loss,
+                             when more than 0, DER++ is used instead of DER
+        :param transforms: Callable: Transformations to use for 
+                                     both the dataset and the buffer data
         :param train_mb_size: mini-batch size for training.
         :param train_passes: number of training passes.
         :param eval_mb_size: mini-batch size for eval.
@@ -213,12 +214,12 @@ class DER(SupervisedTemplate):
             self.batch_size_mem = batch_size_mem
         self.mem_size = mem_size
         self.storage_policy = ClassBalancedBufferWithLogits(
-            self.mem_size, adaptive_size=True
+            self.mem_size, adaptive_size=True, transforms=transforms
         )
         self.replay_loader = None
-        self.derpp = derpp
         self.alpha = alpha
         self.beta = beta
+        self.transforms = transforms
 
     def _before_training_exp(self, **kwargs):
         buffer = self.storage_policy.buffer
@@ -255,9 +256,15 @@ class DER(SupervisedTemplate):
 
         out_buffer = avalanche_forward(self.model, batch_x, batch_tid)
 
+        if batch_logits.shape[1] != out_buffer.shape[1]:
+            raise AssertionError(
+                "DER Strategy requires the use of "
+                "a fixed size classifier, but a classifier of"
+                f"varying size has been found during execution"
+            )
+
         self.loss += self.alpha * F.mse_loss(
             out_buffer, batch_logits[:, : out_buffer.shape[1]]
         )
 
-        if self.derpp:
-            self.loss += self.beta * F.cross_entropy(out_buffer, batch_y)
+        self.loss += self.beta * F.cross_entropy(out_buffer, batch_y)

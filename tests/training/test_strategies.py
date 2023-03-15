@@ -1004,6 +1004,7 @@ class StrategyTest(unittest.TestCase):
             criterion,
             mem_size=1000,
             batch_size_mem=10,
+            transforms=None,
             train_mb_size=10,
             device=self.device,
             eval_mb_size=50,
