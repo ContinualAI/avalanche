@@ -26,9 +26,14 @@ def cycle(loader):
 
 
 @torch.no_grad()
-def dataset_with_logits(dataset, model, batch_size, device, transforms):
-    model = copy.deepcopy(model)
-    model.train()
+def create_tensor_dataset(
+    dataset,
+    model=None,
+    batch_size=128,
+    device="cuda",
+    transforms=None,
+    add_logits=True,
+):
     logits = []
     data = []
     loader = torch.utils.data.DataLoader(
@@ -36,22 +41,32 @@ def dataset_with_logits(dataset, model, batch_size, device, transforms):
         batch_size=batch_size,
         shuffle=False,
     )
-
+    if add_logits:
+        model.eval()
     for x, _, _ in loader:
         x = x.to(device)
-        out = model(x)
-        logits.append(out)
-        data.append(x)
+        data.append(x.cpu())
 
-    logits = torch.cat(logits)
+        if add_logits:
+            out = model(x)
+            logits.append(out.cpu())
     data = torch.cat(data)
-    dataset = make_tensor_classification_dataset(
-        data,
-        torch.tensor(dataset.targets),
-        torch.tensor(dataset.targets_task_labels),
-        logits,
-        transform=transforms,
-    )
+    if add_logits:
+        logits = torch.cat(logits)
+        dataset = make_tensor_classification_dataset(
+            data,
+            torch.tensor(dataset.targets),
+            torch.tensor(dataset.targets_task_labels),
+            logits,
+            transform=transforms,
+        )
+    else:
+        dataset = make_tensor_classification_dataset(
+            data,
+            torch.tensor(dataset.targets),
+            torch.tensor(dataset.targets_task_labels),
+            transform=transforms,
+        )
     return dataset
 
 
@@ -90,12 +105,13 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
     def update(self, strategy: "SupervisedTemplate", **kwargs):
         new_data = strategy.experience.dataset.eval()
 
-        new_data_with_logits = dataset_with_logits(
+        new_data_with_logits = create_tensor_dataset(
             new_data,
             strategy.model,
             strategy.train_mb_size,
             strategy.device,
             self.transforms,
+            add_logits=True,
         )
 
         # Get sample idxs per class
@@ -139,7 +155,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
 
 
 _default_der_transforms = Compose([RandomCrop(32, padding=4), 
-                                  RandomHorizontalFlip()])
+                                   RandomHorizontalFlip()])
 
 
 class DER(SupervisedTemplate):
@@ -177,8 +193,14 @@ class DER(SupervisedTemplate):
         :param alpha: float : Hyperparameter weighting the MSE loss
         :param beta: float : Hyperparameter weighting the CE loss,
                              when more than 0, DER++ is used instead of DER
-        :param transforms: Callable: Transformations to use for 
-                                     both the dataset and the buffer data
+        :param transforms: Callable: Transformations to use for
+                                     both the dataset and the buffer data, on 
+                                     top of already existing 
+                                     test transformations.
+                                     If any supplementary transformations 
+                                     are applied to the 
+                                     input data, it will be 
+                                     overwritten by this argument 
         :param train_mb_size: mini-batch size for training.
         :param train_passes: number of training passes.
         :param eval_mb_size: mini-batch size for eval.
@@ -236,6 +258,16 @@ class DER(SupervisedTemplate):
             self.replay_loader = None
 
         super()._before_training_exp(**kwargs)
+
+    def train_dataset_adaptation(self, **kwargs):
+        self.adapted_dataset = create_tensor_dataset(
+            self.experience.dataset.eval(),
+            model=None,
+            batch_size=self.train_mb_size,
+            device=self.device,
+            transforms=self.transforms,
+            add_logits=False,
+        )
 
     def _after_training_exp(self, **kwargs):
         self.storage_policy.update(self, **kwargs)
