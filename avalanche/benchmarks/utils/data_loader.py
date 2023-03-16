@@ -590,6 +590,8 @@ def _make_data_loader(
         data_loader_args['num_workers'] = 0
         if 'persistent_workers' in data_loader_args:
             data_loader_args['persistent_workers'] = False
+        if 'prefetch_factor' in data_loader_args:
+            data_loader_args['prefetch_factor'] = 2
 
     if _DistributedHelper.is_distributed and distributed_sampling:
         sampler = DistributedSampler(
