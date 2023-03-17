@@ -11,12 +11,58 @@ from torchvision.transforms import Compose, RandomCrop, RandomHorizontalFlip
 
 from avalanche.benchmarks.utils import (classification_subset,
                                         make_tensor_classification_dataset)
+from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.transform_groups import (EmptyTransformGroups,
+                                                         TransformGroups)
 from avalanche.core import SupervisedPlugin
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import (BalancedExemplarsBuffer,
                                                ReservoirSamplingBuffer)
 from avalanche.training.templates import SupervisedTemplate
+
+
+def _find_dataset_transforms(self, all_transforms):
+    for dd in self._datasets:
+        if isinstance(dd, AvalancheDataset):
+            if not isinstance(dd._transform_groups, EmptyTransformGroups):
+                all_transforms.append(dd._transform_groups)
+            _find_dataset_transforms(dd, all_transforms)
+
+
+def find_dataset_transforms(dataset):
+    all_transforms = []
+    _find_dataset_transforms(dataset, all_transforms)
+    return all_transforms
+
+
+def filter_transforms(transform_groups):
+    """From a transform group, returns the difference
+    between the train transform and eval transform.
+    Since the tensor dataset will already have the eval transforms
+    applied to it, we want to filter out only
+    the additional train transforms to be applied"""
+    train_transforms_group = \
+        transform_groups[0].transform_groups["train"].transforms[0]
+
+    if train_transforms_group is not None:
+        train_transforms = train_transforms_group.transforms
+    else:
+        return None
+
+    eval_transforms_group = \
+        transform_groups[0].transform_groups["eval"].transforms[0]
+    if eval_transforms_group is not None:
+        eval_transforms = eval_transforms_group.transforms
+
+    filtered_transform = train_transforms[
+        : len(train_transforms) - len(eval_transforms)
+    ]
+    if len(filtered_transform) > 0:
+        filtered_transform = Compose(filtered_transform)
+    else:
+        filtered_transform = None
+    return filtered_transform
 
 
 def cycle(loader):
@@ -80,7 +126,6 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         max_size: int,
         adaptive_size: bool = True,
         total_num_classes: int = None,
-        transforms: Callable = None,
     ):
         """Init.
 
@@ -100,9 +145,11 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes
         self.seen_classes = set()
-        self.transforms = transforms
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
+        transform_groups = find_dataset_transforms(strategy.experience.dataset)
+        filtered_transforms = filter_transforms(transform_groups)
+
         new_data = strategy.experience.dataset.eval()
 
         new_data_with_logits = create_tensor_dataset(
@@ -110,7 +157,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
             strategy.model,
             strategy.train_mb_size,
             strategy.device,
-            self.transforms,
+            filtered_transforms,
             add_logits=True,
         )
 
@@ -154,10 +201,6 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
                                                 class_to_len[class_id])
 
 
-_default_der_transforms = Compose([RandomCrop(32, padding=4), 
-                                   RandomHorizontalFlip()])
-
-
 class DER(SupervisedTemplate):
     """
     Implements the DER and the DER++ Strategy,
@@ -174,7 +217,6 @@ class DER(SupervisedTemplate):
         batch_size_mem: int = None,
         alpha: float = 0.1,
         beta: float = 0.5,
-        transforms: Callable = _default_der_transforms,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
@@ -194,13 +236,13 @@ class DER(SupervisedTemplate):
         :param beta: float : Hyperparameter weighting the CE loss,
                              when more than 0, DER++ is used instead of DER
         :param transforms: Callable: Transformations to use for
-                                     both the dataset and the buffer data, on 
-                                     top of already existing 
+                                     both the dataset and the buffer data, on
+                                     top of already existing
                                      test transformations.
-                                     If any supplementary transformations 
-                                     are applied to the 
-                                     input data, it will be 
-                                     overwritten by this argument 
+                                     If any supplementary transformations
+                                     are applied to the
+                                     input data, it will be
+                                     overwritten by this argument
         :param train_mb_size: mini-batch size for training.
         :param train_passes: number of training passes.
         :param eval_mb_size: mini-batch size for eval.
@@ -236,12 +278,11 @@ class DER(SupervisedTemplate):
             self.batch_size_mem = batch_size_mem
         self.mem_size = mem_size
         self.storage_policy = ClassBalancedBufferWithLogits(
-            self.mem_size, adaptive_size=True, transforms=transforms
+            self.mem_size, adaptive_size=True
         )
         self.replay_loader = None
         self.alpha = alpha
         self.beta = beta
-        self.transforms = transforms
 
     def _before_training_exp(self, **kwargs):
         buffer = self.storage_policy.buffer
@@ -258,16 +299,6 @@ class DER(SupervisedTemplate):
             self.replay_loader = None
 
         super()._before_training_exp(**kwargs)
-
-    def train_dataset_adaptation(self, **kwargs):
-        self.adapted_dataset = create_tensor_dataset(
-            self.experience.dataset.eval(),
-            model=None,
-            batch_size=self.train_mb_size,
-            device=self.device,
-            transforms=self.transforms,
-            add_logits=False,
-        )
 
     def _after_training_exp(self, **kwargs):
         self.storage_policy.update(self, **kwargs)
