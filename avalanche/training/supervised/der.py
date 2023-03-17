@@ -21,100 +21,44 @@ from avalanche.training.storage_policy import (BalancedExemplarsBuffer,
                                                ReservoirSamplingBuffer)
 from avalanche.training.templates import SupervisedTemplate
 
+class DatasetWithLogits(AvalancheDataset):
+    def __init__(self, dataset, model, batch_size, device):
+        super().__init__([dataset])
+        self.logits = self.compute_logits(dataset, model, batch_size, device)
 
-def _find_dataset_transforms(self, all_transforms):
-    for dd in self._datasets:
-        if isinstance(dd, AvalancheDataset):
-            if not isinstance(dd._transform_groups, EmptyTransformGroups):
-                all_transforms.append(dd._transform_groups)
-            _find_dataset_transforms(dd, all_transforms)
+    @torch.no_grad()
+    def compute_logits(
+        self,
+        dataset,
+        model=None,
+        batch_size=128,
+        device="cuda",
+    ):
+        logits = []
+        loader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=False,
+        )
+        model.eval()
+        for x, _, _ in loader:
+            x = x.to(device)
+            out = model(x)
+            logits.append(out.cpu())
 
+        logits = torch.cat(logits)
+        return logits
 
-def find_dataset_transforms(dataset):
-    all_transforms = []
-    _find_dataset_transforms(dataset, all_transforms)
-    return all_transforms
-
-
-def filter_transforms(transform_groups):
-    """From a transform group, returns the difference
-    between the train transform and eval transform.
-    Since the tensor dataset will already have the eval transforms
-    applied to it, we want to filter out only
-    the additional train transforms to be applied"""
-    train_transforms_group = \
-        transform_groups[0].transform_groups["train"].transforms[0]
-
-    if train_transforms_group is not None:
-        train_transforms = train_transforms_group.transforms
-    else:
-        return None
-
-    eval_transforms_group = \
-        transform_groups[0].transform_groups["eval"].transforms[0]
-    if eval_transforms_group is not None:
-        eval_transforms = eval_transforms_group.transforms
-
-    filtered_transform = train_transforms[
-        : len(train_transforms) - len(eval_transforms)
-    ]
-    if len(filtered_transform) > 0:
-        filtered_transform = Compose(filtered_transform)
-    else:
-        filtered_transform = None
-    return filtered_transform
+    def __getitem__(self, idx):
+        mb = super().__getitem__(idx)
+        import pdb;pdb.set_trace()
+        return *mb, self.logits[idx]
 
 
 def cycle(loader):
     while True:
         for batch in loader:
             yield batch
-
-
-@torch.no_grad()
-def create_tensor_dataset(
-    dataset,
-    model=None,
-    batch_size=128,
-    device="cuda",
-    transforms=None,
-    add_logits=True,
-):
-    logits = []
-    data = []
-    loader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-    )
-    if add_logits:
-        model.eval()
-    for x, _, _ in loader:
-        x = x.to(device)
-        data.append(x.cpu())
-
-        if add_logits:
-            out = model(x)
-            logits.append(out.cpu())
-    data = torch.cat(data)
-    if add_logits:
-        logits = torch.cat(logits)
-        dataset = make_tensor_classification_dataset(
-            data,
-            torch.tensor(dataset.targets),
-            torch.tensor(dataset.targets_task_labels),
-            logits,
-            transform=transforms,
-        )
-    else:
-        dataset = make_tensor_classification_dataset(
-            data,
-            torch.tensor(dataset.targets),
-            torch.tensor(dataset.targets_task_labels),
-            transform=transforms,
-        )
-    return dataset
-
 
 class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
     """
@@ -147,18 +91,12 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         self.seen_classes = set()
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
-        transform_groups = find_dataset_transforms(strategy.experience.dataset)
-        filtered_transforms = filter_transforms(transform_groups)
-
-        new_data = strategy.experience.dataset.eval()
-
-        new_data_with_logits = create_tensor_dataset(
+        new_data = strategy.experience.dataset
+        new_data_with_logits = DatasetWithLogits(
             new_data,
             strategy.model,
             strategy.train_mb_size,
             strategy.device,
-            filtered_transforms,
-            add_logits=True,
         )
 
         # Get sample idxs per class
