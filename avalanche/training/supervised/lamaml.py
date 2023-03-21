@@ -1,19 +1,19 @@
 from typing import Sequence, Optional
 
+import pkg_resources
+from pkg_resources import DistributionNotFound, VersionConflict
+try:
+    pkg_resources.require('torch>=2.0.0')
+except (DistributionNotFound, VersionConflict) as e:
+    raise RuntimeError(f"LaMAML requires torch >= 2.0.0.")
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 import math
-
-try:
-    import higher
-except ImportError:
-    raise ModuleNotFoundError("higher not found, if you want to use "
-                              "MAML please install avalanche with "
-                              "the extra dependencies: "
-                              "pip install avalanche-lib[extra]")
+from copy import deepcopy
 
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -43,9 +43,8 @@ class LaMAML(SupervisedMetaLearningTemplate):
         eval_every=-1,
         peval_mode="epoch",
     ):
-        """Implementation of Look-ahead MAML (LaMAML) algorithm in Avalanche
-            using Higher library for applying fast updates.
-
+        """Implementation of Look-ahead MAML (LaMAML) strategy.
+        
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
@@ -155,18 +154,18 @@ class LaMAML(SupervisedMetaLearningTemplate):
             else:
                 p.grad += grad
 
-    def inner_update_step(self, fast_model, x, y, t):
+    def inner_update_step(self, fast_params, x, y, t):
         """Update fast weights using current samples and
         return the updated fast model.
         """
-        logits = avalanche_forward(fast_model, x, t)
+        logits = torch.func.functional_call(self.model, fast_params, (x, t))
         loss = self._criterion(logits, y)
 
         # Compute gradient with respect to the current fast weights
         grads = list(
             torch.autograd.grad(
                 loss,
-                fast_model.fast_params,
+                fast_params.values(),
                 create_graph=self.second_order,
                 retain_graph=self.second_order,
                 allow_unused=True,
@@ -182,30 +181,31 @@ class LaMAML(SupervisedMetaLearningTemplate):
         ]
 
         # New fast parameters
-        new_fast_params = [
-            param - alpha * grad if grad is not None else param
-            for (param, alpha, grad) in zip(
-                fast_model.fast_params, self.alpha_params.parameters(), grads
+        new_fast_params = {
+            n: param - alpha * grad if grad is not None else param
+            for ((n, param), alpha, grad) in zip(
+                fast_params.items(), self.alpha_params.parameters(), grads
             )
-        ]
+        }
 
-        # Update fast model's weights
-        fast_model.update_params(new_fast_params)
+        return new_fast_params 
 
     def _inner_updates(self, **kwargs):
-        # Create a stateless copy of the model for inner-updates
-        self.fast_model = higher.patch.monkeypatch(
-            self.model,
-            copy_initial_weights=True,
-            track_higher_grads=self.second_order,
-        )
+        # Make a copy of model parameters for fast updates
+        self.initial_fast_params = {n: p.clone() for (n, p) in 
+                                    self.model.named_parameters()}
+        
+        # Keep reference to the initial fast params
+        fast_params = self.initial_fast_params 
+        
+        # Split current batches into smaller mini-batches for inner-loop steps
         if self.clock.train_exp_counter > 0:
             batch_x = self.mb_x[: self.train_mb_size]
             batch_y = self.mb_y[: self.train_mb_size]
             batch_t = self.mb_task_id[: self.train_mb_size]
         else:
             batch_x, batch_y, batch_t = self.mb_x, self.mb_y, self.mb_task_id
-
+        
         bsize_data = batch_x.shape[0]
         rough_sz = math.ceil(bsize_data / self.n_inner_updates)
         self.meta_losses = [0 for _ in range(self.n_inner_updates)]
@@ -214,15 +214,15 @@ class LaMAML(SupervisedMetaLearningTemplate):
             batch_x_i = batch_x[i * rough_sz: (i + 1) * rough_sz]
             batch_y_i = batch_y[i * rough_sz: (i + 1) * rough_sz]
             batch_t_i = batch_t[i * rough_sz: (i + 1) * rough_sz]
-
+            
             # We assume that samples for inner update are from the same task
-            self.inner_update_step(self.fast_model, batch_x_i, batch_y_i,
-                                   batch_t_i)
-
+            fast_params = self.inner_update_step(fast_params, 
+                                                 batch_x_i, 
+                                                 batch_y_i, batch_t_i)
+            
             # Compute meta-loss with the combination of batch and buffer samples
-            logits_meta = avalanche_forward(
-                self.fast_model, self.mb_x, self.mb_task_id
-            )
+            logits_meta = torch.func.functional_call(self.model, fast_params, 
+                                                     (self.mb_x, self.mb_task_id))
             meta_loss = self._criterion(logits_meta, self.mb_y)
             self.meta_losses[i] = meta_loss
 
@@ -231,7 +231,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
         meta_loss = sum(self.meta_losses) / len(self.meta_losses)
         meta_grad_model = torch.autograd.grad(
             meta_loss,
-            self.fast_model.parameters(time=0),
+            self.initial_fast_params.values(),
             retain_graph=True,
             allow_unused=True,
         )

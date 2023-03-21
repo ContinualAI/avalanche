@@ -11,3 +11,4 @@ from .deep_slda import *
 from .icarl import ICaRL
 from .er_ace import ER_ACE, OnlineER_ACE
 from .l2p import LearningToPrompt
+from .lamaml import LaMAML
