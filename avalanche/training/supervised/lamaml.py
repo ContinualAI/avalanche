@@ -19,6 +19,7 @@ from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedMetaLearningTemplate
 from avalanche.models.utils import avalanche_forward
+from avalanche.training.storage_policy import ReservoirSamplingBuffer
 
 
 class LaMAML(SupervisedMetaLearningTemplate):
@@ -34,6 +35,8 @@ class LaMAML(SupervisedMetaLearningTemplate):
         lr_alpha: float = 0.25,
         sync_update: bool = False,
         alpha_init: float = 0.1,
+        max_buffer_size: int = 200,
+        buffer_mb_size: int = 10,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
@@ -59,7 +62,9 @@ class LaMAML(SupervisedMetaLearningTemplate):
                             learning rate. Mutually exclusive with learn_lr and
                             lr_alpha.
         :param alpha_init: initialization value for learnable LRs.
-
+        :param max_buffer_size: maximum buffer size. The default storage 
+               policy is reservoir-sampling.
+        :param buffer_mb_size: number of buffer samples in each step. 
         """
         super().__init__(
             model,
@@ -82,6 +87,11 @@ class LaMAML(SupervisedMetaLearningTemplate):
         self.sync_update = sync_update
         self.alpha_init = alpha_init
         self.alpha_params = None
+
+        self.buffer = Buffer(max_buffer_size=max_buffer_size,
+                             buffer_mb_size=buffer_mb_size,
+                             device=device)
+        
         self.model.apply(init_kaiming_normal)
 
     def _before_training_exp(self, **kwargs):
@@ -198,18 +208,24 @@ class LaMAML(SupervisedMetaLearningTemplate):
         # Keep reference to the initial fast params
         fast_params = self.initial_fast_params 
         
-        # Split current batches into smaller mini-batches for inner-loop steps
-        if self.clock.train_exp_counter > 0:
-            batch_x = self.mb_x[: self.train_mb_size]
-            batch_y = self.mb_y[: self.train_mb_size]
-            batch_t = self.mb_task_id[: self.train_mb_size]
-        else:
-            batch_x, batch_y, batch_t = self.mb_x, self.mb_y, self.mb_task_id
+        # Samples from the current batch
+        batch_x, batch_y, batch_t = self.mb_x, self.mb_y, self.mb_task_id 
         
+        # Get batches from the buffer
+        if self.clock.train_exp_counter > 0:
+            buff_x, buff_y, buff_t = self.buffer.get_buffer_batch()
+            mixed_x = torch.cat([batch_x, buff_x], dim=0)
+            mixed_y = torch.cat([batch_y, buff_y], dim=0)
+            mixed_t = torch.cat([batch_t, buff_t], dim=0)
+        else:
+            mixed_x, mixed_y, mixed_t = batch_x, batch_y, batch_t
+
+        # Split the current batch into smaller chuncks
         bsize_data = batch_x.shape[0]
         rough_sz = math.ceil(bsize_data / self.n_inner_updates)
         self.meta_losses = [0 for _ in range(self.n_inner_updates)]
 
+        # Iterate through the chunks as inner-loops
         for i in range(self.n_inner_updates):
             batch_x_i = batch_x[i * rough_sz: (i + 1) * rough_sz]
             batch_y_i = batch_y[i * rough_sz: (i + 1) * rough_sz]
@@ -222,10 +238,10 @@ class LaMAML(SupervisedMetaLearningTemplate):
             
             # Compute meta-loss with the combination of batch and buffer samples
             logits_meta = torch.func.functional_call(self.model, fast_params, 
-                                                     (self.mb_x, self.mb_task_id))
-            meta_loss = self._criterion(logits_meta, self.mb_y)
+                                                     (mixed_x, mixed_t))
+            meta_loss = self._criterion(logits_meta, mixed_y)
             self.meta_losses[i] = meta_loss
-
+        
     def _outer_update(self, **kwargs):
         # Compute meta-gradient for the main model
         meta_loss = sum(self.meta_losses) / len(self.meta_losses)
@@ -269,6 +285,54 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         self.loss = meta_loss
 
+    def _after_training_exp(self, **kwargs):
+        self.buffer.update(self)
+        super()._after_training_exp(**kwargs)
+    
+
+class Buffer:
+    def __init__(self, max_buffer_size=100, buffer_mb_size=10,
+                 device=torch.device("cpu")):
+        self.storage_policy = ReservoirSamplingBuffer(max_size=max_buffer_size)
+        self.buffer_mb_size = buffer_mb_size
+        self.device = device
+
+    def update(self, strategy):
+        self.storage_policy.update(strategy)
+
+    def __len__(self):
+        return len(self.storage_policy.buffer)
+
+    def get_buffer_batch(self):
+        rnd_ind = torch.randperm(len(self))[:self.buffer_mb_size]
+        buff_x = torch.cat([self.storage_policy.buffer[i][0].unsqueeze(0)
+                            for i in rnd_ind]).to(self.device)
+        buff_y = torch.LongTensor([self.storage_policy.buffer[i][1]
+                                   for i in rnd_ind]).to(self.device)
+        buff_t = torch.LongTensor([self.storage_policy.buffer[i][2]
+                                   for i in rnd_ind]).to(self.device)
+
+        return buff_x, buff_y, buff_t
+ 
+    def mix_batch_with_buffer(self, x, y, t):
+        if len(self) == 0:
+            return x, y, t
+
+        bsize = min(len(self), self.buffer_mb_size)
+        rnd_ind = torch.randperm(len(self))[:bsize]
+        buff_x = torch.cat([self.storage_policy.buffer[i][0].unsqueeze(0)
+                            for i in rnd_ind]).to(self.device)
+        buff_y = torch.LongTensor([self.storage_policy.buffer[i][1]
+                                   for i in rnd_ind]).to(self.device)
+        buff_t = torch.LongTensor([self.storage_policy.buffer[i][2]
+                                   for i in rnd_ind]).to(self.device)
+
+        mixed_x = torch.cat([x, buff_x], dim=0)
+        mixed_y = torch.cat([y, buff_y], dim=0)
+        mixed_t = torch.cat([t, buff_t], dim=0)
+
+        return mixed_x, mixed_y, mixed_t
+
 
 def init_kaiming_normal(m):
     if isinstance(m, nn.Conv2d):
@@ -282,3 +346,4 @@ def init_kaiming_normal(m):
         torch.nn.init.kaiming_normal_(m.weight.data)
         if m.bias is not None:
             m.bias.data.zero_()
+    
