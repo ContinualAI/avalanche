@@ -202,7 +202,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
     def _inner_updates(self, **kwargs):
         # Make a copy of model parameters for fast updates
-        self.initial_fast_params = {n: p.clone() for (n, p) in 
+        self.initial_fast_params = {n: deepcopy(p) for (n, p) in 
                                     self.model.named_parameters()}
         
         # Keep reference to the initial fast params
