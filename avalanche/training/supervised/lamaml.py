@@ -346,4 +346,3 @@ def init_kaiming_normal(m):
         torch.nn.init.kaiming_normal_(m.weight.data)
         if m.bias is not None:
             m.bias.data.zero_()
-    
