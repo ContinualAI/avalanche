@@ -47,7 +47,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
         peval_mode="epoch",
     ):
         """Implementation of Look-ahead MAML (LaMAML) strategy.
-        
+
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
@@ -91,7 +91,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
         self.buffer = Buffer(max_buffer_size=max_buffer_size,
                              buffer_mb_size=buffer_mb_size,
                              device=device)
-        
+
         self.model.apply(init_kaiming_normal)
 
     def _before_training_exp(self, **kwargs):
@@ -153,16 +153,10 @@ class LaMAML(SupervisedMetaLearningTemplate):
                 self.alpha_params.parameters(), lr=self.lr_alpha
             )
 
-    def apply_grad(self, module, grads):
-        for i, p in enumerate(module.parameters()):
-            grad = grads[i]
-            if grad is None:
-                grad = torch.zeros(p.shape).float().to(self.device)
-
-            if p.grad is None:
-                p.grad = grad
-            else:
-                p.grad += grad
+    def copy_grads(self, params_1, params_2):
+        for p1, p2 in zip(params_1, params_2):
+            if p2.grad is not None:
+                p1.grad = p2.grad
 
     def inner_update_step(self, fast_params, x, y, t):
         """Update fast weights using current samples and
@@ -173,21 +167,16 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # Compute gradient with respect to the current fast weights
         grads = list(
-            torch.autograd.grad(
-                loss,
-                fast_params.values(),
-                create_graph=self.second_order,
-                retain_graph=self.second_order,
-                allow_unused=True,
-            )
+            torch.autograd.grad(loss, fast_params.values(),
+                                retain_graph=self.second_order, 
+                                create_graph=self.second_order,
+                                allow_unused=True)
         )
 
         # Clip grad norms
         grads = [
             torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
-            if g is not None
-            else g
-            for g in grads
+            if g is not None else g for g in grads
         ]
 
         # New fast parameters
@@ -204,13 +193,13 @@ class LaMAML(SupervisedMetaLearningTemplate):
         # Make a copy of model parameters for fast updates
         self.initial_fast_params = {n: deepcopy(p) for (n, p) in 
                                     self.model.named_parameters()}
-        
+
         # Keep reference to the initial fast params
         fast_params = self.initial_fast_params 
-        
+
         # Samples from the current batch
         batch_x, batch_y, batch_t = self.mb_x, self.mb_y, self.mb_task_id 
-        
+
         # Get batches from the buffer
         if self.clock.train_exp_counter > 0:
             buff_x, buff_y, buff_t = self.buffer.get_buffer_batch()
@@ -230,29 +219,28 @@ class LaMAML(SupervisedMetaLearningTemplate):
             batch_x_i = batch_x[i * rough_sz: (i + 1) * rough_sz]
             batch_y_i = batch_y[i * rough_sz: (i + 1) * rough_sz]
             batch_t_i = batch_t[i * rough_sz: (i + 1) * rough_sz]
-            
+
             # We assume that samples for inner update are from the same task
             fast_params = self.inner_update_step(fast_params, 
                                                  batch_x_i, 
                                                  batch_y_i, batch_t_i)
-            
+
             # Compute meta-loss with the combination of batch and buffer samples
             logits_meta = torch.func.functional_call(self.model, fast_params, 
                                                      (mixed_x, mixed_t))
-            meta_loss = self._criterion(logits_meta, mixed_y)
-            self.meta_losses[i] = meta_loss
-        
+            meta_loss_i = self._criterion(logits_meta, mixed_y)
+            self.meta_losses[i] = meta_loss_i
+
     def _outer_update(self, **kwargs):
+        self.model.zero_grad()
+        self.alpha_params.zero_grad()
+        
         # Compute meta-gradient for the main model
         meta_loss = sum(self.meta_losses) / len(self.meta_losses)
-        meta_grad_model = torch.autograd.grad(
-            meta_loss,
-            self.initial_fast_params.values(),
-            retain_graph=True,
-            allow_unused=True,
-        )
-        self.model.zero_grad()
-        self.apply_grad(self.model, meta_grad_model)
+        meta_loss.backward()
+
+        self.copy_grads(self.model.parameters(), 
+                        self.initial_fast_params.values())
 
         # Clip gradients
         torch.nn.utils.clip_grad_norm_(
@@ -260,18 +248,12 @@ class LaMAML(SupervisedMetaLearningTemplate):
         )
 
         if self.learn_lr:
-            # Compute meta-gradient for alpha-lr parameters
-            meta_grad_alpha = torch.autograd.grad(
-                meta_loss, self.alpha_params.parameters(), allow_unused=True
-            )
-            self.alpha_params.zero_grad()
-            self.apply_grad(self.alpha_params, meta_grad_alpha)
-
+            # Update lr for the current batch
             torch.nn.utils.clip_grad_norm_(
                 self.alpha_params.parameters(), self.grad_clip_norm
             )
             self.optimizer_alpha.step()
-
+        
         # If sync-update: update with self.optimizer
         # o.w: use the learned LRs to update the model
         if self.sync_update:
@@ -281,15 +263,16 @@ class LaMAML(SupervisedMetaLearningTemplate):
                     self.model.parameters(), self.alpha_params.parameters()
             ):
                 # Use relu on updated LRs to avoid negative values
-                p.data = p.data - p.grad * F.relu(alpha)
-
+                if p.grad is not None:
+                    p.data = p.data - p.grad * F.relu(alpha)
+        
         self.loss = meta_loss
 
     def _after_training_exp(self, **kwargs):
         self.buffer.update(self)
         super()._after_training_exp(**kwargs)
-    
 
+    
 class Buffer:
     def __init__(self, max_buffer_size=100, buffer_mb_size=10,
                  device=torch.device("cpu")):
@@ -313,25 +296,6 @@ class Buffer:
                                    for i in rnd_ind]).to(self.device)
 
         return buff_x, buff_y, buff_t
- 
-    def mix_batch_with_buffer(self, x, y, t):
-        if len(self) == 0:
-            return x, y, t
-
-        bsize = min(len(self), self.buffer_mb_size)
-        rnd_ind = torch.randperm(len(self))[:bsize]
-        buff_x = torch.cat([self.storage_policy.buffer[i][0].unsqueeze(0)
-                            for i in rnd_ind]).to(self.device)
-        buff_y = torch.LongTensor([self.storage_policy.buffer[i][1]
-                                   for i in rnd_ind]).to(self.device)
-        buff_t = torch.LongTensor([self.storage_policy.buffer[i][2]
-                                   for i in rnd_ind]).to(self.device)
-
-        mixed_x = torch.cat([x, buff_x], dim=0)
-        mixed_y = torch.cat([y, buff_y], dim=0)
-        mixed_t = torch.cat([t, buff_t], dim=0)
-
-        return mixed_x, mixed_y, mixed_t
 
 
 def init_kaiming_normal(m):
