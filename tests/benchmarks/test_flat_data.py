@@ -129,6 +129,28 @@ class FlatteningTests(unittest.TestCase):
         assert _flatdata_depth(B) == 2
         assert len(B._datasets) == 1
 
+    def test_concat_flattens_same_dataset_corner_case(self):
+        base_dataset = [1, 2, 3]
+        A = FlatData([base_dataset], can_flatten=False, indices=[1, 2])
+        B = AvalancheDataset([A])
+        C = A.concat(B)
+        self.assertListEqual([2, 3, 2, 3], list(C))
+
+        A = FlatData([base_dataset], can_flatten=False)
+        B = AvalancheDataset([A], indices=[1, 2])
+        C = A.concat(B)
+        self.assertListEqual([1, 2, 3, 2, 3], list(C))
+
+        A = FlatData([base_dataset], can_flatten=False, indices=[1, 2])
+        B = AvalancheDataset([A])
+        C = B.concat(A)
+        self.assertListEqual([2, 3, 2, 3], list(C))
+
+        A = FlatData([base_dataset], can_flatten=False)
+        B = AvalancheDataset([A], indices=[1, 2])
+        C = B.concat(A)
+        self.assertListEqual([2, 3, 1, 2, 3], list(C))
+
     def test_concat_flattens_same_classification_dataset(self):
         D = ClassificationDataset([[1, 2, 3]])
         B = concat_datasets([])
@@ -187,7 +209,7 @@ class FlatteningTests(unittest.TestCase):
         buffer = ReservoirSamplingBuffer(100)
 
         for t, exp in enumerate(fixed_size_experience_split(
-                benchmark.train_stream[0], 1)):
+                benchmark.train_stream[0], 1, None)):
             buffer.update_from_dataset(exp.dataset)
             b = buffer.buffer
             # depths = _flatdata_depth(b)
@@ -206,7 +228,7 @@ class FlatteningTests(unittest.TestCase):
         assert len(b._datasets) == 1
 
         for t, exp in enumerate(fixed_size_experience_split(
-                benchmark.train_stream[1], 1)):
+                benchmark.train_stream[1], 1, None)):
             buffer.update_from_dataset(exp.dataset)
             b = buffer.buffer
             # depths = _flatdata_depth(b)
@@ -223,3 +245,7 @@ class FlatteningTests(unittest.TestCase):
             if t > 5:
                 break
         assert len(b._datasets) == 2
+
+
+if __name__ == "__main__":
+    unittest.main()

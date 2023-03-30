@@ -21,6 +21,7 @@ from typing import (
     Sequence,
     Optional,
     Dict,
+    TypeVar,
     Union,
     Any,
     List,
@@ -33,23 +34,37 @@ from typing import (
 
 import torch
 
-from avalanche.benchmarks import (
+from avalanche.benchmarks.scenarios import (
     GenericCLScenario,
     ClassificationExperience,
     ClassificationStream,
 )
+from avalanche.benchmarks.scenarios.dataset_scenario import DatasetScenario, StreamDef, TStreamDataOrigin, TStreamUserDef
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
-from avalanche.benchmarks.scenarios.classification_scenario import (
+from avalanche.benchmarks.scenarios import (
     TStreamsUserDict,
     StreamUserDef,
 )
+from avalanche.benchmarks.scenarios.generic_scenario import CLStream, DatasetExperience, DatasetExperienceProtocol, SizedCLStream
+from avalanche.benchmarks.scenarios.lazy_dataset_sequence import LazyDatasetSequence
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils.utils import concat_datasets_sequentially
 from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+    SupervisedClassificationDataset,
     SupportedDataset,
+    as_supervised_classification_dataset,
     make_classification_dataset,
+    concat_classification_datasets_sequentially
 )
+from avalanche.benchmarks.utils.data import AvalancheDataset
+
+
+TDatasetScenario = TypeVar("TDatasetScenario", bound="DatasetScenario")
+TCLStream = TypeVar('TCLStream', bound='CLStream')
+TSizedCLStream = TypeVar('TSizedCLStream', bound='SizedCLStream')
+TDatasetExperience = TypeVar('TDatasetExperience', bound='DatasetExperienceProtocol')
+TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
 
 
 def nc_benchmark(
@@ -60,14 +75,14 @@ def nc_benchmark(
     *,
     shuffle: bool = True,
     seed: Optional[int] = None,
-    fixed_class_order: Sequence[int] = None,
-    per_exp_classes: Dict[int, int] = None,
+    fixed_class_order: Optional[Sequence[int]] = None,
+    per_exp_classes: Optional[Dict[int, int]] = None,
     class_ids_from_zero_from_first_exp: bool = False,
     class_ids_from_zero_in_each_exp: bool = False,
     one_dataset_per_exp: bool = False,
     train_transform=None,
     eval_transform=None,
-    reproducibility_data: Dict[str, Any] = None,
+    reproducibility_data: Optional[Dict[str, Any]] = None
 ) -> NCScenario:
     """
     This is the high-level benchmark instances generator for the
@@ -168,8 +183,14 @@ def nc_benchmark(
             "same time"
         )
 
-    if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
+    if isinstance(train_dataset, (list, tuple)):
         # Multi-dataset setting
+
+        if not isinstance(test_dataset, (list, tuple)):
+            raise ValueError(
+                "If a list is passed for train_dataset, "
+                "then test_dataset must be a list, too."
+            )
 
         if len(train_dataset) != len(test_dataset):
             raise ValueError(
@@ -189,11 +210,13 @@ def nc_benchmark(
                 "used, but those options are mutually exclusive"
             )
 
-        (
-            seq_train_dataset,
-            seq_test_dataset,
-            mapping,
-        ) = concat_datasets_sequentially(train_dataset, test_dataset)
+        train_dataset_sup = list(map(as_supervised_classification_dataset, train_dataset))
+        test_dataset_sup = list(map(as_supervised_classification_dataset, test_dataset))
+        
+        seq_train_dataset, seq_test_dataset, mapping = \
+            concat_classification_datasets_sequentially(
+                train_dataset_sup, test_dataset_sup
+            )
 
         if one_dataset_per_exp:
             # If one_dataset_per_exp is True, each dataset will be treated as
@@ -211,37 +234,39 @@ def nc_benchmark(
 
             # Overrides n_experiences (and per_experience_classes, already done)
             n_experiences = len(train_dataset)
-        train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
+    else:
+        seq_train_dataset = as_supervised_classification_dataset(train_dataset)
+        seq_test_dataset = as_supervised_classification_dataset(test_dataset)
 
     transform_groups = dict(
         train=(train_transform, None), eval=(eval_transform, None)
     )
 
-    # Datasets should be instances of AvalancheDataset
-    train_dataset = make_classification_dataset(
-        train_dataset,
+    # Set transformation groups
+    final_train_dataset = as_supervised_classification_dataset(
+        seq_train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
     )
 
-    test_dataset = make_classification_dataset(
-        test_dataset,
+    final_test_dataset = as_supervised_classification_dataset(
+        seq_test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
     )
 
     return NCScenario(
-        train_dataset,
-        test_dataset,
-        n_experiences,
-        task_labels,
-        shuffle,
-        seed,
-        fixed_class_order,
-        per_exp_classes,
-        class_ids_from_zero_from_first_exp,
-        class_ids_from_zero_in_each_exp,
-        reproducibility_data,
+        train_dataset=final_train_dataset,
+        test_dataset=final_test_dataset,
+        n_experiences=n_experiences,
+        task_labels=task_labels,
+        shuffle=shuffle,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        per_experience_classes=per_exp_classes,
+        class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+        reproducibility_data=reproducibility_data
     )
 
 
@@ -322,47 +347,61 @@ def ni_benchmark(
 
     :return: A properly initialized :class:`NIScenario` instance.
     """
-
+    
+    
     seq_train_dataset, seq_test_dataset = train_dataset, test_dataset
-    if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
+    if isinstance(train_dataset, (list, tuple)):
+        if not isinstance(test_dataset, (list, tuple)):
+            raise ValueError(
+                "If a list is passed for train_dataset, "
+                "then test_dataset must be a list, too."
+            )
+        
         if len(train_dataset) != len(test_dataset):
             raise ValueError(
                 "Train/test dataset lists must contain the "
                 "exact same number of datasets"
             )
 
-        seq_train_dataset, seq_test_dataset, _ = concat_datasets_sequentially(
-            train_dataset, test_dataset
-        )
+        train_dataset_sup = list(map(as_supervised_classification_dataset, train_dataset))
+        test_dataset_sup = list(map(as_supervised_classification_dataset, test_dataset))
+
+        seq_train_dataset, seq_test_dataset, _ = \
+            concat_classification_datasets_sequentially(
+                train_dataset_sup, test_dataset_sup
+            )
+    else:
+        seq_train_dataset = as_supervised_classification_dataset(train_dataset)
+        seq_test_dataset = as_supervised_classification_dataset(test_dataset)
 
     transform_groups = dict(
         train=(train_transform, None), eval=(eval_transform, None)
     )
 
-    # Datasets should be instances of AvalancheDataset
-    seq_train_dataset = make_classification_dataset(
+    # Set transformation groups
+    final_train_dataset = make_classification_dataset(
         seq_train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
     )
 
-    seq_test_dataset = make_classification_dataset(
+    final_test_dataset = make_classification_dataset(
         seq_test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
     )
 
     return NIScenario(
-        seq_train_dataset,
-        seq_test_dataset,
-        n_experiences,
-        task_labels,
+        train_dataset=final_train_dataset,
+        test_dataset=final_test_dataset,
+        n_experiences=n_experiences,
+        task_labels=task_labels,
         shuffle=shuffle,
         seed=seed,
         balance_experiences=balance_experiences,
         min_class_patterns_in_exp=min_class_patterns_in_exp,
         fixed_exp_assignment=fixed_exp_assignment,
-        reproducibility_data=reproducibility_data,
+        reproducibility_data=reproducibility_data
     )
 
 
@@ -379,8 +418,8 @@ lazy_benchmark = create_lazy_generic_benchmark
 def _one_dataset_per_exp_class_order(
     class_list_per_exp: Sequence[Sequence[int]],
     shuffle: bool,
-    seed: Union[int, None],
-) -> (List[int], Dict[int, int]):
+    seed: Optional[int],
+) -> Tuple[List[int], Dict[int, int]]:
     """
     Utility function that shuffles the class order by keeping classes from the
     same experience together. Each experience is defined by a different entry in
@@ -403,8 +442,8 @@ def _one_dataset_per_exp_class_order(
         dataset_order = torch.as_tensor(dataset_order)[
             torch.randperm(len(dataset_order))
         ].tolist()
-    fixed_class_order = []
-    classes_per_exp = {}
+    fixed_class_order: List[int] = []
+    classes_per_exp: Dict[int, int] = {}
     for dataset_position, dataset_idx in enumerate(dataset_order):
         fixed_class_order.extend(class_list_per_exp[dataset_idx])
         classes_per_exp[dataset_position] = len(class_list_per_exp[dataset_idx])
@@ -415,8 +454,8 @@ def fixed_size_experience_split_strategy(
     experience_size: int,
     shuffle: bool,
     drop_last: bool,
-    experience: ClassificationExperience,
-):
+    experience: DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]
+) -> Sequence[TCLDataset]:
     """
     The default splitting strategy used by :func:`data_incremental_benchmark`.
 
@@ -470,17 +509,17 @@ def fixed_size_experience_split_strategy(
 
 
 def data_incremental_benchmark(
-    benchmark_instance: GenericCLScenario,
+    benchmark_instance: DatasetScenario[TDatasetScenario, TCLStream, TDatasetExperience, TCLDataset],
     experience_size: int,
     shuffle: bool = False,
     drop_last: bool = False,
     split_streams: Sequence[str] = ("train",),
-    custom_split_strategy: Callable[
-        [ClassificationExperience], Sequence[make_classification_dataset]
-    ] = None,
-    experience_factory: Callable[
-        [ClassificationStream, int], ClassificationExperience
-    ] = None,
+    custom_split_strategy: Optional[Callable[
+        [DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]], Sequence[TCLDataset]
+    ]] = None,
+    experience_factory: Optional[Callable[
+        [TCLStream, int], TDatasetExperience
+    ]] = None,
 ):
     """
     High-level benchmark generator for a Data Incremental setup.
@@ -534,16 +573,25 @@ def data_incremental_benchmark(
     :return: The Data Incremental benchmark instance.
     """
 
-    split_strategy = custom_split_strategy
-    if split_strategy is None:
-        split_strategy = partial(
-            fixed_size_experience_split_strategy,
-            experience_size,
-            shuffle,
-            drop_last,
-        )
+    split_strategy: Callable[
+        [DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]], Sequence[TCLDataset]
+    ]
+    if custom_split_strategy is None:
+        # functools.partial is a more compact option
+        # However, MyPy does not understand what a partial is -_-
+        def fixed_size_experience_split_strategy_wrapper(exp):
+            return fixed_size_experience_split_strategy(
+                experience_size,
+                shuffle,
+                drop_last,
+                exp
+            )
 
-    stream_definitions: TStreamsUserDict = dict(
+        split_strategy = fixed_size_experience_split_strategy_wrapper
+    else:
+        split_strategy = custom_split_strategy
+
+    stream_definitions: Dict[str, StreamDef[TCLDataset]] = dict(
         benchmark_instance.stream_definitions
     )
 
@@ -554,24 +602,25 @@ def data_incremental_benchmark(
                 f"benchmark instance"
             )
 
-        stream = getattr(benchmark_instance, f"{stream_name}_stream")
+        stream: TCLStream = getattr(benchmark_instance, f"{stream_name}_stream")
 
-        split_datasets: List[make_classification_dataset] = []
+        split_datasets: List[TCLDataset] = []
         split_task_labels: List[Set[int]] = []
 
-        exp: ClassificationExperience
+        exp: DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]
         for exp in stream:
             experiences = split_strategy(exp)
             split_datasets += experiences
             for _ in range(len(experiences)):
                 split_task_labels.append(set(exp.task_labels))
 
-        stream_def = StreamUserDef(
-            split_datasets,
+        stream_def = StreamDef(
+            LazyDatasetSequence(split_datasets, len(split_datasets)),
             split_task_labels,
             stream_definitions[stream_name].origin_dataset,
-            False,
+            False
         )
+        stream_def.exps_data.load_all_experiences()
 
         stream_definitions[stream_name] = stream_def
 
@@ -590,8 +639,8 @@ def data_incremental_benchmark(
 def random_validation_split_strategy(
     validation_size: Union[int, float],
     shuffle: bool,
-    experience: ClassificationExperience,
-):
+    experience: DatasetExperience[TDatasetScenario, TCLStream, TCLDataset],
+) -> Tuple[TCLDataset, TCLDataset]:
     """
     The default splitting strategy used by
     :func:`benchmark_with_validation_stream`.
@@ -645,8 +694,9 @@ def random_validation_split_strategy(
 
 
 def class_balanced_split_strategy(
-    validation_size: Union[int, float], experience: ClassificationExperience
-):
+    validation_size: Union[int, float],
+    experience: DatasetExperience[TDatasetScenario, TCLStream, SupervisedClassificationDataset],
+) -> Tuple[SupervisedClassificationDataset, SupervisedClassificationDataset]:
     """Class-balanced train/validation splits.
 
     This splitting strategy splits `experience` into two experiences
@@ -679,12 +729,13 @@ def class_balanced_split_strategy(
         )
 
     exp_indices = list(range(len(exp_dataset)))
-    exp_classes = experience.classes_in_this_experience
+    targets_as_tensor = torch.as_tensor(experience.dataset.targets)
+    exp_classes: List[int] = targets_as_tensor.unique().tolist()
 
     # shuffle exp_indices
     exp_indices = torch.as_tensor(exp_indices)[torch.randperm(len(exp_indices))]
     # shuffle the targets as well
-    exp_targets = torch.as_tensor(experience.dataset.targets)[exp_indices]
+    exp_targets = targets_as_tensor[exp_indices]
 
     train_exp_indices = []
     valid_exp_indices = []
@@ -701,11 +752,11 @@ def class_balanced_split_strategy(
 
 def _gen_split(
     split_generator: Iterable[
-        Tuple[make_classification_dataset, make_classification_dataset]
+        Tuple[TCLDataset, TCLDataset]
     ]
 ) -> Tuple[
-    Generator[make_classification_dataset, None, None],
-    Generator[make_classification_dataset, None, None],
+    Generator[TCLDataset, None, None],
+    Generator[TCLDataset, None, None],
 ]:
     """
     Internal utility function to split the train-validation generator
@@ -724,12 +775,12 @@ def _gen_split(
 
 def _lazy_train_val_split(
     split_strategy: Callable[
-        [ClassificationExperience],
-        Tuple[make_classification_dataset, make_classification_dataset],
+        [DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]], 
+        Tuple[TCLDataset, TCLDataset],
     ],
-    experiences: Iterable[ClassificationExperience],
+    experiences: Iterable[DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]],
 ) -> Generator[
-    Tuple[make_classification_dataset, make_classification_dataset], None, None
+    Tuple[TCLDataset, TCLDataset], None, None
 ]:
     """
     Creates a generator operating around the split strategy and the
@@ -746,20 +797,20 @@ def _lazy_train_val_split(
 
 
 def benchmark_with_validation_stream(
-    benchmark_instance: GenericCLScenario,
+    benchmark_instance: DatasetScenario[TDatasetScenario, TSizedCLStream, TDatasetExperience, TCLDataset],
     validation_size: Union[int, float] = 0.5,
     shuffle: bool = False,
     input_stream: str = "train",
     output_stream: str = "valid",
-    custom_split_strategy: Callable[
-        [ClassificationExperience],
-        Tuple[make_classification_dataset, make_classification_dataset],
-    ] = None,
+    custom_split_strategy: Optional[Callable[
+        [DatasetExperience[TDatasetScenario, TSizedCLStream, TCLDataset]],
+        Tuple[TCLDataset, TCLDataset],
+    ]] = None,
     *,
-    experience_factory: Callable[
-        [ClassificationStream, int], ClassificationExperience
-    ] = None,
-    lazy_splitting: bool = None,
+    experience_factory: Optional[Callable[
+        [TSizedCLStream, int], TDatasetExperience
+    ]] = None,
+    lazy_splitting: Optional[bool] = None
 ):
     """
     Helper that can be used to obtain a benchmark with a validation stream.
@@ -825,15 +876,26 @@ def benchmark_with_validation_stream(
     :return: A benchmark instance in which the validation stream has been added.
     """
 
-    split_strategy = custom_split_strategy
-    if split_strategy is None:
-        split_strategy = partial(
-            random_validation_split_strategy, validation_size, shuffle
-        )
+    split_strategy: Callable[
+        [DatasetExperience[TDatasetScenario, TSizedCLStream, TCLDataset]],
+        Tuple[TCLDataset, TCLDataset],
+    ]
+    if custom_split_strategy is None:
+        # functools.partial is a more compact option
+        # However, MyPy does not understand what a partial is -_-
+        def random_validation_split_strategy_wrapper(exp):
+            return random_validation_split_strategy(
+                validation_size,
+                shuffle,
+                exp
+            )
 
-    stream_definitions: TStreamsUserDict = dict(
+        split_strategy = random_validation_split_strategy_wrapper
+    else:
+        split_strategy = custom_split_strategy
+
+    original_stream_definitions: Dict[str, StreamDef[TCLDataset]] = \
         benchmark_instance.stream_definitions
-    )
     streams = benchmark_instance.streams
 
     if input_stream not in streams:
@@ -848,20 +910,23 @@ def benchmark_with_validation_stream(
             f"benchmark instance"
         )
 
-    stream = streams[input_stream]
+    stream: TSizedCLStream = streams[input_stream]
 
-    split_lazily = lazy_splitting
-    if split_lazily is None:
-        split_lazily = stream_definitions[input_stream].is_lazy
+    if lazy_splitting is None:
+        split_lazily = original_stream_definitions[input_stream].is_lazy
+    else:
+        split_lazily = lazy_splitting
 
-    exps_tasks_labels = list(stream_definitions[input_stream].exps_task_labels)
+    exps_tasks_labels = list(original_stream_definitions[input_stream].exps_task_labels)
 
+    train_exps_source: Union[Iterable[TCLDataset], Tuple[Iterable[TCLDataset], int]]
+    valid_exps_source: Union[Iterable[TCLDataset], Tuple[Iterable[TCLDataset], int]]
     if not split_lazily:
         # Classic static splitting
         train_exps_source = []
         valid_exps_source = []
 
-        exp: ClassificationExperience
+        exp: DatasetExperience[TDatasetScenario, TSizedCLStream, TCLDataset]
         for exp in stream:
             train_exp, valid_exp = split_strategy(exp)
             train_exps_source.append(train_exp)
@@ -872,15 +937,19 @@ def benchmark_with_validation_stream(
         train_exps_gen, valid_exps_gen = _gen_split(split_generator)
         train_exps_source = (train_exps_gen, len(stream))
         valid_exps_source = (valid_exps_gen, len(stream))
+    
+    stream_definitions: Dict[str, Union[StreamUserDef[TCLDataset], StreamDef[TCLDataset]]] = dict(
+        original_stream_definitions
+    )
 
-    train_stream_def = StreamUserDef(
+    train_stream_def: StreamUserDef[TCLDataset] = StreamUserDef(
         train_exps_source,
         exps_tasks_labels,
         stream_definitions[input_stream].origin_dataset,
         split_lazily,
     )
 
-    valid_stream_def = StreamUserDef(
+    valid_stream_def: StreamUserDef[TCLDataset] = StreamUserDef(
         valid_exps_source,
         exps_tasks_labels,
         stream_definitions[input_stream].origin_dataset,

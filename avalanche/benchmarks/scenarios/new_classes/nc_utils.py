@@ -16,6 +16,7 @@ import torch
 
 from avalanche.benchmarks.utils import classification_subset, SupportedDataset
 from avalanche.benchmarks.utils import tensor_as_list
+from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 
 
 def _indexes_grouped_by_classes(
@@ -33,40 +34,41 @@ def _indexes_grouped_by_classes(
     # Without the tensor_as_list conversion:
     # result_per_class[element].append(idx) -> error
     # because result_per_class[0] won't exist (result_per_class[tensor(0)] will)
+    
+    sequence_list: List[int] = tensor_as_list(sequence)
     if search_elements is not None:
-        search_elements = tensor_as_list(search_elements)
-    sequence = tensor_as_list(sequence)
+        search_elements_list = tensor_as_list(search_elements)
+    else:
+        search_elements_list = torch.unique(torch.as_tensor(sequence_list)).tolist()
 
     if sort_classes:
-        if search_elements is None:
-            search_elements = torch.unique(torch.as_tensor(sequence)).tolist()
 
         # Consider that result_per_class is an OrderedDict
         # This means that, if sort_classes is True, the next for statement
         # will initialize the "result_per_class" in sorted order ->
         # -> patterns will be ordered by ascending class ID
-        search_elements = sorted(search_elements)
+        search_elements_list = sorted(search_elements_list)
 
-    for search_element in search_elements:
+    for search_element in search_elements_list:
         result_per_class[search_element] = []
 
     # Set based "in" operator is **much** faster that its list counterpart!
     search_elements_set = set()
-    if search_elements is not None:
-        search_elements_set = set(search_elements)
+    if search_elements_list is not None:
+        search_elements_set = set(search_elements_list)
 
     # Stores each pattern index in the appropriate class list
-    for idx, element in enumerate(sequence):
-        if search_elements is None or element in search_elements_set:
+    for idx, element in enumerate(sequence_list):
+        if element in search_elements_set:
             result_per_class[element].append(idx)
 
     # Concatenate all the pattern indexes
-    for search_element in search_elements:
+    for search_element in search_elements_list:
         if sort_indexes:
             result_per_class[search_element].sort()
         result.extend(result_per_class[search_element])
 
-    if result == sequence:
+    if result == sequence_list:
         # The resulting index order is the same as the input one
         # Return None to flag that the whole sequence can be
         # taken as it already is
@@ -84,20 +86,20 @@ def _indexes_without_grouping(
 
     if search_elements is None and not sort_indexes:
         # No-op
-        return sequence
+        return list(range(len(sequence)))
 
     if search_elements is not None:
         search_elements = tensor_as_list(search_elements)
 
     result: List[int]
     if search_elements is None:
-        result = list(sequence)
+        result = list(range(len(sequence)))
     else:
         # Set based "in" operator is **much** faster that its list counterpart!
-        search_elements = set(search_elements)
+        search_elements_set = set(search_elements)
         result = []
         for idx, element in enumerate(sequence):
-            if element in search_elements:
+            if element in search_elements_set:
                 result.append(idx)
 
     if sort_indexes:
@@ -159,7 +161,7 @@ def make_nc_transformation_subset(
     bucket_classes: bool = False,
     sort_classes: bool = False,
     sort_indexes: bool = False,
-) -> classification_subset:
+) -> ClassificationDataset:
     """
     Creates a subset given the list of classes the patterns should belong to.
 
@@ -186,7 +188,7 @@ def make_nc_transformation_subset(
     return classification_subset(
         dataset,
         indices=_indexes_from_set(
-            dataset.targets,
+            getattr(dataset, 'targets'),
             classes,
             bucket_classes=bucket_classes,
             sort_classes=sort_classes,
@@ -197,4 +199,6 @@ def make_nc_transformation_subset(
     )
 
 
-__all__ = ["make_nc_transformation_subset"]
+__all__ = [
+    "make_nc_transformation_subset"
+]

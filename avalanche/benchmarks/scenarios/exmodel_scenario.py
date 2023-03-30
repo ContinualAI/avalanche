@@ -8,14 +8,18 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from typing import List
+from typing import List, TypeVar
 
 from torch.nn import Module
 
 from . import CLScenario, CLExperience, CLStream
 
+TCLStream = TypeVar('TCLStream', bound='CLStream')
+TExModelCLScenario = TypeVar('TExModelCLScenario', bound='ExModelCLScenario')
+TExModelExperience = TypeVar('TExModelExperience', bound='ExModelExperience')
 
-class ExModelExperience(CLExperience):
+
+class ExModelExperience(CLExperience[TCLStream]):
     """Ex-Model CL Experience.
 
     The experience only provides the expert model.
@@ -24,19 +28,20 @@ class ExModelExperience(CLExperience):
 
     def __init__(
         self,
-        expert_model,
-        current_experience: int = None,
-        origin_stream=None,
+        expert_model: Module,
+        current_experience: int,
+        origin_stream: TCLStream,
         classes_in_this_experience=None,
     ):
         super().__init__(
-            current_experience=current_experience, origin_stream=origin_stream
+            current_experience=current_experience,
+            origin_stream=origin_stream
         )
-        self.expert_model = expert_model
+        self.expert_model: Module = expert_model
         self.classes_in_this_experience = classes_in_this_experience
 
 
-class ExModelCLScenario(CLScenario):
+class ExModelCLScenario(CLScenario[CLStream[TExModelCLScenario, TExModelExperience]]):
     """Ex-Model CL Scenario.
 
     Ex-Model Continual Learning (ExML) is a continual learning scenario where
@@ -51,7 +56,9 @@ class ExModelCLScenario(CLScenario):
     """
 
     def __init__(
-        self, original_benchmark: CLScenario, expert_models: List[Module]
+        self: TExModelCLScenario,
+        original_benchmark: CLScenario,
+        expert_models: List[Module]
     ):
         """Init.
 
@@ -61,17 +68,23 @@ class ExModelCLScenario(CLScenario):
             trained on the i-th experience of the train stream of
             `original_benchmark`.
         """
-        expert_models_l = []
-        for m, e in zip(expert_models, original_benchmark.train_stream):
+        expert_models_l: List[TExModelExperience] = []
+        for i, (m, e) in enumerate(zip(expert_models, original_benchmark.train_stream)): # type: ignore
             cine = e.classes_in_this_experience
             expert_models_l.append(
-                ExModelExperience(m, classes_in_this_experience=cine)
-            )
+                ExModelExperience(
+                    expert_model=m,
+                    current_experience=i,
+                    origin_stream=None, # type: ignore
+                    classes_in_this_experience=cine)
+                )
 
-        expert_stream = CLStream(
-            "expert_models", expert_models_l, benchmark=self
+        expert_stream: CLStream[TExModelCLScenario, TExModelExperience] = CLStream(
+            name="expert_models",
+            exps_iter=expert_models_l,
+            benchmark=self
         )
-        streams = [expert_stream]
+        streams: List[CLStream[TExModelCLScenario, TExModelExperience]] = [expert_stream]
 
         self.original_benchmark = original_benchmark
         # for s in original_benchmark.streams.values():

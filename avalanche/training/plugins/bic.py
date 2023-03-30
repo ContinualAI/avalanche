@@ -117,7 +117,7 @@ class BiCPlugin(SupervisedPlugin):
         **kwargs
     ):
         new_data = strategy.experience.dataset
-        task_id = strategy.experience.current_experience
+        task_id = strategy.clock.train_exp_counter
 
         cl_idxs = {k : [] for k in new_data.targets.uniques}
         for idx, target in enumerate(new_data.targets):
@@ -170,7 +170,8 @@ class BiCPlugin(SupervisedPlugin):
         Dataloader to build batches containing examples from both memories and
         the training dataset
         """
-        task_id = strategy.experience.current_experience
+        task_id = strategy.clock.train_exp_counter
+
 
         if task_id not in self.bias_layer:
             self.bias_layer[task_id] = BiasLayer(
@@ -212,7 +213,7 @@ class BiCPlugin(SupervisedPlugin):
 
     def before_backward(self, strategy, **kwargs):
         # Distill
-        task_id = strategy.experience.current_experience
+        task_id = strategy.clock.train_exp_counter
 
         if self.model_old is not None:
             out_old = self.model_old(strategy.mb_x.to(strategy.device))
@@ -233,7 +234,8 @@ class BiCPlugin(SupervisedPlugin):
 
     def after_training_exp(self, strategy, **kwargs):
         self.model_old = deepcopy(strategy.model)
-        task_id = strategy.experience.current_experience
+        task_id = strategy.clock.train_exp_counter
+        
         self.storage_policy.update(strategy, **kwargs)
 
         if task_id > 0:

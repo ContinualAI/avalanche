@@ -704,3 +704,7 @@ class DataSplitStrategiesTests(unittest.TestCase):
             data_cnt = (torch.as_tensor(exp.dataset.targets) == cid).sum()
             valid_cnt = (torch.as_tensor(valid_d.targets) == cid).sum()
             assert_almost_equal(valid_cnt / data_cnt, ratio, decimal=2)
+
+
+if __name__ == "__main__":
+    unittest.main()

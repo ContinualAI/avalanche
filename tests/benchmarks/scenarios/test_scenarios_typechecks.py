@@ -8,7 +8,7 @@ from torchvision.datasets import MNIST
 from avalanche.benchmarks import tensors_benchmark
 from avalanche.benchmarks.generators import nc_benchmark, ni_benchmark
 
-from avalanche.benchmarks.scenarios.generic_definitions import (
+from avalanche.benchmarks.scenarios.generic_scenario import (
     ClassificationExperience,
 )
 

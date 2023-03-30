@@ -9,7 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Sequence, List, Optional, Dict, Any, Set, TYPE_CHECKING
+from typing import Sequence, List, Optional, Dict, Any, Set, TYPE_CHECKING, TypeVar
 
 import torch
 
@@ -18,16 +18,21 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
     ClassificationStream,
     GenericClassificationExperience,
 )
+from avalanche.benchmarks.scenarios.dataset_scenario import StreamUserDef
 from avalanche.benchmarks.utils import classification_subset
 from avalanche.benchmarks.utils.classification_dataset import \
-    ClassificationDataset
+    ClassificationDataset, SupervisedClassificationDataset
 
 if TYPE_CHECKING:
     from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
-class NCScenario(GenericCLScenario["NCExperience"]):
+TNCScenario = TypeVar('TNCScenario', bound='NCScenario')
+TNCExperience = TypeVar('TNCExperience', bound='NCExperience')
+
+
+class NCScenario(GenericCLScenario[TNCScenario, ClassificationStream[TNCScenario, TNCExperience], TNCExperience]):
     """
     This class defines a "New Classes" scenario. Once created, an instance
     of this class can be iterated in order to obtain the experience sequence
@@ -38,7 +43,7 @@ class NCScenario(GenericCLScenario["NCExperience"]):
     """
 
     def __init__(
-        self,
+        self: TNCScenario,
         train_dataset: ClassificationDataset,
         test_dataset: ClassificationDataset,
         n_experiences: int,
@@ -120,6 +125,10 @@ class NCScenario(GenericCLScenario["NCExperience"]):
             Beware that, in order to reproduce an experiment, the same train and
             test datasets must be used. Defaults to None.
         """
+
+        train_dataset = SupervisedClassificationDataset(train_dataset)
+        test_dataset = SupervisedClassificationDataset(test_dataset)
+        
         if (
             class_ids_from_zero_from_first_exp
             and class_ids_from_zero_in_each_exp
@@ -383,6 +392,8 @@ class NCScenario(GenericCLScenario["NCExperience"]):
                 reproducibility_data["has_task_labels"]
             )
 
+        pattern_train_task_labels: Sequence[int]
+        pattern_test_task_labels: Sequence[int]
         if self._has_task_labels:
             pattern_train_task_labels = [-1] * len(train_dataset)
             pattern_test_task_labels = [-1] * len(test_dataset)
@@ -397,14 +408,14 @@ class NCScenario(GenericCLScenario["NCExperience"]):
                 if element in selected_classes:
                     selected_indexes_train.append(idx)
                     if self._has_task_labels:
-                        pattern_train_task_labels[idx] = exp_id
+                        pattern_train_task_labels[idx] = exp_id # type: ignore
 
             selected_indexes_test = []
             for idx, element in enumerate(original_test_dataset.targets):
                 if element in selected_classes:
                     selected_indexes_test.append(idx)
                     if self._has_task_labels:
-                        pattern_test_task_labels[idx] = exp_id
+                        pattern_test_task_labels[idx] = exp_id # type: ignore
 
             train_exps_patterns_assignment.append(selected_indexes_train)
             test_exps_patterns_assignment.append(selected_indexes_test)
@@ -441,44 +452,46 @@ class NCScenario(GenericCLScenario["NCExperience"]):
         experience in the test stream. Instances are identified by their id 
         w.r.t. the dataset found in the original_test_dataset field. """
 
-        train_experiences = []
-        train_task_labels = []
+        train_experiences: List[ClassificationDataset] = []
+        train_task_labels: List[int] = []
         for t_id, exp_def in enumerate(train_exps_patterns_assignment):
             if self._has_task_labels:
                 train_task_labels.append(t_id)
             else:
                 train_task_labels.append(0)
-            task_labels = ConstantSequence(
+            exp_task_labels = ConstantSequence(
                 train_task_labels[-1], len(train_dataset)
             )
             train_experiences.append(
                 classification_subset(
-                    train_dataset, indices=exp_def, task_labels=task_labels
+                    train_dataset, indices=exp_def, task_labels=exp_task_labels
                 )
             )
 
-        test_experiences = []
-        test_task_labels = []
+        test_experiences: List[ClassificationDataset] = []
+        test_task_labels: List[int] = []
         for t_id, exp_def in enumerate(test_exps_patterns_assignment):
             if self._has_task_labels:
                 test_task_labels.append(t_id)
             else:
                 test_task_labels.append(0)
-            task_labels = ConstantSequence(
+            
+            exp_task_labels = ConstantSequence(
                 test_task_labels[-1], len(test_dataset)
             )
             test_experiences.append(
                 classification_subset(
-                    test_dataset, indices=exp_def, task_labels=task_labels
+                    test_dataset, indices=exp_def, task_labels=exp_task_labels
                 )
             )
 
-        super(NCScenario, self).__init__(
+        super().__init__(
             stream_definitions={
                 "train": (train_experiences, train_task_labels, train_dataset),
                 "test": (test_experiences, test_task_labels, test_dataset),
             },
-            experience_factory=NCExperience,
+            stream_factory=ClassificationStream,
+            experience_factory=NCExperience
         )
 
     def get_reproducibility_data(self):
@@ -531,7 +544,7 @@ class NCScenario(GenericCLScenario["NCExperience"]):
 
 class NCExperience(
     GenericClassificationExperience[
-        NCScenario, ClassificationStream["NCExperience", NCScenario]
+        TNCScenario, TNCExperience
     ]
 ):
     """
@@ -541,9 +554,9 @@ class NCExperience(
     """
 
     def __init__(
-        self,
-        origin_stream: ClassificationStream["NCExperience", NCScenario],
-        current_experience: int,
+        self: TNCExperience,
+        origin_stream: ClassificationStream[TNCScenario, TNCExperience],
+        current_experience: int
     ):
         """
         Creates a ``NCExperience`` instance given the stream from this
@@ -553,7 +566,7 @@ class NCExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        super(NCExperience, self).__init__(origin_stream, current_experience)
+        super().__init__(origin_stream, current_experience)
 
 
 __all__ = ["NCScenario", "NCExperience"]

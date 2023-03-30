@@ -21,7 +21,8 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 
 from avalanche.benchmarks.datasets.external_datasets.cifar import \
     get_cifar100_dataset, get_cifar10_dataset
-from avalanche.benchmarks.utils import concat_datasets_sequentially
+from avalanche.benchmarks.utils.classification_dataset import \
+    concat_classification_datasets_sequentially
 
 from avalanche.benchmarks import nc_benchmark, NCScenario
 
@@ -216,7 +217,7 @@ def SplitCIFAR110(
     cifar10_train, cifar10_test = get_cifar10_dataset(dataset_root_cifar10)
     cifar100_train, cifar100_test = get_cifar100_dataset(dataset_root_cifar100)
 
-    cifar_10_100_train, cifar_10_100_test, _ = concat_datasets_sequentially(
+    cifar_10_100_train, cifar_10_100_test, _ = concat_classification_datasets_sequentially(
         [cifar10_train, cifar100_train], [cifar10_test, cifar100_test]
     )
     # cifar10 classes

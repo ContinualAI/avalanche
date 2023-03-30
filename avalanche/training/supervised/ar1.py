@@ -341,7 +341,7 @@ class AR1(SupervisedTemplate):
         idxs_cur = torch.randperm(self.cur_acts.size(0))[:h]
         rm_add_y = torch.tensor(
             [curr_data.targets[idx_cur] for idx_cur in idxs_cur]
-        )
+        ).flatten()
 
         rm_add = [self.cur_acts[idxs_cur], rm_add_y]
 

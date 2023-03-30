@@ -11,14 +11,13 @@
 """Reinforcement Learning scenario definitions."""
 from avalanche.benchmarks.scenarios import (
     CLExperience,
-    ExperienceAttribute,
     CLScenario,
     EagerCLStream,
 )
-from typing import Callable, List, Union, Dict
+from typing import Callable, List, Optional, TypeVar, Union, Dict
 import numpy as np
-import torch
-import random
+
+from avalanche.benchmarks.scenarios.generic_scenario import CLStream
 
 try:
     from gym import Env, Wrapper
@@ -31,7 +30,12 @@ except ImportError:
     )
 
 
-class RLExperience(CLExperience):
+TCLStream = TypeVar('TCLStream', bound='CLStream')
+TRLScenario = TypeVar('TRLScenario', bound='RLScenario')
+TRLExperience = TypeVar('TRLExperience', bound='RLExperience')
+
+
+class RLExperience(CLExperience[TCLStream]):
     """Experience for Continual Reinforcement Learning purposes.
 
     The experience provides access to a `gym.Env` environment.
@@ -41,18 +45,22 @@ class RLExperience(CLExperience):
 
     def __init__(
         self,
+        current_experience: int,
+        origin_stream: TCLStream,
         env: Union[Env, Callable[[], Env]],
         n_envs: int = 1,
-        task_label: int = None,
-        current_experience: int = None,
-        origin_stream=None,
+        task_label: Optional[int] = None,
     ):
         super().__init__(current_experience, origin_stream)
         self.env = env
         self.n_envs = n_envs
         # task label to be (optionally) used for training purposes
-        self.task_label = ExperienceAttribute(
-            task_label, use_in_train=True, use_in_eval=True
+        self.task_label = task_label
+
+        self._as_attributes(
+            'task_label',
+            use_in_train=True,
+            use_in_eval=True
         )
 
     @property
@@ -63,7 +71,7 @@ class RLExperience(CLExperience):
         return self.env
 
 
-class RLScenario(CLScenario):
+class RLScenario(CLScenario[CLStream[TRLScenario, TRLExperience]]):
     """Scenario for Continual Reinforcement Learning (CRL) purposes.
 
     It allows an agent to learn from a stream of environments, generating state
@@ -77,11 +85,11 @@ class RLScenario(CLScenario):
     """
 
     def __init__(
-        self,
+        self: TRLScenario,
         envs: List[Env],
         n_parallel_envs: Union[int, List[int]],
-        eval_envs: Union[List[Env], List[Callable[[], Env]]] = None,
-        wrappers_generators: Dict[str, List[Wrapper]] = None,
+        eval_envs: Optional[Union[List[Env], List[Callable[[], Env]]]] = None,
+        wrappers_generators: Optional[Dict[str, List[Wrapper]]] = None,
         task_labels: bool = True,
         shuffle: bool = False,
     ):
@@ -147,7 +155,7 @@ class RLScenario(CLScenario):
         self._wrappers_generators = wrappers_generators
 
         if shuffle:
-            perm = np.random.permutation(tr_envs)
+            perm = np.random.permutation(len(tr_envs))
             tr_envs = [tr_envs[i] for i in perm]
             tr_task_labels = [tr_task_labels[i] for i in perm]
 
@@ -156,27 +164,39 @@ class RLScenario(CLScenario):
             tr_task_labels if task_labels else [None] * len(tr_envs)
         )
 
-        tr_exps = [
-            RLExperience(tr_envs[i], n_parallel_envs[i], tr_task_labels[i])
+        tr_exps: List[TRLExperience] = [
+            RLExperience(
+                current_experience=i, 
+                origin_stream=None, # type: ignore
+                env=tr_envs[i],
+                n_envs=n_parallel_envs[i],
+                task_label=tr_task_labels[i])
             for i in range(len(tr_envs))
         ]
-        tstream = EagerCLStream[RLExperience]("train", tr_exps)
+        tstream: EagerCLStream[TRLScenario, TRLExperience] = EagerCLStream(
+            name="train",
+            exps=tr_exps,
+            benchmark=self)
         # we're only supporting single process envs in evaluation atm
         print("EVAL ", eval_task_labels)
-        eval_exps = [
-            RLExperience(e, 1, l) for e, l in zip(eval_envs, eval_task_labels)
+        eval_exps: List[TRLExperience] = [
+            RLExperience(
+            current_experience=i,
+            origin_stream=None, # type: ignore
+            env=e,
+            n_envs=1,
+            task_label=l)
+            for i, (e, l) in enumerate(zip(eval_envs, eval_task_labels))
         ]
-        estream = EagerCLStream[RLExperience]("eval", eval_exps)
+        estream: EagerCLStream[TRLScenario, TRLExperience] = EagerCLStream(
+            name="eval", 
+            exps=eval_exps,
+            benchmark=self)
 
         super().__init__([tstream, estream])
 
-    @property
-    def train_stream(self) -> EagerCLStream[RLExperience]:
-        return self.streams["train_stream"]
 
-    @property
-    def eval_stream(self) -> EagerCLStream[RLExperience]:
-        return self.streams["eval_stream"]
-
-
-__all__ = ["RLExperience", "RLScenario"]
+__all__ = [
+    "RLExperience",
+    "RLScenario"
+]

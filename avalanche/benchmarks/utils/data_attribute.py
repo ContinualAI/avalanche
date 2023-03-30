@@ -16,13 +16,15 @@ concatenation and subsampling operations and are automatically managed by
 AvalancheDatasets.
 """
 
+from typing import Optional, Sequence, TypeVar, Union, overload
 import torch
 
 from .dataset_definitions import IDataset
 from .flat_data import ConstantSequence, FlatData
 
+T_co = TypeVar('T_co', covariant=True)
 
-class DataAttribute:
+class DataAttribute(IDataset[T_co], Sequence[T_co]):
     """Data attributes manage sample-wise information such as task or
     class labels.
 
@@ -32,7 +34,11 @@ class DataAttribute:
     Data attributes can be efficiently concatenated and subsampled.
     """
 
-    def __init__(self, data: IDataset, name: str = None, use_in_getitem=False):
+    def __init__(
+            self,
+            data: IDataset[T_co],
+            name: Optional[str] = None,
+            use_in_getitem: bool = False):
         """Data Attribute.
 
         :param data: a sequence of values, one for each sample.
@@ -51,7 +57,19 @@ class DataAttribute:
         self._val_to_idx = None  # dict()
         self._count = None  # dict()
 
-    def __getitem__(self, item):
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
+    @overload
+    def __getitem__(self, item: int, /) -> T_co:
+        ...
+
+    @overload
+    def __getitem__(self, item: slice, /) -> Sequence[T_co]:
+        ...
+
+    def __getitem__(self, item: Union[int, slice], /) -> Union[T_co, Sequence[T_co]]:
         return self.data[item]
 
     def __len__(self):
@@ -138,7 +156,7 @@ class DataAttribute:
         )
 
     @staticmethod
-    def _normalize_sequence(seq):
+    def _normalize_sequence(seq: IDataset[T_co]) -> FlatData[T_co]:
         if isinstance(seq, torch.Tensor):
             # equality doesn't work for tensors
             seq = seq.tolist()

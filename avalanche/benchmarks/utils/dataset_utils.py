@@ -8,188 +8,190 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+from abc import ABC, abstractmethod
 import bisect
+import copy
+from typing import Iterator, final, overload
+import numpy as np
+from numpy import ndarray
+from torch import Tensor
 
-from torch.utils.data import Subset, ConcatDataset
+from torch.utils.data import Subset
 
 from .dataset_definitions import (
     IDatasetWithTargets,
-    ISupportedClassificationDataset,
 )
-from .flat_data import ConstantSequence
 
-try:
-    from typing import (
-        Protocol,
-        Sequence,
-        List,
-        Any,
-        Iterable,
-        Union,
-        Optional,
-        SupportsInt,
-        TypeVar,
-        Tuple,
-        Callable,
-        Generic,
-    )
-except ImportError:
-    from typing import (
-        Sequence,
-        List,
-        Any,
-        Iterable,
-        Union,
-        Optional,
-        SupportsInt,
-        TypeVar,
-        Tuple,
-        Callable,
-        Generic,
-    )
-    from typing_extensions import Protocol
+
+from typing import (
+    Sequence,
+    List,
+    Iterable,
+    Union,
+    Optional,
+    TypeVar,
+    Callable,
+    Generic,
+)
+
 
 T_co = TypeVar("T_co", covariant=True)
 TTargetType = TypeVar("TTargetType")
+TMappableTargetType = TypeVar("TMappableTargetType")
 
 
-class SubSequence(Sequence[TTargetType]):
+TData = TypeVar('TData')
+TIntermediateData = TypeVar('TIntermediateData')
+TSliceSequence = TypeVar('TSliceSequence', bound='SliceSequence')
+
+
+class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
+    def __init__(
+        self,
+        slice_ids: Optional[List[int]]
+    ):
+        self.slice_ids: Optional[List[int]] = \
+            list(slice_ids) if slice_ids is not None else None
+        """
+        Describes thew indices in the current slice (w.r.t. the original sequence). 
+        Can be None, which means that this object is the original stream.
+        """
+        super().__init__()
+
+    def __iter__(self) -> Iterator[TData]:
+        # Iter built on __getitem__ + __len__
+        for i in range(len(self)):
+            el = self[i]
+            yield el
+
+    @overload
+    def __getitem__(self, item: int, /) -> TData:
+        ...
+
+    @overload
+    def __getitem__(self: TSliceSequence, item: slice, /) -> TSliceSequence:
+        ...
+    
+    @final
+    def __getitem__(self: TSliceSequence, item: Union[int, slice], /) -> Union[TSliceSequence, TData]:
+        if isinstance(item, (int, np.integer)):
+            item = int(item)
+            if item >= len(self):
+                raise IndexError(
+                    "Sequence index out of bounds" + str(int(item))
+                )
+
+            curr_elem = item if self.slice_ids is None else self.slice_ids[item]
+
+            el = self._make_element(curr_elem)
+            el = self._post_process_element(el)
+            return el
+        else:
+            new_slice = self._forward_slice(self.slice_ids, item)
+            return self._make_slice(new_slice)
+
+    def __len__(self) -> int:
+        """
+        Gets the size of this sequence.
+
+        :return: The number of elements in this sequence.
+        """
+        if self.slice_ids is not None:
+            return len(self.slice_ids)
+        else:
+            return self._full_length()
+
+    def _forward_slice(self, *slices: Union[None, slice, Iterable[int]]) -> Optional[Iterable[int]]:
+        any_slice = False
+        indices = list(range(self._full_length()))
+        for sl in slices:
+            if sl is None:
+                continue
+            any_slice = True
+
+            slice_indices = slice_alike_object_to_indices(
+                slice_alike_object=sl,
+                max_length=len(indices)
+            )
+
+            new_indices = [indices[x] for x in slice_indices]
+            indices = new_indices
+
+        if any_slice:
+            return indices
+        else:
+            return None  # No slicing
+
+    @abstractmethod
+    def _full_length(self) -> int:
+        """
+        Gets the number of elements in the originating sequence (that is, the non-sliced sequence).
+        """
+        pass
+
+    @abstractmethod
+    def _make_element(self, element_idx: int) -> TIntermediateData:
+        """
+        Obtain the element at the given position in the originating sequence (that is, the non-sliced sequence).
+
+        This element is then passed to `_post_process_element` before returning it.
+        """
+        pass
+
+    def _post_process_element(self, element: TIntermediateData) -> TData:
+        """
+        Post process the element obtained by _make_element.
+
+        By default, returns the element as is.
+
+        Subclasses may override this to provide post-processing.
+        """
+        return element # type: ignore
+
+    def _make_slice(self: TSliceSequence, sequence_slice: Optional[Iterable[int]]) -> TSliceSequence:
+        """
+        Obtain a sub-squence given a list of indices of the elements to include.
+        
+        Element ids are the ones of the originating sequence (that is, the non-sliced sequence).
+        """
+        stream_copy = copy.copy(self)
+        stream_copy.slice_ids = list(sequence_slice) if sequence_slice is not None else None
+        return stream_copy
+    
+    def __str__(self):
+        return (
+            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        )
+
+
+class SubSequence(SliceSequence[TTargetType, TMappableTargetType], Generic[TTargetType, TMappableTargetType]):
     """
     A utility class used to define a lazily evaluated sub-sequence.
     """
 
     def __init__(
         self,
-        targets: Sequence[TTargetType],
+        targets: Sequence[TMappableTargetType],
         *,
-        indices: Union[Sequence[int], None] = None,
-        converter: Optional[Callable[[Any], TTargetType]] = None
+        indices: Optional[Sequence[int]] = None,
+        converter: Optional[Callable[[TMappableTargetType], TTargetType]] = None
     ):
         self._targets = targets
-        self._indices = indices
         self.converter = converter
-
-    def __len__(self):
-        if self._indices is None:
-            return len(self._targets)
-        return len(self._indices)
-
-    def __getitem__(self, item_idx) -> TTargetType:
-        if self._indices is not None:
-            subset_idx = self._indices[item_idx]
-        else:
-            subset_idx = item_idx
-
-        element = self._targets[subset_idx]
-
-        if self.converter is not None:
-            return self.converter(element)
-
-        return element
-
-    def __str__(self):
-        return (
-            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        super().__init__(
+            slice_ids=list(indices) if indices is not None else None
         )
 
+    def _full_length(self) -> int:
+        return len(self._targets)
 
-class LazyClassMapping(SubSequence[int]):
-    """
-    This class is used when in need of lazy populating a targets field whose
-    elements need to be filtered out (when subsetting, see
-    :class:`torch.utils.data.Subset`) and/or transformed (remapped). This will
-    allow for a more efficient memory usage as the conversion is done on the fly
-    instead of actually allocating a new targets list.
-
-    This class should be used only when mapping int targets (classification).
-    """
-
-    def __init__(
-        self,
-        targets: Sequence[SupportsInt],
-        indices: Union[Sequence[int], None],
-        mapping: Optional[Sequence[int]] = None,
-    ):
-        super().__init__(targets, indices=indices, converter=int)
-        self._mapping = mapping
-
-    def __getitem__(self, item_idx) -> int:
-        target_value = super().__getitem__(item_idx)
-
-        if self._mapping is not None:
-            return self._mapping[target_value]
-
-        return target_value
-
-
-class LazyConcatTargets(Sequence[TTargetType]):
-    """
-    Defines a lazy targets concatenation.
-
-    This class is used when in need of lazy populating a targets created
-    as the concatenation of the targets field of multiple datasets.
-    This will allow for a more efficient memory usage as the concatenation is
-    done on the fly instead of actually allocating a new targets list.
-    """
-
-    def __init__(
-        self,
-        targets_list: Sequence[Sequence[TTargetType]],
-        converter: Optional[Callable[[Any], TTargetType]] = None,
-    ):
-        self._targets_list = targets_list
-        self._targets_lengths = [len(targets) for targets in targets_list]
-        self._overall_length = sum(self._targets_lengths)
-        self._targets_cumulative_lengths = ConcatDataset.cumsum(targets_list)
-        self.converter = converter
-
-    def __len__(self):
-        return self._overall_length
-
-    def __getitem__(self, item_idx) -> TTargetType:
-        targets_idx, internal_idx = find_list_from_index(
-            item_idx,
-            self._targets_lengths,
-            self._overall_length,
-            self._targets_cumulative_lengths,
-        )
-
-        target = self._targets_list[targets_idx][internal_idx]
-
+    def _make_element(self, element_idx: int) -> TMappableTargetType:
+        return self._targets[element_idx]
+    
+    def _post_process_element(self, element: TMappableTargetType) -> TTargetType:
         if self.converter is None:
-            return target
-        return self.converter(target)
-
-    def __iter__(self):
-        if self.converter is None:
-            for x in self._targets_list:
-                for y in x:
-                    yield y
-        else:
-            for x in self._targets_list:
-                for y in x:
-                    yield self.converter(y)
-
-    def __str__(self):
-        return (
-            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
-        )
-
-
-class LazyConcatIntTargets(LazyConcatTargets[int]):
-    """
-    Defines a lazy targets concatenation.
-
-    This class is used when in need of lazy populating a targets created
-    as the concatenation of the targets field of multiple datasets.
-    This will allow for a more efficient memory usage as the concatenation is
-    done on the fly instead of actually allocating a new targets list.
-
-    Elements returned by `__getitem__` will be int values.
-    """
-
-    def __init__(self, targets_list: Sequence[Sequence[SupportsInt]]):
-        super().__init__(targets_list, converter=int)
+            return element # type: ignore
+        return self.converter(element)
 
 
 class SubsetWithTargets(Generic[T_co, TTargetType], Subset[T_co]):
@@ -215,37 +217,6 @@ class SubsetWithTargets(Generic[T_co, TTargetType], Subset[T_co]):
 
     def __len__(self) -> int:
         return len(self.indices)
-
-
-class ClassificationSubset(SubsetWithTargets[T_co, int]):
-    """
-    A Dataset that behaves like a PyTorch :class:`torch.utils.data.Subset`.
-    However, this dataset also supports the targets field and class mapping.
-
-    Targets will be converted to int.
-    """
-
-    def __init__(
-        self,
-        dataset: ISupportedClassificationDataset[T_co],
-        indices: Union[Sequence[int], None],
-        class_mapping: Optional[Sequence[int]] = None,
-    ):
-        super().__init__(dataset, indices)
-        self.class_mapping = class_mapping
-        self.targets = LazyClassMapping(
-            dataset.targets, indices, mapping=class_mapping
-        )
-
-    def __getitem__(self, idx):
-        result = super().__getitem__(idx)
-
-        if self.class_mapping is not None:
-            return make_tuple(
-                (result[0], self.class_mapping[result[1]], *result[2:]), result
-            )
-
-        return result
 
 
 class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
@@ -322,9 +293,16 @@ def find_list_from_index(
     return list_idx, pattern_idx
 
 
+T = TypeVar('T')
+X = TypeVar('X')
+
+
 def manage_advanced_indexing(
-    idx, single_element_getter, max_length, collate_fn
-):
+    idx: Union[slice, int, Iterable[int]],
+    single_element_getter: Callable[[int], X],
+    max_length: int,
+    collate_fn: Callable[[Iterable[X]], T]
+) -> Union[X, T]:
     """
     Utility function used to manage the advanced indexing and slicing.
 
@@ -341,20 +319,11 @@ def manage_advanced_indexing(
     :return: A tuple consisting of two tensors containing the X and Y values
         of the patterns addressed by the idx parameter.
     """
-    indexes_iterator: Iterable[int]
+    indexes_iterator: Iterable[int] = slice_alike_object_to_indices(
+        slice_alike_object=idx,
+        max_length=max_length)
 
-    # Makes dataset sliceable
-    if isinstance(idx, slice):
-        indexes_iterator = range(*idx.indices(max_length))
-    elif isinstance(idx, int):
-        indexes_iterator = [idx]
-    elif hasattr(idx, "shape") and len(getattr(idx, "shape")) == 0:
-        # Manages 0-d ndarray / Tensor
-        indexes_iterator = [int(idx)]
-    else:
-        indexes_iterator = idx
-
-    elements = []
+    elements: List[X] = []
     for single_idx in indexes_iterator:
         single_element = single_element_getter(int(single_idx))
         elements.append(single_element)
@@ -365,72 +334,91 @@ def manage_advanced_indexing(
     return collate_fn(elements)
 
 
-class LazySubsequence(Sequence[int]):
+def slice_alike_object_to_indices(slice_alike_object: Union[slice, int, Iterable[int], Tensor, ndarray], max_length: int) -> Iterable[int]:
     """
-    LazySubsequence can be used to define a Sequence based on another sequence
-    and a pair of start and end indices.
-    """
+    Utility function used to obtain the sequence of indices given a slice object.
 
-    def __init__(self, sequence: Sequence[int], start_idx: int, end_idx: int):
-        self._sequence = sequence
-        self._start_idx = start_idx
-        self._end_idx = end_idx
+    This fuction offers some additional flexibility by also accepting generic Iterable[int],
+    PyTorch Tensor and NumPy ndarray.
 
-    def __len__(self):
-        return self._end_idx - self._start_idx
+    Beware that this function only supports 1-D slicing.
 
-    def __getitem__(self, item_idx) -> int:
-        if item_idx >= len(self):
-            raise IndexError()
+    This will also take care of managing negative indices.
 
-        return self._sequence[self._start_idx + item_idx]
-
-    def __str__(self):
-        return (
-            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
-        )
-
-
-def optimize_sequence(sequence: Sequence[TTargetType]) -> Sequence[TTargetType]:
-    if len(sequence) == 0 or isinstance(sequence, ConstantSequence):
-        return sequence
-
-    if isinstance(sequence, list):
-        return sequence
-
-    return list(sequence)
-
-
-class TupleTLabel(tuple):
-    """
-    A simple tuple class used to describe a value returned from a dataset
-    in which the task label is contained.
-
-    Being a vanilla subclass of tuple, this class can be used to describe both a
-    single instance and a batch.
+    If the input object is a native slice or int, then negative indices will be
+    managed as usual (like when used on a native Python list). If a tensor or generic
+    iterable is passed, then indices will be transformed as they where int(s).
     """
 
-    def __new__(cls, *data, **kwargs):
-        return super(TupleTLabel, cls).__new__(cls, *data, **kwargs)
+    indexes_iterator: Iterable[int]
+    check_bounds = True
 
+    # Makes dataset sliceable
+    if isinstance(slice_alike_object, (int, np.integer)):
+        # Single index (Python native or NumPy)
+        indexes_iterator = [int(slice_alike_object)]
+    elif isinstance(slice_alike_object, slice):
+        # Slice object (Python native)
+        indexes_iterator = range(*slice_alike_object.indices(max_length))
+        check_bounds = False
+    elif hasattr(slice_alike_object, "shape"):
+        tensor_shape = getattr(slice_alike_object, "shape")
+        if len(tensor_shape) == 0:
+            # Manages 0-d ndarray / Tensor
+            indexes_iterator = [int(slice_alike_object)] # type: ignore
+        else:
+            if len(tensor_shape) == 1:
+                if tensor_shape[0] == 0:
+                    # Empty Tensor (NumPy or PyTorch)
+                    indexes_iterator = []
+                else:
+                    # Flat Tensor (NumPy or PyTorch)
+                    indexes_iterator = slice_alike_object.tolist() # type: ignore
+            else:
+                # Last attempt
+                indexes_iterator = [slice_alike_object.item()] # type: ignore
+            if len(indexes_iterator) > 0: # type: ignore
+                assert isinstance(indexes_iterator, int)
+    else:
+        # Generic iterable
+        indexes_iterator = slice_alike_object # type: ignore
 
-def make_tuple(new_tuple: Iterable[T_co], prev_tuple: tuple):
-    if isinstance(prev_tuple, TupleTLabel):
-        return TupleTLabel(new_tuple)
+    if check_bounds:
+        # Executed only if slice_alike_object is not a slice
+        # (because "slice" already takes care of managing negative indices)
 
-    return new_tuple
+        # This will:
+        # 1) transform negative indices to positive indices
+        # 2) check that max(indices) < max_length
+        # 3) check that min(indices) >= 0
+
+        iterator_as_list = []
+        for idx in indexes_iterator:
+            assert isinstance(idx, int)
+            if idx >= 0:
+                if idx >= max_length:
+                    raise IndexError(
+                        f'Index {idx} out of range for sequence of length {max_length}'
+                    )
+            else:
+                pos_idx = max_length - idx  # Negative to positive
+                if pos_idx < 0:
+                    raise IndexError(
+                        f'Index {idx} out of range for sequence of length {max_length}'
+                    )
+                idx = pos_idx
+            
+            iterator_as_list.append(idx)
+        indexes_iterator = iterator_as_list
+    
+    return indexes_iterator # type: ignore
 
 
 __all__ = [
     "SubSequence",
-    "LazyClassMapping",
-    "LazyConcatTargets",
-    "LazyConcatIntTargets",
     "SubsetWithTargets",
-    "ClassificationSubset",
     "SequenceDataset",
     "find_list_from_index",
     "manage_advanced_indexing",
-    "optimize_sequence",
-    "TupleTLabel",
+    "slice_alike_object_to_indices"
 ]

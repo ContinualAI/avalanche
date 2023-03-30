@@ -35,7 +35,6 @@ from avalanche.benchmarks.utils import (
     make_tensor_classification_dataset,
 )
 from avalanche.benchmarks.utils.utils import (
-    concat_datasets_sequentially,
     concat_datasets,
 )
 from avalanche.training.utils import load_all_dataset
@@ -48,7 +47,7 @@ from avalanche.benchmarks.utils.flat_data import (
     _flatdata_print,
 )
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
+    ClassificationDataset, concat_classification_datasets_sequentially
 )
 from tests.unit_tests_utils import load_image_data
 
@@ -1194,7 +1193,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         # Good luck...
         assert _flatdata_depth(curr_dataset) == 3
 
-    def test_avalanche_concat_datasets_sequentially(self):
+    def test_avalanche_concat_classification_datasets_sequentially(self):
         # create list of training datasets
         train = [
             make_classification_dataset(
@@ -1228,7 +1227,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         ]
 
         # concatenate datasets
-        final_train, _, classes = concat_datasets_sequentially(train, test)
+        final_train, _, classes = concat_classification_datasets_sequentially(train, test)
 
         # merge all classes into a single list
         classes_all = []

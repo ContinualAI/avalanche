@@ -10,16 +10,15 @@
 ################################################################################
 
 from collections import defaultdict
-from typing import Sequence, Iterable, Dict, Optional, Iterator
-
-from avalanche.benchmarks.utils import make_classification_dataset
-from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
-)
+from typing import Callable, Sequence, Iterable, Dict, Optional, Iterator, TypeVar, Union
+from typing_extensions import overload
 from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
+
+TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset", covariant=True)
 
 
-class LazyDatasetSequence(Sequence[make_classification_dataset]):
+class LazyDatasetSequence(Sequence[TCLDataset]):
     """
     A lazily initialized sequence of datasets.
 
@@ -34,11 +33,11 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
 
     def __init__(
         self,
-        experience_generator: Iterable[make_classification_dataset],
+        experience_generator: Iterable[TCLDataset],
         stream_length: int,
     ):
         self._exp_source: Optional[
-            Iterable[make_classification_dataset]
+            Iterable[TCLDataset]
         ] = experience_generator
         """
         The source of the experiences stream, as an Iterable.
@@ -57,7 +56,7 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
         """
 
         self._loaded_experiences: Dict[
-            int, make_classification_dataset
+            int, TCLDataset
         ] = dict()
         """
         The sequence of experiences obtained from the generator.
@@ -69,7 +68,7 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
         """
         try:
             self._exp_generator: Optional[
-                Iterator[make_classification_dataset]
+                Iterator[TCLDataset]
             ] = iter(self._exp_source)
         except TypeError as e:
             if callable(self._exp_source):
@@ -115,23 +114,49 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
         """
         return self._stream_length
 
-    def __getitem__(self, exp_idx: int) -> make_classification_dataset:
+    @overload
+    def __getitem__(self, exp_idx: int, /) -> TCLDataset:
+        ...
+
+    @overload
+    def __getitem__(self, exp_idx: slice, /) -> Sequence[TCLDataset]:
+        ...
+
+    def __getitem__(self, exp_idx: Union[int, slice], /) -> Union[TCLDataset, Sequence[TCLDataset]]:
         """
         Gets the dataset associated to an experience.
 
         :param exp_idx: The ID of the experience.
         :return: The dataset associated to the experience.
         """
-        exp_idx = int(exp_idx)  # Handle single element tensors
+        # A lot of unuseful lines needed for MyPy -_-
+        indexing_collate: Callable[[Iterable[TCLDataset]], Sequence[TCLDataset]] = lambda x: list(x)
+        result = manage_advanced_indexing(
+            exp_idx,
+            self._get_experience_and_load_if_needed,
+            len(self),
+            indexing_collate
+        )
+        return result
+
+    def _get_experience_and_load_if_needed(
+        self, exp_idx: int
+    ) -> TCLDataset:
+        """
+        Gets the dataset associated to an experience.
+
+        This will load intermediate experiences if needed.
+        """
+
+        exp_idx = int(exp_idx)
         self.load_all_experiences(exp_idx)
         if exp_idx not in self._loaded_experiences:
             raise RuntimeError(f"Experience {exp_idx} has been dropped")
-
         return self._loaded_experiences[exp_idx]
 
     def get_experience_if_loaded(
         self, exp_idx: int
-    ) -> Optional[make_classification_dataset]:
+    ) -> Optional[TCLDataset]:
         """
         Gets the dataset associated to an experience.
 
@@ -177,7 +202,7 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
             if exp_id in self._loaded_experiences:
                 del self._loaded_experiences[exp_id]
 
-    def load_all_experiences(self, to_exp: int = None) -> None:
+    def load_all_experiences(self, to_exp: Optional[int] = None) -> None:
         """
         Load all experiences up to a certain experience ID (inclusive).
 
@@ -201,11 +226,12 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
             # Nothing to do
             return
 
+        exp_gen = self._exp_generator
+        assert exp_gen is not None
+
         for exp_id in range(self._next_exp_id, to_exp + 1):
             try:
-                generated_exp: AvalancheDataset = next(
-                    self._exp_generator
-                )
+                generated_exp: TCLDataset = next(exp_gen)
             except StopIteration:
                 raise RuntimeError(
                     f"Unexpected end of stream. The generator was supposed to "
@@ -213,20 +239,20 @@ class LazyDatasetSequence(Sequence[make_classification_dataset]):
                     f"while generating experience {exp_id}."
                 )
 
-            if not isinstance(generated_exp, ClassificationDataset):
+            if not isinstance(generated_exp, AvalancheDataset):
                 raise ValueError(
                     "All experience datasets must be subclasses of"
                     " AvalancheDataset"
                 )
 
             self._loaded_experiences[exp_id] = generated_exp
-            self.targets_field_sequence[exp_id] = generated_exp.targets
+            self.targets_field_sequence[exp_id] = getattr(generated_exp, 'targets')
             self.task_labels_field_sequence[
                 exp_id
-            ] = generated_exp.targets_task_labels
+            ] = getattr(generated_exp, 'targets_task_labels')
             self._next_exp_id += 1
 
-        if self._next_exp_id == len(self):
+        if self._next_exp_id >= len(self):
             # Release all references to the generator
             self._exp_generator = None
             self._exp_source = None

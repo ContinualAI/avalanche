@@ -1,15 +1,14 @@
 import warnings
-from typing import Sequence, Callable, Any, Dict, Tuple, Union, List, Collection
+from typing import Optional, Sequence, Callable, Any, Dict, Tuple, Union, List, Collection
 
 from avalanche.benchmarks.utils import SupportedDataset
 from avalanche.benchmarks.utils.classification_dataset import (
-    XTransform,
-    YTransform,
     TTargetType,
     classification_subset,
     make_tensor_classification_dataset,
     concat_classification_datasets,
 )
+from avalanche.benchmarks.utils.transform_groups import XTransform, YTransform
 
 
 def AvalanceDataset():
@@ -22,16 +21,16 @@ def AvalanceDataset():
 
 def AvalancheSubset(
     dataset: SupportedDataset,
-    indices: Sequence[int] = None,
+    indices: Optional[Sequence[int]] = None,
     *,
-    class_mapping: Sequence[int] = None,
-    transform: Callable[[Any], Any] = None,
-    target_transform: Callable[[int], int] = None,
-    transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
-    initial_transform_group: str = None,
-    task_labels: Union[int, Sequence[int]] = None,
-    targets: Sequence[TTargetType] = None,
-    collate_fn: Callable[[List], Any] = None,
+    class_mapping: Optional[Sequence[int]] = None,
+    transform: Optional[XTransform] = None,
+    target_transform: Optional[YTransform] = None,
+    transform_groups: Optional[Dict[str, Tuple[XTransform, YTransform]]] = None,
+    initial_transform_group: Optional[str] = None,
+    task_labels: Optional[Union[int, Sequence[int]]] = None,
+    targets: Optional[Sequence[TTargetType]] = None,
+    collate_fn: Optional[Callable[[List], Any]] = None,
 ):
     warnings.warn(
         "AvalancheDataset has been deprecated and it will be removed in 0.4. "
@@ -54,13 +53,13 @@ def AvalancheSubset(
 
 def AvalancheTensorDataset(
     *dataset_tensors: Sequence,
-    transform: Callable[[Any], Any] = None,
-    target_transform: Callable[[int], int] = None,
-    transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
-    initial_transform_group: str = "train",
-    task_labels: Union[int, Sequence[int]] = None,
-    targets: Union[Sequence[TTargetType], int] = None,
-    collate_fn: Callable[[List], Any] = None,
+    transform: Optional[XTransform] = None,
+    target_transform: Optional[YTransform] = None,
+    transform_groups: Optional[Dict[str, Tuple[XTransform, YTransform]]] = None,
+    initial_transform_group: Optional[str] = "train",
+    task_labels: Optional[Union[int, Sequence[int]]] = None,
+    targets: Optional[Union[Sequence[TTargetType], int]] = None,
+    collate_fn: Optional[Callable[[List], Any]] = None,
 ):
     warnings.warn(
         "AvalancheDataset has been deprecated and it will be removed in 0.4. "
@@ -83,15 +82,15 @@ def AvalancheTensorDataset(
 def AvalancheConcatDataset(
     datasets: Collection[SupportedDataset],
     *,
-    transform: Callable[[Any], Any] = None,
-    target_transform: Callable[[int], int] = None,
-    transform_groups: Dict[str, Tuple[XTransform, YTransform]] = None,
-    initial_transform_group: str = None,
-    task_labels: Union[int, Sequence[int], Sequence[Sequence[int]]] = None,
-    targets: Union[
+    transform: Optional[XTransform] = None,
+    target_transform: Optional[YTransform] = None,
+    transform_groups: Optional[Dict[str, Tuple[XTransform, YTransform]]] = None,
+    initial_transform_group: Optional[str] = None,
+    task_labels: Optional[Union[int, Sequence[int], Sequence[Sequence[int]]]] = None,
+    targets: Optional[Union[
         Sequence[TTargetType], Sequence[Sequence[TTargetType]]
-    ] = None,
-    collate_fn: Callable[[List], Any] = None,
+    ]] = None,
+    collate_fn: Optional[Callable[[List], Any]] = None,
 ):
     warnings.warn(
         "AvalancheDataset has been deprecated and it will be removed in 0.4. "
@@ -100,7 +99,7 @@ def AvalancheConcatDataset(
         DeprecationWarning,
     )
     return concat_classification_datasets(
-        datasets,
+        list(datasets),
         transform=transform,
         target_transform=target_transform,
         transform_groups=transform_groups,

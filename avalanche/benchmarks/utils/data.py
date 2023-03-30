@@ -17,13 +17,14 @@ management of preprocessing pipelines and task/class labels.
 """
 import copy
 import warnings
+import numpy as np
 
 from torch.utils.data.dataloader import default_collate
 
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 from .data_attribute import DataAttribute
 
-from typing import List, Any, Sequence, Union, TypeVar, Callable
+from typing import List, Any, Optional, Sequence, TypeVar, Callable, Union, overload
 
 from .flat_data import FlatData
 from .transform_groups import TransformGroups, EmptyTransformGroups
@@ -34,7 +35,7 @@ T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 
 
-class AvalancheDataset(FlatData):
+class AvalancheDataset(FlatData[T_co]):
     """Avalanche Dataset.
 
     Avlanche dataset are pytorch-compatible Datasets with some additional
@@ -75,13 +76,13 @@ class AvalancheDataset(FlatData):
 
     def __init__(
         self,
-        datasets: List[IDataset],
+        datasets: Sequence[IDataset[T_co]],
         *,
-        indices: List[int] = None,
-        data_attributes: List[DataAttribute] = None,
-        transform_groups: TransformGroups = None,
-        frozen_transform_groups: TransformGroups = None,
-        collate_fn: Callable[[List], Any] = None,
+        indices: Optional[List[int]] = None,
+        data_attributes: Optional[ List[DataAttribute]] = None,
+        transform_groups: Optional[TransformGroups] = None,
+        frozen_transform_groups: Optional[TransformGroups] = None,
+        collate_fn: Optional[Callable[[List], Any]] = None,
     ):
         """Creates a ``AvalancheDataset`` instance.
 
@@ -96,14 +97,14 @@ class AvalancheDataset(FlatData):
             warnings.warn(
                 "AvalancheDataset constructor has been changed. "
                 "Please check the documentation for the correct usage. You can"
-                " use `avalanche.benchmarks.utils.make_classification_dataset"
+                " use `avalanche.benchmarks.utils.make_classification_dataset "
                 "if you need the old behavior.",
                 DeprecationWarning,
             )
 
         if issubclass(type(datasets), TorchDataset) or  \
                 issubclass(type(datasets), AvalancheDataset):
-            datasets = [datasets]
+            datasets = [datasets] # type: ignore
 
         # NOTES on implementation:
         # - raw datasets operations are implemented by _FlatData
@@ -125,8 +126,8 @@ class AvalancheDataset(FlatData):
             self._data_attributes = {}
         else:
             self._data_attributes = {da.name: da for da in data_attributes}
+            ld = sum(len(d) for d in datasets)
             for da in data_attributes:
-                ld = sum(len(d) for d in self._datasets)
                 if len(da) != ld:
                     raise ValueError(
                         "Data attribute {} has length {} but the dataset "
@@ -136,8 +137,15 @@ class AvalancheDataset(FlatData):
             transform_groups = TransformGroups(transform_groups)
         if isinstance(frozen_transform_groups, dict):
             frozen_transform_groups = TransformGroups(frozen_transform_groups)
-        self._transform_groups = transform_groups
-        self._frozen_transform_groups = frozen_transform_groups
+
+        if transform_groups is None:
+            transform_groups = EmptyTransformGroups()
+
+        if frozen_transform_groups is None:
+            frozen_transform_groups = EmptyTransformGroups()
+        
+        self._transform_groups: TransformGroups = transform_groups
+        self._frozen_transform_groups: TransformGroups = frozen_transform_groups
         self.collate_fn = collate_fn
 
         ####################################
@@ -145,7 +153,7 @@ class AvalancheDataset(FlatData):
         ####################################
         cgroup = None
         # inherit transformation group from original dataset
-        for dd in self._datasets:
+        for dd in datasets:
             if isinstance(dd, AvalancheDataset):
                 if cgroup is None and dd._transform_groups is not None:
                     cgroup = dd._transform_groups.current_group
@@ -158,10 +166,6 @@ class AvalancheDataset(FlatData):
                         f"Concatenated datasets have different transformation "
                         f"groups. Using group={cgroup}."
                     )
-        if self._frozen_transform_groups is None:
-            self._frozen_transform_groups = EmptyTransformGroups()
-        if self._transform_groups is None:
-            self._transform_groups = EmptyTransformGroups()
 
         if cgroup is None:
             cgroup = "train"
@@ -184,22 +188,31 @@ class AvalancheDataset(FlatData):
         # Init data attributes
         ####################################
         # concat attributes from child datasets
-        if len(self._datasets) > 0 and isinstance(
-            self._datasets[0], AvalancheDataset
+        first_dataset = datasets[0] if len(datasets) > 0 else None
+        if isinstance(
+            first_dataset, AvalancheDataset
         ):
-            for attr in self._datasets[0]._data_attributes.values():
+            for attr in first_dataset._data_attributes.values():
                 if attr.name in self._data_attributes:
                     continue  # don't touch overridden attributes
+                attr_name = attr.name
+                if attr_name is None:
+                    warnings.warn(
+                        'The input dataset(s) contains unnamed data attributes. '
+                        'Those attributes will be ignored.'
+                    )
+                    continue
+                
                 acat = attr
                 found_all = True
-                for d2 in self._datasets[1:]:
-                    if hasattr(d2, attr.name):
-                        acat = acat.concat(getattr(d2, attr.name))
+                for d2 in datasets[1:]:
+                    if hasattr(d2, attr_name):
+                        acat = acat.concat(getattr(d2, attr_name))
                     else:
                         found_all = False
                         break
                 if found_all:
-                    self._data_attributes[attr.name] = acat
+                    self._data_attributes[attr_name] = acat
 
         if self._indices is not None:  # subset operation for attributes
             for da in self._data_attributes.values():
@@ -218,17 +231,32 @@ class AvalancheDataset(FlatData):
                 self._data_attributes[da.name] = dasub
 
         # set attributes dynamically
+        unnamed_attributes = 0
         for el in self._data_attributes.values():
             assert len(el) == len(
                 self
             ), f"BUG: Wrong size for attribute {el.name}"
 
-            if hasattr(self, el.name):
-                raise ValueError(
-                    f"Trying to add DataAttribute `{el.name}` to "
-                    f"AvalancheDataset but the attribute name is already used."
-                )
-            setattr(self, el.name, el)
+            el_name = el.name
+            if el_name is not None:
+                if hasattr(self, el_name):
+                    # Do not raise an error if a property.
+                    # Any check related to the property will be done
+                    # in the property setter method.
+                    if not isinstance(getattr(type(self), el_name, None), property):
+                        raise ValueError(
+                            f"Trying to add DataAttribute `{el.name}` to "
+                            f"AvalancheDataset but the attribute name is already used."
+                        )
+                setattr(self, el_name, el)
+            else:
+                unnamed_attributes += 1
+        
+        if unnamed_attributes > 0:
+            warnings.warn(
+                f'The input data_attributes list contains {unnamed_attributes} unnamed data attributes. '
+                f'Those attributes will be retained, but no object field will be added.'
+            )
 
     @property
     def transform(self):
@@ -237,22 +265,54 @@ class AvalancheDataset(FlatData):
             "methods such as `replace_current_transform_group`. "
             "See the documentation for more info."
         )
+    
+    def _update_data_attribute(self, name: str, new_value):
+        """
+        Adds or replace a data attribute.
 
-    def __eq__(self, other: "make_avalanche_dataset"):
-        if not hasattr(other, "_datasets"):
-            return False
-        eq_datasets = len(self._datasets) == len(other._datasets)
+        If a object of type :class:`DataAttribute` is passed, then the object is setted as is.
+
+        Otherwise, if a raw value is passed, a new DataAttribute is created.
+        If a DataAttribute with the same already exists, the use_in_getitem flag is inherited,
+        otherwise it is set to False.
+        """
+        assert len(new_value) == len(self), \
+            f'Size mismatch when updating data attribute {name}'
+
+        if isinstance(new_value, DataAttribute):
+            self._data_attributes[name] = new_value
+        else:
+            use_in_getitem = False
+            prev_attr = self._data_attributes.get(name, None)
+            if prev_attr is not None:
+                use_in_getitem = prev_attr.use_in_getitem
+            
+            self._data_attributes[name] = DataAttribute(
+                new_value,
+                name=name,
+                use_in_getitem=use_in_getitem)
+        
+        if not hasattr(self, name):
+            # Creates the field if it does not exist
+            setattr(self, name, self._data_attributes[name])
+
+    def __eq__(self, other: object):
+        for required_attr in ['_datasets', '_transform_groups', '_data_attributes', 'collate_fn']:
+            if not hasattr(other, required_attr):
+                return False
+
+        eq_datasets = len(self._datasets) == len(other._datasets) # type: ignore
         eq_datasets = eq_datasets and all(
-            d1 == d2 for d1, d2 in zip(self._datasets, other._datasets)
+            d1 == d2 for d1, d2 in zip(self._datasets, other._datasets) # type: ignore
         )
         return (
             eq_datasets
-            and self._transform_groups == other._transform_groups
-            and self._data_attributes == other._data_attributes
-            and self.collate_fn == other.collate_fn
+            and self._transform_groups == other._transform_groups # type: ignore
+            and self._data_attributes == other._data_attributes # type: ignore
+            and self.collate_fn == other.collate_fn # type: ignore
         )
 
-    def _getitem_recursive_call(self, idx, group_name):
+    def _getitem_recursive_call(self, idx, group_name) -> T_co:
         """Private method only for internal use.
 
         We need this recursive call to avoid appending task
@@ -273,21 +333,32 @@ class AvalancheDataset(FlatData):
         if self._transform_groups is not None:
             element = self._transform_groups(element, group_name=group_name)
         return element
+    
+    @overload
+    def __getitem__(self, exp_id: int, /) -> T_co:
+        ...
+    
+    @overload
+    def __getitem__(self: TAvalancheDataset, exp_id: slice, /) -> TAvalancheDataset:
+        ...
 
-    def __getitem__(self, idx) -> Union[T_co, Sequence[T_co]]:
-        elem = self._getitem_recursive_call(
-            idx, self._transform_groups.current_group
-        )
-        for da in self._data_attributes.values():
-            if da.use_in_getitem:
-                if isinstance(elem, dict):
-                    elem[da.name] = da[idx]
-                elif isinstance(elem, tuple):
-                    elem = list(elem)
-                    elem.append(da[idx])
-                else:
-                    elem.append(da[idx])
-        return elem
+    def __getitem__(self: TAvalancheDataset, idx: Union[int, slice], /) -> Union[T_co, TAvalancheDataset]:
+        if isinstance(idx, (int, np.integer)):
+            elem = self._getitem_recursive_call(
+                idx, self._transform_groups.current_group
+            )
+            for da in self._data_attributes.values():
+                if da.use_in_getitem:
+                    if isinstance(elem, dict):
+                        elem[da.name] = da[idx]
+                    elif isinstance(elem, tuple):
+                        elem = list(elem) # type: ignore
+                        elem.append(da[idx])  # type: ignore
+                    else:
+                        elem.append(da[idx]) # type: ignore
+            return elem  # type: ignore
+        else:
+            return super().__getitem__(idx)
 
     def train(self):
         """Returns a new dataset with the transformations of the 'train' group
@@ -400,13 +471,13 @@ class AvalancheDataset(FlatData):
 
 
 def make_avalanche_dataset(
-    dataset: IDataset,
+    dataset: IDataset[T_co],
     *,
-    data_attributes: List[DataAttribute] = None,
-    transform_groups: TransformGroups = None,
-    frozen_transform_groups: TransformGroups = None,
-    collate_fn: Callable[[List], Any] = None,
-):
+    data_attributes: Optional[List[DataAttribute]] = None,
+    transform_groups: Optional[TransformGroups] = None,
+    frozen_transform_groups: Optional[TransformGroups] = None,
+    collate_fn: Optional[Callable[[List], Any]] = None,
+) -> AvalancheDataset[T_co]:
     """Avalanche Dataset.
 
     Creates a ``AvalancheDataset`` instance.

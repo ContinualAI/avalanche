@@ -115,23 +115,31 @@ class EvaluationPlugin:
     ):
         """Call the metric plugins with the correct callback `callback` and
         update the loggers with the new metric values."""
-        if not self._active:
-            return []
+        original_experience = strategy.experience
+        if original_experience is not None:
+            # Set experience to LOGGING so that certain fields can be accessed
+            strategy.experience = original_experience.logging()
+        try:
+            if not self._active:
+                return []
 
-        for metric in self.metrics:
-            if hasattr(metric, callback):
-                metric_result = getattr(metric, callback)(strategy)
-                if isinstance(metric_result, Sequence):
-                    for mval in metric_result:
-                        self.publish_metric_value(mval)
-                elif metric_result is not None:
-                    self.publish_metric_value(metric_result)
+            for metric in self.metrics:
+                if hasattr(metric, callback):
+                    metric_result = getattr(metric, callback)(strategy)
+                    if isinstance(metric_result, Sequence):
+                        for mval in metric_result:
+                            self.publish_metric_value(mval)
+                    elif metric_result is not None:
+                        self.publish_metric_value(metric_result)
 
-        for logger in self.loggers:
-            logger.log_metrics(self._metric_values)
-            if hasattr(logger, callback):
-                getattr(logger, callback)(strategy, self._metric_values)
-        self._metric_values = []
+            for logger in self.loggers:
+                logger.log_metrics(self._metric_values)
+                if hasattr(logger, callback):
+                    getattr(logger, callback)(strategy, self._metric_values)
+            self._metric_values = []
+        finally:
+            # Revert to previous experience (mode = EVAL or TRAIN)
+            strategy.experience = original_experience
 
     def get_last_metrics(self):
         """

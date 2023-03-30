@@ -27,14 +27,15 @@ from torchvision.transforms import (
     Normalize,
     Resize,
 )
+from avalanche.benchmarks.classic.ccifar10 import SplitCIFAR10
+from avalanche.benchmarks.classic.cmnist import SplitMNIST
+from avalanche.benchmarks.classic.core50 import CORe50
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 
 from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.models import LeNet5, SlimResNet18
-from ..datasets import default_dataset_location
-from ..utils import concat_classification_datasets
 from torchvision.transforms import Compose
 from avalanche.evaluation.metrics import TaskAwareAccuracy
-from . import SplitCIFAR10, CORe50, SplitMNIST
 from avalanche.benchmarks import ExModelCLScenario, nc_benchmark
 import copy
 

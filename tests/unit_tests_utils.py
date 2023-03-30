@@ -153,7 +153,7 @@ class DummyImageDataset(Dataset):
         super().__init__()
         self.targets = list(range(n_classes))
         self.targets += [
-            random.randint(0, 99) for _ in range(n_elements - n_classes)
+            random.randint(0, n_classes-1) for _ in range(n_elements - n_classes)
         ]
 
     def __getitem__(self, index):

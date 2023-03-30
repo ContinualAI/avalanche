@@ -13,7 +13,7 @@
 pytorch datasets based on filelists (Caffe style) """
 
 from pathlib import Path
-from typing import Tuple, Sequence, Optional
+from typing import Any, Tuple, Sequence, Optional, Union
 
 import torch.utils.data as data
 
@@ -22,9 +22,10 @@ import os
 import os.path
 
 from torch import Tensor
-from torchvision.transforms.functional import crop
+from torchvision.transforms.functional import crop # type: ignore
 
 from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils.transform_groups import XTransform, YTransform
 
 
 def default_image_loader(path):
@@ -57,6 +58,12 @@ def default_flist_reader(flist):
     return imlist
 
 
+PathALikeT = Union[Path, str]
+CoordsT = Union[int, float]
+CropBoxT = Tuple[CoordsT, CoordsT, CoordsT, CoordsT]
+FilesDefT = Union[Tuple[PathALikeT, Any], Tuple[PathALikeT, Any, ]]
+
+
 class PathsDataset(data.Dataset):
     """
     This class extends the basic Pytorch Dataset class to handle list of paths
@@ -65,10 +72,10 @@ class PathsDataset(data.Dataset):
 
     def __init__(
         self,
-        root,
-        files,
-        transform=None,
-        target_transform=None,
+        root: Optional[PathALikeT],
+        files: Sequence[FilesDefT],
+        transform: XTransform = None,
+        target_transform: YTransform = None,
         loader=default_image_loader,
     ):
         """
@@ -85,10 +92,7 @@ class PathsDataset(data.Dataset):
         :param loader: loader function to use (for the real data) given path.
         """
 
-        if root is not None:
-            root = Path(root)
-
-        self.root: Optional[Path] = root
+        self.root: Optional[Path] = Path(root) if root is not None else None
         self.imgs = files
         self.targets = [img_data[1] for img_data in self.imgs]
         self.transform = transform
@@ -119,7 +123,8 @@ class PathsDataset(data.Dataset):
         if bbox is not None:
             if isinstance(bbox, Tensor):
                 bbox = bbox.tolist()
-            img = crop(img, *bbox)
+            # crop accepts PIL images, too
+            img = crop(img, *bbox) # type: ignore
 
         if self.transform is not None:
             img = self.transform(img)

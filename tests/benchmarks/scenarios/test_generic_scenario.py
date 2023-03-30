@@ -16,24 +16,24 @@ class ExperienceTests(unittest.TestCase):
 
         self.assertRaises(
             MaskedAttributeError,
-            lambda: CLExperience(5).train().current_experience,
+            lambda: CLExperience(5, None).train().current_experience,
         )
 
         self.assertRaises(
             MaskedAttributeError,
-            lambda: CLExperience(5).eval().current_experience,
+            lambda: CLExperience(5, None).eval().current_experience,
         )
 
         print(
-            "CURRENT_EXPERIENCE: ", CLExperience(5).logging().current_experience
+            "CURRENT_EXPERIENCE: ", CLExperience(5, None).current_experience
         )
-        assert CLExperience(5).logging().current_experience == 5
+        assert CLExperience(5, None).current_experience == 5
 
 
 class StreamTests(unittest.TestCase):
     def test_stream_getitem(self):
         # streams should be indexable
-        s = EagerCLStream("a", [CLExperience(), CLExperience(), CLExperience()])
+        s = EagerCLStream("a", [CLExperience(0, None), CLExperience(1, None), CLExperience(2, None)], None)
 
         s[0]
         s[1]
@@ -47,34 +47,47 @@ class StreamTests(unittest.TestCase):
 
     def test_stream_slicing(self):
         # streams should be sliceable
-        s = EagerCLStream("a", [CLExperience(), CLExperience(), CLExperience()])
+        s = EagerCLStream("a", [CLExperience(0, None), CLExperience(1, None), CLExperience(2, None)], None)
 
         ss = s[1:2]
         assert len(ss) == 1
         ss[0].current_experience
 
         ss = s[:2]
+        assert len(ss) == 2
         ss = s[1:]
+        assert len(ss) == 2
 
     def test_lazy_stream(self):
         # lazy streams should be iterable
         def ls():
-            for el in [CLExperience(), CLExperience(), CLExperience()]:
+            # Also tests if set_stream_info works correctly
+            for el in [CLExperience(0, None), CLExperience(0, None), CLExperience(0, None)]:
                 yield el
 
-        s = CLStream("a", ls())
+        s = CLStream("a", ls(), None, set_stream_info=True)
         for i, el in enumerate(s):
             assert el.current_experience == i
-
+            assert el.origin_stream == s
 
 class ScenarioTests(unittest.TestCase):
     def test_scenario_streams(self):
         # streams should be indexable
         sa = EagerCLStream(
-            "a", [CLExperience(1), CLExperience(2), CLExperience(3)]
+            "a",
+            [CLExperience(1, None), CLExperience(2, None), CLExperience(3, None)],
+            None
         )
-        sb = EagerCLStream("b", [CLExperience(12), CLExperience(13)])
+        sb = EagerCLStream(
+            "b",
+            [CLExperience(12, None), CLExperience(13, None)],
+            None
+        )
         bench = CLScenario([sa, sb])
 
         bench.a_stream
         bench.b_stream
+
+
+if __name__ == "__main__":
+    unittest.main()
