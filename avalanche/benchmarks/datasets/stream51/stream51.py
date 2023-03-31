@@ -17,7 +17,7 @@ import shutil
 import json
 import random
 from pathlib import Path
-from typing import Union
+from typing import Any, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from torchvision.datasets.folder import default_loader
 from zipfile import ZipFile
@@ -31,12 +31,14 @@ from avalanche.benchmarks.datasets import (
 from avalanche.benchmarks.datasets.stream51 import stream51_data
 
 
+TSequence = TypeVar('TSequence', bound=Sequence)
+
 class Stream51(DownloadableDataset):
     """Stream-51 Pytorch Dataset"""
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         train=True,
         transform=None,
@@ -69,6 +71,7 @@ class Stream51(DownloadableDataset):
         self.target_transform = target_transform
         self.bbox_crop = True
         self.ratio = 1.1
+        self.samples: Sequence[Tuple[int, Any, str]] = []
 
         super(Stream51, self).__init__(root, download=download, verbose=True)
 
@@ -99,10 +102,10 @@ class Stream51(DownloadableDataset):
                         dest_folder = os.path.join(
                             *(member.split(os.path.sep)[1:-1])
                         )
-                        dest_folder = self.root / dest_folder
-                        dest_folder.mkdir(exist_ok=True, parents=True)
+                        dest_folder_path = self.root / dest_folder
+                        dest_folder_path.mkdir(exist_ok=True, parents=True)
 
-                        target = open(str(dest_folder / filename), "wb")
+                        target = open(str(dest_folder_path / filename), "wb")
                     with source, target:
                         shutil.copyfileobj(source, target)
 
@@ -136,11 +139,11 @@ class Stream51(DownloadableDataset):
         )
 
     @staticmethod
-    def _instance_ordering(data_list, seed):
+    def _instance_ordering(data_list: Sequence[TSequence], seed) -> List[TSequence]:
         # organize data by video
         total_videos = 0
         new_data_list = []
-        temp_video = []
+        temp_video: List[TSequence] = []
         for x in data_list:
             if x[3] == 0:
                 new_data_list.append(temp_video)
@@ -154,11 +157,11 @@ class Stream51(DownloadableDataset):
         random.seed(seed)
         random.shuffle(new_data_list)
         # reorganize by clip
-        data_list = []
+        data_list_result = []
         for v in new_data_list:
             for x in v:
-                data_list.append(x)
-        return data_list
+                data_list_result.append(x)
+        return data_list_result
 
     @staticmethod
     def _class_ordering(data_list, class_type, seed):

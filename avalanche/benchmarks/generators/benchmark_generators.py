@@ -15,7 +15,6 @@ specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
 the generic ones: filelist_benchmark, tensors_benchmark, dataset_benchmark
 and paths_benchmark.
 """
-from functools import partial
 from itertools import tee
 from typing import (
     Sequence,
@@ -36,13 +35,10 @@ import torch
 
 from avalanche.benchmarks.scenarios import (
     GenericCLScenario,
-    ClassificationExperience,
-    ClassificationStream,
 )
-from avalanche.benchmarks.scenarios.dataset_scenario import DatasetScenario, StreamDef, TStreamDataOrigin, TStreamUserDef
+from avalanche.benchmarks.scenarios.dataset_scenario import DatasetScenario, StreamDef
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
 from avalanche.benchmarks.scenarios import (
-    TStreamsUserDict,
     StreamUserDef,
 )
 from avalanche.benchmarks.scenarios.generic_scenario import CLStream, DatasetExperience, DatasetExperienceProtocol, SizedCLStream
@@ -50,7 +46,6 @@ from avalanche.benchmarks.scenarios.lazy_dataset_sequence import LazyDatasetSequ
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
     SupervisedClassificationDataset,
     SupportedDataset,
     as_supervised_classification_dataset,

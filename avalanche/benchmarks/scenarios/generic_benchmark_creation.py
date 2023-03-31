@@ -486,9 +486,7 @@ FileAndLabel = Union[
 
 def create_generic_benchmark_from_paths(
     train_lists_of_files: Sequence[Sequence[FileAndLabel]],
-    test_lists_of_files: Union[
-        Sequence[FileAndLabel], Sequence[Sequence[FileAndLabel]]
-    ],
+    test_lists_of_files: Sequence[Sequence[FileAndLabel]],
     *,
     other_streams_lists_of_files: Optional[Dict[
         str, Sequence[Sequence[FileAndLabel]]
@@ -586,7 +584,7 @@ def create_generic_benchmark_from_paths(
         stream_datasets: List[ClassificationDataset] = []
         for exp_id, list_of_files in enumerate(lists_of_files):
             common_root, exp_paths_list = common_paths_root(list_of_files)
-            paths_dataset = PathsDataset(common_root, exp_paths_list)
+            paths_dataset: PathsDataset[Any, int] = PathsDataset(common_root, exp_paths_list)
             stream_datasets.append(
                 make_classification_dataset(
                     paths_dataset, task_labels=task_labels[exp_id]

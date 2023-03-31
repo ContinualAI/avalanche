@@ -19,7 +19,7 @@ def check_vision_benchmark(benchmark_instance, show_without_transforms=True):
     for i, exp in enumerate(benchmark_instance.train_stream):
         dataset, t = exp.dataset, exp.task_label
         if show_without_transforms:
-            dataset = dataset.replace_current_transform_group(ToTensor(), None)
+            dataset = dataset.replace_current_transform_group(ToTensor())
 
         dl = DataLoader(dataset, batch_size=300)
 

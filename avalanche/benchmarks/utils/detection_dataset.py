@@ -34,7 +34,7 @@ import torch
 from torch import Tensor
 from torch.utils.data.dataset import Subset, ConcatDataset
 
-from avalanche.benchmarks.utils.utils import init_task_labels, init_transform_groups, split_user_def_targets, split_user_def_task_label, traverse_supported_dataset
+from avalanche.benchmarks.utils.utils import TaskSet, init_task_labels, init_transform_groups, split_user_def_targets, split_user_def_task_label, traverse_supported_dataset
 
 from .collate_functions import DetectionCollate
 from .data import AvalancheDataset
@@ -55,19 +55,21 @@ TTargetType = Dict[str, Tensor]
 
 # Image (tensor), target dict, task label
 DetectionExampleT = Tuple[Tensor, TTargetType, int]
-
+TDetectionDataset = TypeVar("TDetectionDataset", bound="DetectionDataset")
 
 class DetectionDataset(AvalancheDataset[T_co]):
     @property
-    def task_pattern_indices(self):
+    def task_pattern_indices(self) -> Dict[int, Sequence[int]]:
         """A dictionary mapping task ids to their sample indices."""
-        return self.targets_task_labels.val_to_idx
+        # Assumes that targets_task_labels exists
+        t_labels: DataAttribute[int] = self.targets_task_labels  # type: ignore
+        return t_labels.val_to_idx
 
     @property
-    def task_set(self):
+    def task_set(self: TDetectionDataset) -> TaskSet[TDetectionDataset]:
         """Returns the dataset's ``TaskSet``, which is a mapping <task-id,
         task-dataset>."""
-        return DetectionTaskSet(self)
+        return TaskSet(self)
 
     def subset(self, indices):
         data = super().subset(indices)
@@ -837,47 +839,10 @@ def _select_targets(
     return found_targets
 
 
-class DetectionTaskSet(Mapping):
-    """A lazy mapping for <task-label -> task dataset>.
-
-    Given a `DetectionDataset`, this class provides an
-    iterator that splits the data into task subsets, returning tuples
-    `<task_id, task_dataset>`.
-
-    Usage:
-
-    .. code-block:: python
-
-        tset = DetectionTaskSet(data)
-        for tid, tdata in tset:
-            print(f"task {tid} has {len(tdata)} examples.")
-
-    """
-
-    def __init__(self, data: DetectionDataset):
-        """Constructor.
-
-        :param data: original data
-        """
-        super().__init__()
-        self.data = data
-
-    def __iter__(self):
-        return iter(self.data.targets_task_labels.uniques)
-
-    def __getitem__(self, task_label):
-        tl_idx = self.data.targets_task_labels.val_to_idx[task_label]
-        return detection_subset(self.data, tl_idx)
-
-    def __len__(self):
-        return len(self.data.targets_task_labels.uniques)
-
-
 __all__ = [
     "SupportedDetectionDataset",
     "DetectionDataset",
     "make_detection_dataset",
     "detection_subset",
-    "concat_detection_datasets",
-    "DetectionTaskSet",
+    "concat_detection_datasets"
 ]

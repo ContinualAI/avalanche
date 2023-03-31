@@ -14,7 +14,7 @@
     support for balanced dataloading between different tasks or balancing
     between the current data and the replay memory.
 """
-from typing import Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
 from torch.utils.data import RandomSampler, DistributedSampler
@@ -467,7 +467,7 @@ class ReplayDataLoader:
 
         try:
             for it in range(max_len):
-                mb_curr = []
+                mb_curr: List[Any] = []
                 ReplayDataLoader._get_mini_batch_from_data_dict(
                     iter_data_dataloaders,
                     sampler_data,

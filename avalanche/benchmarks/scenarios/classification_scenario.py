@@ -124,7 +124,10 @@ class GenericClassificationExperience(
         TGenericCLScenario, ClassificationStream[
            TGenericCLScenario, TGenericClassificationExperience
        ], ClassificationDataset
-    ]
+    ],
+    ClassificationExperienceProtocol[TGenericCLScenario, ClassificationStream[
+        TGenericCLScenario, TGenericClassificationExperience
+    ]]
 ):
     """
     Definition of a learning experience based on a :class:`GenericCLScenario`

@@ -20,7 +20,7 @@ to be used frequently, as is common in replay strategies.
 import torch
 from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
 
-from avalanche.benchmarks.utils.utils import _count_unique, find_common_transforms_group, init_task_labels, init_transform_groups, split_user_def_targets, \
+from avalanche.benchmarks.utils.utils import TaskSet, _count_unique, find_common_transforms_group, init_task_labels, init_transform_groups, split_user_def_targets, \
     split_user_def_task_label, traverse_supported_dataset
 
 from avalanche.benchmarks.utils.data import AvalancheDataset
@@ -55,6 +55,8 @@ T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 TTargetType = int
 
+TClassificationDataset = TypeVar("TClassificationDataset", bound="ClassificationDataset")
+
 
 class ClassificationDataset(AvalancheDataset[T_co]):
 
@@ -64,7 +66,7 @@ class ClassificationDataset(AvalancheDataset[T_co]):
         return self.targets_task_labels.val_to_idx # type: ignore
 
     @property
-    def task_set(self):
+    def task_set(self: TClassificationDataset) -> TaskSet[TClassificationDataset]:
         """Returns the datasets's ``TaskSet``, which is a mapping <task-id,
         task-dataset>."""
         return TaskSet(self)
@@ -913,42 +915,6 @@ def _select_targets(
     return found_targets
 
 
-class TaskSet(Mapping):
-    """A lazy mapping for <task-label -> task dataset>.
-
-    Given an `AvalancheClassificationDataset`, this class provides an
-    iterator that splits the data into task subsets, returning tuples
-    `<task_id, task_dataset>`.
-
-    Usage:
-
-    .. code-block:: python
-
-        tset = TaskSet(data)
-        for tid, tdata in tset:
-            print(f"task {tid} has {len(tdata)} examples.")
-
-    """
-
-    def __init__(self, data: AvalancheDataset):
-        """Constructor.
-
-        :param data: original data
-        """
-        super().__init__()
-        self.data = data
-
-    def __iter__(self):
-        return iter(self.data.targets_task_labels.uniques)
-
-    def __getitem__(self, task_label):
-        tl_idx = self.data.targets_task_labels.val_to_idx[task_label]
-        return classification_subset(self.data, tl_idx)
-
-    def __len__(self):
-        return len(self.data.targets_task_labels.uniques)
-
-
 def concat_classification_datasets_sequentially(
     train_dataset_list: Sequence[ISupportedClassificationDataset],
     test_dataset_list: Sequence[ISupportedClassificationDataset],
@@ -1115,6 +1081,5 @@ __all__ = [
     "make_tensor_classification_dataset",
     "concat_classification_datasets",
     "concat_classification_datasets_sequentially",
-    "TaskSet",
     "as_supervised_classification_dataset"
 ]

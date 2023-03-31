@@ -16,7 +16,7 @@ import logging
 import os
 import pickle as pkl
 from pathlib import Path
-from typing import Union
+from typing import List, Optional, Tuple, Union
 from warnings import warn
 
 from torchvision.datasets.folder import default_loader
@@ -34,7 +34,7 @@ class CORe50Dataset(DownloadableDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         train=True,
         transform=None,
@@ -114,7 +114,7 @@ class CORe50Dataset(DownloadableDataset):
         return len(self.targets)
 
     def _download_dataset(self) -> None:
-        data2download = core50_data.data
+        data2download: List[Tuple[str, str, str]] = core50_data.data
 
         if self.mini:
             data2download = list(data2download)

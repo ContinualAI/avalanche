@@ -12,10 +12,14 @@
 import random
 import sys
 from pathlib import Path
+from typing import List, Optional, Tuple
+from PIL.Image import Image
 
 import torchvision.transforms.functional as F
 from torchvision import transforms
 from tqdm import tqdm
+
+from avalanche.benchmarks.utils.classification_dataset import SupervisedClassificationDataset
 
 try:
     import ctrl
@@ -41,8 +45,8 @@ def CTrL(
     stream_name: str,
     save_to_disk: bool = False,
     path: Path = default_dataset_location(""),
-    seed: int = None,
-    n_tasks: int = None,
+    seed: Optional[int] = None,
+    n_tasks: Optional[int] = None,
 ):
     """
     Gives access to the Continual Transfer Learning benchmark streams
@@ -77,7 +81,7 @@ def CTrL(
         folder = path / "ctrl" / stream_name / f"seed_{seed}"
 
     # Train, val and test experiences
-    exps = [[], [], []]
+    exps: List[List[SupervisedClassificationDataset]] = [[], [], []]
     for t_id, t in enumerate(
         tqdm(stream, desc=f"Loading {stream_name}"),
     ):
@@ -88,7 +92,7 @@ def CTrL(
             if save_to_disk:
                 exp_folder = folder / f"exp_{t_id}" / split_name
                 exp_folder.mkdir(parents=True, exist_ok=True)
-                files = []
+                files: List[Tuple[Path, int]] = []
                 for i, (sample, label) in enumerate(zip(samples, labels)):
                     sample_path = exp_folder / f"sample_{i}.png"
                     if not sample_path.exists():
@@ -96,12 +100,12 @@ def CTrL(
                     files.append((sample_path, label.item()))
 
                 common_root, exp_paths_list = common_paths_root(files)
-                paths_dataset = PathsDataset(common_root, exp_paths_list)
-                dataset = make_classification_dataset(
+                paths_dataset: PathsDataset[Image, int] = PathsDataset(common_root, exp_paths_list)
+                dataset: SupervisedClassificationDataset = make_classification_dataset(
                     paths_dataset,
                     task_labels=task_labels,
                     transform=transforms.Compose(
-                        [transforms.ToTensor(), trans]
+                       [transforms.ToTensor(), trans]
                     ),
                 )
             else:
@@ -110,10 +114,13 @@ def CTrL(
                     labels.squeeze(1),
                     task_labels=task_labels,
                     transform=trans,
+                    targets=1 # Use the 2nd tensor as targets
                 )
             exp.append(dataset)
-        if stream_name == "s_long" and t_id == n_tasks - 1:
-            break
+        if stream_name == "s_long":
+            assert n_tasks is not None
+            if t_id == n_tasks - 1:
+                break
 
     return dataset_benchmark(
         train_datasets=exps[0],

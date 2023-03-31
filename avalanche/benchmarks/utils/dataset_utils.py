@@ -420,5 +420,5 @@ __all__ = [
     "SequenceDataset",
     "find_list_from_index",
     "manage_advanced_indexing",
-    "slice_alike_object_to_indices"
+    "slice_alike_object_to_indices",
 ]

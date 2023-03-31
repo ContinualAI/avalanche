@@ -12,7 +12,7 @@
 """ Common benchmarks/environments utils. """
 
 from collections import OrderedDict, defaultdict, deque
-from typing import TYPE_CHECKING, Any, Callable, List, Iterable, Mapping, Optional, Sequence, TypeVar, Union, Dict, Tuple, SupportsInt
+from typing import TYPE_CHECKING, Any, Callable, Generic, Iterator, List, Iterable, Mapping, Optional, Sequence, TypeVar, Union, Dict, Tuple, SupportsInt
 import warnings
 
 import torch
@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     )
 
 T_co = TypeVar("T_co", covariant=True)
+TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 
 
 def tensor_as_list(sequence) -> List:
@@ -477,6 +478,51 @@ def split_user_def_targets(
 
 
 
+
+class TaskSet(Mapping[int, TAvalancheDataset], Generic[TAvalancheDataset]):
+    """A lazy mapping for <task-label -> task dataset>.
+
+    Given an `AvalancheClassificationDataset`, this class provides an
+    iterator that splits the data into task subsets, returning tuples
+    `<task_id, task_dataset>`.
+
+    Usage:
+
+    .. code-block:: python
+
+        tset = TaskSet(data)
+        for tid, tdata in tset:
+            print(f"task {tid} has {len(tdata)} examples.")
+
+    """
+
+    def __init__(self, data: TAvalancheDataset):
+        """Constructor.
+
+        :param data: original data
+        """
+        super().__init__()
+        self.data: TAvalancheDataset = data
+
+    def __iter__(self) -> Iterator[int]:
+        t_labels = self._get_task_labels_field()
+        return iter(t_labels.uniques)
+
+    def __getitem__(self, task_label: int):
+        t_labels = self._get_task_labels_field()
+        tl_idx = t_labels.val_to_idx[task_label]
+        return self.data.subset(
+            tl_idx
+        )
+
+    def __len__(self) -> int:
+        t_labels = self._get_task_labels_field()
+        return len(t_labels.uniques)
+
+    def _get_task_labels_field(self) -> DataAttribute[int]:
+        return self.data.targets_task_labels # type: ignore
+
+
 __all__ = [
     "tensor_as_list",
     "grouped_and_ordered_indexes",
@@ -486,5 +532,6 @@ __all__ = [
     "find_common_transforms_group",
     "traverse_supported_dataset",
     "init_task_labels",
-    "init_transform_groups"
+    "init_transform_groups",
+    "TaskSet"
 ]

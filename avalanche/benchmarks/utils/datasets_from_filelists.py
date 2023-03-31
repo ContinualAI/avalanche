@@ -13,7 +13,7 @@
 pytorch datasets based on filelists (Caffe style) """
 
 from pathlib import Path
-from typing import Any, Tuple, Sequence, Optional, Union
+from typing import Any, Callable, Generic, List, Tuple, Sequence, Optional, TypeVar, Union
 
 import torch.utils.data as data
 
@@ -39,7 +39,7 @@ def default_image_loader(path):
     return Image.open(path).convert("RGB")
 
 
-def default_flist_reader(flist):
+def default_flist_reader(flist: Union[str, Path]) -> List[Tuple[str, int]]:
     """
     This reader reads a filelist and return a list of paths.
 
@@ -58,13 +58,19 @@ def default_flist_reader(flist):
     return imlist
 
 
+T = TypeVar('T', covariant=True)
+TTargetsType = TypeVar('TTargetsType')
+
 PathALikeT = Union[Path, str]
 CoordsT = Union[int, float]
 CropBoxT = Tuple[CoordsT, CoordsT, CoordsT, CoordsT]
-FilesDefT = Union[Tuple[PathALikeT, Any], Tuple[PathALikeT, Any, ]]
+FilesDefT = Union[
+    Tuple[PathALikeT, TTargetsType],
+    Tuple[PathALikeT, TTargetsType, Sequence[int]]
+]
 
 
-class PathsDataset(data.Dataset):
+class PathsDataset(data.Dataset[Tuple[T, TTargetsType]], Generic[T, TTargetsType]):
     """
     This class extends the basic Pytorch Dataset class to handle list of paths
     as the main data source.
@@ -73,10 +79,10 @@ class PathsDataset(data.Dataset):
     def __init__(
         self,
         root: Optional[PathALikeT],
-        files: Sequence[FilesDefT],
+        files: Sequence[FilesDefT[TTargetsType]],
         transform: XTransform = None,
         target_transform: YTransform = None,
-        loader=default_image_loader,
+        loader: Callable[[str], T]=default_image_loader,
     ):
         """
         Creates a File Dataset from a list of files and labels.
@@ -328,7 +334,7 @@ def datasets_from_paths(
     if complete_test_set_only:
         # Check if the single dataset was passed as [Tuple1, Tuple2, ...]
         # or as [[Tuple1, Tuple2, ...]]
-        if not isinstance(test_list[0], Tuple):
+        if not isinstance(test_list[0], tuple):
             if len(test_list) > 1:
                 raise ValueError(
                     "When complete_test_set_only is True, test_list must "
@@ -438,7 +444,7 @@ def datasets_from_paths(
     return train_inc_datasets, test_inc_datasets
 
 
-def common_paths_root(exp_list):
+def common_paths_root(exp_list: Sequence[FilesDefT]) -> Tuple[Union[str, None], Sequence[FilesDefT]]:
     common_root = None
 
     # Detect common root
@@ -458,12 +464,14 @@ def common_paths_root(exp_list):
         has_common_root = False
         common_root = None
 
+    exp_list_result: Sequence[FilesDefT]
+
     if has_common_root:
         # print(f'Common root found: {common_root}!')
         # All paths have a common filesystem root
         # Remove it from all paths!
         single_path_case = False
-        exp_tuples = list()
+        exp_tuples: List[FilesDefT] = list()
 
         for x in exp_list:
             if single_path_case:
@@ -474,14 +482,17 @@ def common_paths_root(exp_list):
                 # May happen if the dataset has a single path
                 single_path_case = True
                 break
-            exp_tuples.append((rel, *x[1:]))
+            exp_tuples.append((rel, *x[1:])) # type: ignore
 
         if not single_path_case:
-            exp_list = exp_tuples
+            exp_list_result = exp_tuples
         else:
+            exp_list_result = exp_list
             common_root = None
+    else:
+        exp_list_result = exp_list
 
-    return common_root, exp_list
+    return common_root, exp_list_result
 
 
 __all__ = [

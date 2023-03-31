@@ -17,7 +17,7 @@
     `avalanche.benchmarks.utils.transforms`.
 """
 from collections import defaultdict
-from typing import Any, Dict, Mapping, Optional, Tuple, Union, Callable, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, Callable, Sequence
 from typing_extensions import Protocol
 
 from avalanche.benchmarks.utils.transforms import (
@@ -93,7 +93,7 @@ class TransformGroups:
 
     def __call__(self, *args, group_name=None):
         """Apply current transformation group to element."""
-        element = list(*args)
+        element: List[Any] = list(*args)
 
         if group_name is None:
             curr_t = self.transform_groups[self.current_group]

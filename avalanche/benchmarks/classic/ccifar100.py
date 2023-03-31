@@ -58,7 +58,7 @@ def SplitCIFAR100(
     class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_cifar100_train_transform,
     eval_transform: Optional[Any] = _default_cifar100_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark using the CIFAR100 dataset.
@@ -150,8 +150,8 @@ def SplitCIFAR110(
     fixed_class_order: Optional[Sequence[int]] = None,
     train_transform: Optional[Any] = _default_cifar100_train_transform,
     eval_transform: Optional[Any] = _default_cifar100_eval_transform,
-    dataset_root_cifar10: Union[str, Path] = None,
-    dataset_root_cifar100: Union[str, Path] = None
+    dataset_root_cifar10: Optional[Union[str, Path]] = None,
+    dataset_root_cifar100: Optional[Union[str, Path]] = None
 ) -> NCScenario:
     """
     Creates a CL benchmark using both the CIFAR100 and CIFAR10 datasets.

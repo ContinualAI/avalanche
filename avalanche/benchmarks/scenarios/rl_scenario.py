@@ -14,7 +14,7 @@ from avalanche.benchmarks.scenarios import (
     CLScenario,
     EagerCLStream,
 )
-from typing import Callable, List, Optional, TypeVar, Union, Dict
+from typing import Any, Callable, List, Optional, TypeVar, Union, Dict
 import numpy as np
 
 from avalanche.benchmarks.scenarios.generic_scenario import CLStream
@@ -135,8 +135,8 @@ class RLScenario(CLScenario[CLStream[TRLScenario, TRLExperience]]):
         def get_unique_task_labels(env_list):
             # assign task label by checking whether the same instance of env is
             # provided multiple times, using object hash as key
-            tlabels = []
-            env_occ = {}
+            tlabels: List[int] = []
+            env_occ: Dict[Any, int] = {}
             j = 0
             for e in env_list:
                 if e in env_occ:

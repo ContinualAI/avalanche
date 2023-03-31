@@ -16,7 +16,7 @@ concatenation and subsampling operations and are automatically managed by
 AvalancheDatasets.
 """
 
-from typing import Optional, Sequence, TypeVar, Union, overload
+from typing import Dict, List, Optional, Sequence, Set, TypeVar, Union, overload
 import torch
 
 from .dataset_definitions import IDataset
@@ -53,9 +53,9 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
 
         self._data = self._normalize_sequence(data)
 
-        self._uniques = None  # set()
-        self._val_to_idx = None  # dict()
-        self._count = None  # dict()
+        self._uniques: Optional[Set[T_co]] = None  # set()
+        self._val_to_idx: Optional[Dict[T_co, Sequence[int]]] = None  # dict()
+        self._count: Optional[Dict[T_co, int]] = None  # dict()
 
     def __iter__(self):
         for i in range(len(self)):
@@ -119,11 +119,11 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
             self._val_to_idx = dict()
             if isinstance(self.data, ConstantSequence):
                 self._val_to_idx = {self.data[0]: range(len(self.data))}
-            else:
+            else: 
                 for i, x in enumerate(self.data):
                     if x not in self.val_to_idx:
                         self._val_to_idx[x] = []
-                    self._val_to_idx[x].append(i)
+                    self._val_to_idx[x].append(i) # type: ignore
         return self._val_to_idx
 
     def subset(self, indices):

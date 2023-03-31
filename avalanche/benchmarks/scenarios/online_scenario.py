@@ -281,12 +281,27 @@ def split_online_stream(
     :return: A lazy online stream with experiences of size `experience_size`.
     """
     
+
     if experience_split_strategy is None:
-        experience_split_strategy = partial(_default_online_split, online_benchmark, shuffle, drop_last, access_task_boundaries)
+        # functools.partial is a more compact option
+        # However, MyPy does not understand what a partial is -_-
+        def default_online_split_wrapper(e, e_sz):
+            return _default_online_split(
+                online_benchmark,
+                shuffle,
+                drop_last,
+                access_task_boundaries,
+                e,
+                e_sz
+            )
+
+        split_strategy = default_online_split_wrapper
+    else:
+        split_strategy = experience_split_strategy
 
     def exps_iter():
         for exp in original_stream:
-            for sub_exp in experience_split_strategy(exp, experience_size):
+            for sub_exp in split_strategy(exp, experience_size):
                 yield sub_exp
 
     stream_name: str = getattr(original_stream, "name", "train")

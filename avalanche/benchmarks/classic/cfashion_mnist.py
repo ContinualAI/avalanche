@@ -42,7 +42,7 @@ def SplitFMNIST(
     class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_fmnist_train_transform,
     eval_transform: Optional[Any] = _default_fmnist_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark using the Fashion MNIST dataset.
