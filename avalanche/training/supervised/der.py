@@ -26,6 +26,7 @@ from avalanche.training.templates import SupervisedTemplate
 
 @torch.no_grad()
 def compute_dataset_logits(dataset, model, batch_size, device):
+    model.eval()
     logits = []
     loader = torch.utils.data.DataLoader(
         dataset,
@@ -79,7 +80,10 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
     def update(self, strategy: "SupervisedTemplate", **kwargs):
         new_data = strategy.experience.dataset
         logits = compute_dataset_logits(
-            new_data, strategy.model, strategy.train_mb_size, strategy.device
+            new_data.eval(), 
+            strategy.model,
+            strategy.train_mb_size,
+            strategy.device
         )
         new_data_with_logits = make_avalanche_dataset(
             new_data,
@@ -230,30 +234,68 @@ class DER(SupervisedTemplate):
         self.storage_policy.update(self, **kwargs)
         super()._after_training_exp(**kwargs)
 
-    def _before_backward(self, **kwargs):
-        super()._before_backward(**kwargs)
+    def _before_forward(self, **kwargs):
+        super()._before_forward(**kwargs)
         if self.replay_loader is None:
             return None
 
         batch_x, batch_y, batch_logits, batch_tid = next(self.replay_loader)
-        batch_x, batch_y, batch_tid, batch_logits = (
+        batch_x, batch_y, batch_logits, batch_tid = (
             batch_x.to(self.device),
             batch_y.to(self.device),
-            batch_tid.to(self.device),
             batch_logits.to(self.device),
+            batch_tid.to(self.device),
         )
+        self.mbatch[0] = torch.cat((batch_x, self.mbatch[0]))
+        self.mbatch[1] = torch.cat((batch_y, self.mbatch[1]))
+        self.mbatch[2] = torch.cat((batch_tid, self.mbatch[2]))
+        self.batch_logits = batch_logits
 
-        out_buffer = avalanche_forward(self.model, batch_x, batch_tid)
+    def training_epoch(self, **kwargs):
+        """Training epoch.
 
-        if batch_logits.shape[1] != out_buffer.shape[1]:
-            raise AssertionError(
-                "DER Strategy requires the use of "
-                "a fixed size classifier, but a classifier of"
-                f"varying size has been found during execution"
-            )
+        :param kwargs:
+        :return:
+        """
+        for self.mbatch in self.dataloader:
+            if self._stop_training:
+                break
 
-        self.loss += self.alpha * F.mse_loss(
-            out_buffer, batch_logits[:, : out_buffer.shape[1]]
-        )
+            self._unpack_minibatch()
+            self._before_training_iteration(**kwargs)
 
-        self.loss += self.beta * F.cross_entropy(out_buffer, batch_y)
+            self.optimizer.zero_grad()
+            self.loss = 0
+
+            # Forward
+            self._before_forward(**kwargs)
+            self.mb_output = self.forward()
+            self._after_forward(**kwargs)
+
+            if self.replay_loader is not None:
+                self.loss += F.cross_entropy(
+                    self.mb_output[self.batch_size_mem :],
+                    self.mb_y[self.batch_size_mem :],
+                )
+                self.loss += self.alpha * F.mse_loss(
+                    self.mb_output[: self.batch_size_mem],
+                    self.batch_logits,
+                )
+                self.loss += self.beta * F.cross_entropy(
+                    self.mb_output[: self.batch_size_mem],
+                    self.mb_y[: self.batch_size_mem],
+                )
+                self.loss = self.loss / 2
+            else:
+                self.loss += self.criterion()
+
+            self._before_backward(**kwargs)
+            self.backward()
+            self._after_backward(**kwargs)
+
+            # Optimization step
+            self._before_update(**kwargs)
+            self.optimizer_step()
+            self._after_update(**kwargs)
+
+            self._after_training_iteration(**kwargs)
