@@ -10,8 +10,10 @@ from torch.utils.data import Dataset
 from torchvision.transforms import Compose, RandomCrop, RandomHorizontalFlip
 
 from avalanche.benchmarks.utils import (classification_subset,
+                                        make_avalanche_dataset,
                                         make_tensor_classification_dataset)
 from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
 from avalanche.benchmarks.utils.transform_groups import (EmptyTransformGroups,
                                                          TransformGroups)
 from avalanche.core import SupervisedPlugin
@@ -21,44 +23,28 @@ from avalanche.training.storage_policy import (BalancedExemplarsBuffer,
                                                ReservoirSamplingBuffer)
 from avalanche.training.templates import SupervisedTemplate
 
-class DatasetWithLogits(AvalancheDataset):
-    def __init__(self, dataset, model, batch_size, device):
-        super().__init__([dataset])
-        self.logits = self.compute_logits(dataset, model, batch_size, device)
 
-    @torch.no_grad()
-    def compute_logits(
-        self,
+@torch.no_grad()
+def compute_dataset_logits(dataset, model, batch_size, device):
+    logits = []
+    loader = torch.utils.data.DataLoader(
         dataset,
-        model=None,
-        batch_size=128,
-        device="cuda",
-    ):
-        logits = []
-        loader = torch.utils.data.DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=False,
-        )
-        model.eval()
-        for x, _, _ in loader:
-            x = x.to(device)
-            out = model(x)
-            logits.append(out.cpu())
-
-        logits = torch.cat(logits)
-        return logits
-
-    def __getitem__(self, idx):
-        mb = super().__getitem__(idx)
-        import pdb;pdb.set_trace()
-        return *mb, self.logits[idx]
+        batch_size=batch_size,
+        shuffle=False,
+    )
+    model.eval()
+    for x, _, _ in loader:
+        x = x.to(device)
+        out = model(x)
+        logits.extend(list(out.cpu()))
+    return logits
 
 
 def cycle(loader):
     while True:
         for batch in loader:
             yield batch
+
 
 class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
     """
@@ -92,13 +78,15 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
         new_data = strategy.experience.dataset
-        new_data_with_logits = DatasetWithLogits(
-            new_data,
-            strategy.model,
-            strategy.train_mb_size,
-            strategy.device,
+        logits = compute_dataset_logits(
+            new_data, strategy.model, strategy.train_mb_size, strategy.device
         )
-
+        new_data_with_logits = make_avalanche_dataset(
+            new_data,
+            data_attributes=[
+                TensorDataAttribute(logits, name="logits", use_in_getitem=True)
+            ],
+        )
         # Get sample idxs per class
         cl_idxs = {}
         for idx, target in enumerate(new_data.targets):
@@ -109,7 +97,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         # Make AvalancheSubset per class
         cl_datasets = {}
         for c, c_idxs in cl_idxs.items():
-            subset = classification_subset(new_data_with_logits, indices=c_idxs)
+            subset = new_data_with_logits.subset(c_idxs)
             cl_datasets[c] = subset
         # Update seen classes
         self.seen_classes.update(cl_datasets.keys())
@@ -247,7 +235,7 @@ class DER(SupervisedTemplate):
         if self.replay_loader is None:
             return None
 
-        batch_x, batch_y, batch_tid, batch_logits, _ = next(self.replay_loader)
+        batch_x, batch_y, batch_logits, batch_tid = next(self.replay_loader)
         batch_x, batch_y, batch_tid, batch_logits = (
             batch_x.to(self.device),
             batch_y.to(self.device),
