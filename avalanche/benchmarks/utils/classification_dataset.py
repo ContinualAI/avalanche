@@ -18,6 +18,7 @@ to be used frequently, as is common in replay strategies.
 """
 import warnings
 from collections import defaultdict, deque
+from functools import partial
 
 import torch
 from torch.utils.data import Dataset
@@ -54,6 +55,15 @@ from typing_extensions import Protocol
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 TTargetType = Union[int]
+
+
+def lookup(indexable, idx):
+    """
+    A simple function that implements indexing into an indexable object.
+    Together with 'partial' this allows us to circumvent lambda functions
+    that cannot be pickled.
+    """
+    return indexable[idx]
 
 
 # Info: https://mypy.readthedocs.io/en/stable/protocols.html#callback-protocols
@@ -468,7 +478,7 @@ def classification_subset(
 
     if class_mapping is not None:
         frozen_transform_groups = DefaultTransformGroups(
-            (None, lambda x: class_mapping[x])
+            (None, partial(lookup, class_mapping))
         )
     else:
         frozen_transform_groups = None
