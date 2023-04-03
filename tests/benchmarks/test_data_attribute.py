@@ -90,8 +90,4 @@ class TensorDataAttributeTests(unittest.TestCase):
             ],
         )
 
-        print(dataset[0])
-        # This outputs 0 0 3 1 2
-        # Correct behavior should be to have 
-        # the last added in the end ?
-        # So in that case 0 0 1 2 3
+        assert dataset[0] == [0.0, 0.0, 1.0, 2.0, 3.0]
