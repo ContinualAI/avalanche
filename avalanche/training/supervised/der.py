@@ -6,18 +6,11 @@ import torch
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss, Module
 from torch.optim import Optimizer
-from torch.utils.data import Dataset
-from torchvision.transforms import Compose, RandomCrop, RandomHorizontalFlip
 
-from avalanche.benchmarks.utils import (classification_subset,
-                                        make_avalanche_dataset,
-                                        make_tensor_classification_dataset)
+from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
-from avalanche.benchmarks.utils.transform_groups import (EmptyTransformGroups,
-                                                         TransformGroups)
 from avalanche.core import SupervisedPlugin
-from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import (BalancedExemplarsBuffer,
                                                ReservoirSamplingBuffer)
