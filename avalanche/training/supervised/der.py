@@ -232,12 +232,12 @@ class DER(SupervisedTemplate):
         if self.replay_loader is None:
             return None
 
-        batch_x, batch_y, batch_logits, batch_tid = next(self.replay_loader)
-        batch_x, batch_y, batch_logits, batch_tid = (
+        batch_x, batch_y, batch_tid, batch_logits = next(self.replay_loader)
+        batch_x, batch_y, batch_tid, batch_logits = (
             batch_x.to(self.device),
             batch_y.to(self.device),
-            batch_logits.to(self.device),
             batch_tid.to(self.device),
+            batch_logits.to(self.device),
         )
         self.mbatch[0] = torch.cat((batch_x, self.mbatch[0]))
         self.mbatch[1] = torch.cat((batch_y, self.mbatch[1]))
@@ -278,7 +278,6 @@ class DER(SupervisedTemplate):
                     self.mb_output[: self.batch_size_mem],
                     self.mb_y[: self.batch_size_mem],
                 )
-                self.loss = self.loss / 2
             else:
                 self.loss += self.criterion()
 
