@@ -1,6 +1,8 @@
 from typing import Iterable
 
 from avalanche.benchmarks import OnlineCLExperience
+from avalanche.benchmarks.scenarios.gradual_online_scenario import \
+    GradualOnlineCLExperience
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.dynamic_optimizers import update_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
@@ -34,7 +36,8 @@ class OnlineObservation:
             model = self.model
 
         # For training:
-        if isinstance(self.experience, OnlineCLExperience):
+        if isinstance(self.experience, (OnlineCLExperience, 
+                                        GradualOnlineCLExperience)):
             # If the strategy has access to task boundaries, adapt the model
             # for the whole origin experience to add the
             if self.experience.access_task_boundaries:
