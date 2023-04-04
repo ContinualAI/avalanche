@@ -153,13 +153,13 @@ def fixed_size_experience_split(
     for exp_id, experience in enumerate(stream):
         # --------------------> Middle fraction
         # Sub-experiences for the middle fraction
-        size_cur_middle = len(experience.dataset) - 2 * \
-            int(len(experience.dataset) * alpha)
+        n_samples_sides = int(len(experience.dataset) * alpha)
+        size_cur_middle = len(experience.dataset) - 2 * n_samples_sides
 
         # For the first and last experiences experiences, we only mix 
         # in one side
         if exp_id == 0 or exp_id == len(stream) - 1:
-            size_cur_middle += int(len(experience.dataset) * alpha)
+            size_cur_middle += n_samples_sides
 
         rem_cur_middle = size_cur_middle % experience_size
         size_cur_middle += (experience_size - rem_cur_middle)
@@ -182,7 +182,10 @@ def fixed_size_experience_split(
 
         # Sub-experiences for the overlap of the right fraction of the 
         # current experience and the left fraction of the next experience
-        size_cur_right = len(experience.dataset) - size_cur_middle
+        if exp_id == 0:
+            size_cur_right = len(experience.dataset) - size_cur_middle
+        else:
+            size_cur_right = (len(experience.dataset) - size_cur_middle) // 2
         size_next_left = int(len(stream[exp_id+1].dataset) * alpha)
         rem_next_left = (size_cur_right + size_next_left) % experience_size
         size_next_left = size_next_left + (experience_size - rem_next_left)
@@ -258,8 +261,7 @@ def fixed_size_experience_split(
                 exp.dataset = dataset
                 exp.task_labels = tasks
                 exp.classes_in_this_experience = targets.numpy()
-
-            # is_first = False
+            
             if is_first_subexp:
                 is_first_subexp = False
             init_idx += 1
