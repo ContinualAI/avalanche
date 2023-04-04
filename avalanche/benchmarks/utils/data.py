@@ -24,7 +24,16 @@ from torch.utils.data.dataloader import default_collate
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 from .data_attribute import DataAttribute
 
-from typing import List, Any, Optional, Sequence, TypeVar, Callable, Union, overload
+from typing import (
+    List,
+    Any,
+    Optional,
+    Sequence,
+    TypeVar,
+    Callable,
+    Union,
+    overload,
+)
 
 from .flat_data import FlatData
 from .transform_groups import TransformGroups, EmptyTransformGroups
@@ -79,7 +88,7 @@ class AvalancheDataset(FlatData[T_co]):
         datasets: Sequence[IDataset[T_co]],
         *,
         indices: Optional[List[int]] = None,
-        data_attributes: Optional[ List[DataAttribute]] = None,
+        data_attributes: Optional[List[DataAttribute]] = None,
         transform_groups: Optional[TransformGroups] = None,
         frozen_transform_groups: Optional[TransformGroups] = None,
         collate_fn: Optional[Callable[[List], Any]] = None,
@@ -104,7 +113,7 @@ class AvalancheDataset(FlatData[T_co]):
 
         if issubclass(type(datasets), TorchDataset) or  \
                 issubclass(type(datasets), AvalancheDataset):
-            datasets = [datasets] # type: ignore
+            datasets = [datasets]  # type: ignore
 
         # NOTES on implementation:
         # - raw datasets operations are implemented by _FlatData
@@ -198,8 +207,8 @@ class AvalancheDataset(FlatData[T_co]):
                 attr_name = attr.name
                 if attr_name is None:
                     warnings.warn(
-                        'The input dataset(s) contains unnamed data attributes. '
-                        'Those attributes will be ignored.'
+                        'The input dataset(s) contains unnamed data '
+                        'attributes. Those attributes will be ignored.'
                     )
                     continue
                 
@@ -243,10 +252,12 @@ class AvalancheDataset(FlatData[T_co]):
                     # Do not raise an error if a property.
                     # Any check related to the property will be done
                     # in the property setter method.
-                    if not isinstance(getattr(type(self), el_name, None), property):
+                    if not isinstance(getattr(type(self), el_name, None), 
+                                      property):
                         raise ValueError(
                             f"Trying to add DataAttribute `{el.name}` to "
-                            f"AvalancheDataset but the attribute name is already used."
+                            f"AvalancheDataset but the attribute name is "
+                            f"already used."
                         )
                 setattr(self, el_name, el)
             else:
@@ -254,8 +265,10 @@ class AvalancheDataset(FlatData[T_co]):
         
         if unnamed_attributes > 0:
             warnings.warn(
-                f'The input data_attributes list contains {unnamed_attributes} unnamed data attributes. '
-                f'Those attributes will be retained, but no object field will be added.'
+                f'The input data_attributes list contains {unnamed_attributes}'
+                f' unnamed data attributes. '
+                f'Those attributes will be retained, but no object field '
+                f'will be added.'
             )
 
     @property
@@ -270,10 +283,12 @@ class AvalancheDataset(FlatData[T_co]):
         """
         Adds or replace a data attribute.
 
-        If a object of type :class:`DataAttribute` is passed, then the object is setted as is.
+        If a object of type :class:`DataAttribute` is passed, then the object
+         is setted as is.
 
         Otherwise, if a raw value is passed, a new DataAttribute is created.
-        If a DataAttribute with the same already exists, the use_in_getitem flag is inherited,
+        If a DataAttribute with the same already exists, the use_in_getitem
+        flag is inherited,
         otherwise it is set to False.
         """
         assert len(new_value) == len(self), \
@@ -297,19 +312,27 @@ class AvalancheDataset(FlatData[T_co]):
             setattr(self, name, self._data_attributes[name])
 
     def __eq__(self, other: object):
-        for required_attr in ['_datasets', '_transform_groups', '_data_attributes', 'collate_fn']:
+        for required_attr in ['_datasets', 
+                              '_transform_groups',
+                              '_data_attributes',
+                              'collate_fn']:
             if not hasattr(other, required_attr):
                 return False
 
-        eq_datasets = len(self._datasets) == len(other._datasets) # type: ignore
+        eq_datasets = \
+            len(self._datasets) == len(other._datasets)  # type: ignore
         eq_datasets = eq_datasets and all(
-            d1 == d2 for d1, d2 in zip(self._datasets, other._datasets) # type: ignore
+            d1 == d2 for d1, d2 in
+            zip(self._datasets, other._datasets)  # type: ignore
         )
         return (
             eq_datasets
-            and self._transform_groups == other._transform_groups # type: ignore
-            and self._data_attributes == other._data_attributes # type: ignore
-            and self.collate_fn == other.collate_fn # type: ignore
+            and
+            self._transform_groups == other._transform_groups  # type: ignore
+            and
+            self._data_attributes == other._data_attributes  # type: ignore
+            and
+            self.collate_fn == other.collate_fn  # type: ignore
         )
 
     def _getitem_recursive_call(self, idx, group_name) -> T_co:
@@ -339,10 +362,12 @@ class AvalancheDataset(FlatData[T_co]):
         ...
     
     @overload
-    def __getitem__(self: TAvalancheDataset, exp_id: slice, /) -> TAvalancheDataset:
+    def __getitem__(self: TAvalancheDataset, exp_id: slice, /) -> \
+            TAvalancheDataset:
         ...
 
-    def __getitem__(self: TAvalancheDataset, idx: Union[int, slice], /) -> Union[T_co, TAvalancheDataset]:
+    def __getitem__(self: TAvalancheDataset, idx: Union[int, slice], /) -> \
+            Union[T_co, TAvalancheDataset]:
         if isinstance(idx, (int, np.integer)):
             elem = self._getitem_recursive_call(
                 idx, self._transform_groups.current_group
@@ -352,10 +377,10 @@ class AvalancheDataset(FlatData[T_co]):
                     if isinstance(elem, dict):
                         elem[da.name] = da[idx]
                     elif isinstance(elem, tuple):
-                        elem = list(elem) # type: ignore
+                        elem = list(elem)  # type: ignore
                         elem.append(da[idx])  # type: ignore
                     else:
-                        elem.append(da[idx]) # type: ignore
+                        elem.append(da[idx])  # type: ignore
             return elem  # type: ignore
         else:
             return super().__getitem__(idx)

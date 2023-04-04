@@ -6,7 +6,10 @@ from avalanche.benchmarks.scenarios.detection_scenario import (
 )
 
 from avalanche.benchmarks.utils.collate_functions import detection_collate_fn
-from avalanche.benchmarks.utils.detection_dataset import detection_subset, make_detection_dataset
+from avalanche.benchmarks.utils.detection_dataset import (
+    detection_subset,
+    make_detection_dataset,
+)
 
 
 def split_detection_benchmark(

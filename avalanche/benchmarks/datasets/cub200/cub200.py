@@ -169,7 +169,7 @@ class CUB200(PathsDataset, DownloadableDataset):
         images_tuples = []
         for _, img_tuple in images_list.items():
             images_tuples.append(tuple(img_tuple))
-        self._images = images_tuples # type: ignore
+        self._images = images_tuples  # type: ignore
 
         # Integrity check
         for row_check in self._images:

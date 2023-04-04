@@ -431,8 +431,10 @@ class MultiTaskTests(unittest.TestCase):
             self.assertEqual(len(mnist_train), len(other_split))
             unique_other_targets, other_targets_count = \
                 torch.as_tensor(other_split.targets).unique(return_counts=True)
-            self.assertTrue(torch.equal(unique_train_targets, unique_other_targets))
-            self.assertTrue(torch.equal(train_targets_count, other_targets_count))
+            self.assertTrue(torch.equal(unique_train_targets, 
+                                        unique_other_targets))
+            self.assertTrue(torch.equal(train_targets_count, 
+                                        other_targets_count))
 
     def test_nc_mt_slicing(self):
         mnist_train = MNIST(

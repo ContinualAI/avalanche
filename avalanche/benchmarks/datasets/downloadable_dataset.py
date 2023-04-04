@@ -28,6 +28,7 @@ from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 
 T_co = TypeVar('T_co', covariant=True)
 
+
 class DownloadableDataset(Dataset[T_co], ABC):
     """Base class for a downloadable dataset.
 

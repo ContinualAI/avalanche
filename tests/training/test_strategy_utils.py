@@ -1,6 +1,3 @@
-
-
-
 import sys
 from avalanche.logging.text_logging import TextLogger
 

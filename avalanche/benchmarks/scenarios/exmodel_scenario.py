@@ -41,7 +41,8 @@ class ExModelExperience(CLExperience[TCLStream]):
         self.classes_in_this_experience = classes_in_this_experience
 
 
-class ExModelCLScenario(CLScenario[CLStream[TExModelCLScenario, TExModelExperience]]):
+class ExModelCLScenario(
+        CLScenario[CLStream[TExModelCLScenario, TExModelExperience]]):
     """Ex-Model CL Scenario.
 
     Ex-Model Continual Learning (ExML) is a continual learning scenario where
@@ -64,27 +65,31 @@ class ExModelCLScenario(CLScenario[CLStream[TExModelCLScenario, TExModelExperien
 
         :param original_benchmark: a reference to the original benchmark
             containing the stream of experiences used to train the experts.
-        :param expert_models: pretrained models. The model in position i must be
-            trained on the i-th experience of the train stream of
+        :param expert_models: pretrained models. The model in position i must
+            be trained on the i-th experience of the train stream of
             `original_benchmark`.
         """
         expert_models_l: List[TExModelExperience] = []
-        for i, (m, e) in enumerate(zip(expert_models, original_benchmark.train_stream)): # type: ignore
+        for i, (m, e) in enumerate(zip(
+                expert_models,
+                original_benchmark.train_stream)):  # type: ignore
             cine = e.classes_in_this_experience
             expert_models_l.append(
                 ExModelExperience(
                     expert_model=m,
                     current_experience=i,
-                    origin_stream=None, # type: ignore
+                    origin_stream=None,  # type: ignore
                     classes_in_this_experience=cine)
                 )
 
-        expert_stream: CLStream[TExModelCLScenario, TExModelExperience] = CLStream(
-            name="expert_models",
-            exps_iter=expert_models_l,
-            benchmark=self
-        )
-        streams: List[CLStream[TExModelCLScenario, TExModelExperience]] = [expert_stream]
+        expert_stream: CLStream[TExModelCLScenario, TExModelExperience] = \
+            CLStream(
+                name="expert_models",
+                exps_iter=expert_models_l,
+                benchmark=self
+            )
+        streams: List[CLStream[TExModelCLScenario, TExModelExperience]] = \
+            [expert_stream]
 
         self.original_benchmark = original_benchmark
         # for s in original_benchmark.streams.values():

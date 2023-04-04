@@ -139,7 +139,8 @@ class TinyImagenet(SimpleDownloadableDataset):
             collected.
         :returns img_paths: list of strings (paths)
         """
-        train_img_folder: Path = self.data_folder / "train" / class_name / "images"
+        train_img_folder: Path = \
+            self.data_folder / "train" / class_name / "images"
 
         img_paths = [f for f in train_img_folder.iterdir() if f.is_file()]
 
@@ -154,8 +155,10 @@ class TinyImagenet(SimpleDownloadableDataset):
         :returns img_paths: list of strings (paths)
         """
 
-        val_img_folder: Path = self.data_folder / "val" / "images"
-        annotations_file: Path = self.data_folder / "val" / "val_annotations.txt"
+        val_img_folder: Path = \
+            self.data_folder / "val" / "images"
+        annotations_file: Path = \
+            self.data_folder / "val" / "val_annotations.txt"
 
         valid_names = []
 

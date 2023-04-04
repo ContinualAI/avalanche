@@ -9,42 +9,85 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Generic, Iterable, Mapping, Optional, Sequence, Set, Tuple, TypeVar, List, Callable, Union, overload
+from typing import (
+    Generic,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+    List,
+    Callable,
+    Union,
+    overload,
+)
 import warnings
 
 
-from avalanche.benchmarks.scenarios.dataset_scenario import ClassesTimelineCLScenario, DatasetScenario, FactoryBasedStream, TStreamsUserDict
-from avalanche.benchmarks.scenarios.generic_scenario import AbstractClassTimelineExperience, CLStream, DetectionExperienceProtocol, SettableGenericExperienceProtocol
+from avalanche.benchmarks.scenarios.dataset_scenario import (
+    ClassesTimelineCLScenario,
+    DatasetScenario,
+    FactoryBasedStream,
+    TStreamsUserDict,
+)
+from avalanche.benchmarks.scenarios.generic_scenario import (
+    AbstractClassTimelineExperience,
+    CLStream,
+    DetectionExperienceProtocol,
+    SettableGenericExperienceProtocol,
+)
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 from avalanche.benchmarks.utils.detection_dataset import DetectionDataset
 
-### Dataset ###
+# --- Dataset ---
 # From utils:
-TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset", covariant=True)
+TCLDataset = TypeVar(
+    'TCLDataset',
+    bound='AvalancheDataset',
+    covariant=True)
 
-### Scenario ###
+# --- Scenario ---
 # From dataset_scenario:
 TDatasetScenario = TypeVar(
-    "TDatasetScenario", bound="DatasetScenario"
-)
-TDetectionCLScenario = TypeVar('TDetectionCLScenario', bound='DetectionCLScenario')
+    'TDatasetScenario',
+    bound='DatasetScenario')
+TDetectionCLScenario = TypeVar(
+    'TDetectionCLScenario',
+    bound='DetectionCLScenario')
 
-### Stream ###
+# --- Stream ---
 # From generic_scenario:
-TCLStream = TypeVar('TCLStream', bound='CLStream', covariant=True)
+TCLStream = TypeVar(
+    'TCLStream',
+    bound='CLStream',
+    covariant=True)
 # Defined here:
-TDetectionStream = TypeVar('TDetectionStream', bound='DetectionStream')
+TDetectionStream = TypeVar(
+    'TDetectionStream',
+    bound='DetectionStream')
 
-### Experience ###
+# --- Experience ---
 # From generic_scenario:
-TSettableGenericExperience = TypeVar('TSettableGenericExperience', bound='SettableGenericExperienceProtocol')
-TDetectionExperience = TypeVar('TDetectionExperience', bound='DetectionExperienceProtocol')
+TSettableGenericExperience = TypeVar(
+    'TSettableGenericExperience',
+    bound='SettableGenericExperienceProtocol')
+TDetectionExperience = TypeVar(
+    'TDetectionExperience',
+    bound='DetectionExperienceProtocol')
 TGenericDetectionExperience = TypeVar(
-    "TGenericDetectionExperience", bound="GenericDetectionExperience"
-)
+    'TGenericDetectionExperience',
+    bound='GenericDetectionExperience')
 
-class DetectionCLScenario(ClassesTimelineCLScenario[TDetectionCLScenario, TCLStream, TDetectionExperience, DetectionDataset]):
+
+class DetectionCLScenario(
+        ClassesTimelineCLScenario[
+            TDetectionCLScenario,
+            TCLStream,
+            TDetectionExperience,
+            DetectionDataset]):
     """
     Base implementation of a Continual Learning object detection benchmark.
 
@@ -55,8 +98,10 @@ class DetectionCLScenario(ClassesTimelineCLScenario[TDetectionCLScenario, TCLStr
         self: TDetectionCLScenario,
         stream_definitions: TStreamsUserDict,
         n_classes: Optional[int] = None,
-        stream_factory: Optional[Callable[[str, TDetectionCLScenario], TCLStream]] = None,
-        experience_factory: Optional[Callable[[TCLStream, int], TDetectionExperience]] = None,
+        stream_factory: Optional[
+            Callable[[str, TDetectionCLScenario], TCLStream]] = None,
+        experience_factory: Optional[
+            Callable[[TCLStream, int], TDetectionExperience]] = None,
         complete_test_set_only: bool = False
     ):
         """
@@ -82,10 +127,10 @@ class DetectionCLScenario(ClassesTimelineCLScenario[TDetectionCLScenario, TCLStr
         """
 
         if stream_factory is None:
-            stream_factory = DetectionStream # type: ignore
+            stream_factory = DetectionStream  # type: ignore
         
         if experience_factory is None:
-            experience_factory = GenericDetectionExperience # type: ignore
+            experience_factory = GenericDetectionExperience  # type: ignore
 
         # PyLance -_-
         assert stream_factory is not None
@@ -133,8 +178,8 @@ class DetectionStream(
 class GenericDetectionExperience(
     AbstractClassTimelineExperience[
         TDetectionCLScenario, DetectionStream[
-           TDetectionCLScenario, TGenericDetectionExperience
-       ], DetectionDataset
+            TDetectionCLScenario, TGenericDetectionExperience
+        ], DetectionDataset
     ]
 ):
     """
@@ -226,6 +271,7 @@ class _LazyStreamClassesInDetectionExps(Mapping[str,
 
 LazyClassesInExpsRet = Union[Tuple[Optional[Set[int]], ...], Optional[Set[int]]]
 
+
 class _LazyClassesInDetectionExps(Sequence[Optional[Set[int]]]):
     def __init__(self, benchmark: DetectionCLScenario, stream: str = "train"):
         self._benchmark = benchmark
@@ -272,7 +318,8 @@ class _LazyClassesInDetectionExps(Sequence[Optional[Set[int]]]):
         return classes_in_exp
 
     @staticmethod
-    def _slice_collate(classes_in_exps: Iterable[Optional[Iterable[int]]]) -> Optional[Tuple[Set[int], ...]]:
+    def _slice_collate(classes_in_exps: Iterable[Optional[Iterable[int]]]) -> \
+            Optional[Tuple[Set[int], ...]]:
         result: List[Set[int]] = []
         for x in classes_in_exps:
             if x is None:

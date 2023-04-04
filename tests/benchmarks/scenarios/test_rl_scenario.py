@@ -13,6 +13,7 @@ except ImportError:
     skip = True
 skip = False
 
+
 class RLScenarioTests(unittest.TestCase):
 
     @unittest.skipIf(skip, reason="Need gym to run these tests")
@@ -63,7 +64,6 @@ class RLScenarioTests(unittest.TestCase):
         for i, exp in enumerate(rl_scenario.eval_stream):
             assert exp.task_label == i
             assert exp.environment.spec.id == envs[i].spec.id
-
 
     @unittest.skipIf(skip, reason="Need gym to run these tests")
     def test_multiple_envs(self):

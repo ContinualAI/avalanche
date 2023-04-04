@@ -1,5 +1,15 @@
 import warnings
-from typing import Optional, Sequence, Callable, Any, Dict, Tuple, Union, List, Collection
+from typing import (
+    Optional,
+    Sequence,
+    Callable,
+    Any,
+    Dict,
+    Tuple,
+    Union,
+    List,
+    Collection,
+)
 
 from avalanche.benchmarks.utils import SupportedDataset
 from avalanche.benchmarks.utils.classification_dataset import (
@@ -84,9 +94,12 @@ def AvalancheConcatDataset(
     *,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Dict[str, Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Dict[str, 
+                                    Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
-    task_labels: Optional[Union[int, Sequence[int], Sequence[Sequence[int]]]] = None,
+    task_labels: Optional[Union[int, 
+                                Sequence[int],
+                                Sequence[Sequence[int]]]] = None,
     targets: Optional[Union[
         Sequence[TTargetType], Sequence[Sequence[TTargetType]]
     ]] = None,

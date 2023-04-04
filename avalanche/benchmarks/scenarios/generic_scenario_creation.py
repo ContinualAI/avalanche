@@ -120,7 +120,7 @@ def create_multi_dataset_generic_scenario(
     for dataset_idx, dataset in enumerate(train_dataset_list):
         dataset = train_dataset_list[dataset_idx]
         train_t_labels.append(task_labels[dataset_idx])
-        train_dataset_list_avl.append( make_classification_dataset(
+        train_dataset_list_avl.append(make_classification_dataset(
             dataset,
             task_labels=ConstantSequence(
                 task_labels[dataset_idx], len(dataset)

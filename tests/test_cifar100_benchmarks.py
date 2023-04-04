@@ -27,6 +27,7 @@ def count_downloads_c10(*args, **kwargs):
     CIFAR10_DOWNLOADS += 1
     return CIFAR10_DOWNLOAD_METHOD(*args, **kwargs)
 
+
 def count_downloads_c100(*args, **kwargs):
     global CIFAR100_DOWNLOADS
     CIFAR100_DOWNLOADS += 1

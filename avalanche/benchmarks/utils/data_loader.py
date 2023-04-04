@@ -429,7 +429,8 @@ class ReplayDataLoader:
             )
         else:
             # Task balanced
-            data_task_set: Mapping[int, AvalancheDataset] = getattr(data, 'task_set')
+            data_task_set: Mapping[int, AvalancheDataset] = \
+                getattr(data, 'task_set')
             for task_id in data_task_set:
                 dataset = data_task_set[task_id]
                 mb_sz = self.data_batch_sizes[task_id]

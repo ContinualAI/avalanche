@@ -17,7 +17,17 @@
     `avalanche.benchmarks.utils.transforms`.
 """
 from collections import defaultdict
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, Callable, Sequence
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+    Callable,
+    Sequence,
+)
 from typing_extensions import Protocol
 
 from avalanche.benchmarks.utils.transforms import (
@@ -59,7 +69,10 @@ class TransformGroups:
 
     def __init__(
         self,
-        transform_groups: Mapping[str, Union[None, Callable, Sequence[Union[Callable, XTransform, YTransform]]]],
+        transform_groups: Mapping[
+            str, Union[None, 
+                       Callable,
+                       Sequence[Union[Callable, XTransform, YTransform]]]],
         current_group="train",
     ):
         """Constructor.
@@ -68,7 +81,9 @@ class TransformGroups:
             and transformations (pytorch transformations) as values.
         :param current_group: the currently active group.
         """
-        self.transform_groups: Dict[str, Union[TupleTransform, MultiParamTransform, None]] = dict()
+        self.transform_groups: Dict[str, Union[TupleTransform, 
+                                               MultiParamTransform,
+                                               None]] = dict()
         for group, transform in transform_groups.items():
             norm_transform = _normalize_transform(transform)
             self.transform_groups[group] = norm_transform
@@ -117,7 +132,9 @@ class TransformGroups:
                 self_group = tgroups[gname]
                 other_group = gtrans
 
-                to_expand_group: Union[TupleTransform, MultiParamTransform, None]
+                to_expand_group: Union[TupleTransform, 
+                                       MultiParamTransform,
+                                       None]
                 for to_expand_group in [self_group, other_group]:
                     if to_expand_group is None:
                         pass

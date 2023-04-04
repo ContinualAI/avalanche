@@ -172,7 +172,6 @@ class BiCPlugin(SupervisedPlugin):
         """
         task_id = strategy.clock.train_exp_counter
 
-
         if task_id not in self.bias_layer:
             self.bias_layer[task_id] = BiasLayer(
                                 strategy.device, 

@@ -12,38 +12,85 @@ from abc import abstractmethod, ABC
 from contextlib import contextmanager
 from copy import copy
 from enum import Enum
-from typing import Dict, Iterator, List, Iterable, Optional, Sequence, Tuple, TypeVar, Union, Generic, final, overload
+from typing import (
+    Dict,
+    Iterator,
+    List,
+    Iterable,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    Generic,
+    final,
+    overload,
+)
 from typing_extensions import Protocol, runtime_checkable
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.utils.classification_dataset import \
     ClassificationDataset
 import warnings
 
-from avalanche.benchmarks.utils.dataset_utils import slice_alike_object_to_indices
+from avalanche.benchmarks.utils.dataset_utils import (
+    slice_alike_object_to_indices,
+)
 
-T = TypeVar("T")
-TCov = TypeVar("TCov", covariant=True)
-E = TypeVar("E")
+T = TypeVar('T')
+TCov = TypeVar('TCov', covariant=True)
+E = TypeVar('E')
 
 # Dataset
-TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")  # Implementation, defined in utils
-TCLDatasetCov = TypeVar("TCLDatasetCov", bound="AvalancheDataset", covariant=True)  # Implementation, defined in utils
+TCLDataset = TypeVar(
+    'TCLDataset',
+    bound='AvalancheDataset')  # Implementation, defined in utils
+TCLDatasetCov = TypeVar(
+    'TCLDatasetCov',
+    bound='AvalancheDataset',
+    covariant=True)  # Implementation, defined in utils
 
 # Scenario
-TCLScenario = TypeVar("TCLScenario", bound="CLScenario")  # Implementation, defined here
-TCLScenarioCov = TypeVar("TCLScenarioCov", bound="CLScenario", covariant=True)  # Implementation, defined here
+TCLScenario = TypeVar(
+    'TCLScenario',
+    bound='CLScenario')  # Implementation, defined here
+TCLScenarioCov = TypeVar(
+    'TCLScenarioCov',
+    bound="CLScenario",
+    covariant=True)  # Implementation, defined here
 
 # Stream
-TBaseCLStream = TypeVar('TBaseCLStream', bound='BaseCLStream')  # Implementation, defined here
-TBaseCLStreamCov = TypeVar('TBaseCLStreamCov', bound='BaseCLStream', covariant=True)  # Implementation, defined here
-TCLStream = TypeVar('TCLStream', bound='CLStream')  # Implementation, defined here
-TCLStreamCov = TypeVar('TCLStreamCov', bound='CLStream', covariant=True)  # Implementation, defined here
-TSequenceCLStream = TypeVar('TSequenceCLStream', bound='SequenceCLStream')
+TBaseCLStream = TypeVar(
+    'TBaseCLStream',
+    bound='BaseCLStream')  # Implementation, defined here
+TBaseCLStreamCov = TypeVar(
+    'TBaseCLStreamCov',
+    bound='BaseCLStream',
+    covariant=True)  # Implementation, defined here
+TCLStream = TypeVar(
+    'TCLStream',
+    bound='CLStream')  # Implementation, defined here
+TCLStreamCov = TypeVar(
+    'TCLStreamCov',
+    bound='CLStream',
+    covariant=True)  # Implementation, defined here
+TSequenceCLStream = TypeVar(
+    'TSequenceCLStream',
+    bound='SequenceCLStream')
+TSequenceStreamWrapper = TypeVar(
+    'TSequenceStreamWrapper',
+    bound='SequenceStreamWrapper')
+
 
 # Experience
-TGenericExperience = TypeVar('TGenericExperience', bound='GenericExperienceProtocol')  # Protocol, defined here
-TSettableGenericExperience = TypeVar('TSettableGenericExperience', bound='SettableGenericExperienceProtocol')  # Protocol, defined here
-TCLExperience = TypeVar('TCLExperience', bound='CLExperience')  # Implementation, defined here
+TGenericExperience = TypeVar(
+    'TGenericExperience',
+    bound='GenericExperienceProtocol')  # Protocol, defined here
+TSettableGenericExperience = TypeVar(
+    'TSettableGenericExperience',
+    bound='SettableGenericExperienceProtocol')  # Protocol, defined here
+TCLExperience = TypeVar(
+    'TCLExperience',
+    bound='CLExperience')  # Implementation, defined here
 
 
 @runtime_checkable
@@ -51,25 +98,28 @@ class GenericExperienceProtocol(Protocol[TCLStreamCov]):
     @property
     def current_experience(self) -> int:
         """
-        This is an incremental, 0-indexed, value used to keep track of the position 
-        of current experience in the original stream.
+        This is an incremental, 0-indexed, value used to keep track of 
+        the position  of current experience in the original stream.
         
-        Beware that this value only describes the experience position in the 
-        original stream and may be unrelated to the order in which the strategy will
-        encounter experiences.
+        Beware that this value only describes the experience position in the
+        original stream and may be unrelated to the order in which the
+        strategy will encounter experiences.
         """
         ...
 
     @property
     def origin_stream(self) -> TCLStreamCov:
         """
-        A reference to the original stream from which this experience was obtained.
+        A reference to the original stream from which this experience was
+        obtained.
         """
         ...
 
 
 @runtime_checkable
-class DatasetExperienceProtocol(GenericExperienceProtocol[TCLStreamCov], Protocol[TCLScenarioCov, TCLStreamCov, TCLDatasetCov]):
+class DatasetExperienceProtocol(
+        GenericExperienceProtocol[TCLStreamCov],
+        Protocol[TCLScenarioCov, TCLStreamCov, TCLDatasetCov]):
 
     @property
     def benchmark(self) -> TCLScenarioCov:
@@ -77,7 +127,6 @@ class DatasetExperienceProtocol(GenericExperienceProtocol[TCLStreamCov], Protoco
         A reference to the benchmark.
         """
         ...
-
 
     @property
     def dataset(self) -> TCLDatasetCov:
@@ -91,9 +140,9 @@ class DatasetExperienceProtocol(GenericExperienceProtocol[TCLStreamCov], Protoco
         """
         This list will contain the unique task labels of the patterns contained
         in this experience. In the most common scenarios this will be a list
-        with a single value. Note: for scenarios that don't produce task labels,
-        a placeholder task label value like 0 is usually set to each pattern
-        (see the description of the originating scenario for details).
+        with a single value. Note: for scenarios that don't produce task
+        labels, a placeholder task label value like 0 is usually set to each
+        pattern (see the description of the originating scenario for details).
         """
         ...
 
@@ -104,13 +153,15 @@ class DatasetExperienceProtocol(GenericExperienceProtocol[TCLStreamCov], Protoco
         for scenarios that don't produce task labels a placeholder value like 0
         is usually set. Beware that this field is meant as a shortcut to obtain
         a unique task label: it assumes that only patterns labeled with a
-        single task label are present. If this experience contains patterns from
-        multiple tasks, accessing this property will result in an exception.
+        single task label are present. If this experience contains patterns
+        from multiple tasks, accessing this property will result in an
+        exception.
         """
         ...
 
+    # TODO: remove implementation from protocol
     @property
-    def scenario(self) -> TCLScenarioCov:  # TODO: remove implementation from protocol
+    def scenario(self) -> TCLScenarioCov:
         """This property is DEPRECATED, use self.benchmark instead."""
         warnings.warn(
             "Using self.scenario is deprecated in Experience. "
@@ -120,7 +171,9 @@ class DatasetExperienceProtocol(GenericExperienceProtocol[TCLStreamCov], Protoco
         return self.benchmark
 
 
-class SettableGenericExperienceProtocol(GenericExperienceProtocol[TCLStream], Protocol):
+class SettableGenericExperienceProtocol(
+        GenericExperienceProtocol[TCLStream],
+        Protocol):
     @property
     def origin_stream(self) -> TCLStream:
         ...
@@ -140,7 +193,9 @@ class SettableGenericExperienceProtocol(GenericExperienceProtocol[TCLStream], Pr
         ...
 
 
-class SettableDatasetExperienceProtocol(DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset], SettableGenericExperienceProtocol[TCLStream], Protocol):
+class SettableDatasetExperienceProtocol(
+        DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset],
+        SettableGenericExperienceProtocol[TCLStream], Protocol):
     @property
     def benchmark(self) -> TCLScenario:
         ...
@@ -163,7 +218,12 @@ class SettableDatasetExperienceProtocol(DatasetExperienceProtocol[TCLScenario, T
 
 
 @runtime_checkable
-class ClassificationExperienceProtocol(DatasetExperienceProtocol[TCLScenarioCov, TCLStreamCov, ClassificationDataset], Protocol):
+class ClassificationExperienceProtocol(
+        DatasetExperienceProtocol[
+            TCLScenarioCov,
+            TCLStreamCov,
+            ClassificationDataset], 
+        Protocol):
     """Definition of a classification experience.
 
     A classification experience contains a set of patterns
@@ -185,7 +245,12 @@ class ClassificationExperienceProtocol(DatasetExperienceProtocol[TCLScenarioCov,
 
 
 @runtime_checkable
-class DetectionExperienceProtocol(DatasetExperienceProtocol[TCLScenarioCov, TCLStreamCov, ClassificationDataset], Protocol):
+class DetectionExperienceProtocol(
+        DatasetExperienceProtocol[
+            TCLScenarioCov,
+            TCLStreamCov,
+            ClassificationDataset],
+        Protocol):
     """Definition of a detection experience.
 
     A detection experience contains a set of patterns
@@ -351,25 +416,34 @@ class CLExperience(SettableGenericExperienceProtocol[TCLStream]):
         else:
             return super().__setattr__(name, value)
 
-    def _as_attributes(self, *fields: str, use_in_train=False, use_in_eval=False):
+    def _as_attributes(
+            self,
+            *fields: str,
+            use_in_train=False,
+            use_in_eval=False):
         """
-        Internal method used to transform plain object fields to ExperienceAttribute(s).
+        Internal method used to transform plain object fields to
+        ExperienceAttribute(s).
 
-        This is needed to ensure that static type checkers will not consider those fields
-        as being of type "ExperienceAttribute", as this may be detrimental on the user
-        experience.
+        This is needed to ensure that static type checkers will not consider
+        those fields as being of type "ExperienceAttribute", as this may be
+        detrimental on the user experience.
         """
         for field in fields:
             v = super().__getattribute__(field)
             if isinstance(v, ExperienceAttribute):
                 if v.use_in_train != use_in_train:
                     raise RuntimeError(
-                        f'Experience attribute {field} redefined with inconguent use_in_train field. Was {v.use_in_train}, overridden with {use_in_train}.'
+                        f'Experience attribute {field} redefined with '
+                        f'incongruent use_in_train field. Was '
+                        f'{v.use_in_train}, overridden with {use_in_train}.'
                     )
                 
                 if v.use_in_eval != use_in_eval:
                     raise RuntimeError(
-                        f'Experience attribute {field} redefined with inconguent use_in_eval field. Was {v.use_in_eval}, overridden with {use_in_train}.'
+                        f'Experience attribute {field} redefined with '
+                        f'incongruent use_in_eval field. Was '
+                        f'{v.use_in_eval}, overridden with {use_in_train}.'
                     )
             else:
                 setattr(self, field, ExperienceAttribute(
@@ -409,7 +483,11 @@ class CLExperience(SettableGenericExperienceProtocol[TCLStream]):
         return exp
 
 
-class DatasetExperience(CLExperience[TCLStream], Generic[TCLScenario, TCLStream, TCLDataset], SettableDatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset], ABC):
+class DatasetExperience(
+        CLExperience[TCLStream],
+        Generic[TCLScenario, TCLStream, TCLDataset],
+        SettableDatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset],
+        ABC):
     """Base Experience.
 
     Experiences have an index which track the experience's position
@@ -418,7 +496,9 @@ class DatasetExperience(CLExperience[TCLStream], Generic[TCLScenario, TCLStream,
 
     def __init__(self, current_experience: int, origin_stream: TCLStream,
                  benchmark: TCLScenario, dataset: TCLDataset):
-        super().__init__(current_experience=current_experience, origin_stream=origin_stream)
+        super().__init__(
+            current_experience=current_experience,
+            origin_stream=origin_stream)
 
         self._benchmark: TCLScenario = benchmark
         self._dataset: TCLDataset = dataset
@@ -503,22 +583,26 @@ class AbstractClassTimelineExperience(
         :param future_classes: The list of classes of next experiences.
         """
 
-        self.classes_in_this_experience: Optional[Sequence[int]] = classes_in_this_exp
+        self.classes_in_this_experience: Optional[Sequence[int]] = \
+            classes_in_this_exp
         """ The list of classes in this experience """
 
-        self.previous_classes: Optional[Sequence[int]] = previous_classes
+        self.previous_classes: Optional[Sequence[int]] = \
+            previous_classes
         """ The list of classes in previous experiences """
 
-        self.classes_seen_so_far: Optional[Sequence[int]] = classes_seen_so_far
+        self.classes_seen_so_far: Optional[Sequence[int]] = \
+            classes_seen_so_far
         """ List of classes of current and previous experiences """
 
-        self.future_classes: Optional[Sequence[int]] = future_classes
+        self.future_classes: Optional[Sequence[int]] = \
+            future_classes
         """ The list of classes of next experiences """
 
         super().__init__(
             current_experience=current_experience,
             origin_stream=origin_stream,
-            benchmark=origin_stream.benchmark, # type: ignore
+            benchmark=origin_stream.benchmark,  # type: ignore
             dataset=dataset
         )
 
@@ -546,8 +630,10 @@ class AbstractClassTimelineExperience(
         pass
 
 
-class ExperienceWrapper(SettableGenericExperienceProtocol[TCLStream], Generic[TCLStream, TGenericExperience]):
-    def  __init__(
+class ExperienceWrapper(
+        SettableGenericExperienceProtocol[TCLStream],
+        Generic[TCLStream, TGenericExperience]):
+    def __init__(
             self,
             base_exp: TGenericExperience,
             current_experience: int,
@@ -582,7 +668,10 @@ class ExperienceWrapper(SettableGenericExperienceProtocol[TCLStream], Generic[TC
         return getattr(self.wrapped_exp, 'task_labels')
 
 
-class BaseCLStream(Generic[TCLScenario, TGenericExperience], Iterable[TGenericExperience], ABC):
+class BaseCLStream(
+        Generic[TCLScenario, TGenericExperience],
+        Iterable[TGenericExperience],
+        ABC):
     """A CL stream is a named iterator of experiences.
 
     In general, many streams may be generator and not explicit lists to avoid
@@ -671,47 +760,72 @@ class SizedCLStream(CLStream[TCLScenario, TSettableGenericExperience], ABC):
 
 
 # Internal TypeVar
-TCLScenarioAny = TypeVar('TCLScenarioAny', bound='CLScenario')
+TCLScenarioAny = TypeVar(
+    'TCLScenarioAny',
+    bound='CLScenario')
+TCLStreamWrapper = TypeVar(
+    'TCLStreamWrapper',
+    bound='CLStreamWrapper')
+TSizedCLStreamWrapper = TypeVar(
+    'TSizedCLStreamWrapper',
+    bound='SizedCLStreamWrapper')
 
 
-TCLStreamWrapper = TypeVar('TCLStreamWrapper', bound='CLStreamWrapper')
-TSizedCLStreamWrapper = TypeVar('TSizedCLStreamWrapper', bound='SizedCLStreamWrapper')
-
-
-class CLStreamWrapper(CLStream[TCLScenario, ExperienceWrapper[TCLStreamWrapper, TSettableGenericExperience]]):
+class CLStreamWrapper(
+        CLStream[
+            TCLScenario,
+            ExperienceWrapper[
+                TCLStreamWrapper,
+                TSettableGenericExperience]]):
     def __init__(
             self,
             name: str,
             benchmark: TCLScenario,
-            wrapped_stream: BaseCLStream[TCLScenarioAny, TSettableGenericExperience]):
+            wrapped_stream: BaseCLStream[TCLScenarioAny, 
+                                         TSettableGenericExperience]):
         self.wrapped_stream = wrapped_stream
         super().__init__(
             name=name,
-            exps_iter=None, # type: ignore
+            exps_iter=None,  # type: ignore
             benchmark=benchmark,
             set_stream_info=True)
 
-    def __iter__(self: TCLStreamWrapper) -> Iterator[ExperienceWrapper[TCLStreamWrapper, TSettableGenericExperience]]:
+    def __iter__(self: TCLStreamWrapper) -> \
+            Iterator[
+                ExperienceWrapper[
+                    TCLStreamWrapper,
+                    TSettableGenericExperience]]:
         exp: TSettableGenericExperience
         for i, exp in enumerate(self.wrapped_stream):
             exp_wrapped = ExperienceWrapper(exp, i, self)
             yield exp_wrapped
 
 
-class SizedCLStreamWrapper(SizedCLStream[TCLScenario, ExperienceWrapper[TSizedCLStreamWrapper, TSettableGenericExperience]]):
+class SizedCLStreamWrapper(
+        SizedCLStream[
+            TCLScenario,
+            ExperienceWrapper[
+                TSizedCLStreamWrapper, 
+                TSettableGenericExperience]]):
     def __init__(
             self,
             name: str,
             benchmark: TCLScenario,
-            wrapped_stream: SizedCLStream[TCLScenarioAny, TSettableGenericExperience]):
+            wrapped_stream: SizedCLStream[
+                TCLScenarioAny,
+                TSettableGenericExperience]):
         self.wrapped_stream = wrapped_stream
         super().__init__(
             name=name,
-            exps_iter=None, # type: ignore
+            exps_iter=None,  # type: ignore
             benchmark=benchmark,
             set_stream_info=True)
 
-    def __iter__(self: TSizedCLStreamWrapper) -> Iterator[ExperienceWrapper[TSizedCLStreamWrapper, TSettableGenericExperience]]:
+    def __iter__(self: TSizedCLStreamWrapper) -> \
+            Iterator[
+                ExperienceWrapper[
+                    TSizedCLStreamWrapper, 
+                    TSettableGenericExperience]]:
         exp: TSettableGenericExperience
         for i, exp in enumerate(self.wrapped_stream):
             exp_wrapped = ExperienceWrapper(exp, i, self)
@@ -753,11 +867,13 @@ class SequenceCLStream(CLStream[TCLScenario, TSettableGenericExperience],
         ...
 
     @overload
-    def __getitem__(self: TSequenceCLStream, item: slice, /) -> TSequenceCLStream:
+    def __getitem__(self: TSequenceCLStream, item: slice, /) -> \
+            TSequenceCLStream:
         ...
     
     @final
-    def __getitem__(self: TSequenceCLStream, item: Union[int, slice], /) -> Union[TSequenceCLStream, TSettableGenericExperience]:
+    def __getitem__(self: TSequenceCLStream, item: Union[int, slice], /) -> \
+            Union[TSequenceCLStream, TSettableGenericExperience]:
         # This check allows CL streams slicing
         if isinstance(item, int):
             if item >= len(self):
@@ -787,7 +903,8 @@ class SequenceCLStream(CLStream[TCLScenario, TSettableGenericExperience],
         else:
             return self._full_length()
 
-    def _forward_slice(self, *slices: Union[None, slice, Iterable[int]]) -> Optional[Iterable[int]]:
+    def _forward_slice(self, *slices: Union[None, slice, Iterable[int]]) -> \
+            Optional[Iterable[int]]:
         any_slice = False
         indices = list(range(self._full_length()))
         for sl in slices:
@@ -811,38 +928,48 @@ class SequenceCLStream(CLStream[TCLScenario, TSettableGenericExperience],
     @abstractmethod
     def _full_length(self) -> int:
         """
-        Gets the number of experiences in the originating stream (that is, the non-sliced stream).
+        Gets the number of experiences in the originating stream
+        (that is, the non-sliced stream).
         """
         pass
 
     @abstractmethod
-    def _make_experience(self, experience_idx: int) -> TSettableGenericExperience:
+    def _make_experience(self, experience_idx: int) -> \
+            TSettableGenericExperience:
         """
-        Obtain the experience at the given position in the originating stream (that is, the non-sliced stream).
+        Obtain the experience at the given position in the originating
+        stream (that is, the non-sliced stream).
         """
         pass
 
-    def _make_slice(self: TSequenceCLStream, experience_slice: Optional[Iterable[int]]) -> TSequenceCLStream:
+    def _make_slice(
+            self: TSequenceCLStream,
+            experience_slice: Optional[Iterable[int]]) -> TSequenceCLStream:
         """
-        Obtain a sub-stream given a list of indices of the experiences to include.
+        Obtain a sub-stream given a list of indices of the experiences to
+        include.
         
-        Experience ids are the ones of the originating stream (that is, the non-sliced stream).
+        Experience ids are the ones of the originating stream
+        (that is, the non-sliced stream).
         """
         stream_copy = copy(self)
-        stream_copy.slice_ids = list(experience_slice) if experience_slice is not None else None
+        stream_copy.slice_ids = list(experience_slice) if \
+            experience_slice is not None else None
         return stream_copy
 
 
-TSequenceStreamWrapper = TypeVar('TSequenceStreamWrapper', bound='SequenceStreamWrapper')
-
-class SequenceStreamWrapper(SequenceCLStream[TCLScenario, ExperienceWrapper[TSequenceStreamWrapper, TSettableGenericExperience]]):
+class SequenceStreamWrapper(
+    SequenceCLStream[TCLScenario,
+                     ExperienceWrapper[TSequenceStreamWrapper, 
+                                       TSettableGenericExperience]]):
     def __init__(
             self,
             name: str,
             benchmark: TCLScenario,
-            wrapped_stream: SequenceCLStream[TCLScenarioAny, TSettableGenericExperience],
-            slice_ids: Optional[Iterable[int]] = None
-        ):
+            wrapped_stream: SequenceCLStream[
+                TCLScenarioAny,
+                TSettableGenericExperience],
+            slice_ids: Optional[Iterable[int]] = None):
         self.wrapped_stream = wrapped_stream
         
         super().__init__(
@@ -857,7 +984,12 @@ class SequenceStreamWrapper(SequenceCLStream[TCLScenario, ExperienceWrapper[TSeq
         """
         return len(self.wrapped_stream)
 
-    def _make_experience(self: TSequenceStreamWrapper, experience_idx: int) -> ExperienceWrapper[TSequenceStreamWrapper, TSettableGenericExperience]:
+    def _make_experience(
+        self: TSequenceStreamWrapper,
+        experience_idx: int) -> \
+            ExperienceWrapper[
+                TSequenceStreamWrapper,
+                TSettableGenericExperience]:
         """
         Obtain the experience at the given position in the wrapped stream.
         """
@@ -903,11 +1035,12 @@ class EagerCLStream(SequenceCLStream[TCLScenario, TSettableGenericExperience]):
             slice_ids=slice_ids)
 
         if self.set_stream_info:
-            slice_ids_enum = self.slice_ids if self.slice_ids is not None else range(len(self._exps))
+            slice_ids_enum = self.slice_ids if \
+                self.slice_ids is not None else range(len(self._exps))
             for i in slice_ids_enum:
                 exp = self._exps[i]
                 exp.current_experience = i
-                exp.origin_stream = self # type: ignore
+                exp.origin_stream = self  # type: ignore
             
             self.set_stream_info = False
     
@@ -918,7 +1051,8 @@ class EagerCLStream(SequenceCLStream[TCLScenario, TSettableGenericExperience]):
     def _full_length(self) -> int:
         return len(self._exps)
 
-    def _make_experience(self, experience_idx: int) -> TSettableGenericExperience:
+    def _make_experience(self, experience_idx: int) -> \
+            TSettableGenericExperience:
         return self._exps[experience_idx] 
 
 

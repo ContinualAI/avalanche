@@ -12,7 +12,22 @@
 """ Common benchmarks/environments utils. """
 
 from collections import OrderedDict, defaultdict, deque
-from typing import TYPE_CHECKING, Any, Callable, Generic, Iterator, List, Iterable, Mapping, Optional, Sequence, TypeVar, Union, Dict, Tuple, SupportsInt
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generic,
+    Iterator,
+    List,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+    Dict,
+    SupportsInt,
+)
 import warnings
 
 import torch
@@ -24,9 +39,17 @@ from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from avalanche.benchmarks.utils.dataset_definitions import (
     ISupportedClassificationDataset,
 )
-from avalanche.benchmarks.utils.dataset_utils import SubSequence, find_list_from_index
+from avalanche.benchmarks.utils.dataset_utils import (
+    SubSequence,
+    find_list_from_index,
+)
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
-from avalanche.benchmarks.utils.transform_groups import TransformGroupDef, TransformGroups, XTransform, YTransform
+from avalanche.benchmarks.utils.transform_groups import (
+    TransformGroupDef,
+    TransformGroups,
+    XTransform,
+    YTransform
+)
 
 if TYPE_CHECKING:
     from avalanche.benchmarks.utils.classification_dataset import (
@@ -200,7 +223,9 @@ def concat_datasets(datasets):
     return res
 
 
-def find_common_transforms_group(datasets: Iterable[Any], default_group: str="train") -> str:
+def find_common_transforms_group(
+        datasets: Iterable[Any], 
+        default_group: str = "train") -> str:
     # Find common "current_group" or use "train"
     uniform_group: Optional[str] = None
     for d_set in datasets:
@@ -226,10 +251,11 @@ def find_common_transforms_group(datasets: Iterable[Any], default_group: str="tr
 Y = TypeVar('Y')
 T = TypeVar('T')
 
+
 def traverse_supported_dataset(
     dataset: Y,
     values_selector: Callable[[Y, Optional[List[int]]], Sequence[T]],
-    indices: Optional[List[int]]=None
+    indices: Optional[List[int]] = None
 ) -> Sequence[T]:
     initial_error = None
     try:
@@ -304,7 +330,8 @@ def traverse_supported_dataset(
     raise ValueError("Error: can't find the needed data in the given dataset")
 
 
-def init_task_labels(dataset, task_labels, check_shape=True) -> Optional[DataAttribute[int]]:
+def init_task_labels(dataset, task_labels, check_shape=True) -> \
+        Optional[DataAttribute[int]]:
     """A task label for each pattern in the dataset."""
     if task_labels is not None:
         # task_labels has priority over the dataset fields
@@ -420,7 +447,10 @@ def _check_groups_dict_format(groups_dict):
 
 def split_user_def_task_label(
     datasets,
-    task_labels: Optional[Union[int, Sequence[int], Sequence[Sequence[int]]]]) -> List[Optional[Union[int, Sequence[int]]]]:
+    task_labels: Optional[Union[int, 
+                                Sequence[int],
+                                Sequence[Sequence[int]]]]) -> \
+        List[Optional[Union[int, Sequence[int]]]]:
     t_labels = []
     idx_start = 0
     for dd_idx, dd in enumerate(datasets):
@@ -433,9 +463,10 @@ def split_user_def_task_label(
             # Single integer (same label for all instances)
             dataset_t_label = task_labels
         elif isinstance(task_labels[0], int):
-            # Single task labels sequence (to be split across concatenated datasets)
-            dataset_t_label = task_labels[idx_start:end_idx] # type: ignore
-        elif len(task_labels[dd_idx]) == len(dd): # type: ignore
+            # Single task labels sequence
+            # (to be split across concatenated datasets)
+            dataset_t_label = task_labels[idx_start:end_idx]  # type: ignore
+        elif len(task_labels[dd_idx]) == len(dd):  # type: ignore
             # One sequence per dataset
             dataset_t_label = task_labels[dd_idx]
         else:
@@ -462,11 +493,12 @@ def split_user_def_targets(
             # No task label set
             dataset_t_label = None
         elif single_element_checker(targets[0]):
-            # Single task labels sequence (to be split across concatenated datasets)
-            dataset_t_label = targets[idx_start:end_idx] # type: ignore
-        elif len(targets[dd_idx]) == len(dd): # type: ignore
+            # Single task labels sequence
+            # (to be split across concatenated datasets)
+            dataset_t_label = targets[idx_start:end_idx]  # type: ignore
+        elif len(targets[dd_idx]) == len(dd):  # type: ignore
             # One sequence per dataset
-            dataset_t_label = targets[dd_idx] # type: ignore
+            dataset_t_label = targets[dd_idx]  # type: ignore
         else:
             raise ValueError(
                 'The targets parameter has an invalid format.'
@@ -475,8 +507,6 @@ def split_user_def_targets(
 
         idx_start = end_idx
     return t_labels
-
-
 
 
 class TaskSet(Mapping[int, TAvalancheDataset], Generic[TAvalancheDataset]):
@@ -520,7 +550,7 @@ class TaskSet(Mapping[int, TAvalancheDataset], Generic[TAvalancheDataset]):
         return len(t_labels.uniques)
 
     def _get_task_labels_field(self) -> DataAttribute[int]:
-        return self.data.targets_task_labels # type: ignore
+        return self.data.targets_task_labels  # type: ignore
 
 
 __all__ = [

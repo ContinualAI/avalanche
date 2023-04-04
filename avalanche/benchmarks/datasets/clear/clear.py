@@ -256,7 +256,8 @@ class _CLEARImage(CLEARDataset):
 
         return True
 
-    def get_paths_and_targets(self, root_appended=True) -> Sequence[Sequence[Tuple[Union[str, Path], int]]]:
+    def get_paths_and_targets(self, root_appended=True) -> \
+            Sequence[Sequence[Tuple[Union[str, Path], int]]]:
         """Return self._paths_and_targets with root appended or not"""
         if not root_appended:
             return self._paths_and_targets
@@ -342,7 +343,8 @@ class _CLEARFeature(CLEARDataset):
         assert feature_type in CLEAR_FEATURE_TYPES[data_name]
         self.target_transform = target_transform
 
-        self.tensors_and_targets: List[Tuple[Sequence[torch.Tensor], Sequence[int]]] = []
+        self.tensors_and_targets: List[Tuple[Sequence[torch.Tensor],
+                                             Sequence[int]]] = []
 
         super(_CLEARFeature, self).__init__(
             root, data_name=data_name, download=download, verbose=True

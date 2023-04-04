@@ -15,13 +15,24 @@ import bisect
 
 import numpy as np
 
-from avalanche.benchmarks.utils.dataset_utils import slice_alike_object_to_indices
+from avalanche.benchmarks.utils.dataset_utils import (
+    slice_alike_object_to_indices,
+)
 try:
     from collections import Hashable
 except ImportError:
     from collections.abc import Hashable
 
-from typing import Iterable, List, Optional, Sequence, Tuple, TypeVar, Union, overload
+from typing import (
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 
 from torch.utils.data import ConcatDataset
 
@@ -123,9 +134,11 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         # Case 1: one is a subset of the other
         if len(self._datasets) == 1 and len(other._datasets) == 1:
             if self._can_flatten and self._datasets[0] is other:
-                return other.subset(self._get_indices() + list(range(len(other))))
+                return other.subset(self._get_indices() + 
+                                    list(range(len(other))))
             elif other._can_flatten and other._datasets[0] is self:
-                return self.subset(list(range(len(self))) + other._get_indices())
+                return self.subset(list(range(len(self))) + 
+                                   other._get_indices())
             elif (
                 self._can_flatten
                 and other._can_flatten
@@ -207,7 +220,8 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
     def __getitem__(self: TFlatData, item: slice, /) -> TFlatData:
         ...
 
-    def __getitem__(self: TFlatData, item: Union[int, slice]) -> Union[T_co, TFlatData]:
+    def __getitem__(self: TFlatData, item: Union[int, slice]) -> \
+            Union[T_co, TFlatData]:
         if isinstance(item, (int, np.integer)):
             dataset_idx, idx = self._get_idx(int(item))
             return self._datasets[dataset_idx][idx]
@@ -261,7 +275,8 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
     def __getitem__(self, index: slice) -> 'ConstantSequence[DataT]':
         ...
 
-    def __getitem__(self, index: Union[int, slice]) -> 'Union[DataT, ConstantSequence[DataT]]':
+    def __getitem__(self, index: Union[int, slice]) -> \
+            'Union[DataT, ConstantSequence[DataT]]':
         if isinstance(index, (int, np.integer)):
             index = int(index)
         
@@ -311,7 +326,9 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
         return id(self)
 
 
-def _flatten_dataset_list(datasets: List[Union[FlatData[T_co], IDataset[T_co]]]) -> List[IDataset[T_co]]:
+def _flatten_dataset_list(
+        datasets: List[Union[FlatData[T_co], IDataset[T_co]]]) -> \
+            List[IDataset[T_co]]:
     """Flatten the dataset tree if possible."""
     # Concat -> Concat branch
     # Flattens by borrowing the list of concatenated datasets
@@ -346,8 +363,10 @@ def _flatten_dataset_list(datasets: List[Union[FlatData[T_co], IDataset[T_co]]])
     return new_data_list
 
 
-def _flatten_datasets_and_reindex(datasets: List[IDataset], indices: Optional[List[int]]) -> \
-    Tuple[List[IDataset], Optional[List[int]]]:
+def _flatten_datasets_and_reindex(
+        datasets: List[IDataset],
+        indices: Optional[List[int]]) -> \
+            Tuple[List[IDataset], Optional[List[int]]]:
     """The same dataset may occurr multiple times in the list of datasets.
 
     Here, we flatten the list of datasets and fix the indices to account for

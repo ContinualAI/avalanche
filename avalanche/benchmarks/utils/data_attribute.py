@@ -24,6 +24,7 @@ from .flat_data import ConstantSequence, FlatData
 
 T_co = TypeVar('T_co', covariant=True)
 
+
 class DataAttribute(IDataset[T_co], Sequence[T_co]):
     """Data attributes manage sample-wise information such as task or
     class labels.
@@ -69,7 +70,8 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
     def __getitem__(self, item: slice, /) -> Sequence[T_co]:
         ...
 
-    def __getitem__(self, item: Union[int, slice], /) -> Union[T_co, Sequence[T_co]]:
+    def __getitem__(self, item: Union[int, slice], /) -> \
+            Union[T_co, Sequence[T_co]]:
         return self.data[item]
 
     def __len__(self):
@@ -123,7 +125,7 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
                 for i, x in enumerate(self.data):
                     if x not in self.val_to_idx:
                         self._val_to_idx[x] = []
-                    self._val_to_idx[x].append(i) # type: ignore
+                    self._val_to_idx[x].append(i)  # type: ignore
         return self._val_to_idx
 
     def subset(self, indices):

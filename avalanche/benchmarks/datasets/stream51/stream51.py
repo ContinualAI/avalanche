@@ -33,6 +33,7 @@ from avalanche.benchmarks.datasets.stream51 import stream51_data
 
 TSequence = TypeVar('TSequence', bound=Sequence)
 
+
 class Stream51(DownloadableDataset):
     """Stream-51 Pytorch Dataset"""
 
@@ -139,7 +140,9 @@ class Stream51(DownloadableDataset):
         )
 
     @staticmethod
-    def _instance_ordering(data_list: Sequence[TSequence], seed) -> List[TSequence]:
+    def _instance_ordering(
+            data_list: Sequence[TSequence], 
+            seed) -> List[TSequence]:
         # organize data by video
         total_videos = 0
         new_data_list = []

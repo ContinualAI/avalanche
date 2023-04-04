@@ -37,7 +37,9 @@ from avalanche.benchmarks.utils import (
     PathsDataset,
     common_paths_root,
 )
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+)
 from .classification_scenario import GenericCLScenario
 
 
@@ -45,13 +47,15 @@ def create_multi_dataset_generic_benchmark(
     train_datasets: Sequence[SupportedDataset],
     test_datasets: Sequence[SupportedDataset],
     *,
-    other_streams_datasets: Optional[Mapping[str, Sequence[SupportedDataset]]] = None,
+    other_streams_datasets: Optional[
+        Mapping[str, Sequence[SupportedDataset]]] = None,
     complete_test_set_only: bool = False,
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None,
-    other_streams_transforms: Optional[Mapping[str, Tuple[Any, Any]]] = None
+    other_streams_transforms: Optional[
+        Mapping[str, Tuple[Any, Any]]] = None
 ) -> GenericCLScenario:
     """
     Creates a benchmark instance given a list of datasets. Each dataset will be
@@ -70,8 +74,8 @@ def create_multi_dataset_generic_benchmark(
 
     :param train_datasets: A list of training datasets.
     :param test_datasets: A list of test datasets.
-    :param other_streams_datasets: A dictionary describing the content of custom
-        streams. Keys must be valid stream names (letters and numbers,
+    :param other_streams_datasets: A dictionary describing the content of 
+        custom streams. Keys must be valid stream names (letters and numbers,
         not starting with a number) while the value must be a list of dataset.
         If this dictionary contains the definition for "train" or "test"
         streams then those definition will override the `train_datasets` and
@@ -99,9 +103,10 @@ def create_multi_dataset_generic_benchmark(
         must be a two elements tuple where the first element defines the
         X transformation while the second element is the Y transformation.
         Those elements can be None. If this dictionary contains the
-        transformations for "train" or "test" streams then those transformations
-        will override the `train_transform`, `train_target_transform`,
-        `eval_transform` and `eval_target_transform` parameters.
+        transformations for "train" or "test" streams then those
+        transformations will override the `train_transform`,
+        `train_target_transform`, `eval_transform` and
+        `eval_target_transform` parameters.
 
     :returns: A :class:`GenericCLScenario` instance.
     """
@@ -135,7 +140,8 @@ def create_multi_dataset_generic_benchmark(
                 "complete_test_set_only is True"
             )
 
-    stream_definitions: Dict[str, Tuple[Iterable[ClassificationDataset]]] = dict()
+    stream_definitions: Dict[str, Tuple[Iterable[ClassificationDataset]]] = \
+        dict()
 
     for stream_name, dataset_list in input_streams.items():
         initial_transform_group = "train"
@@ -325,8 +331,10 @@ def create_lazy_generic_benchmark(
     
     stream_definitions: Dict[
         str, Tuple[
-            Tuple[Generator[ClassificationDataset, None, None], int],  # Dataset generator + stream length
-            Iterable[Union[int, Iterable[int]]]  # Task label(s) for each experience
+            # Dataset generator + stream length
+            Tuple[Generator[ClassificationDataset, None, None], int],
+            # Task label(s) for each experience
+            Iterable[Union[int, Iterable[int]]]
             ]
         ] = dict()
 
@@ -361,14 +369,16 @@ def create_generic_benchmark_from_filelists(
     train_file_lists: Sequence[Union[str, Path]],
     test_file_lists: Sequence[Union[str, Path]],
     *,
-    other_streams_file_lists: Optional[Dict[str, Sequence[Union[str, Path]]]] = None,
+    other_streams_file_lists: Optional[
+        Dict[str, Sequence[Union[str, Path]]]] = None,
     task_labels: Sequence[int],
     complete_test_set_only: bool = False,
     train_transform=None,
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None,
-    other_streams_transforms: Optional[Dict[str, Tuple[Any, Any]]] = None
+    other_streams_transforms: Optional[
+        Dict[str, Tuple[Any, Any]]] = None
 ) -> GenericCLScenario:
     """
     Creates a benchmark instance given a list of filelists and the respective
@@ -584,7 +594,8 @@ def create_generic_benchmark_from_paths(
         stream_datasets: List[ClassificationDataset] = []
         for exp_id, list_of_files in enumerate(lists_of_files):
             common_root, exp_paths_list = common_paths_root(list_of_files)
-            paths_dataset: PathsDataset[Any, int] = PathsDataset(common_root, exp_paths_list)
+            paths_dataset: PathsDataset[Any, int] = \
+                PathsDataset(common_root, exp_paths_list)
             stream_datasets.append(
                 make_classification_dataset(
                     paths_dataset, task_labels=task_labels[exp_id]

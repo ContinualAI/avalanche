@@ -29,7 +29,12 @@ TNCScenario = TypeVar('TNCScenario', bound='NCScenario')
 TNCExperience = TypeVar('TNCExperience', bound='NCExperience')
 
 
-class NCScenario(GenericCLScenario[TNCScenario, ClassificationStream[TNCScenario, TNCExperience], TNCExperience]):
+class NCScenario(GenericCLScenario[
+        TNCScenario,
+        ClassificationStream[
+            TNCScenario,
+            TNCExperience], 
+        TNCExperience]):
 
     """
     This class defines a "New Classes" scenario. Once created, an instance
@@ -406,14 +411,14 @@ class NCScenario(GenericCLScenario[TNCScenario, ClassificationStream[TNCScenario
                 if element in selected_classes:
                     selected_indexes_train.append(idx)
                     if self._has_task_labels:
-                        pattern_train_task_labels[idx] = exp_id # type: ignore
+                        pattern_train_task_labels[idx] = exp_id  # type: ignore
 
             selected_indexes_test = []
             for idx, element in enumerate(original_test_dataset.targets):
                 if element in selected_classes:
                     selected_indexes_test.append(idx)
                     if self._has_task_labels:
-                        pattern_test_task_labels[idx] = exp_id # type: ignore
+                        pattern_test_task_labels[idx] = exp_id  # type: ignore
 
             train_exps_patterns_assignment.append(selected_indexes_train)
             test_exps_patterns_assignment.append(selected_indexes_test)

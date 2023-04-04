@@ -102,9 +102,9 @@ class PennFudanDataset(SimpleDownloadableDataset):
         if root is None:
             root = default_dataset_location("pennfudanped")
 
-        self.imgs: Sequence[Path] = None # type: ignore
-        self.masks: Sequence[Path] = None # type: ignore
-        self.targets: List[Dict] = None # type: ignore
+        self.imgs: Sequence[Path] = None  # type: ignore
+        self.masks: Sequence[Path] = None  # type: ignore
+        self.targets: List[Dict] = None  # type: ignore
         self.transform = transform
         self.loader = loader
         self.mask_loader = mask_loader
@@ -169,7 +169,8 @@ class PennFudanDataset(SimpleDownloadableDataset):
         masks = torch.as_tensor(masks, dtype=torch.uint8)
 
         image_id = torch.tensor([idx])
-        area = (boxes_as_tensor[:, 3] - boxes_as_tensor[:, 1]) * (boxes_as_tensor[:, 2] - boxes_as_tensor[:, 0])
+        area = (boxes_as_tensor[:, 3] - boxes_as_tensor[:, 1]) * \
+               (boxes_as_tensor[:, 2] - boxes_as_tensor[:, 0])
         # suppose all instances are not crowd
         iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 

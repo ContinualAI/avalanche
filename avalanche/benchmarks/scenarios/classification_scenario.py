@@ -23,7 +23,8 @@ from avalanche.benchmarks.scenarios.generic_scenario import (
 )
 
 from avalanche.benchmarks.scenarios.dataset_scenario import (
-    DatasetScenario, ClassesTimelineCLScenario, FactoryBasedStream, TStreamsUserDict
+    DatasetScenario, ClassesTimelineCLScenario, FactoryBasedStream,
+    TStreamsUserDict
 )
 
 from avalanche.benchmarks.utils import (
@@ -35,34 +36,54 @@ from avalanche.benchmarks.utils.classification_dataset import (
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 
-### Dataset ###
+# --- Dataset ---
 # From utils:
-TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset", covariant=True)
+TCLDataset = TypeVar(
+    'TCLDataset',
+    bound='AvalancheDataset',
+    covariant=True)
 
-### Scenario ###
+# --- Scenario ---
 # From dataset_scenario:
 TDatasetScenario = TypeVar(
-    "TDatasetScenario", bound="DatasetScenario"
+    'TDatasetScenario',
+    bound='DatasetScenario'
 )
-TGenericCLScenario = TypeVar('TGenericCLScenario', bound='GenericCLScenario')
+TGenericCLScenario = TypeVar(
+    'TGenericCLScenario',
+    bound='GenericCLScenario')
 
-### Stream ###
+# --- Stream ---
 # From generic_scenario:
-TCLStream = TypeVar('TCLStream', bound='CLStream', covariant=True)
+TCLStream = TypeVar(
+    'TCLStream',
+    bound='CLStream',
+    covariant=True)
 # Defined here:
-TClassificationStream = TypeVar('TClassificationStream', bound='ClassificationStream')
+TClassificationStream = TypeVar(
+    'TClassificationStream',
+    bound='ClassificationStream')
 
-### Experience ###
+# --- Experience ---
 # From generic_scenario:
-TSettableGenericExperience = TypeVar('TSettableGenericExperience', bound='SettableGenericExperienceProtocol')
-TClassificationExperience = TypeVar('TClassificationExperience', bound='ClassificationExperienceProtocol')
+TSettableGenericExperience = TypeVar(
+    'TSettableGenericExperience',
+    bound='SettableGenericExperienceProtocol')
+TClassificationExperience = TypeVar(
+    'TClassificationExperience',
+    bound='ClassificationExperienceProtocol')
 TGenericClassificationExperience = TypeVar(
-    "TGenericClassificationExperience", bound="GenericClassificationExperience"
-)
+    'TGenericClassificationExperience',
+    bound='GenericClassificationExperience')
 
 
 # TODO: more appropriate name (like ClassificationScenario)
-class GenericCLScenario(ClassesTimelineCLScenario[TGenericCLScenario, TCLStream, TClassificationExperience, ClassificationDataset]):
+class GenericCLScenario(
+    ClassesTimelineCLScenario[
+        TGenericCLScenario,
+        TCLStream,
+        TClassificationExperience,
+        ClassificationDataset]):
     """
     Base implementation of a Continual Learning classification benchmark.
 
@@ -70,18 +91,21 @@ class GenericCLScenario(ClassesTimelineCLScenario[TGenericCLScenario, TCLStream,
     """
     
     def __init__(
-        self: TGenericCLScenario,
-        *,
-        stream_definitions: TStreamsUserDict,
-        stream_factory: Optional[Callable[[str, TGenericCLScenario], TCLStream]] = None,
-        experience_factory: Optional[Callable[[TCLStream, int], TClassificationExperience]] = None,
-        complete_test_set_only: bool = False):
+            self: TGenericCLScenario,
+            *,
+            stream_definitions: TStreamsUserDict,
+            stream_factory: Optional[
+                Callable[[str, TGenericCLScenario], TCLStream]] = None,
+            experience_factory: Optional[
+                Callable[[TCLStream, int], TClassificationExperience]] = None,
+            complete_test_set_only: bool = False):
 
         if stream_factory is None:
-            stream_factory = ClassificationStream # type: ignore
+            stream_factory = ClassificationStream  # type: ignore
         
         if experience_factory is None:
-            experience_factory = GenericClassificationExperience # type: ignore
+            experience_factory = \
+                GenericClassificationExperience  # type: ignore
 
         # PyLance -_-
         assert stream_factory is not None
@@ -122,8 +146,10 @@ class ClassificationStream(
 class GenericClassificationExperience(
     AbstractClassTimelineExperience[
         TGenericCLScenario, ClassificationStream[
-           TGenericCLScenario, TGenericClassificationExperience
-       ], ClassificationDataset
+            TGenericCLScenario, 
+            TGenericClassificationExperience
+        ], 
+        ClassificationDataset
     ],
     ClassificationExperienceProtocol[TGenericCLScenario, ClassificationStream[
         TGenericCLScenario, TGenericClassificationExperience
@@ -184,7 +210,7 @@ class GenericClassificationExperience(
 
     @property
     def task_labels(self) -> List[int]:
-        with self.no_attribute_masking(): # Needed for "current_experience"
+        with self.no_attribute_masking():  # Needed for "current_experience"
             stream_def = self._get_stream_def()
             return list(stream_def.exps_task_labels[self.current_experience])
 
@@ -217,6 +243,7 @@ class LazyStreamClassesInExps(Mapping[str, Sequence[Set[int]]]):
 
 LazyClassesInExpsRet = Union[Tuple[Optional[Set[int]], ...], Optional[Set[int]]]
 
+
 class LazyClassesInExps(Sequence[Optional[Set[int]]]):
     def __init__(self, benchmark: GenericCLScenario, stream: str = "train"):
         self._benchmark = benchmark
@@ -235,7 +262,7 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
     
     def __getitem__(self, exp_id: Union[int, slice], /) -> LazyClassesInExpsRet:
         indexing_collate = LazyClassesInExps._slice_collate
-        result =  manage_advanced_indexing(
+        result = manage_advanced_indexing(
             exp_id,
             self._get_single_exp_classes,
             len(self),
@@ -259,7 +286,8 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
         return set(targets)
 
     @staticmethod
-    def _slice_collate(classes_in_exps: Iterable[Optional[Iterable[int]]]) -> Optional[Tuple[Set[int], ...]]:
+    def _slice_collate(classes_in_exps: Iterable[Optional[Iterable[int]]]) -> \
+            Optional[Tuple[Set[int], ...]]:
         result: List[Set[int]] = []
         for x in classes_in_exps:
             if x is None:

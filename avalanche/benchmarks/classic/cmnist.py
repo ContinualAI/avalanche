@@ -64,7 +64,8 @@ class PixelsPermutation(object):
         else:
             image_as_tensor = img
 
-        image_as_tensor = image_as_tensor.view(-1)[self.permutation].view(*image_as_tensor.shape)
+        image_as_tensor = image_as_tensor.view(-1)[self.permutation].view(
+            *image_as_tensor.shape)
 
         if is_image:
             img = self._to_image(image_as_tensor)

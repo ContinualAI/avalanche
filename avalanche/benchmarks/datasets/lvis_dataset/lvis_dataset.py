@@ -79,10 +79,10 @@ class LvisDataset(DownloadableDataset):
         self.transform = transform
         self.loader = loader
         self.bbox_crop = True
-        self.img_ids: List[int] = img_ids # type: ignore
+        self.img_ids: List[int] = img_ids  # type: ignore
 
-        self.targets: LVISDetectionTargets = None # type: ignore
-        self.lvis_api: LVIS = lvis_api # type: ignore
+        self.targets: LVISDetectionTargets = None  # type: ignore
+        self.lvis_api: LVIS = lvis_api  # type: ignore
 
         super(LvisDataset, self).__init__(root, download=download, verbose=True)
 
@@ -131,11 +131,11 @@ class LvisDataset(DownloadableDataset):
                 assert self._load_img(img_dict) is not None
         except BaseException:
             if must_load_api:
-                self.lvis_api = None # type: ignore
+                self.lvis_api = None  # type: ignore
             if must_load_img_ids:
-                self.img_ids = None # type: ignore
+                self.img_ids = None  # type: ignore
 
-            self.targets = None # type: ignore
+            self.targets = None  # type: ignore
             raise
 
         return True

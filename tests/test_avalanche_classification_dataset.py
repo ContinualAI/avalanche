@@ -1227,7 +1227,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         ]
 
         # concatenate datasets
-        final_train, _, classes = concat_classification_datasets_sequentially(train, test)
+        final_train, _, classes = \
+            concat_classification_datasets_sequentially(train, test)
 
         # merge all classes into a single list
         classes_all = []

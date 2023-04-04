@@ -10,7 +10,16 @@
 ################################################################################
 
 from collections import defaultdict
-from typing import Callable, Sequence, Iterable, Dict, Optional, Iterator, TypeVar, Union
+from typing import (
+    Callable,
+    Sequence,
+    Iterable,
+    Dict,
+    Optional,
+    Iterator,
+    TypeVar,
+    Union,
+)
 from typing_extensions import overload
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
@@ -122,7 +131,8 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
     def __getitem__(self, exp_idx: slice, /) -> Sequence[TCLDataset]:
         ...
 
-    def __getitem__(self, exp_idx: Union[int, slice], /) -> Union[TCLDataset, Sequence[TCLDataset]]:
+    def __getitem__(self, exp_idx: Union[int, slice], /) -> \
+            Union[TCLDataset, Sequence[TCLDataset]]:
         """
         Gets the dataset associated to an experience.
 
@@ -130,7 +140,9 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         :return: The dataset associated to the experience.
         """
         # A lot of unuseful lines needed for MyPy -_-
-        indexing_collate: Callable[[Iterable[TCLDataset]], Sequence[TCLDataset]] = lambda x: list(x)
+        indexing_collate: Callable[
+            [Iterable[TCLDataset]],
+            Sequence[TCLDataset]] = lambda x: list(x)
         result = manage_advanced_indexing(
             exp_idx,
             self._get_experience_and_load_if_needed,
@@ -246,7 +258,8 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
                 )
 
             self._loaded_experiences[exp_id] = generated_exp
-            self.targets_field_sequence[exp_id] = getattr(generated_exp, 'targets')
+            self.targets_field_sequence[exp_id] = \
+                getattr(generated_exp, 'targets')
             self.task_labels_field_sequence[
                 exp_id
             ] = getattr(generated_exp, 'targets_task_labels')

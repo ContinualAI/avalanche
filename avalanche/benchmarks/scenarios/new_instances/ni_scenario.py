@@ -29,7 +29,11 @@ from avalanche.benchmarks.utils.flat_data import ConstantSequence
 TNIScenario = TypeVar('TNIScenario', bound='NIScenario')
 TNIExperience = TypeVar('TNIExperience', bound='NIExperience')
 
-class NIScenario(GenericCLScenario[TNIScenario, ClassificationStream[TNIScenario, TNIExperience], TNIExperience]):
+
+class NIScenario(GenericCLScenario[
+        TNIScenario,
+        ClassificationStream[TNIScenario, TNIExperience],
+        TNIExperience]):
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -366,8 +370,9 @@ class NIScenario(GenericCLScenario[TNIScenario, ClassificationStream[TNIScenario
                 # We have assigned the required min_class_patterns_in_exp,
                 # now we assign the remaining patterns
                 #
-                # We'll work on lst_remaining_patterns, which contains indexes of
-                # patterns not assigned in the previous experience.
+                # We'll work on lst_remaining_patterns, which contains
+                # indexes of patterns not assigned in the previous 
+                # experience.
                 if shuffle:
                     patterns_order = torch.as_tensor(lst_remaining_patterns)[
                         torch.randperm(len(lst_remaining_patterns))
@@ -495,4 +500,3 @@ __all__ = [
     "NIScenario",
     "NIExperience"
 ]
-

@@ -22,13 +22,14 @@ from typing import (
     SupportsInt,
     Union,
     Any,
-    List,
     Tuple,
 )
 
-import torch
 from torch import Tensor
-from avalanche.benchmarks.generators.benchmark_generators import nc_benchmark, ni_benchmark
+from avalanche.benchmarks.generators.benchmark_generators import (
+    nc_benchmark,
+    ni_benchmark,
+)
 
 from avalanche.benchmarks.scenarios.classification_scenario import (
     GenericCLScenario,
@@ -36,12 +37,8 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils import (
-    as_classification_dataset,
-)
 from avalanche.benchmarks.utils.classification_dataset import (
-    SupportedDataset,
-    concat_classification_datasets_sequentially
+    SupportedDataset
 )
 
 

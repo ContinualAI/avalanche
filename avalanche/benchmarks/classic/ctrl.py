@@ -19,7 +19,9 @@ import torchvision.transforms.functional as F
 from torchvision import transforms
 from tqdm import tqdm
 
-from avalanche.benchmarks.utils.classification_dataset import SupervisedClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    SupervisedClassificationDataset,
+)
 
 try:
     import ctrl
@@ -100,21 +102,23 @@ def CTrL(
                     files.append((sample_path, label.item()))
 
                 common_root, exp_paths_list = common_paths_root(files)
-                paths_dataset: PathsDataset[Image, int] = PathsDataset(common_root, exp_paths_list)
-                dataset: SupervisedClassificationDataset = make_classification_dataset(
-                    paths_dataset,
-                    task_labels=task_labels,
-                    transform=transforms.Compose(
-                       [transforms.ToTensor(), trans]
-                    ),
-                )
+                paths_dataset: PathsDataset[Image, int] = \
+                    PathsDataset(common_root, exp_paths_list)
+                dataset: SupervisedClassificationDataset = \
+                    make_classification_dataset(
+                        paths_dataset,
+                        task_labels=task_labels,
+                        transform=transforms.Compose(
+                            [transforms.ToTensor(), trans]
+                        ),
+                    )
             else:
                 dataset = make_tensor_classification_dataset(
                     samples,
                     labels.squeeze(1),
                     task_labels=task_labels,
                     transform=trans,
-                    targets=1 # Use the 2nd tensor as targets
+                    targets=1  # Use the 2nd tensor as targets
                 )
             exp.append(dataset)
         if stream_name == "s_long":

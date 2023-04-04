@@ -105,12 +105,6 @@ class ITensorDataset(IDataset[T_co], Protocol):
         ...
 
 
-    # tensors: Sequence[T_co]
-    # """
-    # A sequence of PyTorch Tensors describing the contents of the Dataset.
-    # """
-
-
 class IClassificationDataset(IDatasetWithTargets[T_co, int], Protocol):
     """
     Protocol definition of a Dataset that has a valid targets field (like the

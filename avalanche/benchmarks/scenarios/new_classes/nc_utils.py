@@ -14,9 +14,14 @@ from typing import List, Sequence, Dict, Any, Union, SupportsInt
 
 import torch
 
-from avalanche.benchmarks.utils import classification_subset, SupportedDataset
+from avalanche.benchmarks.utils import (
+    classification_subset,
+    SupportedDataset,
+)
 from avalanche.benchmarks.utils import tensor_as_list
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+)
 
 
 def _indexes_grouped_by_classes(
@@ -39,7 +44,8 @@ def _indexes_grouped_by_classes(
     if search_elements is not None:
         search_elements_list = tensor_as_list(search_elements)
     else:
-        search_elements_list = torch.unique(torch.as_tensor(sequence_list)).tolist()
+        search_elements_list = torch.unique(
+            torch.as_tensor(sequence_list)).tolist()
 
     if sort_classes:
 

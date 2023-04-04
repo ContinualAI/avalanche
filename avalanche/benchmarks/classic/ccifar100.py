@@ -217,9 +217,10 @@ def SplitCIFAR110(
     cifar10_train, cifar10_test = get_cifar10_dataset(dataset_root_cifar10)
     cifar100_train, cifar100_test = get_cifar100_dataset(dataset_root_cifar100)
 
-    cifar_10_100_train, cifar_10_100_test, _ = concat_classification_datasets_sequentially(
-        [cifar10_train, cifar100_train], [cifar10_test, cifar100_test]
-    )
+    cifar_10_100_train, cifar_10_100_test, _ = \
+        concat_classification_datasets_sequentially(
+            [cifar10_train, cifar100_train], [cifar10_test, cifar100_test]
+        )
     # cifar10 classes
     class_order = [_ for _ in range(10)]
     # if a class order is defined (for cifar100) the given class labels are

@@ -167,7 +167,7 @@ class RLScenario(CLScenario[CLStream[TRLScenario, TRLExperience]]):
         tr_exps: List[TRLExperience] = [
             RLExperience(
                 current_experience=i, 
-                origin_stream=None, # type: ignore
+                origin_stream=None,  # type: ignore
                 env=tr_envs[i],
                 n_envs=n_parallel_envs[i],
                 task_label=tr_task_labels[i])
@@ -181,11 +181,11 @@ class RLScenario(CLScenario[CLStream[TRLScenario, TRLExperience]]):
         print("EVAL ", eval_task_labels)
         eval_exps: List[TRLExperience] = [
             RLExperience(
-            current_experience=i,
-            origin_stream=None, # type: ignore
-            env=e,
-            n_envs=1,
-            task_label=l)
+                current_experience=i,
+                origin_stream=None,  # type: ignore
+                env=e,
+                n_envs=1,
+                task_label=l)
             for i, (e, l) in enumerate(zip(eval_envs, eval_task_labels))
         ]
         estream: EagerCLStream[TRLScenario, TRLExperience] = EagerCLStream(

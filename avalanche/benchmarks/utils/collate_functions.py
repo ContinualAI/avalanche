@@ -12,7 +12,16 @@
 import itertools
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Any, List, TypeVar, Generic, Sequence, Tuple, Dict, Union, overload
+from typing import (
+    List,
+    TypeVar,
+    Generic,
+    Sequence,
+    Tuple,
+    Dict,
+    Union,
+    overload,
+)
 from typing_extensions import TypeAlias
 
 import torch
@@ -33,7 +42,9 @@ ClassificationFeatureT: TypeAlias = Tensor
 
 DetectionExampleT = Tuple[Tensor, Dict, int]
 DetectionBatchT = Tuple[Tuple[Tensor, ...], Tuple[Dict, ...], Tuple[int, ...]]
-DetectionBatchedFeatureT = Union[Tuple[Tensor, ...], Tuple[Dict, ...], Tuple[int, ...]]
+DetectionBatchedFeatureT = Union[Tuple[Tensor, ...],
+                                 Tuple[Dict, ...],
+                                 Tuple[int, ...]]
 DetectionFeatureT = Union[Tensor, Dict, int]
 
 
@@ -105,15 +116,16 @@ def detection_collate_fn(batch: Sequence[DetectionExampleT]) -> DetectionBatchT:
     """
 
     # Equivalent to:
-    #a = tuple([x[0] for x in batch])
-    #b = tuple([x[1] for x in batch])
-    #c = tuple([x[2] for x in batch])
-    #return a, b, c
+    # a = tuple([x[0] for x in batch])
+    # b = tuple([x[1] for x in batch])
+    # c = tuple([x[2] for x in batch])
+    # return a, b, c
 
-    return tuple(zip(*batch)) # type: ignore
+    return tuple(zip(*batch))  # type: ignore
 
 
-def detection_collate_mbatches_fn(mbatches: Sequence[DetectionBatchT]) -> DetectionBatchT:
+def detection_collate_mbatches_fn(mbatches: Sequence[DetectionBatchT]) -> \
+        DetectionBatchT:
     """
     Collate function used when loading detection datasets using a DataLoader.
 
@@ -151,7 +163,7 @@ def detection_collate_mbatches_fn(mbatches: Sequence[DetectionBatchT]) -> Detect
             tuple(itertools.chain.from_iterable(lists_dict[mb_elem_idx]))
         )
 
-    return tuple(batch_elements) # type: ignore
+    return tuple(batch_elements)  # type: ignore
 
 
 class Collate(ABC, Generic[ExampleT, BatchT, BatchedFeatureT, FeatureT]):
@@ -235,7 +247,10 @@ class Collate(ABC, Generic[ExampleT, BatchT, BatchedFeatureT, FeatureT]):
 
 
 class ClassificationCollate(
-    Collate[ClassificationExampleT, ClassificationBatchT, ClassificationBatchedFeatureT, ClassificationFeatureT]):
+    Collate[ClassificationExampleT,
+            ClassificationBatchT,
+            ClassificationBatchedFeatureT,
+            ClassificationFeatureT]):
 
     def collate_fn(
             self,
@@ -267,9 +282,13 @@ class ClassificationCollate(
 
 
 class DetectionCollate(
-    Collate[DetectionExampleT, DetectionBatchT, DetectionBatchedFeatureT, DetectionFeatureT]):
+    Collate[DetectionExampleT, 
+            DetectionBatchT,
+            DetectionBatchedFeatureT,
+            DetectionFeatureT]):
 
-    def collate_fn(self, batch: Sequence[DetectionExampleT]) -> DetectionBatchT:
+    def collate_fn(self, batch: Sequence[DetectionExampleT]) -> \
+            DetectionBatchT:
         return detection_collate_fn(batch)
 
     def collate_single_value_fn(
