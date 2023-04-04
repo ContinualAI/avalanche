@@ -275,7 +275,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
         """Update buffer."""
         self.update_from_dataset(strategy.experience.dataset, strategy)
 
-    def update_from_dataset(self, new_data: AvalancheDataset,  strategy: "SupervisedTemplate" = None):
+    def update_from_dataset(self, new_data: AvalancheDataset, strategy: "SupervisedTemplate" = None):
 
         if len(new_data) == 0:
             return
@@ -315,7 +315,9 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
 
         # resize buffers
         for class_id, class_buf in self.buffer_groups.items():
-            self.buffer_groups[class_id].resize(strategy, class_to_len[class_id])
+            self.buffer_groups[class_id].resize(
+                strategy, class_to_len[class_id]
+            )
 
 
 class ParametricBuffer(BalancedExemplarsBuffer):
