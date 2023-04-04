@@ -112,12 +112,12 @@ def main(args):
     batch_streams = benchmark.streams.values()
 
     # Create online scenario from experience exp
-    ocl_benchmark = GradualOnlineCLScenario(
+    gocl_benchmark = GradualOnlineCLScenario(
         original_streams=batch_streams,
         experience_size=10)
 
     # Train on the online train stream of the scenario
-    cl_strategy.train(ocl_benchmark.train_stream)
+    cl_strategy.train(gocl_benchmark.train_stream)
 
     results.append(cl_strategy.eval(benchmark.original_test_stream))
 
