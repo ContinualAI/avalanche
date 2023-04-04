@@ -11,22 +11,24 @@ from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
 from avalanche.core import SupervisedPlugin
+from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import (BalancedExemplarsBuffer,
                                                ReservoirSamplingBuffer)
 from avalanche.training.templates import SupervisedTemplate
+import torch.nn as nn
 
 
 @torch.no_grad()
 def compute_dataset_logits(dataset, model, batch_size, device):
     model.eval()
+
     logits = []
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=False,
     )
-    model.eval()
     for x, _, _ in loader:
         x = x.to(device)
         out = model(x)
@@ -75,7 +77,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         logits = compute_dataset_logits(
             new_data.eval(), 
             strategy.model,
-            strategy.train_mb_size,
+            strategy.train_mb_size, 
             strategy.device
         )
         new_data_with_logits = make_avalanche_dataset(
@@ -267,16 +269,17 @@ class DER(SupervisedTemplate):
 
             if self.replay_loader is not None:
                 self.loss += F.cross_entropy(
-                    self.mb_output[self.batch_size_mem :],
-                    self.mb_y[self.batch_size_mem :],
+                    self.mb_output[self.batch_size_mem:],
+                    self.mb_y[self.batch_size_mem:],
                 )
+
                 self.loss += self.alpha * F.mse_loss(
-                    self.mb_output[: self.batch_size_mem],
+                    self.mb_output[:self.batch_size_mem],
                     self.batch_logits,
                 )
                 self.loss += self.beta * F.cross_entropy(
-                    self.mb_output[: self.batch_size_mem],
-                    self.mb_y[: self.batch_size_mem],
+                    self.mb_output[:self.batch_size_mem],
+                    self.mb_y[:self.batch_size_mem],
                 )
             else:
                 self.loss += self.criterion()
