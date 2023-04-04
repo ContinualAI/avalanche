@@ -273,7 +273,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
         """Update buffer."""
-        self.update_from_dataset(strategy.experience.dataset)
+        self.update_from_dataset(strategy.experience.dataset, strategy)
 
     def update_from_dataset(self, new_data: AvalancheDataset,  strategy: "SupervisedTemplate" = None):
 
