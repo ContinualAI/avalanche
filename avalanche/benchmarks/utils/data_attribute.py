@@ -22,6 +22,82 @@ from .dataset_definitions import IDataset
 from .flat_data import ConstantSequence, FlatData
 
 
+class TensorDataAttribute:
+    """
+    Data attributes to manage sample-wise
+    information such as DER stored logits
+    Data attributes can be efficiently concatenated and subsampled.
+    """
+
+    def __init__(self, data: IDataset, name: str = None, use_in_getitem=False):
+        """Data Attribute.
+
+        :param data: a sequence of values, one for each sample.
+        :param name: a name that uniquely identifies the attribute.
+            It is used by `AvalancheDataset` to dynamically add it to its
+            attributes.
+        :param use_in_getitem: If True, `AvalancheDataset` will add
+            the value at the end of each sample.
+        """
+        self.name = name
+        self.use_in_getitem = use_in_getitem
+        self._data = self._normalize_sequence(data)
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __repr__(self):
+        return str(self.data[:])
+
+    def __str__(self):
+        return str(self.data[:])
+
+    @property
+    def data(self):
+        return self._data
+
+    def subset(self, indices):
+        """Subset operation.
+
+        Return a new `DataAttribute` by keeping only the elements in `indices`.
+
+        :param indices: position of the elements in the new subset
+        :return: the new `DataAttribute`
+        """
+        return DataAttribute(
+            self.data.subset(indices),
+            self.name,
+            use_in_getitem=self.use_in_getitem,
+        )
+
+    def concat(self, other: "DataAttribute"):
+        """Concatenation operation.
+
+        :param other: the other `DataAttribute`
+        :return: the new concatenated `DataAttribute`
+        """
+        assert self.name == other.name, (
+            "Cannot concatenate DataAttributes" + "with different names."
+        )
+        return DataAttribute(
+            self.data.concat(other.data),
+            self.name,
+            use_in_getitem=self.use_in_getitem,
+        )
+
+    @staticmethod
+    def _normalize_sequence(seq):
+        if isinstance(seq, torch.Tensor):
+            # equality doesn't work for tensors
+            seq = seq.tolist()
+        if not isinstance(seq, FlatData):
+            return FlatData([seq])
+        return seq
+
+
 class DataAttribute:
     """Data attributes manage sample-wise information such as task or
     class labels.
