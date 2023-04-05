@@ -268,6 +268,9 @@ class DER(SupervisedTemplate):
             self._after_forward(**kwargs)
 
             if self.replay_loader is not None:
+
+                # DER Loss computation
+
                 self.loss += F.cross_entropy(
                     self.mb_output[self.batch_size_mem:],
                     self.mb_y[self.batch_size_mem:],
@@ -281,6 +284,13 @@ class DER(SupervisedTemplate):
                     self.mb_output[:self.batch_size_mem],
                     self.mb_y[:self.batch_size_mem],
                 )
+
+                # They are a few difference compared to the autors impl:
+                # - Joint forward pass vs. 3 forward passes
+                # - One replay batch vs two replay batches
+                # - Logits are stored from the non-transformed sample
+                #   after training on task vs instantly on transformed sample
+
             else:
                 self.loss += self.criterion()
 
