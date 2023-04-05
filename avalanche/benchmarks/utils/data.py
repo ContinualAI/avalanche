@@ -28,6 +28,7 @@ from typing import List, Any, Sequence, Union, TypeVar, Callable
 from .flat_data import FlatData
 from .transform_groups import TransformGroups, EmptyTransformGroups
 from torch.utils.data import Dataset as TorchDataset
+from collections import OrderedDict
 
 
 T_co = TypeVar("T_co", covariant=True)
@@ -121,17 +122,6 @@ class AvalancheDataset(FlatData):
         )
         super().__init__(datasets, indices, can_flatten)
 
-        if data_attributes is None:
-            self._data_attributes = {}
-        else:
-            self._data_attributes = {da.name: da for da in data_attributes}
-            for da in data_attributes:
-                ld = sum(len(d) for d in self._datasets)
-                if len(da) != ld:
-                    raise ValueError(
-                        "Data attribute {} has length {} but the dataset "
-                        "has length {}".format(da.name, len(da), ld)
-                    )
         if isinstance(transform_groups, dict):
             transform_groups = TransformGroups(transform_groups)
         if isinstance(frozen_transform_groups, dict):
@@ -184,6 +174,7 @@ class AvalancheDataset(FlatData):
         # Init data attributes
         ####################################
         # concat attributes from child datasets
+        self._data_attributes = OrderedDict()
         if len(self._datasets) > 0 and isinstance(
             self._datasets[0], AvalancheDataset
         ):
@@ -200,6 +191,17 @@ class AvalancheDataset(FlatData):
                         break
                 if found_all:
                     self._data_attributes[attr.name] = acat
+
+        # Insert new data attributes after inherited ones
+        if data_attributes is not None:
+            for da in data_attributes:
+                self._data_attributes[da.name] = da
+                ld = sum(len(d) for d in self._datasets)
+                if len(da) != ld:
+                    raise ValueError(
+                        "Data attribute {} has length {} but the dataset "
+                        "has length {}".format(da.name, len(da), ld)
+                    )
 
         if self._indices is not None:  # subset operation for attributes
             for da in self._data_attributes.values():

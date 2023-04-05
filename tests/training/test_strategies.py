@@ -45,6 +45,7 @@ from avalanche.training.supervised import (
     BiC,
     MIR,
     ER_ACE,
+    DER,
     LearningToPrompt,
 )
 from avalanche.training.supervised.cumulative import Cumulative
@@ -1011,6 +1012,24 @@ class StrategyTest(unittest.TestCase):
             use_vit=False,
         )
 
+        self.run_strategy(benchmark, strategy)
+
+    def test_der(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False
+        )
+        strategy = DER(
+            model,
+            optimizer,
+            criterion,
+            mem_size=1000,
+            batch_size_mem=10,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
         self.run_strategy(benchmark, strategy)
 
     def load_benchmark(self, use_task_labels=False):
