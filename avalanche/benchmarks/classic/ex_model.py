@@ -91,7 +91,7 @@ def check_experts_accuracy(exml_benchmark):
 
         train_data = exml_benchmark.original_benchmark.train_stream[i].dataset
         for x, y, t in DataLoader(
-            train_data, batch_size=256, pin_memory=True, num_workers=8
+            train_data, batch_size=256, pin_memory=True, num_workers=4
         ):
             x, y, t = x.to("cuda"), y.to("cuda"), t.to("cuda")
             y_pred = model(x)

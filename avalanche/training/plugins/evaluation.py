@@ -13,6 +13,12 @@ if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
 
 
+def _init_metrics_list_lambda():
+    # SERIALIZATION NOTICE: we need these because lambda serialization
+    # does not work in some cases (yes, even with dill).
+    return [], []
+
+
 class EvaluationPlugin:
     """Manager for logging and metrics.
 
@@ -75,7 +81,9 @@ class EvaluationPlugin:
             # time steps at which the corresponding metric value
             # has been emitted)
             # second list gathers metric values
-            self.all_metric_results = defaultdict(lambda: ([], []))
+            # SERIALIZATION NOTICE: don't use a lambda here, otherwise
+            # serialization may fail in some cases.
+            self.all_metric_results = defaultdict(_init_metrics_list_lambda)
         # Dictionary of last values emitted. Dictionary key
         # is the full metric name, while dictionary value is
         # metric value.

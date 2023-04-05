@@ -1,3 +1,4 @@
+import time
 from abc import ABC, abstractmethod
 from functools import partial
 from pathlib import Path
@@ -245,7 +246,13 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
     def save_checkpoint(checkpoint_data, fobj: Union[BinaryIO, IO[bytes]]):
         # import dill.detect
         # dill.detect.trace(True)
+
+        # compute checkpoint duration
+        print('Saving checkpoint...')
+        start_time = time.time()
         torch.save(checkpoint_data, fobj, pickle_module=dill)
+        end_time = time.time()
+        print('Checkpoint duration:', end_time - start_time)
 
     def load_checkpoint(self, fobj: Union[BinaryIO, IO[bytes]]):
         """
