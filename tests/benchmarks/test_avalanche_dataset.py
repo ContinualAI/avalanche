@@ -31,6 +31,7 @@ from avalanche.benchmarks.utils.flat_data import (
 )
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
+    SupervisedClassificationDataset,
 )
 from tests.unit_tests_utils import (
     load_image_benchmark,
@@ -395,6 +396,102 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             subset_task11 = dataset.task_set[11]
+
+    def test_avalanche_dataset_update_data_attribute(self):
+        dataset_orig = load_image_benchmark()
+
+        dataset: SupervisedClassificationDataset = make_classification_dataset(
+            dataset_orig,
+            transform=ToTensor(),
+            task_labels=0
+        )
+
+        self.assertIsInstance(dataset, SupervisedClassificationDataset)
+        dataset_element = dataset[101]
+        self.assertEqual(3, len(dataset_element))  # x, y, t
+
+        self.assertIsInstance(dataset_element[0], Tensor)
+        self.assertIsInstance(dataset_element[1], int)
+        self.assertIsInstance(dataset_element[2], int)
+
+        self.assertEqual(dataset_element[1], dataset.targets[101])
+        self.assertEqual(dataset_element[2], dataset.targets_task_labels[101])
+
+        # --- Test add data attribute ---
+        plain_attribute = torch.arange(len(dataset))
+        get_item_attribute = DataAttribute(
+            data=torch.arange(len(dataset)) + 5,
+            name='gia',
+            use_in_getitem=True
+        )
+
+        targets_task_labels_not_gia = DataAttribute(
+            data=torch.arange(len(dataset)) + 7,
+            name='targets_task_labels',
+            use_in_getitem=False
+        )
+
+        # Test wrong length
+        for wrong_attr in [torch.arange(len(dataset)-1), 
+                           torch.arange(len(dataset)+1)]:
+            with self.assertRaises(Exception):
+                dataset.update_data_attribute('wrong_attr', wrong_attr)
+
+        # Add plain attribute
+        dataset_plus_plain = dataset.update_data_attribute(
+            'plain_attr', plain_attribute)
+        # check nothing added from plain attribute
+        self.assertEqual(3, len(dataset_plus_plain[0]))
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_plain.plain_attr), plain_attribute))
+
+        # Add get-item attribute
+        dataset_plus_gia = dataset.update_data_attribute(
+            'gia', get_item_attribute)
+        # check element added from gia attribute
+        elem = dataset_plus_gia[100]
+        self.assertEqual(4, len(elem))
+
+        # Name mismatch check
+        with self.assertRaises(Exception):
+            dataset_plus_gia = dataset.update_data_attribute(
+                'name_mismatch', get_item_attribute)
+
+        # DataAttribute must convert tensors to list
+        self.assertIsInstance(elem[3], int)
+        self.assertEqual(105, elem[3])
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_gia.gia), torch.arange(len(dataset)) + 5))
+
+        # Replace attribute (plain)
+        dataset_plus_plain = dataset.update_data_attribute(
+            'targets', plain_attribute)
+        # check nothing added from plain attribute
+        self.assertEqual(3, len(dataset_plus_plain[0]))
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_plain.targets), plain_attribute))
+
+        # Replace attribute (get_item)
+        dataset_plus_plain = dataset.update_data_attribute(
+            'targets_task_labels', plain_attribute)
+        # check element no removed
+        self.assertEqual(3, len(dataset_plus_plain[0]))
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_plain.targets_task_labels), plain_attribute))
+
+        # Replace attribute (remove one from get_item)
+        dataset_plus_plain = dataset.update_data_attribute(
+            'targets_task_labels', targets_task_labels_not_gia)
+        # check element removed
+        self.assertEqual(2, len(dataset_plus_plain[0]))
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_plain.targets_task_labels), 
+            torch.arange(len(dataset)) + 7))
 
 
 if __name__ == "__main__":

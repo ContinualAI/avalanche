@@ -226,6 +226,18 @@ def concat_datasets(datasets):
 def find_common_transforms_group(
         datasets: Iterable[Any], 
         default_group: str = "train") -> str:
+    """
+    Utility used to find the common transformations group across multiple
+    datasets.
+
+    To compute the common group, the current one is used. Objects which are not
+    instances of :class:`AvalancheDataset` are ignored.
+    If no common group is found, then the default one is returned.
+
+    :param datasets: The list of datasets.
+    :param default_group: The name of the default group.
+    :returns: The name of the common group.
+    """
     # Find common "current_group" or use "train"
     uniform_group: Optional[str] = None
     for d_set in datasets:
@@ -252,11 +264,30 @@ Y = TypeVar('Y')
 T = TypeVar('T')
 
 
-def traverse_supported_dataset(
+def _traverse_supported_dataset(
     dataset: Y,
-    values_selector: Callable[[Y, Optional[List[int]]], Sequence[T]],
+    values_selector: Callable[[Y, Optional[List[int]]], Optional[Sequence[T]]],
     indices: Optional[List[int]] = None
 ) -> Sequence[T]:
+    """
+    Traverse the given dataset by gathering required info.
+
+    The given dataset is traversed by covering all sub-datasets
+    contained PyTorch :class:`Subset` and :class`ConcatDataset`.
+    Beware that instances of :class:`AvalancheDataset` will not
+    be traversed as those objects already have the proper data 
+    attribute fields populated with data from leaf datasets.
+
+    For each dataset, the `values_selector` will be called to gather
+    the required information. The values returned by the given selector
+    are then concatenated to create a final list of values.
+
+    :param dataset: The dataset to traverse.
+    :param values_selector: A function that, given the dataset
+        and the indices to consider (which may be None if the entire 
+        dataset must be considered), returns a list of selected values.
+    :returns: The list of selected values.
+    """
     initial_error = None
     try:
         result = values_selector(dataset, indices)
@@ -272,7 +303,7 @@ def traverse_supported_dataset(
             indices = [dataset.indices[x] for x in indices]
         
         return list(
-            traverse_supported_dataset(
+            _traverse_supported_dataset(
                 dataset.dataset, values_selector, indices
             )
         )
@@ -282,7 +313,7 @@ def traverse_supported_dataset(
         if indices is None:
             for c_dataset in dataset.datasets:
                 result += list(
-                    traverse_supported_dataset(
+                    _traverse_supported_dataset(
                         c_dataset, values_selector, indices
                     )
                 )
@@ -309,7 +340,7 @@ def traverse_supported_dataset(
         for dataset_idx, c_dataset in enumerate(dataset.datasets):
             recursion_result.append(
                 deque(
-                    traverse_supported_dataset(
+                    _traverse_supported_dataset(
                         c_dataset,
                         values_selector,
                         datasets_to_indexes[dataset_idx],
@@ -330,9 +361,27 @@ def traverse_supported_dataset(
     raise ValueError("Error: can't find the needed data in the given dataset")
 
 
-def init_task_labels(dataset, task_labels, check_shape=True) -> \
+def _init_task_labels(dataset, task_labels, check_shape=True) -> \
         Optional[DataAttribute[int]]:
-    """A task label for each pattern in the dataset."""
+    """
+    Initializes the task label list (one for each pattern in the dataset).
+
+    Precedence is given to the values contained in `task_labels` if passed.
+    Otherwisem the elements will be retrieved from the dataset itself by
+    traversing it and looking at the `targets_task_labels` field.
+
+    :param dataset: The dataset for which the task labels list must be 
+        initialized. Ignored if `task_labels` is passed, but it may still be
+        used if `check_shape` is true.
+    :param task_labels: The task labels to use. May be None, in which case
+        the labels will be retrieved from the dataset.
+    :param check_shape: If True, will check if the length of the task labels
+        list matches the dataset size. Ignored if the labels are retrieved 
+        from the dataset.
+    :returns: A data attribute containing the task labels. May be None to
+        signal that the dataset's `targets_task_labels` field should be used
+        (because the dataset is a :class:`AvalancheDataset`).
+    """
     if task_labels is not None:
         # task_labels has priority over the dataset fields
         if isinstance(task_labels, int):
@@ -348,7 +397,7 @@ def init_task_labels(dataset, task_labels, check_shape=True) -> \
         if isinstance(dataset, AvalancheDataset):
             tls = None
         else:
-            task_labels = traverse_supported_dataset(
+            task_labels = _traverse_supported_dataset(
                 dataset, _select_task_labels
             )
             tls = SubSequence(task_labels, converter=int)
@@ -358,8 +407,17 @@ def init_task_labels(dataset, task_labels, check_shape=True) -> \
     return DataAttribute(tls, "targets_task_labels", use_in_getitem=True)
 
 
-def _select_task_labels(dataset, indices):
-    found_task_labels = None
+def _select_task_labels(dataset: Any, indices: Optional[List[int]]) -> \
+        Optional[Sequence[SupportsInt]]:
+    """
+    Selector function to be passed to :func:`_traverse_supported_dataset`
+    to obtain the `targets_task_labels` for the given dataset.
+
+    :param dataset: the traversed dataset.
+    :param indices: the indices describing the subset to consider.
+    :returns: The list of task labels or None if not found.
+    """
+    found_task_labels: Optional[Sequence[SupportsInt]] = None
     if hasattr(dataset, "targets_task_labels"):
         found_task_labels = dataset.targets_task_labels
 
@@ -378,13 +436,35 @@ def _select_task_labels(dataset, indices):
     return found_task_labels
 
 
-def init_transform_groups(
+def _init_transform_groups(
     transform_groups: Optional[Mapping[str, TransformGroupDef]],
     transform: Optional[XTransform],
     target_transform: Optional[YTransform],
     initial_transform_group: Optional[str],
     dataset,
-):
+) -> Optional[TransformGroups]:
+    """
+    Initializes the transform groups for the given dataset.
+
+    This internal utility is commonly used to manage the transformation
+    defintions coming from the user-facing API. The user may want to
+    define transformations in a more classic (and simple) way by
+    passing a single `transform`, or in a more elaborate way by
+    passing a dictionary of groups (`transform_groups`).
+
+    :param transform_groups: The transform groups to use as a dictionary
+        (group_name -> group). Can be None. Mutually exclusive with 
+        `targets` and `target_transform`
+    :param transform: The transformation for the X value. Can be None.
+    :param target_transform: The transformation for the Y value. Can be None.
+    :param initial_transform_group: The name of the initial group.
+        If None, 'train' will be used.
+    :param dataset: The avalanche dataset, used only to obtain the name of
+        the initial transformations groups if `initial_transform_group` is 
+        None.
+    :returns: a :class:`TransformGroups` instance if any transformation
+        was passed, else None.
+    """
     if transform_groups is not None and (
         transform is not None or target_transform is not None
     ):
@@ -445,12 +525,32 @@ def _check_groups_dict_format(groups_dict):
         )
 
 
-def split_user_def_task_label(
+def _split_user_def_task_label(
     datasets,
     task_labels: Optional[Union[int, 
                                 Sequence[int],
                                 Sequence[Sequence[int]]]]) -> \
         List[Optional[Union[int, Sequence[int]]]]:
+    """
+    Given a datasets list and the user-defined list of task labels,
+    returns the task labels list of each dataset.
+
+    This internal utility is mainly used to manage the different ways
+    in which the user can define the task labels:
+    - As a single task label for all exemplars of all datasets
+    - A single list of length equal to the sum of the lengths of all datasets
+    - A list containing, for each dataset, one element between: 
+        - a list, defining the task labels of each exemplar of a that dataset
+        - an int, defining the task label of all exemplars of a that dataset
+    
+    :param datasets: The list of datasets.
+    :param task_labels: The user-defined task labels. Can be None, in which
+        case a list of None will be returned.
+    :returns: A list containing as many elements as the input `datasets`. 
+        Each element is either a list of task labels or None. If None 
+        (because `task_labels` is None), this means that the task labels
+        should be retrieved by traversing each dataset.
+    """
     t_labels = []
     idx_start = 0
     for dd_idx, dd in enumerate(datasets):
@@ -479,21 +579,39 @@ def split_user_def_task_label(
     return t_labels
 
 
-def split_user_def_targets(
+def _split_user_def_targets(
         datasets,
         targets: Optional[Union[Sequence[T], Sequence[Sequence[T]]]],
         single_element_checker: Callable[[Any], bool]) -> \
             List[Optional[Sequence[T]]]:
+    """
+    Given a datasets list and the user-defined list of targets,
+    returns the targets list of each dataset.
+
+    This internal utility is mainly used to manage the different ways
+    in which the user can define the targets:
+    - A single list of length equal to the sum of the lengths of all datasets
+    - A list containing, for each dataset, a list, defining the targets 
+        of each exemplar of a that dataset
+    
+    :param datasets: The list of datasets.
+    :param targets: The user-defined targets. Can be None, in which
+        case a list of None will be returned.
+    :returns: A list containing as many elements as the input `datasets`. 
+        Each element is either a list of targets or None. If None 
+        (because `targets` is None), this means that the targets
+        should be retrieved by traversing each dataset.
+    """
     t_labels = []
     idx_start = 0
     for dd_idx, dd in enumerate(datasets):
         end_idx = idx_start + len(dd)
         dataset_t_label: Optional[Sequence[T]]
         if targets is None:
-            # No task label set
+            # No targets set
             dataset_t_label = None
         elif single_element_checker(targets[0]):
-            # Single task labels sequence
+            # Single targets sequence
             # (to be split across concatenated datasets)
             dataset_t_label = targets[idx_start:end_idx]  # type: ignore
         elif len(targets[dd_idx]) == len(dd):  # type: ignore
@@ -560,8 +678,5 @@ __all__ = [
     "as_classification_dataset",
     "concat_datasets",
     "find_common_transforms_group",
-    "traverse_supported_dataset",
-    "init_task_labels",
-    "init_transform_groups",
     "TaskSet"
 ]

@@ -38,7 +38,7 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
     def __init__(
             self,
             data: IDataset[T_co],
-            name: Optional[str] = None,
+            name: str,
             use_in_getitem: bool = False):
         """Data Attribute.
 
@@ -49,10 +49,13 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
         :param use_in_getitem: If True, `AvalancheDataset` will add
             the value at the end of each sample.
         """
-        self.name = name
-        self.use_in_getitem = use_in_getitem
+        assert name is not None
+        assert data is not None
+        
+        self.name: str = name
+        self.use_in_getitem: bool = use_in_getitem
 
-        self._data = self._normalize_sequence(data)
+        self._data: FlatData[T_co] = self._normalize_sequence(data)
 
         self._uniques: Optional[Set[T_co]] = None  # set()
         self._val_to_idx: Optional[Dict[T_co, Sequence[int]]] = None  # dict()

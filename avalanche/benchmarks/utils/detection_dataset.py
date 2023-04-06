@@ -37,11 +37,11 @@ from torch.utils.data.dataset import Subset, ConcatDataset
 
 from avalanche.benchmarks.utils.utils import (
     TaskSet,
-    init_task_labels,
-    init_transform_groups,
-    split_user_def_targets,
-    split_user_def_task_label,
-    traverse_supported_dataset,
+    _init_task_labels,
+    _init_transform_groups,
+    _split_user_def_targets,
+    _split_user_def_task_label,
+    _traverse_supported_dataset,
 )
 
 from .collate_functions import DetectionCollate
@@ -125,17 +125,17 @@ class SupervisedDetectionDataset(DetectionDataset[T_co]):
     def targets(self) -> DataAttribute[TTargetType]:
         return self._data_attributes['targets']
     
-    @targets.setter
-    def targets(self, value, /):
-        self._update_data_attribute('targets', value)
+    # @targets.setter
+    # def targets(self, value, /):
+    #     self._update_data_attribute('targets', value)
 
     @property
     def targets_task_labels(self) -> DataAttribute[int]:
         return self._data_attributes['targets_task_labels']
     
-    @targets_task_labels.setter
-    def targets_task_labels(self, value, /):
-        self._update_data_attribute('targets_task_labels', value)
+    # @targets_task_labels.setter
+    # def targets_task_labels(self, value, /):
+    #     self._update_data_attribute('targets_task_labels', value)
 
 
 SupportedDetectionDataset = Union[
@@ -281,7 +281,7 @@ def make_detection_dataset(
 
     is_supervised = isinstance(dataset, SupervisedDetectionDataset)
 
-    transform_gs = init_transform_groups(
+    transform_gs = _init_transform_groups(
         transform_groups,
         transform,
         target_transform,
@@ -291,7 +291,7 @@ def make_detection_dataset(
     targets_data: Optional[DataAttribute[TTargetType]] = \
         _init_targets(dataset, targets)
     task_labels_data: Optional[DataAttribute[int]] = \
-        init_task_labels(dataset, task_labels)
+        _init_task_labels(dataset, task_labels)
 
     das: List[DataAttribute] = []
     if targets_data is not None:
@@ -344,7 +344,7 @@ def _init_targets(dataset, targets, check_shape=True) -> \
     if isinstance(dataset, AvalancheDataset):
         return None  # targets are initialized automatically
     else:
-        targets = traverse_supported_dataset(
+        targets = _traverse_supported_dataset(
             dataset, _select_targets)
 
     if targets is None:
@@ -521,12 +521,12 @@ def detection_subset(
     targets_data: Optional[DataAttribute[TTargetType]] = \
         _init_targets(dataset, targets, check_shape=False)
     task_labels_data: Optional[DataAttribute[int]] = \
-        init_task_labels(dataset, task_labels, check_shape=False)
+        _init_task_labels(dataset, task_labels, check_shape=False)
     
     del task_labels
     del targets
 
-    transform_gs = init_transform_groups(
+    transform_gs = _init_transform_groups(
         transform_groups,
         transform,
         target_transform,
@@ -736,11 +736,11 @@ def concat_detection_datasets(
         in different datasets.
     """
     dds = []
-    per_dataset_task_labels = split_user_def_task_label(
+    per_dataset_task_labels = _split_user_def_task_label(
         datasets, task_labels
     )
 
-    per_dataset_targets = split_user_def_targets(
+    per_dataset_targets = _split_user_def_targets(
         datasets,
         targets,
         lambda x: isinstance(x, dict)
@@ -781,7 +781,7 @@ def concat_detection_datasets(
         #######################################
         # TRANSFORMATION GROUPS
         #######################################
-        transform_groups_obj = init_transform_groups(
+        transform_groups_obj = _init_transform_groups(
             transform_groups,
             transform,
             target_transform,
@@ -828,7 +828,7 @@ def concat_detection_datasets(
                     assert dataset_task_labels is not None
 
                     # We already checked that len(t_labels) == len(dataset)
-                    # (done in split_user_def_task_label)
+                    # (done in _split_user_def_task_label)
                     if isinstance(dataset_task_labels, int):
                         all_labels_lst.extend([dataset_task_labels] * len(dd))
                     else:

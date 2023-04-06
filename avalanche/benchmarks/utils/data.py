@@ -25,6 +25,7 @@ from avalanche.benchmarks.utils.dataset_definitions import IDataset
 from .data_attribute import DataAttribute
 
 from typing import (
+    Dict,
     List,
     Any,
     Optional,
@@ -131,8 +132,9 @@ class AvalancheDataset(FlatData[T_co]):
         )
         super().__init__(datasets, indices, can_flatten)
 
+        self._data_attributes: Dict[str, DataAttribute] = dict()
         if data_attributes is None:
-            self._data_attributes = {}
+            self._data_attributes = dict()
         else:
             self._data_attributes = {da.name: da for da in data_attributes}
             ld = sum(len(d) for d in datasets)
@@ -204,24 +206,17 @@ class AvalancheDataset(FlatData[T_co]):
             for attr in first_dataset._data_attributes.values():
                 if attr.name in self._data_attributes:
                     continue  # don't touch overridden attributes
-                attr_name = attr.name
-                if attr_name is None:
-                    warnings.warn(
-                        'The input dataset(s) contains unnamed data '
-                        'attributes. Those attributes will be ignored.'
-                    )
-                    continue
                 
                 acat = attr
                 found_all = True
                 for d2 in datasets[1:]:
-                    if hasattr(d2, attr_name):
-                        acat = acat.concat(getattr(d2, attr_name))
+                    if hasattr(d2, attr.name):
+                        acat = acat.concat(getattr(d2, attr.name))
                     else:
                         found_all = False
                         break
                 if found_all:
-                    self._data_attributes[attr_name] = acat
+                    self._data_attributes[attr.name] = acat
 
         if self._indices is not None:  # subset operation for attributes
             for da in self._data_attributes.values():
@@ -240,37 +235,27 @@ class AvalancheDataset(FlatData[T_co]):
                 self._data_attributes[da.name] = dasub
 
         # set attributes dynamically
-        unnamed_attributes = 0
         for el in self._data_attributes.values():
             assert len(el) == len(
                 self
             ), f"BUG: Wrong size for attribute {el.name}"
 
-            el_name = el.name
-            if el_name is not None:
-                if hasattr(self, el_name):
-                    # Do not raise an error if a property.
-                    # Any check related to the property will be done
-                    # in the property setter method.
-                    if not isinstance(getattr(type(self), el_name, None), 
-                                      property):
-                        raise ValueError(
-                            f"Trying to add DataAttribute `{el.name}` to "
-                            f"AvalancheDataset but the attribute name is "
-                            f"already used."
-                        )
-                setattr(self, el_name, el)
-            else:
-                unnamed_attributes += 1
-        
-        if unnamed_attributes > 0:
-            warnings.warn(
-                f'The input data_attributes list contains {unnamed_attributes}'
-                f' unnamed data attributes. '
-                f'Those attributes will be retained, but no object field '
-                f'will be added.'
-            )
-
+            is_property = False
+            if hasattr(self, el.name):
+                is_property = True
+                # Do not raise an error if a property.
+                # Any check related to the property will be done
+                # in the property setter method.
+                if not isinstance(getattr(type(self), el.name, None), 
+                                  property):
+                    raise ValueError(
+                        f"Trying to add DataAttribute `{el.name}` to "
+                        f"AvalancheDataset but the attribute name is "
+                        f"already used."
+                    )
+            if not is_property:
+                setattr(self, el.name, el)
+    
     @property
     def transform(self):
         raise AttributeError(
@@ -279,37 +264,51 @@ class AvalancheDataset(FlatData[T_co]):
             "See the documentation for more info."
         )
     
-    def _update_data_attribute(self, name: str, new_value):
+    def update_data_attribute(
+            self: TAvalancheDataset,
+            name: str,
+            new_value) -> TAvalancheDataset:
         """
-        Adds or replace a data attribute.
+        Return a new dataset with the added or replaced data attribute.
 
-        If a object of type :class:`DataAttribute` is passed, then the object
-         is setted as is.
+        If a object of type :class:`DataAttribute` is passed, then the data
+        attribute is setted as is.
 
         Otherwise, if a raw value is passed, a new DataAttribute is created.
         If a DataAttribute with the same already exists, the use_in_getitem
-        flag is inherited,
-        otherwise it is set to False.
+        flag is inherited, otherwise it is set to False.
+
+        :param name: The name of the data attribute to add/replace.
+        :param new_value: Either a :class:`DataAttribute` or a sequence
+            containing as many elements as the datasets.
+        :returns: A copy of this dataset with the given data attribute set.
         """
         assert len(new_value) == len(self), \
             f'Size mismatch when updating data attribute {name}'
 
+        datacopy = self._shallow_clone_dataset()
+        datacopy._data_attributes = copy.copy(
+            datacopy._data_attributes)
+
         if isinstance(new_value, DataAttribute):
-            self._data_attributes[name] = new_value
+            assert name == new_value.name
+            datacopy._data_attributes[name] = new_value
         else:
             use_in_getitem = False
-            prev_attr = self._data_attributes.get(name, None)
+            prev_attr = datacopy._data_attributes.get(name, None)
             if prev_attr is not None:
                 use_in_getitem = prev_attr.use_in_getitem
             
-            self._data_attributes[name] = DataAttribute(
+            datacopy._data_attributes[name] = DataAttribute(
                 new_value,
                 name=name,
                 use_in_getitem=use_in_getitem)
         
-        if not hasattr(self, name):
+        if not hasattr(datacopy, name):
             # Creates the field if it does not exist
-            setattr(self, name, self._data_attributes[name])
+            setattr(datacopy, name, datacopy._data_attributes[name])
+        
+        return datacopy
 
     def __eq__(self, other: object):
         for required_attr in ['_datasets', 
@@ -427,7 +426,7 @@ class AvalancheDataset(FlatData[T_co]):
         datacopy._transform_groups.with_transform(group_name)
         return datacopy
 
-    def freeze_transforms(self):
+    def freeze_transforms(self: TAvalancheDataset) -> TAvalancheDataset:
         """Returns a new dataset with the transformation groups frozen."""
         tgroups = copy.copy(self._transform_groups)
         frozen_tgroups = copy.copy(self._frozen_transform_groups)
