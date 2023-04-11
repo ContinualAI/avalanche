@@ -119,7 +119,7 @@ class BaseTemplate:
 
         # reset _eval_streams for faster serialization
         self._eval_streams = None
-        self.exerience = None
+        self.experience = None
 
     def _train_exp(self, experience: CLExperience, eval_streams, **kwargs):
         raise NotImplementedError()

@@ -1,5 +1,8 @@
 """
 Use this script to evaluate serialization cost.
+Times on my cheap desktop (April 2023):
+SAVING TIME:  0.019003629684448242
+LOADING TIME:  0.016000032424926758
 """
 import os
 import time
@@ -39,13 +42,15 @@ if __name__ == '__main__':
 
         start_time = time.time()
         save_checkpoint(strat, fname, exclude=[
-            # these attributes do not have state. Do not save.
-            'optimizer',
+            # 'optimizer',
+            # These attributes do not have state. Do not save.
+            # They are automatically set to None by the strategy templates
+            # If not, there is a bug...
             # 'experience',
-            'adapted_dataset',
-            'dataloader',
-            'mbatch',
-            'mb_output',
+            # 'adapted_dataset',
+            # 'dataloader',
+            # 'mbatch',
+            # 'mb_output',
             # 'current_eval_stream',
             # '_eval_streams'
         ])

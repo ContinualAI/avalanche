@@ -238,6 +238,14 @@ class BaseSGDTemplate(BaseTemplate):
 
         super()._before_training_exp(**kwargs)
 
+    def _after_training(self, **kwargs):
+        super()._after_training(**kwargs)
+        # reset for faster serialization
+        self.adapted_dataset = None
+        self.dataloader = None
+        self.mbatch = None
+        self.mb_output = None
+
     def _train_exp(
         self, experience: CLExperience, eval_streams=None, **kwargs
     ):
