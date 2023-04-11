@@ -4,6 +4,7 @@ from os.path import expanduser
 
 import avalanche
 from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.models import SimpleMLP
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
@@ -1648,6 +1649,47 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
 
+    def test_freeze_transforms_subset(self):
+        original_dataset = MNIST(
+            root=default_dataset_location("mnist"), download=True
+        )
+        x, y = original_dataset[0]
+        dataset: AvalancheDataset = make_classification_dataset(
+            original_dataset, transform=ToTensor()
+        )
+        dataset_subset = dataset.subset(
+            (1, 2, 3)
+        )
+        
+        dataset_frozen = dataset_subset.freeze_transforms()
+        x, *_ = dataset_frozen[0]
+        self.assertIsInstance(x, Tensor)
+
+        dataset_frozen = dataset_frozen.replace_current_transform_group(
+            None
+        )
+
+        x, *_ = dataset_frozen[0]
+        self.assertIsInstance(x, Tensor)
+
+        dataset_frozen_derivative = dataset_frozen.replace_current_transform_group(
+            ToPILImage()
+        )
+
+        x, *_ = dataset_frozen[0]
+        x2, *_ = dataset_frozen_derivative[0]
+        self.assertIsInstance(x, Tensor)
+        self.assertIsInstance(x2, Image)
+
+        dataset_frozen = dataset_frozen.replace_current_transform_group(
+            ToPILImage()
+        )
+
+        x, *_ = dataset_frozen[0]
+        x2, *_ = dataset_frozen_derivative[0]
+        self.assertIsInstance(x, Image)
+        self.assertIsInstance(x2, Image)
+
     def test_freeze_transforms_chain(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"),
@@ -1664,6 +1706,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
 
         dataset_frozen = dataset_transform.freeze_transforms()
         self.assertIsInstance(dataset_frozen[0][0], Image)
+        self.assertIsInstance(dataset_transform[0][0], Image)
 
         dataset_transform = dataset_transform.replace_current_transform_group(
             None
@@ -1674,6 +1717,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         dataset_frozen = dataset_frozen.replace_current_transform_group(
             ToTensor()
         )
+        self.assertIsInstance(dataset_transform[0][0], Tensor)
         self.assertIsInstance(dataset_frozen[0][0], Tensor)
 
         dataset_frozen2 = dataset_frozen.freeze_transforms()

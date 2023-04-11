@@ -439,6 +439,7 @@ class AvalancheDataset(FlatData[T_co]):
                 dds.append(dd.freeze_transforms())
             else:
                 dds.append(dd)
+        datacopy._datasets = dds
         return datacopy
 
     def remove_current_transform_group(self):
