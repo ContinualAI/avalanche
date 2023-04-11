@@ -270,7 +270,15 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
         self.seen_classes = set()
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
-        new_data = strategy.experience.dataset
+        """Update buffer."""
+        self.update_from_dataset(strategy.experience.dataset, strategy)
+
+    def update_from_dataset(
+        self, new_data: AvalancheDataset, strategy: "SupervisedTemplate" = None
+    ):
+
+        if len(new_data) == 0:
+            return
 
         # Get sample idxs per class
         cl_idxs = {}
