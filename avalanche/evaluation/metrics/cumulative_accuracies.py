@@ -22,7 +22,16 @@ from avalanche.evaluation.metrics.mean import Mean
 
 
 class CumulativeAccuracy(Metric[float]):
-    """Keeps a dictionnary of cumulative Accuracy for each experience"""
+    """ 
+    Metric used by the CumulativeAccuracyPluginMetric, 
+    holds a dictionnary of per-task cumulative accuracies 
+    and updates the cumulative accuracy based on the classes splits
+    provided for the growing incremental task. 
+    The update is performed as described in the paper 
+    "On the importance of cross-task 
+    features for class-incremental learning"
+    Soutif et. al, https://arxiv.org/abs/2106.11930 
+    """
 
     def __init__(self):
         self._mean_accuracy = defaultdict(lambda: Mean())
@@ -88,7 +97,11 @@ class CumulativeAccuracy(Metric[float]):
 class CumulativeAccuracyPluginMetric(GenericPluginMetric[float]):
     def __init__(self, reset_at="stream", emit_at="stream", mode="eval"):
         """
-        Creates the CumulativeAccuracy plugin
+        Creates the CumulativeAccuracy plugin metric,
+        this stores and updates the Cumulative Accuracy metric described in 
+        "On the importance of cross-task 
+        features for class-incremental learning"
+        Soutif et. al, https://arxiv.org/abs/2106.11930
         """
         self._accuracy = CumulativeAccuracy()
         self.classes_seen_so_far = set()
