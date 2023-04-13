@@ -1,6 +1,4 @@
 import os.path
-import sys
-import time
 from copy import copy
 
 import dill
@@ -46,7 +44,7 @@ def maybe_load_checkpoint(strategy, fname, map_location=None):
         index of the current experience to resume training.
     """
     if not os.path.exists(fname):
-        return None, 0
+        return strategy, 0
 
     ckp = torch.load(fname, pickle_module=dill,
                      map_location=map_location)
