@@ -39,7 +39,7 @@ class RLScenarioTests(unittest.TestCase):
                 self.assertIsInstance(obs[0], np.ndarray)
                 self.assertIsInstance(obs[1], dict)
             else:
-               self.assertIsInstance(obs, np.ndarray)
+                self.assertIsInstance(obs, np.ndarray)
 
     @unittest.skipIf(skip, reason="Need gym to run these tests")
     def test_multiple_envs_shuffle(self):
