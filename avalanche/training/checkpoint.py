@@ -66,8 +66,8 @@ def save_checkpoint(strategy, fname, exclude=None):
 
     WARNING: the method cannot be used inside the training and evaluation loops of the strategy.
 
-    :param strategy:
-    :param fname:
+    :param strategy: strategy to serialize.
+    :param fname: name of the file.
     :param exclude: List[string] list of attributes to remove before the serialization.
     :return:
     """

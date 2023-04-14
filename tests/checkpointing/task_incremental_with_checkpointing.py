@@ -198,7 +198,6 @@ def main(args):
     # all the work done between the previous checkpoint and the current moment
     # is lost.
     for train_task in train_stream[initial_exp:]:
-        # FIXME: persistent_workers=True doesn't work
         strategy.train(train_task, num_workers=2, persistent_workers=True)
         metrics = strategy.eval(test_stream, num_workers=2)
         save_checkpoint(strategy, fname)

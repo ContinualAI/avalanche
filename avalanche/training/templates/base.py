@@ -116,7 +116,9 @@ class BaseTemplate:
             self._train_exp(self.experience, eval_streams, **kwargs)
             self._after_training_exp(**kwargs)
         self._after_training(**kwargs)
+        self._train_cleanup()
 
+    def _train_cleanup(self):
         # reset _eval_streams for faster serialization
         self._eval_streams = None
         self.experience = None
@@ -157,13 +159,15 @@ class BaseTemplate:
             self._after_eval_exp(**kwargs)
 
         self._after_eval(**kwargs)
-
-        # reset for faster serialization
-        self.current_eval_stream = None
-        self.experience = None
+        self._eval_cleanup()
 
         # restore previous shared state.
         self._load_train_state(prev_train_state)
+
+    def _eval_cleanup(self):
+        # reset for faster serialization
+        self.current_eval_stream = None
+        self.experience = None
 
     def _eval_exp(self, **kwargs):
         raise NotImplementedError()
