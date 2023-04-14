@@ -39,6 +39,15 @@ detection_collate_fn = _detection_collate_fn
 detection_collate_mbatches_fn = _detection_collate_mbatches_fn
 
 
+def return_identity(x):
+    """
+    The identity function. Can be wrapped in 'partial'
+    to act as a getter function.
+    Used to avoid lambda functions that cannot be pickled.
+    """
+    return x
+
+
 def collate_from_data_or_kwargs(data, kwargs):
     if "collate_fn" in kwargs:
         return
@@ -158,7 +167,7 @@ class GroupBalancedDataLoader:
 
         # collate is done after we have all batches
         # so we set an empty collate for the internal dataloaders
-        self.loader_kwargs["collate_fn"] = lambda x: x
+        self.loader_kwargs["collate_fn"] = return_identity
 
         # check if batch_size is larger than or equal to the number of datasets
         assert batch_size >= len(datasets)
@@ -589,6 +598,8 @@ def _make_data_loader(
         data_loader_args['num_workers'] = 0
         if 'persistent_workers' in data_loader_args:
             data_loader_args['persistent_workers'] = False
+        if 'prefetch_factor' in data_loader_args:
+            data_loader_args['prefetch_factor'] = 2
 
     if _DistributedHelper.is_distributed and distributed_sampling:
         sampler = DistributedSampler(

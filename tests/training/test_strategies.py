@@ -45,6 +45,8 @@ from avalanche.training.supervised import (
     BiC,
     MIR,
     ER_ACE,
+    DER,
+    LearningToPrompt,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -981,6 +983,44 @@ class StrategyTest(unittest.TestCase):
             multi_task=False
         )
         strategy = ER_ACE(
+            model,
+            optimizer,
+            criterion,
+            mem_size=1000,
+            batch_size_mem=10,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        run_strategy(benchmark, strategy)
+    
+    def test_l2p(self):
+        _, _, _, benchmark = self.init_scenario(
+            multi_task=False
+        )
+
+        strategy = LearningToPrompt(
+            model_name="simpleMLP",
+            criterion=CrossEntropyLoss(),
+            train_mb_size=10,
+            device=self.device,
+            train_epochs=1,
+            num_classes=10,
+            eval_mb_size=50,
+            use_cls_features=False,
+            use_mask=False,
+            use_vit=False,
+        )
+
+        run_strategy(benchmark, strategy)
+
+    def test_der(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(
+            multi_task=False
+        )
+        strategy = DER(
             model,
             optimizer,
             criterion,

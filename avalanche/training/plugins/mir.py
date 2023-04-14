@@ -128,9 +128,8 @@ class MIRPlugin(SupervisedPlugin):
             self.replay_loader = cycle(
                 torch.utils.data.DataLoader(
                     buffer,
-                    batch_size=self.batch_size_mem,
+                    batch_size=self.subsample,
                     shuffle=True,
-                    drop_last=True,
                 )
             )
         else:

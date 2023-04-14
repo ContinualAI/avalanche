@@ -17,6 +17,7 @@ labels automatically. Concatenation and subsampling operations are optimized
 to be used frequently, as is common in replay strategies.
 """
 
+from functools import partial
 import torch
 from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
 
@@ -72,6 +73,15 @@ TClassificationDataset = TypeVar(
     "TClassificationDataset",
     bound="ClassificationDataset"
 )
+
+
+def lookup(indexable, idx):
+    """
+    A simple function that implements indexing into an indexable object.
+    Together with 'partial' this allows us to circumvent lambda functions
+    that cannot be pickled.
+    """
+    return indexable[idx]
 
 
 class ClassificationDataset(AvalancheDataset[T_co]):
@@ -524,7 +534,7 @@ def classification_subset(
 
     if class_mapping is not None:
         frozen_transform_groups = DefaultTransformGroups(
-            (None, lambda x: class_mapping[x])
+            (None, partial(lookup, class_mapping))
         )
     else:
         frozen_transform_groups = None

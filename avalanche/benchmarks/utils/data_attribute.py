@@ -152,7 +152,7 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
         :return: the new concatenated `DataAttribute`
         """
         assert self.name == other.name, (
-            "Cannot concatenate DataAttributes" + "with different names."
+            'Cannot concatenate DataAttributes with different names.'
         )
         return DataAttribute(
             self.data.concat(other.data),
@@ -160,14 +160,16 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
             use_in_getitem=self.use_in_getitem,
         )
 
-    @staticmethod
-    def _normalize_sequence(seq: IDataset[T_co]) -> FlatData[T_co]:
+    def _normalize_sequence(self, seq: IDataset[T_co]) -> FlatData[T_co]:
         if isinstance(seq, torch.Tensor):
             # equality doesn't work for tensors
             seq = seq.tolist()
         if not isinstance(seq, FlatData):
             return FlatData([seq])
         return seq
+
+
+TensorDataAttribute = DataAttribute[T_co]
 
 
 class TaskLabels(DataAttribute):
@@ -178,4 +180,8 @@ class TaskLabels(DataAttribute):
         super().__init__(task_labels, "task_labels", use_in_getitem=True)
 
 
-__all__ = ["DataAttribute", "TaskLabels"]
+__all__ = [
+    "DataAttribute",
+    "TensorDataAttribute",
+    "TaskLabels"
+]

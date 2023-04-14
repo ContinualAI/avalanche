@@ -161,12 +161,6 @@ class BaseSGDTemplate(BaseTemplate):
         super().eval(exp_list, **kwargs)
         return self.evaluator.get_last_metrics()
 
-    def _train_exp(
-        self, experience: CLExperience, eval_streams, **kwargs
-    ):
-        # Should be implemented in Observation Type
-        raise NotImplementedError()
-
     def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
@@ -237,6 +231,22 @@ class BaseSGDTemplate(BaseTemplate):
         self.check_model_and_optimizer()
 
         super()._before_training_exp(**kwargs)
+
+    def _train_cleanup(self):
+        super()._train_cleanup()
+        # reset for faster serialization
+        self.adapted_dataset = None
+        self.dataloader = None
+        self.mbatch = None
+        self.mb_output = None
+
+    def _eval_cleanup(self):
+        super()._eval_cleanup()
+        # reset for faster serialization
+        self.adapted_dataset = None
+        self.dataloader = None
+        self.mbatch = None
+        self.mb_output = None
 
     def _train_exp(
         self, experience: CLExperience, eval_streams=None, **kwargs

@@ -39,6 +39,7 @@ from typing import (
 from .flat_data import FlatData
 from .transform_groups import TransformGroups, EmptyTransformGroups
 from torch.utils.data import Dataset as TorchDataset
+from collections import OrderedDict
 
 
 T_co = TypeVar("T_co", covariant=True)
@@ -132,11 +133,11 @@ class AvalancheDataset(FlatData[T_co]):
         )
         super().__init__(datasets, indices, can_flatten)
 
-        self._data_attributes: Dict[str, DataAttribute] = dict()
+        new_data_attributes: Dict[str, DataAttribute] = dict()
         if data_attributes is None:
-            self._data_attributes = dict()
+            pass
         else:
-            self._data_attributes = {da.name: da for da in data_attributes}
+            new_data_attributes = {da.name: da for da in data_attributes}
             ld = sum(len(d) for d in datasets)
             for da in data_attributes:
                 if len(da) != ld:
@@ -199,13 +200,17 @@ class AvalancheDataset(FlatData[T_co]):
         # Init data attributes
         ####################################
         # concat attributes from child datasets
+        self._data_attributes: Dict[str, DataAttribute] = OrderedDict()
         first_dataset = datasets[0] if len(datasets) > 0 else None
         if isinstance(
             first_dataset, AvalancheDataset
         ):
             for attr in first_dataset._data_attributes.values():
-                if attr.name in self._data_attributes:
-                    continue  # don't touch overridden attributes
+                if attr.name in new_data_attributes:
+                    # Keep overridden attributes in their previous position
+                    self._data_attributes[attr.name] = \
+                        new_data_attributes.pop(attr.name)
+                    continue
                 
                 acat = attr
                 found_all = True
@@ -217,6 +222,10 @@ class AvalancheDataset(FlatData[T_co]):
                         break
                 if found_all:
                     self._data_attributes[attr.name] = acat
+
+        # Insert new data attributes after inherited ones
+        for da in new_data_attributes.values():
+            self._data_attributes[da.name] = da
 
         if self._indices is not None:  # subset operation for attributes
             for da in self._data_attributes.values():

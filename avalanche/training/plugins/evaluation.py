@@ -13,6 +13,12 @@ if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
 
 
+def _init_metrics_list_lambda():
+    # SERIALIZATION NOTICE: we need these because lambda serialization
+    # does not work in some cases (yes, even with dill).
+    return [], []
+
+
 class EvaluationPlugin:
     """Manager for logging and metrics.
 
@@ -75,7 +81,9 @@ class EvaluationPlugin:
             # time steps at which the corresponding metric value
             # has been emitted)
             # second list gathers metric values
-            self.all_metric_results = defaultdict(lambda: ([], []))
+            # SERIALIZATION NOTICE: don't use a lambda here, otherwise
+            # serialization may fail in some cases.
+            self.all_metric_results = defaultdict(_init_metrics_list_lambda)
         # Dictionary of last values emitted. Dictionary key
         # is the full metric name, while dictionary value is
         # metric value.
@@ -186,9 +194,9 @@ class EvaluationPlugin:
         except AttributeError as e:
             if item.startswith("before_") or item.startswith("after_"):
                 # method is a callback. Forward to metrics.
-                return lambda strat, **kwargs: self._update_metrics_and_loggers(
-                    strat, item
-                )
+                def fun(strat, **kwargs):
+                    return self._update_metrics_and_loggers(strat, item)
+                return fun
             raise
 
     def before_eval(self, strategy: "SupervisedTemplate", **kwargs):
