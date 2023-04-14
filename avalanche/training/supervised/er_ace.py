@@ -170,6 +170,11 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
 
         super()._before_training_exp(**kwargs)
 
+    def _train_cleanup(self):
+        super()._train_cleanup()
+        # reset the value to avoid serialization failures
+        self.replay_loader = None
+
 
 class ER_ACE(SupervisedTemplate):
     """
