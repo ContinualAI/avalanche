@@ -18,6 +18,7 @@ class RLScenarioTests(unittest.TestCase):
 
     @unittest.skipIf(skip, reason="Need gym to run these tests")
     def test_simple_scenario(self):
+        from packaging import version
         n_envs = 3
         envs = [gym.make("CartPole-v1")] * n_envs
         rl_scenario = RLScenario(
@@ -34,7 +35,11 @@ class RLScenarioTests(unittest.TestCase):
             assert exp.task_label == 0
             assert isinstance(env, gym.Env)
             obs = env.reset()
-            assert isinstance(obs, np.ndarray)
+            if version.parse(gym.__version__) >= version.parse('0.26.0'):
+                self.assertIsInstance(obs[0], np.ndarray)
+                self.assertIsInstance(obs[1], dict)
+            else:
+               self.assertIsInstance(obs, np.ndarray)
 
     @unittest.skipIf(skip, reason="Need gym to run these tests")
     def test_multiple_envs_shuffle(self):
