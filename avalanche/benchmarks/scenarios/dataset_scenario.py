@@ -20,12 +20,11 @@ from typing import (
 
 
 from avalanche.benchmarks.scenarios.generic_scenario import (
+    CLExperience,
     CLStream,
     CLScenario,
-    GenericExperienceProtocol,
+    DatasetExperience,
     SequenceCLStream,
-    SettableGenericExperienceProtocol,
-    DatasetExperienceProtocol
 )
 
 from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
@@ -63,20 +62,15 @@ TClassesTimelineCLScenario = TypeVar(
 # From generic_scenario:
 TCLStream = TypeVar(
     'TCLStream',
-    bound='CLStream',
-    covariant=True)
+    bound='CLStream')
 
 # --- Experience ---
-# From generic_scenario:
-TGenericExperience = TypeVar(
-    'TGenericExperience',
-    bound='GenericExperienceProtocol')
-TSettableGenericExperience = TypeVar(
-    'TSettableGenericExperience',
-    bound='SettableGenericExperienceProtocol')
+TCLExperience = TypeVar(
+    'TCLExperience',
+    bound='CLExperience')
 TDatasetExperience = TypeVar(
     'TDatasetExperience',
-    bound='DatasetExperienceProtocol')
+    bound='DatasetExperience')
 
 
 # Definitions (stream)
@@ -124,8 +118,8 @@ STREAM_NAME_REGEX = re.compile("^[A-Za-z][A-Za-z_\\d]*$")
 
 
 class DatasetScenario(
-        Generic[TDatasetScenario, TCLStream, TDatasetExperience, TCLDataset],
-        CLScenario[TCLStream], ABC):
+        CLScenario[TCLStream],
+        Generic[TCLStream, TDatasetExperience, TCLDataset]):
     """
     Base implementation of a Continual Learning benchmark instance.
     A Continual Learning benchmark instance is defined by a set of streams of
@@ -509,7 +503,6 @@ class DatasetScenario(
 
 class ClassesTimelineCLScenario(
         DatasetScenario[
-            TClassesTimelineCLScenario,
             TCLStream,
             TDatasetExperience,
             TCLDataset],
@@ -619,35 +612,31 @@ class ClassesTimelineCLScenario(
         )
 
 
-class FactoryBasedStream(
-    SequenceCLStream[
-        TDatasetScenario, TSettableGenericExperience
-    ],
-    Generic[TDatasetScenario, TSettableGenericExperience]
-):
+class DatasetStream(
+    SequenceCLStream[TDatasetExperience]
+): 
+    """
+    Base class for all streams connected to a :class:`DatasetScenario`.
+
+    This class includes proper typing for the `benchmark` field and
+    the `drop_previous_experiences` method, which can be used to drop
+    references to already processed datasets.
+    """
     def __init__(
         self,
         name: str,
-        benchmark: TDatasetScenario,
+        benchmark: DatasetScenario,
         *,
         slice_ids: Optional[List[int]] = None,
         set_stream_info: bool = True
     ):
+        self.benchmark: DatasetScenario = benchmark
+        
         super().__init__(
             name=name,
             benchmark=benchmark,
             slice_ids=slice_ids,
             set_stream_info=set_stream_info)
-
-    def _full_length(self) -> int:
-        return len(self.benchmark.stream_definitions[self.name].exps_data)
-
-    def _make_experience(self, experience_idx: int) -> \
-            TSettableGenericExperience:
-        a = self.benchmark.experience_factory(
-            self,  # type: ignore
-            experience_idx)
-        return a
 
     def drop_previous_experiences(self, to_exp: int) -> None:
         """
@@ -682,6 +671,33 @@ class FactoryBasedStream(
         self.benchmark.stream_definitions[
             self.name
         ].exps_data.drop_previous_experiences(to_exp)
+
+
+class FactoryBasedStream(
+    DatasetStream[TDatasetExperience]
+):
+    def __init__(
+        self,
+        name: str,
+        benchmark: DatasetScenario,
+        *,
+        slice_ids: Optional[List[int]] = None,
+        set_stream_info: bool = True
+    ):
+        super().__init__(
+            name=name,
+            benchmark=benchmark,
+            slice_ids=slice_ids,
+            set_stream_info=set_stream_info)
+
+    def _full_length(self) -> int:
+        return len(self.benchmark.stream_definitions[self.name].exps_data)
+
+    def _make_experience(self, experience_idx: int) -> TDatasetExperience:
+        a = self.benchmark.experience_factory(
+            self,  # type: ignore
+            experience_idx)
+        return a
 
 
 __all__ = [

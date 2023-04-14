@@ -2,7 +2,7 @@ import torch
 
 from avalanche.benchmarks import StreamUserDef
 from avalanche.benchmarks.scenarios.detection_scenario import (
-    DetectionCLScenario,
+    DetectionScenario,
 )
 
 from avalanche.benchmarks.utils.collate_functions import detection_collate_fn
@@ -100,7 +100,7 @@ def split_detection_benchmark(
         is_lazy=False,
     )
 
-    return DetectionCLScenario(
+    return DetectionScenario(
         n_classes=n_classes,
         stream_definitions={"train": train_def, "test": test_def},
         complete_test_set_only=True,

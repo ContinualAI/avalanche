@@ -9,14 +9,14 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Optional, List, Sequence, Dict, Any, TypeVar
+from typing import Optional, List, Sequence, Dict, Any
 
 import torch
 
 from avalanche.benchmarks.scenarios.classification_scenario import (
-    GenericCLScenario,
+    ClassificationScenario,
     ClassificationStream,
-    GenericClassificationExperience,
+    ClassificationExperience,
 )
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
     _exp_structure_from_assignment,
@@ -26,14 +26,12 @@ from avalanche.benchmarks.utils.classification_dataset import \
     ClassificationDataset, SupervisedClassificationDataset
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
-TNIScenario = TypeVar('TNIScenario', bound='NIScenario')
-TNIExperience = TypeVar('TNIExperience', bound='NIExperience')
 
-
-class NIScenario(GenericCLScenario[
-        TNIScenario,
-        ClassificationStream[TNIScenario, TNIExperience],
-        TNIExperience]):
+class NIScenario(
+        ClassificationScenario[
+            'NIStream',
+            'NIExperience',
+            SupervisedClassificationDataset]):
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -51,7 +49,7 @@ class NIScenario(GenericCLScenario[
     """
 
     def __init__(
-        self: TNIScenario,
+        self,
         train_dataset: ClassificationDataset,
         test_dataset: ClassificationDataset,
         n_experiences: int,
@@ -457,7 +455,7 @@ class NIScenario(GenericCLScenario[
                 "test": (test_dataset, [0], test_dataset),
             },
             complete_test_set_only=True,
-            stream_factory=ClassificationStream,
+            stream_factory=NIStream,
             experience_factory=NIExperience
         )
 
@@ -469,11 +467,24 @@ class NIScenario(GenericCLScenario[
         return reproducibility_data
 
 
-class NIExperience(
-    GenericClassificationExperience[
-        TNIScenario, TNIExperience
-    ]
-):
+class NIStream(ClassificationStream['NIExperience']):
+    def __init__(
+        self,
+        name: str,
+        benchmark: NIScenario,
+        *,
+        slice_ids: Optional[List[int]] = None,
+        set_stream_info: bool = True
+    ):
+        self.benchmark: NIScenario = benchmark
+        super().__init__(
+            name=name,
+            benchmark=benchmark,
+            slice_ids=slice_ids,
+            set_stream_info=set_stream_info)
+
+
+class NIExperience(ClassificationExperience[SupervisedClassificationDataset]):
     """
     Defines a "New Instances" experience. It defines fields to obtain the
     current dataset and the associated task label. It also keeps a reference
@@ -481,8 +492,8 @@ class NIExperience(
     """
 
     def __init__(
-        self: TNIExperience,
-        origin_stream: ClassificationStream[TNIScenario, TNIExperience],
+        self,
+        origin_stream: NIStream,
         current_experience: int,
     ):
         """
@@ -493,10 +504,26 @@ class NIExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
+
+        self._benchmark: NIScenario = origin_stream.benchmark
+
         super().__init__(origin_stream, current_experience)
+
+    @property  # type: ignore[override]
+    def benchmark(self) -> NIScenario:
+        bench = self._benchmark
+        NIExperience._check_unset_attribute(
+            'benchmark', bench
+        )   
+        return bench
+
+    @benchmark.setter
+    def benchmark(self, bench: NIScenario):
+        self._benchmark = bench
 
 
 __all__ = [
     "NIScenario",
+    "NIStream",
     "NIExperience"
 ]

@@ -295,7 +295,7 @@ undocumented_classes_to_ignore = [
     'ITensorDataset',
     'XTransformDef',
     'LazyClassesInExps',
-    'LazyStreamClassesInExps',
+    '_LazyStreamClassesInExps',
 
 
     # evaluation
@@ -340,7 +340,7 @@ undocumented_classes_to_ignore = [
     'PPPloss',
 
     'COCO',
-    'GenericClassificationExperience',
+    'ClassificationExperience',
     'LVISAnnotationEntry',
     'ExperienceMode',
     'LVISImgEntry',

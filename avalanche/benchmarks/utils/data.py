@@ -433,7 +433,7 @@ class AvalancheDataset(FlatData[T_co]):
         datacopy = self._shallow_clone_dataset()
         datacopy._frozen_transform_groups = frozen_tgroups + tgroups
         datacopy._transform_groups = EmptyTransformGroups()
-        dds = []
+        dds: List[IDataset] = []
         for dd in datacopy._datasets:
             if isinstance(dd, AvalancheDataset):
                 dds.append(dd.freeze_transforms())

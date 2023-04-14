@@ -611,3 +611,7 @@ class TestStrategyReproducibility(unittest.TestCase):
             old_model.parameters(), new_model.parameters()
         ):
             np.testing.assert_allclose(par_old.detach(), par_new.detach())
+
+
+if __name__ == "__main__":
+    unittest.main()

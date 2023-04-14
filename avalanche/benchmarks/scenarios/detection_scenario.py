@@ -34,9 +34,8 @@ from avalanche.benchmarks.scenarios.dataset_scenario import (
 )
 from avalanche.benchmarks.scenarios.generic_scenario import (
     AbstractClassTimelineExperience,
+    CLScenario,
     CLStream,
-    DetectionExperienceProtocol,
-    SettableGenericExperienceProtocol,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
@@ -54,40 +53,47 @@ TCLDataset = TypeVar(
 TDatasetScenario = TypeVar(
     'TDatasetScenario',
     bound='DatasetScenario')
-TDetectionCLScenario = TypeVar(
-    'TDetectionCLScenario',
-    bound='DetectionCLScenario')
+TDetectionScenario = TypeVar(
+    'TDetectionScenario',
+    bound='DetectionScenario')
 
 # --- Stream ---
-# From generic_scenario:
-TCLStream = TypeVar(
-    'TCLStream',
-    bound='CLStream',
-    covariant=True)
 # Defined here:
 TDetectionStream = TypeVar(
     'TDetectionStream',
-    bound='DetectionStream')
+    bound='DetectionStream'
+)
 
 # --- Experience ---
 # From generic_scenario:
-TSettableGenericExperience = TypeVar(
-    'TSettableGenericExperience',
-    bound='SettableGenericExperienceProtocol')
 TDetectionExperience = TypeVar(
     'TDetectionExperience',
-    bound='DetectionExperienceProtocol')
-TGenericDetectionExperience = TypeVar(
-    'TGenericDetectionExperience',
-    bound='GenericDetectionExperience')
+    bound='DetectionExperience')
 
 
-class DetectionCLScenario(
-        ClassesTimelineCLScenario[
-            TDetectionCLScenario,
-            TCLStream,
-            TDetectionExperience,
-            DetectionDataset]):
+def _default_detection_stream_factory(
+        stream_name: str,
+        benchmark: 'DetectionScenario'):
+    return DetectionStream(
+        name=stream_name,
+        benchmark=benchmark
+    )
+
+
+def _default_detection_experience_factory(
+        stream: 'DetectionStream',
+        experience_idx: int):
+    return DetectionExperience(
+        origin_stream=stream,
+        current_experience=experience_idx
+    )
+
+
+class DetectionScenario(
+    ClassesTimelineCLScenario[
+        TDetectionStream,
+        TDetectionExperience,
+        DetectionDataset]):
     """
     Base implementation of a Continual Learning object detection benchmark.
 
@@ -95,13 +101,17 @@ class DetectionCLScenario(
     """
 
     def __init__(
-        self: TDetectionCLScenario,
+        self: TDetectionScenario,
         stream_definitions: TStreamsUserDict,
         n_classes: Optional[int] = None,
-        stream_factory: Optional[
-            Callable[[str, TDetectionCLScenario], TCLStream]] = None,
-        experience_factory: Optional[
-            Callable[[TCLStream, int], TDetectionExperience]] = None,
+        stream_factory: Callable[
+            [str, TDetectionScenario],
+            TDetectionStream
+            ] = _default_detection_stream_factory,
+        experience_factory: Callable[
+            [TDetectionStream, int],
+            TDetectionExperience
+            ] = _default_detection_experience_factory,
         complete_test_set_only: bool = False
     ):
         """
@@ -111,30 +121,18 @@ class DetectionCLScenario(
             precise description, please refer to :class:`DatasetScenario`
         :param n_classes: The number of classes in the scenario. Defaults to
             None.
+        :param stream_factory: A callable that, given the name of the
+            stream and the benchmark instance, returns a stream instance.
+            Defaults to the constructor of :class:`DetectionStream`.
+        :param experience_factory: A callable that, given the
+            stream instance and the experience ID, returns an experience
+            instance.
+            Defaults to the constructor of :class:`DetectionExperience`.
         :param complete_test_set_only: If True, the test stream will contain
             a single experience containing the complete test set. This also
             means that the definition for the test stream must contain the
             definition for a single experience.
-        :param stream_factory: A callable that, given the name of the
-            stream and the benchmark instance, returns a stream instance.
-            Defaults to None, which means that the constructor of
-            :class:`DetectionStream` will be used.
-        :param experience_factory: A callable that, given the
-            stream instance and the experience ID, returns an experience
-            instance.
-            Defaults to None, which means that the constructor of
-            :class:`GenericDetectionExperience` will be used.
         """
-
-        if stream_factory is None:
-            stream_factory = DetectionStream  # type: ignore
-        
-        if experience_factory is None:
-            experience_factory = GenericDetectionExperience  # type: ignore
-
-        # PyLance -_-
-        assert stream_factory is not None
-        assert experience_factory is not None
 
         super().__init__(
             stream_definitions=stream_definitions,
@@ -154,20 +152,23 @@ class DetectionCLScenario(
         return _LazyStreamClassesInDetectionExps(self)
     
 
+DetectionCLScenario = DetectionScenario
+
+
 class DetectionStream(
     FactoryBasedStream[
-        TDetectionCLScenario, TGenericDetectionExperience
-    ],
-    Generic[TDetectionCLScenario, TGenericDetectionExperience]
+        TDetectionExperience
+    ]
 ):
     def __init__(
         self,
         name: str,
-        benchmark: TDetectionCLScenario,
+        benchmark: DetectionScenario,
         *,
         slice_ids: Optional[List[int]] = None,
         set_stream_info: bool = True
     ):
+        self.benchmark: DetectionScenario = benchmark
         super().__init__(
             name=name,
             benchmark=benchmark,
@@ -175,11 +176,9 @@ class DetectionStream(
             set_stream_info=set_stream_info)
 
 
-class GenericDetectionExperience(
+class DetectionExperience(
     AbstractClassTimelineExperience[
-        TDetectionCLScenario, DetectionStream[
-            TDetectionCLScenario, TGenericDetectionExperience
-        ], DetectionDataset
+        DetectionDataset
     ]
 ):
     """
@@ -192,9 +191,9 @@ class GenericDetectionExperience(
     """
 
     def __init__(
-        self: TGenericDetectionExperience,
+        self: TDetectionExperience,
         origin_stream: DetectionStream[
-            TDetectionCLScenario, TGenericDetectionExperience
+            TDetectionExperience
         ],
         current_experience: int
     ):
@@ -206,6 +205,8 @@ class GenericDetectionExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
+
+        self._benchmark: DetectionScenario = origin_stream.benchmark
 
         dataset: DetectionDataset = (
             origin_stream.benchmark.stream_definitions[
@@ -232,8 +233,20 @@ class GenericDetectionExperience(
             future_classes,
         )
 
+    @property  # type: ignore[override]
+    def benchmark(self) -> DetectionScenario:
+        bench = self._benchmark
+        DetectionExperience._check_unset_attribute(
+            'benchmark', bench
+        )   
+        return bench
+
+    @benchmark.setter
+    def benchmark(self, bench: DetectionScenario):
+        self._benchmark = bench
+
     def _get_stream_def(self):
-        return self.benchmark.stream_definitions[self.origin_stream.name]
+        return self._benchmark.stream_definitions[self.origin_stream.name]
 
     @property
     def task_labels(self) -> List[int]:
@@ -241,9 +254,13 @@ class GenericDetectionExperience(
         return list(stream_def.exps_task_labels[self.current_experience])
 
 
-class _LazyStreamClassesInDetectionExps(Mapping[str,
-                                                Sequence[Optional[Set[int]]]]):
-    def __init__(self, benchmark: DetectionCLScenario):
+GenericDetectionExperience = DetectionExperience
+
+
+class _LazyStreamClassesInDetectionExps(
+        Mapping[str,
+                Sequence[Optional[Set[int]]]]):
+    def __init__(self, benchmark: DetectionScenario):
         self._benchmark = benchmark
         self._default_lcie = _LazyClassesInDetectionExps(
             benchmark, stream="train")
@@ -273,7 +290,7 @@ LazyClassesInExpsRet = Union[Tuple[Optional[Set[int]], ...], Optional[Set[int]]]
 
 
 class _LazyClassesInDetectionExps(Sequence[Optional[Set[int]]]):
-    def __init__(self, benchmark: DetectionCLScenario, stream: str = "train"):
+    def __init__(self, benchmark: DetectionScenario, stream: str = "train"):
         self._benchmark = benchmark
         self._stream = stream
 
@@ -329,9 +346,8 @@ class _LazyClassesInDetectionExps(Sequence[Optional[Set[int]]]):
         return tuple(result)
 
 
-DetectionExperience = GenericDetectionExperience
-
 __all__ = [
+    "DetectionScenario",
     "DetectionCLScenario",
     "DetectionStream",
     "GenericDetectionExperience",

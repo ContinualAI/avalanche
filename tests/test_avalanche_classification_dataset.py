@@ -1672,9 +1672,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         x, *_ = dataset_frozen[0]
         self.assertIsInstance(x, Tensor)
 
-        dataset_frozen_derivative = dataset_frozen.replace_current_transform_group(
-            ToPILImage()
-        )
+        dataset_frozen_derivative = \
+            dataset_frozen.replace_current_transform_group(
+                ToPILImage())
 
         x, *_ = dataset_frozen[0]
         x2, *_ = dataset_frozen_derivative[0]

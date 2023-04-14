@@ -12,7 +12,6 @@ from functools import partial
 from typing import (
     Callable,
     Generator,
-    Generic,
     Iterable,
     List,
     Literal,
@@ -22,62 +21,55 @@ from typing import (
 )
 
 import torch
+from avalanche.benchmarks.scenarios.benchmark_wrapper_utils import \
+    wrap_stream
 
 from avalanche.benchmarks.utils import AvalancheDataset
 from avalanche.benchmarks.scenarios.generic_scenario import (
     CLExperience,
-    BaseCLStream,
-    CLStreamWrapper,
     CLStream,
-    DatasetExperienceProtocol,
     CLScenario,
     DatasetExperience,
     CLScenario,
-    SequenceCLStream,
-    SequenceStreamWrapper,
-    SettableDatasetExperienceProtocol,
-    SettableGenericExperienceProtocol,
-    SizedCLStream,
-    SizedCLStreamWrapper
 )
 
 from avalanche.benchmarks.scenarios.dataset_scenario import (
     DatasetScenario
 )
+from avalanche.benchmarks.utils.classification_dataset import \
+    ClassificationDataset
 
 
 TCLDataset = TypeVar(
-    "TCLDataset",
-    bound="AvalancheDataset")
+    'TCLDataset',
+    bound='AvalancheDataset')
+TClassificationDataset = TypeVar(
+    'TClassificationDataset',
+    bound='ClassificationDataset')
 TCLScenario = TypeVar(
     "TCLScenario",
     bound="CLScenario")
 TDatasetScenario = TypeVar(
     "TDatasetScenario",
     bound="DatasetScenario")
+TOnlineCLScenario = TypeVar(
+    'TOnlineCLScenario',
+    bound='OnlineCLScenario')
 TCLStream = TypeVar(
     'TCLStream',
     bound='CLStream')
-TBaseCLStream = TypeVar(
-    'TBaseCLStream',
-    bound='BaseCLStream')
-TDatasetExperience = TypeVar(
-    'TDatasetExperience',
-    bound='DatasetExperienceProtocol')
 TCLExperience = TypeVar(
     'TCLExperience',
     bound='CLExperience')
-TSettableGenericExperience = TypeVar(
-    'TSettableGenericExperience',
-    bound='SettableGenericExperienceProtocol')
-TSettableDatasetExperienceProtocol = TypeVar(
-    'TSettableDatasetExperienceProtocol',
-    bound='SettableDatasetExperienceProtocol')
+TOnlineCLExperience = TypeVar(
+    'TOnlineCLExperience',
+    bound='OnlineCLExperience')
+TOnlineClassificationExperience = TypeVar(
+    'TOnlineClassificationExperience',
+    bound='OnlineClassificationExperience')
 
 
-class OnlineCLExperience(
-        Generic[TCLScenario, TCLStream, TDatasetExperience, TCLDataset],
-        DatasetExperience[TCLScenario, TCLStream, TCLDataset]):
+class OnlineCLExperience(DatasetExperience[TCLDataset]):
     """Online CL (OCL) Experience.
 
     OCL experiences are created by splitting a larger experience. Therefore,
@@ -85,12 +77,12 @@ class OnlineCLExperience(
     """
 
     def __init__(
-        self,
+        self: TOnlineCLExperience,
         current_experience: int,
-        origin_stream: TCLStream,
-        benchmark: TCLScenario,
+        origin_stream: CLStream[TOnlineCLExperience],
+        benchmark: CLScenario,
         dataset: TCLDataset,
-        origin_experience: TDatasetExperience,
+        origin_experience: DatasetExperience,
         subexp_size: int = 1,
         is_first_subexp: bool = False,
         is_last_subexp: bool = False,
@@ -113,7 +105,7 @@ class OnlineCLExperience(
             dataset=dataset)
         self.access_task_boundaries = access_task_boundaries
 
-        self.origin_experience: TDatasetExperience = origin_experience
+        self.origin_experience: DatasetExperience = origin_experience
         self.subexp_size: int = subexp_size
         self.is_first_subexp: bool = is_first_subexp
         self.is_last_subexp: bool = is_last_subexp
@@ -133,24 +125,20 @@ class OnlineCLExperience(
 
 
 class OnlineClassificationExperience(
-    OnlineCLExperience[
-        TCLScenario,
-        TCLStream,
-        TDatasetExperience,
-        TCLDataset]):
-    """Online CL (OCL) Experience.
-
-    OCL experiences are created by splitting a larger experience. Therefore,
-    they keep track of the original experience for logging purposes.
+        OnlineCLExperience[
+            TClassificationDataset]):
+    """
+    A specialization of :class:`OnlineCLExperience` with the
+    `classes_in_this_experience` field.
     """
 
     def __init__(
-        self,
+        self: TOnlineClassificationExperience,
         current_experience: int,
-        origin_stream: TCLStream,
-        benchmark: TCLScenario,
-        dataset: TCLDataset,
-        origin_experience: TDatasetExperience,
+        origin_stream: CLStream[TOnlineClassificationExperience],
+        benchmark: CLScenario,
+        dataset: TClassificationDataset,
+        origin_experience: DatasetExperience,
         classes_in_this_experience: List[int],
         subexp_size: int = 1,
         is_first_subexp: bool = False,
@@ -182,13 +170,8 @@ class OnlineClassificationExperience(
         self.classes_in_this_experience: List[int] = classes_in_this_experience
 
 
-TOnlineCLScenario = TypeVar('TOnlineCLScenario', bound='OnlineCLScenario')
-
-
-# Alas, both PyLance and MyPy do not support Higher-Kinded TypeVars.
-# https://github.com/python/typing/issues/548
 def fixed_size_experience_split(
-    experience: DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset],
+    experience: DatasetExperience[TClassificationDataset],
     experience_size: int,
     online_benchmark: TOnlineCLScenario,
     shuffle: bool = True,
@@ -196,13 +179,11 @@ def fixed_size_experience_split(
     access_task_boundaries: bool = False
 ) -> Generator[
         OnlineClassificationExperience[
-            TOnlineCLScenario,
-            TCLStream,
-            DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset],
-            TCLDataset],
+            TClassificationDataset],
         None,
         None]:
-    """Returns a lazy stream generated by splitting an experience into smaller
+    """
+    Returns a lazy stream generated by splitting an experience into smaller
     ones.
 
     Splits the experience in smaller experiences of size `experience_size`.
@@ -248,9 +229,11 @@ def fixed_size_experience_split(
                 exp_dataset.subset(exp_indices[init_idx:final_idx])
             sub_exp_targets: torch.Tensor = \
                 exp_targets[exp_indices[init_idx:final_idx]].unique()
+
+            # origin_stream will be lazily set later 
             exp = OnlineClassificationExperience(
                 current_experience=exp_idx,
-                origin_stream=experience.origin_stream,
+                origin_stream=None,  # type: ignore
                 benchmark=online_benchmark,
                 dataset=sub_exp_subset,
                 origin_experience=experience,
@@ -275,7 +258,7 @@ def _default_online_split(
         shuffle: bool,
         drop_last: bool,
         access_task_boundaries: bool,
-        exp: DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset],
+        exp: DatasetExperience[TClassificationDataset],
         size: int):
     return fixed_size_experience_split(
         experience=exp,
@@ -288,29 +271,21 @@ def _default_online_split(
 
 
 def split_online_stream(
-    original_stream: Iterable[
-        DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset]],
+    original_stream: Iterable[DatasetExperience[TClassificationDataset]],
     experience_size: int,
-    online_benchmark: TOnlineCLScenario,
+    online_benchmark: 'OnlineCLScenario[TClassificationDataset]',
     shuffle: bool = False,
     drop_last: bool = False,
     experience_split_strategy: Optional[Callable[
-        [DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset], int],
+        [DatasetExperience[TClassificationDataset], int],
         Iterable[
             OnlineClassificationExperience[
-                TOnlineCLScenario,
-                TCLStream,
-                DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset],
-                TCLDataset]]
+                TClassificationDataset]]
     ]] = None,
     access_task_boundaries: bool = False
 ) -> CLStream[
-        TOnlineCLScenario,
-        OnlineClassificationExperience[
-            TOnlineCLScenario,
-            TCLStream,
-            DatasetExperienceProtocol[TCLScenario, TCLStream, TCLDataset],
-            TCLDataset]]:
+        DatasetExperience[
+            TClassificationDataset]]:
     """Split a stream of large batches to create an online stream of small
     mini-batches.
 
@@ -337,7 +312,7 @@ def split_online_stream(
         experiences of size `experience_size`).
         A good starting to understand the mechanism is to look at the
         implementation of the standard splitting function
-        :func:`fixed_size_experience_split_strategy`.
+        :func:`fixed_size_experience_split`.
     :return: A lazy online stream with experiences of size `experience_size`.
     """
     
@@ -373,24 +348,14 @@ def split_online_stream(
 
 
 def _fixed_size_split(
-    online_benchmark: TOnlineCLScenario,
+    online_benchmark: 'OnlineCLScenario',
     experience_size: int,
     access_task_boundaries: bool,
     s: Iterable[
-            DatasetExperienceProtocol[
-                TCLScenario,
-                TCLStream,
-                TCLDataset]]) -> \
+            DatasetExperience[TClassificationDataset]]) -> \
         CLStream[
-            TOnlineCLScenario, 
-            OnlineClassificationExperience[
-                TOnlineCLScenario,
-                TCLStream,
-                DatasetExperienceProtocol[
-                    TCLScenario,
-                    TCLStream,
-                    TCLDataset], 
-                TCLDataset]]:
+            DatasetExperience[
+                TClassificationDataset]]:
     return split_online_stream(
         original_stream=s,
         experience_size=experience_size,
@@ -399,19 +364,13 @@ def _fixed_size_split(
     )
 
 
-class OnlineCLScenario(CLScenario[BaseCLStream]):
+class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
     def __init__(
         self,
-        original_streams: Iterable[
-            BaseCLStream[TDatasetScenario, 
-                         TSettableDatasetExperienceProtocol]],
+        original_streams: Iterable[CLStream[DatasetExperience[TCLDataset]]],
         experiences: Optional[Union[
-            SettableDatasetExperienceProtocol[TDatasetScenario, 
-                                              TCLStream,
-                                              TCLDataset],
-            Iterable[SettableDatasetExperienceProtocol[TDatasetScenario,
-                                                       TCLStream,
-                                                       TCLDataset]]]] = None,
+            DatasetExperience[TCLDataset],
+            Iterable[DatasetExperience[TCLDataset]]]] = None,
         experience_size: int = 10,
         stream_split_strategy: Literal['fixed_size_split'] = "fixed_size_split",
         access_task_boundaries: bool = False,
@@ -431,7 +390,7 @@ class OnlineCLScenario(CLScenario[BaseCLStream]):
             experiences of size `experience_size`).
             A good starting to understand the mechanism is to look at the
             implementation of the standard splitting function
-            :func:`fixed_size_experience_split_strategy`.
+            :func:`fixed_size_experience_split`.
         : param access_task_boundaries: If True the attributes related to task
             boundaries such as `is_first_subexp` and `is_last_subexp` become
             accessible during training.
@@ -455,27 +414,13 @@ class OnlineCLScenario(CLScenario[BaseCLStream]):
                 experiences = [experiences]
             online_train_stream = split_strat(experiences)
 
-        streams: List[BaseCLStream] = [online_train_stream]
+        streams: List[CLStream] = [online_train_stream]
         for s in original_streams:
-            s_wrapped: BaseCLStream
-            if isinstance(s, SequenceCLStream):
-                # Maintain indexing/slicing functionalities
-                s_wrapped = SequenceStreamWrapper(
-                    name="original_" + s.name,
-                    benchmark=self,
-                    wrapped_stream=s)
-            elif isinstance(s, SizedCLStream):
-                # Sized stream
-                s_wrapped = SizedCLStreamWrapper(
-                    name="original_" + s.name,
-                    benchmark=self,
-                    wrapped_stream=s)
-            else:
-                # Plain iter-based stream
-                s_wrapped = CLStreamWrapper(
-                    name="original_" + s.name,
-                    benchmark=self,
-                    wrapped_stream=s)
+            s_wrapped = wrap_stream(
+                new_name="original_" + s.name,
+                new_benchmark=self,
+                wrapped_stream=s
+            )
 
             streams.append(s_wrapped)
 

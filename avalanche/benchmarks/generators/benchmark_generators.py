@@ -33,11 +33,10 @@ from typing import (
 
 import torch
 
-from avalanche.benchmarks.scenarios import (
-    GenericCLScenario,
-)
 from avalanche.benchmarks.scenarios.dataset_scenario import (
     DatasetScenario,
+    DatasetStream,
+    FactoryBasedStream,
     StreamDef,
 )
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
@@ -47,7 +46,6 @@ from avalanche.benchmarks.scenarios import (
 from avalanche.benchmarks.scenarios.generic_scenario import (
     CLStream,
     DatasetExperience,
-    DatasetExperienceProtocol,
     SizedCLStream,
 )
 from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
@@ -76,7 +74,7 @@ TSizedCLStream = TypeVar(
     bound='SizedCLStream')
 TDatasetExperience = TypeVar(
     'TDatasetExperience',
-    bound='DatasetExperienceProtocol')
+    bound='DatasetExperience')
 TCLDataset = TypeVar(
     'TCLDataset',
     bound='AvalancheDataset')
@@ -476,7 +474,7 @@ def fixed_size_experience_split_strategy(
     experience_size: int,
     shuffle: bool,
     drop_last: bool,
-    experience: DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]
+    experience: DatasetExperience[TCLDataset]
 ) -> Sequence[TCLDataset]:
     """
     The default splitting strategy used by :func:`data_incremental_benchmark`.
@@ -530,9 +528,30 @@ def fixed_size_experience_split_strategy(
     return result_datasets
 
 
+TDatasetStream = TypeVar(
+    'TDatasetStream',
+    bound='DatasetStream'
+)
+
+
+def _make_plain_experience(
+    stream: DatasetStream[DatasetExperience[TCLDataset]],
+    experience_idx: int
+) -> DatasetExperience[TCLDataset]:
+    dataset = stream.benchmark.stream_definitions[
+        stream.name
+    ].exps_data[experience_idx]
+
+    return DatasetExperience(
+        current_experience=experience_idx,
+        origin_stream=stream,
+        benchmark=stream.benchmark,
+        dataset=dataset
+    )
+
+
 def data_incremental_benchmark(
-    benchmark_instance: DatasetScenario[TDatasetScenario, 
-                                        TCLStream,
+    benchmark_instance: DatasetScenario[TDatasetStream,
                                         TDatasetExperience,
                                         TCLDataset],
     experience_size: int,
@@ -540,13 +559,17 @@ def data_incremental_benchmark(
     drop_last: bool = False,
     split_streams: Sequence[str] = ("train",),
     custom_split_strategy: Optional[Callable[
-        [DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]],
+        [DatasetExperience[TCLDataset]],
         Sequence[TCLDataset]
     ]] = None,
     experience_factory: Optional[Callable[
-        [TCLStream, int], TDatasetExperience
-    ]] = None,
-):
+        [DatasetStream[DatasetExperience[TCLDataset]], int], 
+        DatasetExperience[TCLDataset]
+    ]] = _make_plain_experience,
+) -> DatasetScenario[
+        DatasetStream[DatasetExperience[TCLDataset]],
+        DatasetExperience[TCLDataset],
+        TCLDataset]:
     """
     High-level benchmark generator for a Data Incremental setup.
 
@@ -593,14 +616,13 @@ def data_incremental_benchmark(
         A good starting to understand the mechanism is to look at the
         implementation of the standard splitting function
         :func:`fixed_size_experience_split_strategy`.
-
     :param experience_factory: The experience factory.
-        Defaults to :class:`GenericExperience`.
+        Defaults to :class:`DatasetExperience`.
     :return: The Data Incremental benchmark instance.
     """
 
     split_strategy: Callable[
-        [DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]], 
+        [DatasetExperience[TCLDataset]], 
         Sequence[TCLDataset]
     ]
     if custom_split_strategy is None:
@@ -629,12 +651,14 @@ def data_incremental_benchmark(
                 f"benchmark instance"
             )
 
-        stream: TCLStream = getattr(benchmark_instance, f"{stream_name}_stream")
+        stream: TDatasetStream = getattr(
+            benchmark_instance,
+            f"{stream_name}_stream")
 
         split_datasets: List[TCLDataset] = []
         split_task_labels: List[Set[int]] = []
 
-        exp: DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]
+        exp: DatasetExperience[TCLDataset]
         for exp in stream:
             experiences = split_strategy(exp)
             split_datasets += experiences
@@ -654,11 +678,15 @@ def data_incremental_benchmark(
     complete_test_set_only = (
         benchmark_instance.complete_test_set_only
         and len(stream_definitions["test"].exps_data) == 1
-    )
+    ) 
 
-    return GenericCLScenario(
+    if experience_factory is None:
+        experience_factory = _make_plain_experience
+
+    return DatasetScenario(
         stream_definitions=stream_definitions,
         complete_test_set_only=complete_test_set_only,
+        stream_factory=FactoryBasedStream,
         experience_factory=experience_factory,
     )
 
@@ -666,7 +694,7 @@ def data_incremental_benchmark(
 def random_validation_split_strategy(
     validation_size: Union[int, float],
     shuffle: bool,
-    experience: DatasetExperience[TDatasetScenario, TCLStream, TCLDataset],
+    experience: DatasetExperience[TCLDataset],
 ) -> Tuple[TCLDataset, TCLDataset]:
     """
     The default splitting strategy used by
@@ -722,9 +750,7 @@ def random_validation_split_strategy(
 
 def class_balanced_split_strategy(
     validation_size: Union[int, float],
-    experience: DatasetExperience[TDatasetScenario, 
-                                  TCLStream,
-                                  SupervisedClassificationDataset],
+    experience: DatasetExperience[SupervisedClassificationDataset],
 ) -> Tuple[SupervisedClassificationDataset, SupervisedClassificationDataset]:
     """Class-balanced train/validation splits.
 
@@ -804,12 +830,10 @@ def _gen_split(
 
 def _lazy_train_val_split(
     split_strategy: Callable[
-        [DatasetExperience[TDatasetScenario, TCLStream, TCLDataset]],
+        [DatasetExperience[TCLDataset]],
         Tuple[TCLDataset, TCLDataset],
     ],
-    experiences: Iterable[DatasetExperience[TDatasetScenario,
-                                            TCLStream,
-                                            TCLDataset]],
+    experiences: Iterable[DatasetExperience[TCLDataset]],
 ) -> Generator[
     Tuple[TCLDataset, TCLDataset], None, None
 ]:
@@ -828,8 +852,7 @@ def _lazy_train_val_split(
 
 
 def benchmark_with_validation_stream(
-    benchmark_instance: DatasetScenario[TDatasetScenario, 
-                                        TSizedCLStream,
+    benchmark_instance: DatasetScenario[TSizedCLStream,
                                         TDatasetExperience,
                                         TCLDataset],
     validation_size: Union[int, float] = 0.5,
@@ -837,15 +860,19 @@ def benchmark_with_validation_stream(
     input_stream: str = "train",
     output_stream: str = "valid",
     custom_split_strategy: Optional[Callable[
-        [DatasetExperience[TDatasetScenario, TSizedCLStream, TCLDataset]],
+        [DatasetExperience[TCLDataset]],
         Tuple[TCLDataset, TCLDataset],
     ]] = None,
     *,
     experience_factory: Optional[Callable[
-        [TSizedCLStream, int], TDatasetExperience
-    ]] = None,
+        [DatasetStream[DatasetExperience[TCLDataset]], int],
+        DatasetExperience[TCLDataset]
+    ]] = _make_plain_experience,
     lazy_splitting: Optional[bool] = None
-):
+) -> DatasetScenario[
+        DatasetStream[DatasetExperience[TCLDataset]],
+        DatasetExperience[TCLDataset],
+        TCLDataset]:
     """
     Helper that can be used to obtain a benchmark with a validation stream.
 
@@ -911,7 +938,7 @@ def benchmark_with_validation_stream(
     """
 
     split_strategy: Callable[
-        [DatasetExperience[TDatasetScenario, TSizedCLStream, TCLDataset]],
+        [DatasetExperience[TCLDataset]],
         Tuple[TCLDataset, TCLDataset],
     ]
     if custom_split_strategy is None:
@@ -964,7 +991,7 @@ def benchmark_with_validation_stream(
         train_exps_source = []
         valid_exps_source = []
 
-        exp: DatasetExperience[TDatasetScenario, TSizedCLStream, TCLDataset]
+        exp: DatasetExperience[TCLDataset]
         for exp in stream:
             train_exp, valid_exp = split_strategy(exp)
             train_exps_source.append(train_exp)
@@ -999,9 +1026,13 @@ def benchmark_with_validation_stream(
 
     complete_test_set_only = benchmark_instance.complete_test_set_only
 
-    return GenericCLScenario(
+    if experience_factory is None:
+        experience_factory = _make_plain_experience
+
+    return DatasetScenario(
         stream_definitions=stream_definitions,
         complete_test_set_only=complete_test_set_only,
+        stream_factory=FactoryBasedStream,
         experience_factory=experience_factory,
     )
 

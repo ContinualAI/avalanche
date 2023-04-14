@@ -1,6 +1,5 @@
 from typing import (
     Callable,
-    Generic,
     TypeVar,
     Union,
     Sequence,
@@ -17,13 +16,12 @@ import warnings
 
 from avalanche.benchmarks.scenarios.generic_scenario import (
     AbstractClassTimelineExperience,
-    CLStream,
-    ClassificationExperienceProtocol,
-    SettableGenericExperienceProtocol
 )
 
 from avalanche.benchmarks.scenarios.dataset_scenario import (
-    DatasetScenario, ClassesTimelineCLScenario, FactoryBasedStream,
+    DatasetScenario,
+    ClassesTimelineCLScenario,
+    FactoryBasedStream,
     TStreamsUserDict
 )
 
@@ -33,15 +31,15 @@ from avalanche.benchmarks.utils import (
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
 )
-from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
+from avalanche.benchmarks.utils.dataset_utils import \
+    manage_advanced_indexing
 
 
 # --- Dataset ---
 # From utils:
-TCLDataset = TypeVar(
-    'TCLDataset',
-    bound='AvalancheDataset',
-    covariant=True)
+TClassificationDataset = TypeVar(
+    'TClassificationDataset',
+    bound='ClassificationDataset')
 
 # --- Scenario ---
 # From dataset_scenario:
@@ -49,41 +47,46 @@ TDatasetScenario = TypeVar(
     'TDatasetScenario',
     bound='DatasetScenario'
 )
-TGenericCLScenario = TypeVar(
-    'TGenericCLScenario',
-    bound='GenericCLScenario')
+TClassificationScenario = TypeVar(
+    'TClassificationScenario',
+    bound='ClassificationScenario')
 
 # --- Stream ---
-# From generic_scenario:
-TCLStream = TypeVar(
-    'TCLStream',
-    bound='CLStream',
-    covariant=True)
 # Defined here:
 TClassificationStream = TypeVar(
     'TClassificationStream',
-    bound='ClassificationStream')
+    bound='ClassificationStream'
+)
 
 # --- Experience ---
-# From generic_scenario:
-TSettableGenericExperience = TypeVar(
-    'TSettableGenericExperience',
-    bound='SettableGenericExperienceProtocol')
 TClassificationExperience = TypeVar(
     'TClassificationExperience',
-    bound='ClassificationExperienceProtocol')
-TGenericClassificationExperience = TypeVar(
-    'TGenericClassificationExperience',
-    bound='GenericClassificationExperience')
+    bound='ClassificationExperience')
 
 
-# TODO: more appropriate name (like ClassificationScenario)
-class GenericCLScenario(
+def _default_classification_stream_factory(
+        stream_name: str,
+        benchmark: 'ClassificationScenario'):
+    return ClassificationStream(
+        name=stream_name,
+        benchmark=benchmark
+    )
+
+
+def _default_classification_experience_factory(
+        stream: 'ClassificationStream',
+        experience_idx: int):
+    return ClassificationExperience(
+        origin_stream=stream,
+        current_experience=experience_idx
+    )
+
+
+class ClassificationScenario(
     ClassesTimelineCLScenario[
-        TGenericCLScenario,
-        TCLStream,
+        TClassificationStream,
         TClassificationExperience,
-        ClassificationDataset]):
+        TClassificationDataset]):
     """
     Base implementation of a Continual Learning classification benchmark.
 
@@ -91,25 +94,39 @@ class GenericCLScenario(
     """
     
     def __init__(
-            self: TGenericCLScenario,
-            *,
-            stream_definitions: TStreamsUserDict,
-            stream_factory: Optional[
-                Callable[[str, TGenericCLScenario], TCLStream]] = None,
-            experience_factory: Optional[
-                Callable[[TCLStream, int], TClassificationExperience]] = None,
-            complete_test_set_only: bool = False):
+        self: TClassificationScenario,
+        *,
+        stream_definitions: TStreamsUserDict,
+        stream_factory: Callable[
+            [str, TClassificationScenario],
+            TClassificationStream
+            ] = _default_classification_stream_factory,
+        experience_factory: Callable[
+            [TClassificationStream, int], 
+            TClassificationExperience
+            ] = _default_classification_experience_factory,
+        complete_test_set_only: bool = False
+    ):
+        """
+        Creates an instance a Continual Learning object classification
+        benchmark.
 
-        if stream_factory is None:
-            stream_factory = ClassificationStream  # type: ignore
-        
-        if experience_factory is None:
-            experience_factory = \
-                GenericClassificationExperience  # type: ignore
-
-        # PyLance -_-
-        assert stream_factory is not None
-        assert experience_factory is not None
+        :param stream_definitions: The definition of the streams. For a more
+            precise description, please refer to :class:`DatasetScenario`
+        :param n_classes: The number of classes in the scenario. Defaults to
+            None.
+        :param stream_factory: A callable that, given the name of the
+            stream and the benchmark instance, returns a stream instance.
+            Defaults to the constructor of :class:`ClassificationStream`.
+        :param experience_factory: A callable that, given the
+            stream instance and the experience ID, returns an experience
+            instance.
+            Defaults to the constructor of :class:`ClassificationExperience`.
+        :param complete_test_set_only: If True, the test stream will contain
+            a single experience containing the complete test set. This also
+            means that the definition for the test stream must contain the
+            definition for a single experience.
+        """
 
         super().__init__(
             stream_definitions=stream_definitions,
@@ -119,23 +136,26 @@ class GenericCLScenario(
 
     @property
     def classes_in_experience(self):
-        return LazyStreamClassesInExps(self)
+        return _LazyStreamClassesInClassificationExps(self)
+
+
+GenericCLScenario = ClassificationScenario
 
 
 class ClassificationStream(
     FactoryBasedStream[
-        TGenericCLScenario, TGenericClassificationExperience
-    ],
-    Generic[TGenericCLScenario, TGenericClassificationExperience]
+        TClassificationExperience
+    ]
 ):
     def __init__(
         self,
         name: str,
-        benchmark: TGenericCLScenario,
+        benchmark: ClassificationScenario,
         *,
         slice_ids: Optional[List[int]] = None,
         set_stream_info: bool = True
     ):
+        self.benchmark: ClassificationScenario = benchmark
         super().__init__(
             name=name,
             benchmark=benchmark,
@@ -143,17 +163,10 @@ class ClassificationStream(
             set_stream_info=set_stream_info)
 
 
-class GenericClassificationExperience(
+class ClassificationExperience(
     AbstractClassTimelineExperience[
-        TGenericCLScenario, ClassificationStream[
-            TGenericCLScenario, 
-            TGenericClassificationExperience
-        ], 
-        ClassificationDataset
-    ],
-    ClassificationExperienceProtocol[TGenericCLScenario, ClassificationStream[
-        TGenericCLScenario, TGenericClassificationExperience
-    ]]
+        TClassificationDataset
+    ]
 ):
     """
     Definition of a learning experience based on a :class:`GenericCLScenario`
@@ -165,9 +178,9 @@ class GenericClassificationExperience(
     """
 
     def __init__(
-        self: TGenericClassificationExperience,
+        self: TClassificationExperience,
         origin_stream: ClassificationStream[
-            TGenericCLScenario, TGenericClassificationExperience
+            TClassificationExperience
         ],
         current_experience: int
     ):
@@ -180,7 +193,9 @@ class GenericClassificationExperience(
         :param current_experience: The current experience ID, as an integer.
         """
 
-        dataset: ClassificationDataset = (
+        self._benchmark: ClassificationScenario = origin_stream.benchmark
+
+        dataset: TClassificationDataset = (
             origin_stream.benchmark.stream_definitions[
                 origin_stream.name
             ].exps_data[current_experience]
@@ -205,6 +220,18 @@ class GenericClassificationExperience(
             future_classes,
         )
 
+    @property  # type: ignore[override]
+    def benchmark(self) -> ClassificationScenario:
+        bench = self._benchmark
+        ClassificationExperience._check_unset_attribute(
+            'benchmark', bench
+        )   
+        return bench
+
+    @benchmark.setter
+    def benchmark(self, bench: ClassificationScenario):
+        self._benchmark = bench
+
     def _get_stream_def(self):
         return self.benchmark.stream_definitions[self.origin_stream.name]
 
@@ -215,17 +242,23 @@ class GenericClassificationExperience(
             return list(stream_def.exps_task_labels[self.current_experience])
 
 
-class LazyStreamClassesInExps(Mapping[str, Sequence[Set[int]]]):
+GenericClassificationExperience = ClassificationExperience
+
+
+class _LazyStreamClassesInClassificationExps(
+        Mapping[str, 
+                Sequence[Set[int]]]):
     def __init__(self, benchmark: GenericCLScenario):
         self._benchmark = benchmark
-        self._default_lcie = LazyClassesInExps(benchmark, stream="train")
+        self._default_lcie = _LazyClassesInClassificationExps(
+            benchmark, stream="train")
 
     def __len__(self):
         return len(self._benchmark.stream_definitions)
 
     def __getitem__(self, stream_name_or_exp_id):
         if isinstance(stream_name_or_exp_id, str):
-            return LazyClassesInExps(
+            return _LazyClassesInClassificationExps(
                 self._benchmark, stream=stream_name_or_exp_id
             )
 
@@ -244,7 +277,7 @@ class LazyStreamClassesInExps(Mapping[str, Sequence[Set[int]]]):
 LazyClassesInExpsRet = Union[Tuple[Optional[Set[int]], ...], Optional[Set[int]]]
 
 
-class LazyClassesInExps(Sequence[Optional[Set[int]]]):
+class _LazyClassesInClassificationExps(Sequence[Optional[Set[int]]]):
     def __init__(self, benchmark: GenericCLScenario, stream: str = "train"):
         self._benchmark = benchmark
         self._stream = stream
@@ -261,7 +294,7 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
         ...
     
     def __getitem__(self, exp_id: Union[int, slice], /) -> LazyClassesInExpsRet:
-        indexing_collate = LazyClassesInExps._slice_collate
+        indexing_collate = _LazyClassesInClassificationExps._slice_collate
         result = manage_advanced_indexing(
             exp_id,
             self._get_single_exp_classes,
@@ -298,7 +331,9 @@ class LazyClassesInExps(Sequence[Optional[Set[int]]]):
 
 
 __all__ = [
+    "ClassificationScenario",
     "GenericCLScenario",
     "ClassificationStream",
+    "ClassificationExperience",
     "GenericClassificationExperience",
 ]

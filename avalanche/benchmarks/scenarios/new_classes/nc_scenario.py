@@ -9,14 +9,14 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Sequence, List, Optional, Dict, Any, Set, TypeVar
+from typing import Sequence, List, Optional, Dict, Any, Set
 
 import torch
 
 from avalanche.benchmarks.scenarios.classification_scenario import (
-    GenericCLScenario,
+    ClassificationScenario,
     ClassificationStream,
-    GenericClassificationExperience,
+    ClassificationExperience,
 )
 from avalanche.benchmarks.utils import classification_subset
 from avalanche.benchmarks.utils.classification_dataset import \
@@ -25,16 +25,11 @@ from avalanche.benchmarks.utils.classification_dataset import \
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
-TNCScenario = TypeVar('TNCScenario', bound='NCScenario')
-TNCExperience = TypeVar('TNCExperience', bound='NCExperience')
-
-
-class NCScenario(GenericCLScenario[
-        TNCScenario,
-        ClassificationStream[
-            TNCScenario,
-            TNCExperience], 
-        TNCExperience]):
+class NCScenario(
+    ClassificationScenario[
+        'NCStream',
+        'NCExperience',
+        SupervisedClassificationDataset]):
 
     """
     This class defines a "New Classes" scenario. Once created, an instance
@@ -46,7 +41,7 @@ class NCScenario(GenericCLScenario[
     """
 
     def __init__(
-        self: TNCScenario,
+        self,
         train_dataset: ClassificationDataset,
         test_dataset: ClassificationDataset,
         n_experiences: int,
@@ -493,7 +488,7 @@ class NCScenario(GenericCLScenario[
                 "train": (train_experiences, train_task_labels, train_dataset),
                 "test": (test_experiences, test_task_labels, test_dataset),
             },
-            stream_factory=ClassificationStream,
+            stream_factory=NCStream,
             experience_factory=NCExperience
         )
 
@@ -545,11 +540,24 @@ class NCScenario(GenericCLScenario[
         ]
 
 
-class NCExperience(
-    GenericClassificationExperience[
-        TNCScenario, TNCExperience
-    ]
-):
+class NCStream(ClassificationStream['NCExperience']):
+    def __init__(
+        self,
+        name: str,
+        benchmark: NCScenario,
+        *,
+        slice_ids: Optional[List[int]] = None,
+        set_stream_info: bool = True
+    ):
+        self.benchmark: NCScenario = benchmark
+        super().__init__(
+            name=name,
+            benchmark=benchmark,
+            slice_ids=slice_ids,
+            set_stream_info=set_stream_info)
+
+
+class NCExperience(ClassificationExperience[SupervisedClassificationDataset]):
     """
     Defines a "New Classes" experience. It defines fields to obtain the current
     dataset and the associated task label. It also keeps a reference to the
@@ -557,8 +565,8 @@ class NCExperience(
     """
 
     def __init__(
-        self: TNCExperience,
-        origin_stream: ClassificationStream[TNCScenario, TNCExperience],
+        self,
+        origin_stream: NCStream,
         current_experience: int
     ):
         """
@@ -569,7 +577,26 @@ class NCExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
+        
+        self._benchmark: NCScenario = origin_stream.benchmark
+
         super().__init__(origin_stream, current_experience)
 
+    @property  # type: ignore[override]
+    def benchmark(self) -> NCScenario:
+        bench = self._benchmark
+        NCExperience._check_unset_attribute(
+            'benchmark', bench
+        )   
+        return bench
 
-__all__ = ["NCScenario", "NCExperience"]
+    @benchmark.setter
+    def benchmark(self, bench: NCScenario):
+        self._benchmark = bench
+
+
+__all__ = [
+    "NCScenario",
+    "NCStream",
+    "NCExperience"
+]

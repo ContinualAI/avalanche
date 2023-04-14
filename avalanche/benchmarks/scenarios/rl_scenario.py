@@ -35,7 +35,7 @@ TRLScenario = TypeVar('TRLScenario', bound='RLScenario')
 TRLExperience = TypeVar('TRLExperience', bound='RLExperience')
 
 
-class RLExperience(CLExperience[TCLStream]):
+class RLExperience(CLExperience):
     """Experience for Continual Reinforcement Learning purposes.
 
     The experience provides access to a `gym.Env` environment.
@@ -46,7 +46,7 @@ class RLExperience(CLExperience[TCLStream]):
     def __init__(
         self,
         current_experience: int,
-        origin_stream: TCLStream,
+        origin_stream: CLStream,
         env: Union[Env, Callable[[], Env]],
         n_envs: int = 1,
         task_label: Optional[int] = None,
@@ -71,7 +71,7 @@ class RLExperience(CLExperience[TCLStream]):
         return self.env
 
 
-class RLScenario(CLScenario[CLStream[TRLScenario, TRLExperience]]):
+class RLScenario(CLScenario[CLStream[TRLExperience]]):
     """Scenario for Continual Reinforcement Learning (CRL) purposes.
 
     It allows an agent to learn from a stream of environments, generating state
@@ -85,7 +85,7 @@ class RLScenario(CLScenario[CLStream[TRLScenario, TRLExperience]]):
     """
 
     def __init__(
-        self: TRLScenario,
+        self,
         envs: List[Env],
         n_parallel_envs: Union[int, List[int]],
         eval_envs: Optional[Union[List[Env], List[Callable[[], Env]]]] = None,
@@ -173,7 +173,7 @@ class RLScenario(CLScenario[CLStream[TRLScenario, TRLExperience]]):
                 task_label=tr_task_labels[i])
             for i in range(len(tr_envs))
         ]
-        tstream: EagerCLStream[TRLScenario, TRLExperience] = EagerCLStream(
+        tstream: EagerCLStream[TRLExperience] = EagerCLStream(
             name="train",
             exps=tr_exps,
             benchmark=self)
@@ -188,7 +188,7 @@ class RLScenario(CLScenario[CLStream[TRLScenario, TRLExperience]]):
                 task_label=l)
             for i, (e, l) in enumerate(zip(eval_envs, eval_task_labels))
         ]
-        estream: EagerCLStream[TRLScenario, TRLExperience] = EagerCLStream(
+        estream: EagerCLStream[TRLExperience] = EagerCLStream(
             name="eval", 
             exps=eval_exps,
             benchmark=self)

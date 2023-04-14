@@ -14,12 +14,10 @@ from torch.nn import Module
 
 from . import CLScenario, CLExperience, CLStream
 
-TCLStream = TypeVar('TCLStream', bound='CLStream')
-TExModelCLScenario = TypeVar('TExModelCLScenario', bound='ExModelCLScenario')
 TExModelExperience = TypeVar('TExModelExperience', bound='ExModelExperience')
 
 
-class ExModelExperience(CLExperience[TCLStream]):
+class ExModelExperience(CLExperience):
     """Ex-Model CL Experience.
 
     The experience only provides the expert model.
@@ -30,7 +28,7 @@ class ExModelExperience(CLExperience[TCLStream]):
         self,
         expert_model: Module,
         current_experience: int,
-        origin_stream: TCLStream,
+        origin_stream: CLStream,
         classes_in_this_experience=None,
     ):
         super().__init__(
@@ -41,8 +39,7 @@ class ExModelExperience(CLExperience[TCLStream]):
         self.classes_in_this_experience = classes_in_this_experience
 
 
-class ExModelCLScenario(
-        CLScenario[CLStream[TExModelCLScenario, TExModelExperience]]):
+class ExModelCLScenario(CLScenario[CLStream[TExModelExperience]]):
     """Ex-Model CL Scenario.
 
     Ex-Model Continual Learning (ExML) is a continual learning scenario where
@@ -57,7 +54,7 @@ class ExModelCLScenario(
     """
 
     def __init__(
-        self: TExModelCLScenario,
+        self,
         original_benchmark: CLScenario,
         expert_models: List[Module]
     ):
@@ -82,13 +79,13 @@ class ExModelCLScenario(
                     classes_in_this_experience=cine)
                 )
 
-        expert_stream: CLStream[TExModelCLScenario, TExModelExperience] = \
+        expert_stream: CLStream[TExModelExperience] = \
             CLStream(
                 name="expert_models",
                 exps_iter=expert_models_l,
                 benchmark=self
             )
-        streams: List[CLStream[TExModelCLScenario, TExModelExperience]] = \
+        streams: List[CLStream[TExModelExperience]] = \
             [expert_stream]
 
         self.original_benchmark = original_benchmark
@@ -97,3 +94,9 @@ class ExModelCLScenario(
         #     s.name = 'original_' + s.name
         #     streams.append(s)
         super().__init__(streams)
+
+
+__all__ = [
+    'ExModelExperience',
+    'ExModelCLScenario'
+]
