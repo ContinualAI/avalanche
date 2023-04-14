@@ -156,7 +156,8 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
             but it is needed to properly manage things in Avalanche).
             Defaults to None, which means that no mapping will take place.
         """
-        raise ValueError("Please use `save_checkpoint` and `maybe_load_checkpoint` "
+        raise ValueError("Please use `save_checkpoint` and "
+                         "`maybe_load_checkpoint` "
                          "instead.")
 
 

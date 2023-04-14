@@ -64,11 +64,13 @@ def save_checkpoint(strategy, fname, exclude=None):
     For example, if the optimizer is static and doesn't change during training,
     it can be safely excluded. These helps to speed up the serialization.
 
-    WARNING: the method cannot be used inside the training and evaluation loops of the strategy.
+    WARNING: the method cannot be used inside the training and evaluation
+    loops of the strategy.
 
     :param strategy: strategy to serialize.
     :param fname: name of the file.
-    :param exclude: List[string] list of attributes to remove before the serialization.
+    :param exclude: List[string] list of attributes to remove before the
+        serialization.
     :return:
     """
     if exclude is None:
