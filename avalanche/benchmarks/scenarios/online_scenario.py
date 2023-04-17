@@ -14,11 +14,11 @@ from typing import (
     Generator,
     Iterable,
     List,
-    Literal,
     Optional,
     TypeVar,
     Union,
 )
+from typing_extensions import Literal
 
 import torch
 from avalanche.benchmarks.scenarios.benchmark_wrapper_utils import \

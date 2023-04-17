@@ -11,7 +11,8 @@
 from abc import ABC, abstractmethod
 import bisect
 import copy
-from typing import Iterator, final, overload
+from typing import Iterator, overload
+from typing_extensions import final
 import numpy as np
 from numpy import ndarray
 from torch import Tensor
@@ -66,15 +67,15 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
             yield el
 
     @overload
-    def __getitem__(self, item: int, /) -> TData:
+    def __getitem__(self, item: int) -> TData:
         ...
 
     @overload
-    def __getitem__(self: TSliceSequence, item: slice, /) -> TSliceSequence:
+    def __getitem__(self: TSliceSequence, item: slice) -> TSliceSequence:
         ...
     
     @final
-    def __getitem__(self: TSliceSequence, item: Union[int, slice], /) -> \
+    def __getitem__(self: TSliceSequence, item: Union[int, slice]) -> \
             Union[TSliceSequence, TData]:
         if isinstance(item, (int, np.integer)):
             item = int(item)

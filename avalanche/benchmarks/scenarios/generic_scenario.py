@@ -24,9 +24,9 @@ from typing import (
     TypeVar,
     Union,
     Generic,
-    final,
     overload,
 )
+from typing_extensions import final
 
 import numpy as np
 from avalanche.benchmarks.utils import AvalancheDataset
@@ -591,16 +591,16 @@ class SequenceCLStream(
             yield exp
 
     @overload
-    def __getitem__(self, item: int, /) -> TCLExperience:
+    def __getitem__(self, item: int) -> TCLExperience:
         ...
 
     @overload
-    def __getitem__(self: TSequenceCLStream, item: slice, /) -> \
+    def __getitem__(self: TSequenceCLStream, item: slice) -> \
             TSequenceCLStream:
         ...
     
     @final
-    def __getitem__(self: TSequenceCLStream, item: Union[int, slice], /) -> \
+    def __getitem__(self: TSequenceCLStream, item: Union[int, slice]) -> \
             Union[TSequenceCLStream, TCLExperience]:
         # This check allows CL streams slicing
         if isinstance(item, (int, np.integer)):

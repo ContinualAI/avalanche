@@ -66,14 +66,14 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
             yield self[i]
 
     @overload
-    def __getitem__(self, item: int, /) -> T_co:
+    def __getitem__(self, item: int) -> T_co:
         ...
 
     @overload
-    def __getitem__(self, item: slice, /) -> Sequence[T_co]:
+    def __getitem__(self, item: slice) -> Sequence[T_co]:
         ...
 
-    def __getitem__(self, item: Union[int, slice], /) -> \
+    def __getitem__(self, item: Union[int, slice]) -> \
             Union[T_co, Sequence[T_co]]:
         return self.data[item]
 

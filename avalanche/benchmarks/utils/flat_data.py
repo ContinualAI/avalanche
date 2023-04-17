@@ -213,11 +213,11 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         return dataset_idx, int(idx)
     
     @overload
-    def __getitem__(self, item: int, /) -> T_co:
+    def __getitem__(self, item: int) -> T_co:
         ...
 
     @overload
-    def __getitem__(self: TFlatData, item: slice, /) -> TFlatData:
+    def __getitem__(self: TFlatData, item: slice) -> TFlatData:
         ...
 
     def __getitem__(self: TFlatData, item: Union[int, slice]) -> \

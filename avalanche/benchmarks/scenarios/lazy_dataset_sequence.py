@@ -124,14 +124,14 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         return self._stream_length
 
     @overload
-    def __getitem__(self, exp_idx: int, /) -> TCLDataset:
+    def __getitem__(self, exp_idx: int) -> TCLDataset:
         ...
 
     @overload
-    def __getitem__(self, exp_idx: slice, /) -> Sequence[TCLDataset]:
+    def __getitem__(self, exp_idx: slice) -> Sequence[TCLDataset]:
         ...
 
-    def __getitem__(self, exp_idx: Union[int, slice], /) -> \
+    def __getitem__(self, exp_idx: Union[int, slice]) -> \
             Union[TCLDataset, Sequence[TCLDataset]]:
         """
         Gets the dataset associated to an experience.

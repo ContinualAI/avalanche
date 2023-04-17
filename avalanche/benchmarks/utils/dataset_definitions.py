@@ -39,7 +39,7 @@ class IDataset(Protocol[T_co]):
     Note: no __add__ method is defined.
     """
 
-    def __getitem__(self, index: int, /) -> T_co:
+    def __getitem__(self, index: int) -> T_co:
         ...
 
     def __len__(self) -> int:

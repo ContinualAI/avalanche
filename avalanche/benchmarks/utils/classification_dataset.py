@@ -123,18 +123,10 @@ class SupervisedClassificationDataset(ClassificationDataset[T_co]):
     @property
     def targets(self) -> DataAttribute[TTargetType]:
         return self._data_attributes['targets']
-    
-    # @targets.setter
-    # def targets(self, value, /):
-    #     self._update_data_attribute('targets', value)
 
     @property
     def targets_task_labels(self) -> DataAttribute[int]:
         return self._data_attributes['targets_task_labels']
-    
-    # @targets_task_labels.setter
-    # def targets_task_labels(self, value, /):
-    #     self._update_data_attribute('targets_task_labels', value)
 
 
 SupportedDataset = Union[
