@@ -197,60 +197,57 @@ def fixed_size_experience_split(
         mini-experiences.
     """
 
-    def gen():
-        exp_dataset = experience.dataset
-        exp_indices = list(range(len(exp_dataset)))
-        exp_targets = torch.as_tensor(
-            list(exp_dataset.targets), dtype=torch.long  # type: ignore
+    exp_dataset = experience.dataset
+    exp_indices = list(range(len(exp_dataset)))
+    exp_targets = torch.as_tensor(
+        list(exp_dataset.targets), dtype=torch.long  # type: ignore
+    )
+
+    if shuffle:
+        exp_indices = torch.as_tensor(exp_indices)[
+            torch.randperm(len(exp_indices))
+        ].tolist()
+    sub_stream_length = len(exp_indices) // experience_size
+    if not drop_last and len(exp_indices) % experience_size > 0:
+        sub_stream_length += 1
+
+    init_idx = 0
+    is_first = True
+    is_last = False
+    exp_idx = 0
+    while init_idx < len(exp_indices):
+        final_idx = init_idx + experience_size  # Exclusive
+        if final_idx > len(exp_indices):
+            if drop_last:
+                break
+
+            final_idx = len(exp_indices)
+            is_last = True
+
+        sub_exp_subset = \
+            exp_dataset.subset(exp_indices[init_idx:final_idx])
+        sub_exp_targets: torch.Tensor = \
+            exp_targets[exp_indices[init_idx:final_idx]].unique()
+
+        # origin_stream will be lazily set later 
+        exp = OnlineClassificationExperience(
+            current_experience=exp_idx,
+            origin_stream=None,  # type: ignore
+            benchmark=online_benchmark,
+            dataset=sub_exp_subset,
+            origin_experience=experience,
+            classes_in_this_experience=sub_exp_targets.tolist(),
+            subexp_size=experience_size,
+            is_first_subexp=is_first,
+            is_last_subexp=is_last,
+            sub_stream_length=sub_stream_length,
+            access_task_boundaries=access_task_boundaries,
         )
 
-        if shuffle:
-            exp_indices = torch.as_tensor(exp_indices)[
-                torch.randperm(len(exp_indices))
-            ].tolist()
-        sub_stream_length = len(exp_indices) // experience_size
-        if not drop_last and len(exp_indices) % experience_size > 0:
-            sub_stream_length += 1
-
-        init_idx = 0
-        is_first = True
-        is_last = False
-        exp_idx = 0
-        while init_idx < len(exp_indices):
-            final_idx = init_idx + experience_size  # Exclusive
-            if final_idx > len(exp_indices):
-                if drop_last:
-                    break
-
-                final_idx = len(exp_indices)
-                is_last = True
-
-            sub_exp_subset = \
-                exp_dataset.subset(exp_indices[init_idx:final_idx])
-            sub_exp_targets: torch.Tensor = \
-                exp_targets[exp_indices[init_idx:final_idx]].unique()
-
-            # origin_stream will be lazily set later 
-            exp = OnlineClassificationExperience(
-                current_experience=exp_idx,
-                origin_stream=None,  # type: ignore
-                benchmark=online_benchmark,
-                dataset=sub_exp_subset,
-                origin_experience=experience,
-                classes_in_this_experience=sub_exp_targets.tolist(),
-                subexp_size=experience_size,
-                is_first_subexp=is_first,
-                is_last_subexp=is_last,
-                sub_stream_length=sub_stream_length,
-                access_task_boundaries=access_task_boundaries,
-            )
-
-            is_first = False
-            yield exp
-            init_idx = final_idx
-            exp_idx += 1
-
-    return gen()
+        is_first = False
+        yield exp
+        init_idx = final_idx
+        exp_idx += 1
 
 
 def _default_online_split(

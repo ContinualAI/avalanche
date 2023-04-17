@@ -1,8 +1,12 @@
+from avalanche.training.templates.strategy_mixin_protocol import \
+    MetaLearningStrategyProtocol
 from avalanche.training.utils import trigger_plugins
 
 
 class MetaUpdate:
-    def training_epoch(self, **kwargs):
+    def training_epoch(
+            self: MetaLearningStrategyProtocol,
+            **kwargs):
         """Training epoch.
 
         :param kwargs:
@@ -16,7 +20,7 @@ class MetaUpdate:
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Inner updates
             self._before_inner_updates(**kwargs)

@@ -12,9 +12,11 @@ from abc import abstractmethod, ABC
 from contextlib import contextmanager
 from copy import copy
 from enum import Enum
+from types import GeneratorType
 from typing import (
     Any,
     Dict,
+    Generator,
     Iterator,
     List,
     Iterable,
@@ -467,6 +469,30 @@ class AbstractClassTimelineExperience(
         )
 
 
+class GeneratorMemo(Generic[T]):
+    def __init__(self, generator: Generator[T, None, None]):
+        self._generator = generator
+        self._already_generated = []
+    
+    def __iter__(self):
+        idx = 0
+        while True:
+            if idx < len(self._already_generated):
+                yield self._already_generated[idx]
+            else:     
+                if self._generator is None:
+                    break
+                try:
+                    next_item = next(self._generator)
+                except StopIteration:
+                    self._generator = None
+                    break
+                self._already_generated.append(next_item)
+                yield next_item
+            idx += 1
+            
+
+
 class CLStream(Generic[TCLExperience]):
     """A CL stream is a named iterator of experiences.
 
@@ -514,6 +540,10 @@ class CLStream(Generic[TCLExperience]):
         If True, will set the `current_experience` and `origin_stream` 
         fields on experience objects before returning them.
         """
+
+        if isinstance(self.exps_iter, GeneratorType):
+            # Prevent issues when iterating the stream more than once
+            self.exps_iter = GeneratorMemo(self.exps_iter)
         
     def __iter__(self) -> Iterator[TCLExperience]:
         exp: TCLExperience

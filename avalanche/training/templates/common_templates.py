@@ -1,10 +1,16 @@
-from typing import Sequence, Optional
+from typing import Callable, Sequence, Optional, TypeVar, Union
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
 
-from avalanche.core import SupervisedPlugin
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.core import BasePlugin, BaseSGDPlugin, SupervisedPlugin
+from avalanche.training.plugins.evaluation import (
+    EvaluationPlugin,
+    default_evaluator,
+)
+from avalanche.training.templates.strategy_mixin_protocol import \
+    SupervisedStrategyProtocol
 
 from .observation_type import *
 from .problem_type import *
@@ -12,8 +18,28 @@ from .update_type import *
 from .base_sgd import BaseSGDTemplate
 
 
-class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
-                         BaseSGDTemplate):
+TDatasetExperience = TypeVar('TDatasetExperience', bound=DatasetExperience)
+TPluginType = TypeVar('TPluginType', bound=BasePlugin)
+TMBInput = TypeVar('TMBInput')
+TMBOutput = TypeVar('TMBOutput')
+
+
+class SupervisedTemplate(
+        BatchObservation,
+        SupervisedProblem,
+        SGDUpdate,
+        BaseSGDTemplate[
+            TDatasetExperience,
+            TPluginType,
+            TMBInput,
+            TMBOutput
+        ],
+        SupervisedStrategyProtocol[
+            TDatasetExperience,
+            TPluginType,
+            TMBInput,
+            TMBOutput]):
+    
     """Base class for continual learning strategies.
 
     SupervisedTemplate is the super class of all supervised task-based
@@ -69,7 +95,7 @@ class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
             train_epochs: int = 1,
             eval_mb_size: Optional[int] = 1,
             device="cpu",
-            plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
+            plugins: Optional[Sequence[BaseSGDPlugin]] = None,
             evaluator=default_evaluator,
             eval_every=-1,
             peval_mode="epoch",
@@ -298,7 +324,10 @@ class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
             eval_mb_size: Optional[int] = 1,
             device="cpu",
             plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
-            evaluator=default_evaluator,
+            evaluator: Union[
+                EvaluationPlugin, 
+                Callable[[], EvaluationPlugin]
+            ] = default_evaluator,
             eval_every=-1,
             peval_mode="experience",
     ):

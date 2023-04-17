@@ -74,7 +74,7 @@ class StreamingLDA(SupervisedTemplate):
 
         super(StreamingLDA, self).__init__(
             slda_model,
-            None,
+            None,  # type: ignore
             criterion,
             train_mb_size,
             train_epochs,
@@ -121,7 +121,7 @@ class StreamingLDA(SupervisedTemplate):
             self._unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Forward
             self._before_forward(**kwargs)

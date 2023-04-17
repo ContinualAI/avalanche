@@ -1,6 +1,7 @@
 # Manage torch.device objects
 # See:
 # https://github.com/pytorch/pytorch/blob/30fb2c4abaaaa966999eab11674f25b18460e609/torch/csrc/Device.cpp#L144
+from typing import Tuple, Union
 import torch
 import dill
 
@@ -32,6 +33,7 @@ def _recreate_pytorch_device(*args):
 @dill.register(torch.device)
 def _save_pytorch_device(pickler, obj: torch.device):
     has_index = obj.index is not None
+    reduction: Union[Tuple[str, int], Tuple[str]]
     if has_index:
         reduction = (obj.type, obj.index)
     else:

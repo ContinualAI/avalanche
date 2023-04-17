@@ -1,7 +1,7 @@
 import warnings
 from copy import copy
 from collections import defaultdict
-from typing import Union, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Sequence, TYPE_CHECKING
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
@@ -73,6 +73,7 @@ class EvaluationPlugin:
         if len(self.loggers) == 0:
             warnings.warn("No loggers specified, metrics will not be logged")
 
+        self.all_metric_results: Dict[str, Tuple[List[int], List[Any]]]
         if self.collect_all:
             # for each curve collect all emitted values.
             # dictionary key is full metric name.
@@ -84,15 +85,18 @@ class EvaluationPlugin:
             # SERIALIZATION NOTICE: don't use a lambda here, otherwise
             # serialization may fail in some cases.
             self.all_metric_results = defaultdict(_init_metrics_list_lambda)
+        else:
+            self.all_metric_results = dict()
+        
         # Dictionary of last values emitted. Dictionary key
         # is the full metric name, while dictionary value is
         # metric value.
-        self.last_metric_results = {}
+        self.last_metric_results: Dict[str, Any] = {}
 
         self._active = True
         """If False, no metrics will be collected."""
 
-        self._metric_values = []
+        self._metric_values: List[MetricValue] = []
         """List of metrics that have yet to be processed by loggers."""
 
     @property
@@ -206,7 +210,8 @@ class EvaluationPlugin:
             "evaluation stream."
         )
         if self.strict_checks:
-            curr_stream = strategy.current_eval_stream[0].origin_stream
+
+            curr_stream = next(iter(strategy.current_eval_stream)).origin_stream
             benchmark = curr_stream[0].origin_stream.benchmark
             full_stream = benchmark.streams[curr_stream.name]
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import copy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 import torch
 from avalanche.benchmarks.utils import concat_datasets
 from avalanche.models.utils import avalanche_forward
@@ -41,7 +41,7 @@ class MIRPlugin(SupervisedPlugin):
         self,
         mem_size: int = 200,
         subsample: int = 200,
-        batch_size_mem: int = None,
+        batch_size_mem: Optional[int] = None,
     ):
         """
         mem_size: int       : Fixed memory size
@@ -59,9 +59,10 @@ class MIRPlugin(SupervisedPlugin):
         )
         self.replay_loader = None
 
-    @property
-    def ext_mem(self):
-        return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
+    # TODO: remove ext_mem
+    # @property
+    # def ext_mem(self):
+    #     return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
     def before_backward(self, strategy, **kwargs):
         if self.replay_loader is None:

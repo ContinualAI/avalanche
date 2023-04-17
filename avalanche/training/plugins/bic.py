@@ -37,8 +37,8 @@ class BiCPlugin(SupervisedPlugin):
     def __init__(
         self, 
         mem_size: int = 2000,
-        batch_size: int = None,
-        batch_size_mem: int = None,
+        batch_size: Optional[int] = None,
+        batch_size_mem: Optional[int] = None,
         task_balanced_dataloader: bool = False,
         storage_policy: Optional["ExemplarsBuffer"] = None,
 
@@ -103,9 +103,10 @@ class BiCPlugin(SupervisedPlugin):
         self.model_old = None
         self.val_buffer = {}
 
-    @property
-    def ext_mem(self):
-        return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
+    # TODO: remove ext_mem
+    # @property
+    # def ext_mem(self):
+    #     return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
     def before_training(self, strategy: "SupervisedTemplate", *args, **kwargs):
         assert not isinstance(strategy.model, MultiTaskModule), \

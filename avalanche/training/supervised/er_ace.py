@@ -39,7 +39,7 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
         optimizer: Optimizer,
         criterion=CrossEntropyLoss(),
         mem_size: int = 200,
-        batch_size_mem: int = None,
+        batch_size_mem: Optional[int] = None,
         train_mb_size: int = 1,
         train_passes: int = 1,
         eval_mb_size: Optional[int] = 1,
@@ -118,7 +118,7 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
                 )
 
             self.optimizer.zero_grad()
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Forward
             self._before_forward(**kwargs)
@@ -272,7 +272,7 @@ class ER_ACE(SupervisedTemplate):
                 )
 
             self.optimizer.zero_grad()
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Forward
             self._before_forward(**kwargs)

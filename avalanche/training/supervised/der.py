@@ -51,7 +51,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         self,
         max_size: int,
         adaptive_size: bool = True,
-        total_num_classes: int = None,
+        total_num_classes: Optional[int] = None,
     ):
         """Init.
 
@@ -139,7 +139,7 @@ class DER(SupervisedTemplate):
         optimizer: Optimizer,
         criterion=CrossEntropyLoss(),
         mem_size: int = 200,
-        batch_size_mem: int = None,
+        batch_size_mem: Optional[int] = None,
         alpha: float = 0.1,
         beta: float = 0.5,
         train_mb_size: int = 1,
@@ -260,7 +260,7 @@ class DER(SupervisedTemplate):
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Forward
             self._before_forward(**kwargs)

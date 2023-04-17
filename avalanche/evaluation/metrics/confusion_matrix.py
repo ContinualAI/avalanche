@@ -73,8 +73,8 @@ class ConfusionMatrix(Metric[Tensor]):
 
     def __init__(
         self,
-        num_classes: int = None,
-        normalize: Literal["true", "pred", "all"] = None,
+        num_classes: Optional[int] = None,
+        normalize: Optional[Literal["true", "pred", "all"]] = None,
     ):
         """Creates an instance of the standalone confusion matrix metric.
 

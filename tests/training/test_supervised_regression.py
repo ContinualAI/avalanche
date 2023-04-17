@@ -99,7 +99,7 @@ class OldBaseStrategy:
         self.mb_output = None
         self.loss = None
         self.is_training: bool = False
-        self.current_eval_stream = None
+        self.current_eval_stream = []
         self._stop_training = False
 
     @property
@@ -394,7 +394,7 @@ class OldCumulative(OldBaseStrategy):
         criterion,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins=None,
         evaluator=None,
