@@ -26,11 +26,11 @@ from avalanche.benchmarks.datasets import (
 from avalanche.benchmarks.utils import default_flist_reader
 from avalanche.benchmarks.datasets.clear import clear_data
 
-_CLEAR_DATA_SPLITS = {"clear10", "clear100_cvpr2022"}
+_CLEAR_DATA_SPLITS = {"clear10", "clear100"}
 
 CLEAR_FEATURE_TYPES = {
-    "clear10": ["moco_b0", "moco_imagenet", "byol_imagenet", "imagenet"],
-    "clear100_cvpr2022": ["moco_b0"],
+    "clear10": ["moco_b0"],
+    "clear100": ["moco_b0"],
 }
 
 SPLIT_OPTIONS = ["all", "train", "test"]
@@ -322,9 +322,6 @@ class _CLEARFeature(CLEARDataset):
         :param feature_type: The type of features.
             For CLEAR10, choose from [
                 'moco_b0', # Moco V2 ResNet50 pretrained on bucket 0
-                'moco_imagenet', # Moco V2 ResNet50 pretrained on Imagenet
-                'byol_imagenet', # BYOL ResNet50 pretrained on Imagenet
-                'imagenet', # ResNet50 pretrained on Imagenet
             ]
         :param target_transform: The transformations to apply to the Y values.
         """

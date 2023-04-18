@@ -20,7 +20,7 @@ clear10 = [
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
     )
 ]
-clear100_cvpr2022 = [
+clear100 = [
     (
         "clear100-train.zip",  # name
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
@@ -31,4 +31,4 @@ clear100_cvpr2022 = [
     )
 ]
 
-__all__ = ["clear10", "clear100_cvpr2022"]
+__all__ = ["clear10", "clear100"]
