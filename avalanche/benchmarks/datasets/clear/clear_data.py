@@ -12,13 +12,21 @@
 """ CLEAR data """
 clear10 = [
     (
-        "clear10-public.zip",  # name
+        "clear10-train.zip",  # name
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+    ),
+    (
+        "clear10-test.zip",  # name
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
     )
 ]
 clear100_cvpr2022 = [
     (
-        "clear100-workshop-avalanche.zip",  # name
+        "clear100-train.zip",  # name
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+    ),
+    (
+        "clear100-test.zip",  # name
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
     )
 ]
