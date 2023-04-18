@@ -22,15 +22,15 @@ from avalanche.evaluation.metrics.mean import Mean
 
 
 class CumulativeAccuracy(Metric[float]):
-    """ 
-    Metric used by the CumulativeAccuracyPluginMetric, 
-    holds a dictionnary of per-task cumulative accuracies 
+    """
+    Metric used by the CumulativeAccuracyPluginMetric,
+    holds a dictionnary of per-task cumulative accuracies
     and updates the cumulative accuracy based on the classes splits
-    provided for the growing incremental task. 
-    The update is performed as described in the paper 
-    "On the importance of cross-task 
+    provided for the growing incremental task.
+    The update is performed as described in the paper
+    "On the importance of cross-task
     features for class-incremental learning"
-    Soutif et. al, https://arxiv.org/abs/2106.11930 
+    Soutif et. al, https://arxiv.org/abs/2106.11930
     """
 
     def __init__(self):
@@ -57,7 +57,7 @@ class CumulativeAccuracy(Metric[float]):
             logits_exp = predicted_y[:, list(classes)]
 
             if len(true_y) != len(predicted_y):
-                raise ValueError("Size mismatch for true_y "
+                raise ValueError("Size mismatch for true_y " 
                                  "and predicted_y tensors")
 
             # Check if logits or labels
@@ -98,17 +98,18 @@ class CumulativeAccuracyPluginMetric(GenericPluginMetric[float]):
     def __init__(self, reset_at="stream", emit_at="stream", mode="eval"):
         """
         Creates the CumulativeAccuracy plugin metric,
-        this stores and updates the Cumulative Accuracy metric described in 
-        "On the importance of cross-task 
+        this stores and updates the Cumulative Accuracy metric described in
+        "On the importance of cross-task
         features for class-incremental learning"
         Soutif et. al, https://arxiv.org/abs/2106.11930
         """
         self._accuracy = CumulativeAccuracy()
         self.classes_seen_so_far = set()
         self.classes_splits = {}
-        super(CumulativeAccuracyPluginMetric, self).__init__(
-            self._accuracy, reset_at=reset_at, emit_at=emit_at, mode=mode
-        )
+        super().__init__(self._accuracy, 
+                         reset_at=reset_at, 
+                         emit_at=emit_at, 
+                         mode=mode)
 
     def before_training_exp(self, strategy, **kwargs):
         super().before_training_exp(strategy, **kwargs)
@@ -144,10 +145,109 @@ class CumulativeAccuracyPluginMetric(GenericPluginMetric[float]):
 
     def update(self, strategy):
         self._accuracy.update(self.classes_splits, 
-                              strategy.mb_output, strategy.mb_y)
+                              strategy.mb_output, 
+                              strategy.mb_y)
 
     def __repr__(self):
         return "CumulativeAccuracy"
 
 
-__all__ = ["CumulativeAccuracyPluginMetric"]
+class CumulativeForgettingPluginMetric(GenericPluginMetric):
+    """
+    The CumulativeForgetting metric, describing the accuracy loss
+    detected for a certain experience.
+
+    This plugin metric, computed separately for each experience,
+    is the difference between the cumulative accuracy result obtained after
+    first training on a experience and the accuracy result obtained
+    on the same experience at the end of successive experiences.
+
+    This metric is computed during the eval phase only.
+    """
+
+    def __init__(self, reset_at="stream", emit_at="stream", mode="eval"):
+        """
+        Creates an instance of the CumulativeForgetting metric.
+        """
+        self._accuracy = CumulativeAccuracy()
+
+        self.classes_splits = {}
+        self.classes_seen_so_far = set()
+
+        self.initial = {}
+        self.last = {}
+
+        self.train_task_id = None
+
+        super().__init__(self._accuracy, 
+                         reset_at=reset_at, 
+                         emit_at=emit_at, 
+                         mode=mode)
+
+    def before_training_exp(self, strategy, **kwargs):
+        super().before_training_exp(strategy, **kwargs)
+        if isinstance(strategy.experience, OnlineCLExperience):
+            if strategy.experience.access_task_boundaries:
+                new_classes = set(
+                    strategy.experience.
+                    origin_experience.
+                    classes_in_this_experience
+                )
+                task_id = (strategy.experience.
+                           origin_experience.
+                           current_experience)
+            else:
+                raise AttributeError(
+                    "Online Scenario has to allow "
+                    "access to task boundaries for"
+                    " the Cumulative Accuracy Metric"
+                    " to be computed"
+                )
+        else:
+            new_classes = set(strategy.experience.classes_in_this_experience)
+            task_id = strategy.experience.current_experience
+
+        self.classes_seen_so_far = self.classes_seen_so_far.union(new_classes)
+        self.classes_splits[task_id] = self.classes_seen_so_far
+
+        # Update train task id
+        experience = strategy.experience
+        if isinstance(experience, OnlineCLExperience):
+            self.train_task_id = experience.origin_experience.current_experience
+        else:
+            self.train_task_id = experience.current_experience
+
+    def reset(self, strategy=None):
+        self._accuracy.reset()
+
+    def result(self, strategy=None) -> float:
+        forgetting = self._compute_forgetting()
+        return forgetting
+
+    def update(self, strategy):
+        self._accuracy.update(self.classes_splits, 
+                              strategy.mb_output, 
+                              strategy.mb_y)
+
+    def _compute_forgetting(self):
+        for t, item in self._accuracy.result().items():
+            if t not in self.initial:
+                self.initial[t] = item
+            else:
+                self.last[t] = item
+
+        forgetting = {}
+        for k, v in self.last.items():
+            forgetting[k] = self.initial[k] - self.last[k]
+
+        return forgetting
+
+    def __str__(self):
+        return "CumulativeForgetting"
+
+
+__all__ = [
+    "CumulativeAccuracyPluginMetric",
+    "CumulativeForgettingPluginMetric",
+    "CumulativeAccuracy",
+]
