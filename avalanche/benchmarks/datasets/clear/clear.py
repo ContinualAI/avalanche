@@ -92,43 +92,41 @@ class CLEARDataset(DownloadableDataset):
             self._extract_archive(filepath, remove_archive=True)
 
     def _load_metadata(self) -> bool:
-        train_folder_path = self.root / "training_folder"
-        if not train_folder_path.exists():
-            print(f"{train_folder_path} does not exist. ")
-            return False
-
-        self.bucket_indices = _load_json(
-            train_folder_path / "bucket_indices.json"
-        )
-
-        class_names_file = self.root / "class_names.txt"
-        self.class_names = class_names_file.read_text().split("\n")
-
-        filelist_folder_path = train_folder_path / "filelists"
-
-        filelist_name = f"all.txt"
-
-        filelists = []
-        for bucket_index in self.bucket_indices:
-            f_path = filelist_folder_path / str(bucket_index) / filelist_name
-            try:
-                filelists.append(default_flist_reader(f_path))
-            except Exception as e:
-                print(f"Error reading {f_path}")
+        splits = ["train", "test"] if self.split == "all" else [self.split]
+        for split in splits:
+            train_folder_path = self.root / split
+            if not train_folder_path.exists():
+                print(f"{train_folder_path} does not exist. ")
                 return False
+        
+            self.labeled_metadata = _load_json(
+                train_folder_path / "labeled_metadata.json"
+            )
 
-        self.samples = []
+            class_names_file = train_folder_path / "class_names.txt"
+            self.class_names = class_names_file.read_text().split("\n")
 
-        for f_list in filelists:
-            self.samples += f_list
+            self.samples = []
+            self._paths_and_targets = []
+            for bucket, data in self.labeled_metadata.items():
+                for class_idx, class_name in enumerate(self.class_names):
+                    metadata_path = data[class_name]
+                    metadata_path = train_folder_path / metadata_path
+                    if not metadata_path.exists():
+                        print(f"{metadata_path} does not exist. ")
+                        return False
+                    metadata = _load_json(metadata_path)
+                    for v in metadata.values():
+                        f_path = os.path.join(split, v["IMG_PATH"])
+                        self.samples.append((f_path, class_idx))
 
-        # Check whether all labeled images exist
-        for img_path, _ in self.samples:
-            path = self.root / img_path
-            if not os.path.exists(path):
-                print(f"{path} does not exist. Files not properly extracted?")
-                return False
-        return True
+            # Check whether all labeled images exist
+            for img_path, _ in self.samples:
+                path = self.root / img_path
+                if not os.path.exists(path):
+                    print(f"{path} does not exist. Files not properly extracted?")
+                    return False
+            return True
 
     def _download_error_message(self) -> str:
         all_urls = [
@@ -224,35 +222,43 @@ class _CLEARImage(CLEARDataset):
         if not super(_CLEARImage, self)._load_metadata():
             print("CLEAR has not yet been downloaded")
             return False
-
-        train_folder_path = self.root / "training_folder"
-
-        if self.split == "all":
-            filelist_folder_path = train_folder_path / "filelists"
-        else:
-            filelist_folder_path = (
-                train_folder_path / "testset_ratio_0.3" / f"split_{self.seed}"
-            )
-
-        filelist_name = f"{self.split}.txt"
-
-        self._paths_and_targets = []
-        for bucket_index in self.bucket_indices:
-            f_path = filelist_folder_path / str(bucket_index) / filelist_name
-            try:
-                self._paths_and_targets.append(default_flist_reader(f_path))
-            except Exception as e:
-                print(f"Error reading {f_path}")
-                return False
-
+        
         self.paths = []
         self.targets = []
+        self._paths_and_targets = []
+        splits = ["test", "train"] if self.split == "all" else [self.split]
+        for split in splits:
+            train_folder_path = self.root / split
+            if not train_folder_path.exists():
+                print(f"{train_folder_path} does not exist. ")
+                return False
+        
+            self.labeled_metadata = _load_json(
+                train_folder_path / "labeled_metadata.json"
+            )
 
+            samples = []
+            for bucket, data in self.labeled_metadata.items():
+                for class_idx, class_name in enumerate(self.class_names):
+                    metadata_path = data[class_name]
+                    metadata_path = train_folder_path / metadata_path
+                    if not metadata_path.exists():
+                        print(f"{metadata_path} does not exist. ")
+                        return False
+                    metadata = _load_json(metadata_path)
+                    for v in metadata.values():
+                        f_path = os.path.join(split, v["IMG_PATH"])
+                        samples.append((f_path, class_idx))
+                if self.split == "all" and split == "train":
+                    _samples = self._paths_and_targets[int(bucket)]
+                    _samples += samples
+                    self._paths_and_targets[int(bucket)] = _samples
+                else:
+                    self._paths_and_targets.append(samples)
         for path_and_target_list in self._paths_and_targets:
             for img_path, target in path_and_target_list:
-                self.paths.append(img_path)
+                self.paths.append(self.root / img_path)
                 self.targets.append(target)
-
         return True
 
     def get_paths_and_targets(self, root_appended=True):
@@ -346,36 +352,34 @@ class _CLEARFeature(CLEARDataset):
         if not super(_CLEARFeature, self)._load_metadata():
             print("CLEAR has not yet been downloaded")
             return False
-
-        train_folder_path = self.root / "training_folder"
-
-        feature_folder_path = train_folder_path / "features" / self.feature_type
-
-        if self.split in ["train", "test"]:
-            split_folder_path = (
-                train_folder_path / "testset_ratio_0.3" / f"split_{self.seed}"
-            )
-
-            split_name = f"{self.split}_indices.json"
-        else:
-            split_name = None
-
+        
+        
         self.tensors_and_targets = []
-        for bucket_index in self.bucket_indices:
-            f_path = feature_folder_path / str(bucket_index) / "all.pth"
-            try:
-                tensors, targets = torch.load(f_path)
-                if split_name:
-                    indices_json = (
-                        split_folder_path / str(bucket_index) / split_name
-                    )
-                    chosen_indices = _load_json(indices_json)
-                    tensors = [tensors[i] for i in chosen_indices]
-                    targets = [targets[i] for i in chosen_indices]
-                self.tensors_and_targets.append((tensors, targets))
-            except Exception as e:
-                print(f"Error loading {f_path}")
-                return False
+        splits = ["test", "train"] if self.split == "all" else [self.split]
+        for split in splits:
+            folder_path = self.root / self.split
+            feature_folder_path = folder_path / "features" / self.feature_type
+            metadata = _load_json(feature_folder_path / "features.json")
+            tensors = []
+            targets = []
+            for bucket, data in metadata.items():
+                for class_idx, class_name in enumerate(self.class_names):
+                    feature_path = data[class_name]
+                    try:
+                        features = torch.load(folder_path / feature_path)
+                    except Exception as e:
+                        print(f"Error loading {feature_path}")
+                        return False
+                    for _id, tensor in features.items():
+                        tensors.append(tensor)
+                        targets.append(class_idx)
+                if self.split == "all" and split == "train":
+                    _tensors, _targets = self.tensors_and_targets[int(bucket)]
+                    _tensors += tensors
+                    _targets += targets
+                    self.tensors_and_targets[int(bucket)] = (_tensors, _targets)
+                else:
+                    self.tensors_and_targets.append((tensors, targets))
 
         self.tensors = []
         self.targets = []
