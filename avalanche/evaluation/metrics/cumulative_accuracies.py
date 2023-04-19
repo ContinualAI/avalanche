@@ -12,6 +12,7 @@
 from collections import defaultdict
 from typing import Dict, List, Union
 
+import numpy as np
 import torch
 from torch import Tensor
 
@@ -45,32 +46,29 @@ class CumulativeAccuracy(Metric[float]):
     ) -> None:
         true_y = torch.as_tensor(true_y)
         predicted_y = torch.as_tensor(predicted_y)
-
+        if len(true_y) != len(predicted_y):
+            raise ValueError("Size mismatch for true_y " 
+                             "and predicted_y tensors")
         for t, classes in classes_splits.items():
 
             # Only compute Accuracy for classes that are in classes set
             if len(set(true_y.cpu().numpy()).intersection(classes)) == 0:
+                # Here this assumes that true_y is only 
+                # coming from the same classes split, 
+                # this is a shortcut
+                # but sometimes this is not true so we
+                # do additional filtering later to make sure
                 continue
+            
+            idxs = np.where(np.isin(true_y.cpu(), list(classes)))[0]
+            y = true_y[idxs]
+            logits_exp = predicted_y[idxs, :]
 
-            # Transform predicted logits to label using cumulative Accuracy
-            # method (only taking logits accumulated from previous experiences)
-            logits_exp = predicted_y[:, list(classes)]
+            logits_exp = logits_exp[:, list(classes)]
+            prediction = torch.argmax(logits_exp, dim=1)
 
-            if len(true_y) != len(predicted_y):
-                raise ValueError("Size mismatch for true_y " 
-                                 "and predicted_y tensors")
-
-            # Check if logits or labels
-            if len(logits_exp.shape) > 1:
-                # Logits -> transform to labels
-                prediction = torch.max(logits_exp, 1)[1]
-
-            if len(true_y.shape) > 1:
-                # Logits -> transform to labels
-                true_y = torch.max(true_y, 1)[1]
-
-            true_positives = float(torch.sum(torch.eq(prediction, true_y)))
-            total_patterns = len(true_y)
+            true_positives = float(torch.sum(torch.eq(prediction, y)))
+            total_patterns = len(y)
             self._mean_accuracy[t].update(
                 true_positives / total_patterns, total_patterns
             )

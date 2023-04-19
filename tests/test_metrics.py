@@ -21,6 +21,7 @@ from avalanche.evaluation.metrics import (
     ElapsedTime,
     Forgetting,
     ForwardTransfer,
+    CumulativeAccuracy,
 )
 
 
@@ -514,6 +515,41 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertEqual(f, -0.6)
         metric.reset()
         self.assertEqual(metric.result(), {})
+
+    def test_cumulative_accuracy(self):
+        classes_splits = {0: {0, 1}, 1: {i for i in range(self.input_size)}}
+
+        metric = CumulativeAccuracy()
+        self.assertDictEqual(metric.result(), {})
+
+        # Last cumulative acc corresponds to average acc
+        metric.update(classes_splits, self.out, self.y)
+        accuracy = (self.out.argmax(1) == self.y).float().mean()
+        self.assertEqual(accuracy, metric.result()[1])
+
+        # Test reset = 0
+        metric.reset()
+        self.assertDictEqual(
+            metric.result(), {c: 0.0 for c in classes_splits}
+        )
+
+        # Test all wrong = 0
+        out_wrong = torch.ones(self.batch_size, self.input_size)
+        out_wrong[torch.arange(self.batch_size), self.y] = 0
+        metric.update(classes_splits, out_wrong, self.y)
+        self.assertDictEqual(
+            metric.result(), {c: 0.0 for c in classes_splits}
+        )
+        metric.reset()
+
+        # Test all right = 1
+        out_right = torch.zeros(self.batch_size, self.input_size)
+        out_right[torch.arange(self.batch_size), self.y] = 1
+        metric.update(classes_splits, out_right, self.y)
+        self.assertDictEqual(
+            metric.result(), {c: 1.0 for c in classes_splits}
+        )
+        metric.reset()
 
 
 if __name__ == "__main__":
