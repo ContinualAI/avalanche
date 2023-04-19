@@ -166,7 +166,8 @@ def main():
     accuracy_matrix = np.zeros((num_timestamp, num_timestamp))
     for train_idx in range(num_timestamp):
         for test_idx in range(num_timestamp):
-            mname = f'Top1_Acc_Exp/eval_phase/test_stream/Task00{test_idx}/Exp00{test_idx}'
+            mname = f'Top1_Acc_Exp/eval_phase/test_stream' \
+                    f'/Task00{test_idx}/Exp00{test_idx}'
             accuracy_matrix[train_idx][test_idx] = results[train_idx][mname]
     print("Accuracy_matrix : ")
     print(accuracy_matrix)
