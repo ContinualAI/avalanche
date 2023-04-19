@@ -188,7 +188,7 @@ def main():
     for train_idx in range(num_timestamp):
         for test_idx in range(num_timestamp):
             accuracy_matrix[train_idx][test_idx] = results[train_idx][
-                f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}"
+                f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}/Exp00{test_idx}"
             ]
     print("Accuracy_matrix : ")
     print(accuracy_matrix)
