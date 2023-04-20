@@ -1,4 +1,4 @@
-from typing import Iterable, List, Optional, TypeVar
+from typing import Iterable, List, Optional, Sequence, Tuple, TypeVar
 from typing_extensions import Protocol
 
 from torch import Tensor
@@ -15,21 +15,19 @@ from avalanche.core import BasePlugin
 
 TExperienceType = TypeVar('TExperienceType', bound=CLExperience)
 TSGDExperienceType = TypeVar('TSGDExperienceType', bound=DatasetExperience)
-TPluginType = TypeVar('TPluginType', bound=BasePlugin)
 TMBinput = TypeVar('TMBinput')
 TMBoutput = TypeVar('TMBoutput')
 
 
 class BaseStrategyProtocol(
         Protocol[
-            TExperienceType,
-            TPluginType]):
+            TExperienceType]):
 
     model: Module
     
     device: torch.device
 
-    plugins: List[TPluginType]
+    plugins: List[BasePlugin]
 
     experience: Optional[TExperienceType]
 
@@ -40,11 +38,9 @@ class BaseStrategyProtocol(
 
 class SGDStrategyProtocol(
         BaseStrategyProtocol[
-            TSGDExperienceType,
-            TPluginType],
+            TSGDExperienceType],
         Protocol[
             TSGDExperienceType,
-            TPluginType,
             TMBinput,
             TMBoutput]):
     """
@@ -117,7 +113,6 @@ class SGDStrategyProtocol(
 class SupervisedStrategyProtocol(
     SGDStrategyProtocol[
         TSGDExperienceType,
-        TPluginType,
         TMBinput,
         TMBoutput], Protocol):
 
@@ -131,7 +126,6 @@ class SupervisedStrategyProtocol(
 class MetaLearningStrategyProtocol(
     SGDStrategyProtocol[
         TSGDExperienceType,
-        TPluginType,
         TMBinput,
         TMBoutput], Protocol):
 

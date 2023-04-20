@@ -91,7 +91,7 @@ def zerolike_params_dict(model: Module) -> Dict[str, 'ParamData']:
                  for k, p in model.named_parameters()])
 
 
-def copy_params_dict(model, copy_grad=False):
+def copy_params_dict(model, copy_grad=False) -> Dict[str, 'ParamData']:
     """
     Create a list of (name, parameter), where parameter is copied from model.
     The list has as many parameters as model, with the same size.
@@ -99,7 +99,7 @@ def copy_params_dict(model, copy_grad=False):
     :param model: a pytorch model
     :param copy_grad: if True returns gradients instead of parameter values
     """
-    out = {}
+    out: Dict[str, ParamData] = {}
     for k, p in model.named_parameters():
         if copy_grad and p.grad is None:
             continue

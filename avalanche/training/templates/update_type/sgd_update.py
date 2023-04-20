@@ -3,8 +3,9 @@ from avalanche.training.templates.strategy_mixin_protocol \
     import SGDStrategyProtocol
 
 
-class SGDUpdate:
-    def training_epoch(self: SGDStrategyProtocol, **kwargs):
+class SGDUpdate(SGDStrategyProtocol):
+    
+    def training_epoch(self, **kwargs):
         """Training epoch.
 
         :param kwargs:
@@ -38,3 +39,8 @@ class SGDUpdate:
             self._after_update(**kwargs)
 
             self._after_training_iteration(**kwargs)
+
+
+__all__ = [
+    'SGDUpdate'
+]

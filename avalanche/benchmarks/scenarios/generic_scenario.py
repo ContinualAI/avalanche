@@ -471,8 +471,8 @@ class AbstractClassTimelineExperience(
 
 class GeneratorMemo(Generic[T]):
     def __init__(self, generator: Generator[T, None, None]):
-        self._generator = generator
-        self._already_generated = []
+        self._generator: Optional[Generator[T, None, None]] = generator
+        self._already_generated: List[T] = []
     
     def __iter__(self):
         idx = 0

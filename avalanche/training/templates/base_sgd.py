@@ -23,20 +23,18 @@ from avalanche.training.utils import trigger_plugins
 
 
 TDatasetExperience = TypeVar('TDatasetExperience', bound=DatasetExperience)
-TPluginType = TypeVar('TPluginType', bound=BasePlugin)
 TMBInput = TypeVar('TMBInput')
 TMBOutput = TypeVar('TMBOutput')
 
 
 class BaseSGDTemplate(
-        BaseTemplate[
-            TDatasetExperience,
-            TPluginType], 
         SGDStrategyProtocol[
             TDatasetExperience,
-            TPluginType,
             TMBInput,
-            TMBOutput]):
+            TMBOutput],
+        BaseTemplate[
+            TDatasetExperience]
+        ):
     """Base SGD class for continual learning skeletons.
 
     **Training loop**
@@ -63,14 +61,14 @@ class BaseSGDTemplate(
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
-        device="cpu",
-        plugins: Optional[Sequence["SupervisedPlugin"]] = None,
+        device: Union[str, torch.device] = "cpu",
+        plugins: Optional[Sequence[BasePlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
             Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
-        peval_mode="epoch",
+        peval_mode="epoch"
     ):
         """Init.
 
@@ -91,7 +89,13 @@ class BaseSGDTemplate(
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__(model=model, device=device, plugins=plugins)
+
+        super().__init__()  # type: ignore
+        BaseTemplate.__init__(
+            self=self,
+            model=model,
+            device=device,
+            plugins=plugins)
 
         self.optimizer: Optimizer = optimizer
         """ PyTorch optimizer. """
@@ -116,7 +120,7 @@ class BaseSGDTemplate(
             evaluator = evaluator()
 
         self.plugins.append(evaluator)  # type: ignore
-        self.evaluator = evaluator
+        self.evaluator: EvaluationPlugin = evaluator
         """ EvaluationPlugin used for logging and metric computations. """
 
         # Configure periodic evaluation.
@@ -483,7 +487,7 @@ class BaseSGDTemplate(
         trigger_plugins(self, "after_eval_dataset_adaptation", **kwargs)
 
 
-class PeriodicEval(SupervisedPlugin):
+class PeriodicEval(BaseSGDPlugin):
     """Schedules periodic evaluation during training.
 
     This plugin is automatically configured and added by the BaseTemplate.

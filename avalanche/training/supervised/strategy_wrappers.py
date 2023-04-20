@@ -9,6 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 from typing import Optional, Sequence, List, Union
+import torch
 from torch.nn.parameter import Parameter
 
 from torch.nn import Module, CrossEntropyLoss
@@ -119,7 +120,7 @@ class PNNStrategy(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,
@@ -929,7 +930,7 @@ class SynapticIntelligence(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,

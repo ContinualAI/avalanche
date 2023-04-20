@@ -1,4 +1,13 @@
-from typing import Optional, TYPE_CHECKING
+from collections import defaultdict
+from typing import (
+    Dict,
+    List,
+    Optional,
+    TYPE_CHECKING,
+    Sequence,
+    Set,
+    SupportsInt,
+)
 
 from copy import deepcopy
 import torch
@@ -7,6 +16,7 @@ from torch.optim.lr_scheduler import MultiStepLR
 
 from avalanche.benchmarks.utils import classification_subset, \
                                     concat_classification_datasets
+from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import (
@@ -97,11 +107,11 @@ class BiCPlugin(SupervisedPlugin):
         self.mem_size = mem_size
         self.lr = lr
 
-        self.seen_classes = set()
-        self.class_to_tasks = {}
-        self.bias_layer = {}
+        self.seen_classes: Set[int] = set()
+        self.class_to_tasks: Dict[int, int] = {}
+        self.bias_layer: Dict[int, BiasLayer] = {}
         self.model_old = None
-        self.val_buffer = {}
+        self.val_buffer: Dict[int, ReservoirSamplingBuffer] = {}
 
     # TODO: remove ext_mem
     # @property
@@ -117,11 +127,16 @@ class BiCPlugin(SupervisedPlugin):
         strategy: "SupervisedTemplate", 
         **kwargs
     ):
-        new_data = strategy.experience.dataset
+        assert strategy.experience is not None
+        new_data: AvalancheDataset = strategy.experience.dataset
         task_id = strategy.clock.train_exp_counter
 
-        cl_idxs = {k : [] for k in new_data.targets.uniques}
-        for idx, target in enumerate(new_data.targets):
+        cl_idxs: Dict[int, List[int]] = defaultdict(list)
+        targets: Sequence[SupportsInt] = getattr(new_data, 'targets')
+        for idx, target in enumerate(targets):
+            # Conversion to int may fix issues when target
+            # is a single-element torch.tensor
+            target = int(target)
             cl_idxs[target].append(idx) 
 
         for c in cl_idxs.keys():
@@ -171,12 +186,14 @@ class BiCPlugin(SupervisedPlugin):
         Dataloader to build batches containing examples from both memories and
         the training dataset
         """
+        assert strategy.adapted_dataset is not None
         task_id = strategy.clock.train_exp_counter
 
         if task_id not in self.bias_layer:
+            targets = getattr(strategy.adapted_dataset, 'targets')
             self.bias_layer[task_id] = BiasLayer(
                                 strategy.device, 
-                                list(strategy.adapted_dataset.targets.uniques)
+                                list(targets.uniques)
                             )
 
         if len(self.storage_policy.buffer) == 0:
@@ -254,8 +271,13 @@ class BiCPlugin(SupervisedPlugin):
                                 self.bias_layer[task_id].parameters(), 
                                 lr=self.lr, momentum=0.9)
 
-            scheduler = MultiStepLR(bic_optimizer, milestones=[50, 100, 150], 
-                                    gamma=0.1, verbose=False)
+            # verbose here is actually correct
+            # The PyTorch type stubs for MultiStepLR are broken
+            scheduler = MultiStepLR(
+                bic_optimizer,
+                milestones=[50, 100, 150], 
+                gamma=0.1,
+                verbose=False)  # type: ignore
             
             # Loop epochs
             for e in range(self.stage_2_epochs):

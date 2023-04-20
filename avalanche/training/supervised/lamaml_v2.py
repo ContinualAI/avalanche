@@ -1,4 +1,4 @@
-from typing import Sequence, Optional
+from typing import List, Sequence, Optional, Union
 
 import pkg_resources
 from pkg_resources import DistributionNotFound, VersionConflict
@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+from torch import Tensor
 import math
 from copy import deepcopy
 
@@ -40,7 +41,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
@@ -86,7 +87,9 @@ class LaMAML(SupervisedMetaLearningTemplate):
         self.lr_alpha = lr_alpha
         self.sync_update = sync_update
         self.alpha_init = alpha_init
-        self.alpha_params = None
+        self.alpha_params: nn.ParameterDict = nn.ParameterDict()
+        self.alpha_params_initialized: bool = False
+        self.meta_losses: List[Tensor] = []
 
         self.buffer = Buffer(max_buffer_size=max_buffer_size,
                              buffer_mb_size=buffer_mb_size,
@@ -98,8 +101,8 @@ class LaMAML(SupervisedMetaLearningTemplate):
         super()._before_training_exp(drop_last=True, **kwargs)
 
         # Initialize alpha-lr parameters
-        if self.alpha_params is None:
-            self.alpha_params = nn.ParameterDict()
+        if not self.alpha_params_initialized:
+            self.alpha_params_initialized = True
             # Iterate through model parameters and add the corresponding
             # alpha_lr parameter
             for n, p in self.model.named_parameters():
@@ -212,7 +215,9 @@ class LaMAML(SupervisedMetaLearningTemplate):
         # Split the current batch into smaller chuncks
         bsize_data = batch_x.shape[0]
         rough_sz = math.ceil(bsize_data / self.n_inner_updates)
-        self.meta_losses = [0 for _ in range(self.n_inner_updates)]
+        self.meta_losses = [
+            torch.empty(0) for _ in range(self.n_inner_updates)
+        ]
 
         # Iterate through the chunks as inner-loops
         for i in range(self.n_inner_updates):

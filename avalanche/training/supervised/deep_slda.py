@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import os
 import torch
@@ -35,7 +35,7 @@ class StreamingLDA(SupervisedTemplate):
         train_epochs: int = 1,
         train_mb_size: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,

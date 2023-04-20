@@ -3,10 +3,8 @@ from avalanche.training.templates.strategy_mixin_protocol import \
 from avalanche.training.utils import trigger_plugins
 
 
-class MetaUpdate:
-    def training_epoch(
-            self: MetaLearningStrategyProtocol,
-            **kwargs):
+class MetaUpdate(MetaLearningStrategyProtocol):
+    def training_epoch(self, **kwargs):
         """Training epoch.
 
         :param kwargs:
@@ -53,3 +51,8 @@ class MetaUpdate:
 
     def _after_outer_update(self, **kwargs):
         trigger_plugins(self, "after_outer_update", **kwargs)
+
+
+__all__ = [
+    'MetaUpdate'
+]

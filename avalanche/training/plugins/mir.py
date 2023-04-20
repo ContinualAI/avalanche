@@ -39,9 +39,9 @@ class MIRPlugin(SupervisedPlugin):
 
     def __init__(
         self,
+        batch_size_mem: int,
         mem_size: int = 200,
         subsample: int = 200,
-        batch_size_mem: Optional[int] = None,
     ):
         """
         mem_size: int       : Fixed memory size
@@ -135,3 +135,8 @@ class MIRPlugin(SupervisedPlugin):
             )
         else:
             self.replay_loader = None
+
+
+__all__ = [
+    'MIRPlugin'
+]

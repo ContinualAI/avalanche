@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import copy
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -37,13 +37,13 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
         self,
         model: Module,
         optimizer: Optimizer,
+        batch_size_mem: int,
         criterion=CrossEntropyLoss(),
         mem_size: int = 200,
-        batch_size_mem: Optional[int] = None,
         train_mb_size: int = 1,
         train_passes: int = 1,
         eval_mb_size: Optional[int] = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,
@@ -199,7 +199,7 @@ class ER_ACE(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,

@@ -19,16 +19,16 @@ TMBoutput = TypeVar('TMBoutput')
 class SGDStrategyProtocolOnline(
         SGDStrategyProtocol[
             OnlineCLExperience,
-            BaseSGDPlugin,
             TMBinput,
             TMBoutput], 
         Protocol):
+        
     model_params_before_adaptation: List[Tensor]
 
 
-class OnlineObservation:
+class OnlineObservation(SGDStrategyProtocolOnline):
 
-    def make_optimizer(self: SGDStrategyProtocolOnline):
+    def make_optimizer(self):
         """Optimizer initialization.
 
         Called before each training experience to configure the optimizer.
@@ -43,12 +43,13 @@ class OnlineObservation:
 
         # Otherwise, update the optimizer
         else:
-            update_optimizer(self.optimizer,
-                             self.model_params_before_adaptation,
-                             self.model.parameters(),
-                             reset_state=False)
+            update_optimizer(
+                self.optimizer,
+                self.model_params_before_adaptation,  # type: ignore
+                self.model.parameters(),
+                reset_state=False)
 
-    def model_adaptation(self: SGDStrategyProtocolOnline, model=None):
+    def model_adaptation(self, model=None):
         """Adapts the model to the current data.
 
         Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
@@ -75,7 +76,7 @@ class OnlineObservation:
 
         return model.to(self.device)
 
-    def check_model_and_optimizer(self: SGDStrategyProtocolOnline):
+    def check_model_and_optimizer(self):
         # If strategy has access to the task boundaries, and the current
         # sub-experience is the first sub-experience in the online stream,
         # then adapt the model with the full origin experience:

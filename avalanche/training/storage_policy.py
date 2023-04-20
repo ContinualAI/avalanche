@@ -26,7 +26,7 @@ from avalanche.models import FeatureExtractorBackbone
 from ..benchmarks.utils.utils import concat_datasets
 
 if TYPE_CHECKING:
-    from .templates import SupervisedTemplate
+    from .templates import SupervisedTemplate, BaseSGDTemplate
 
 
 class ExemplarsBuffer(ABC):
@@ -287,7 +287,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
         self.total_num_classes = total_num_classes
         self.seen_classes: Set[int] = set()
 
-    def update(self, strategy: "SupervisedTemplate", **kwargs):
+    def update(self, strategy: "BaseSGDTemplate", **kwargs):
         """Update buffer."""
         assert strategy.experience is not None
         self.update_from_dataset(strategy.experience.dataset, strategy)
@@ -295,7 +295,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
     def update_from_dataset(
         self,
         new_data: AvalancheDataset,
-        strategy: Optional["SupervisedTemplate"] = None
+        strategy: Optional["BaseSGDTemplate"] = None
     ):
         if len(new_data) == 0:
             return
@@ -306,6 +306,8 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
         # Get sample idxs per class
         cl_idxs: Dict[int, List[int]] = defaultdict(list)
         for idx, target in enumerate(targets):
+            # Conversion to int may fix issues when target
+            # is a single-element torch.tensor
             target = int(target)
             cl_idxs[target].append(idx)
 

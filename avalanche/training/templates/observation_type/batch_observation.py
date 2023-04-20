@@ -4,8 +4,8 @@ from avalanche.training.templates.strategy_mixin_protocol import \
     SGDStrategyProtocol
 
 
-class BatchObservation:
-    def model_adaptation(self: SGDStrategyProtocol, model=None):
+class BatchObservation(SGDStrategyProtocol):
+    def model_adaptation(self, model=None):
         """Adapts the model to the current data.
 
         Calls the :class:`~avalanche.models.DynamicModule`s adaptation.
@@ -17,7 +17,7 @@ class BatchObservation:
         avalanche_model_adaptation(model, self.experience)
         return model.to(self.device)
 
-    def make_optimizer(self: SGDStrategyProtocol):
+    def make_optimizer(self):
         """Optimizer initialization.
 
         Called before each training experiene to configure the optimizer.
@@ -27,7 +27,7 @@ class BatchObservation:
         # freezing old units during the model's adaptation phase.
         reset_optimizer(self.optimizer, self.model)
 
-    def check_model_and_optimizer(self: SGDStrategyProtocol):
+    def check_model_and_optimizer(self):
         self.model = self.model_adaptation()
         self.make_optimizer()
 

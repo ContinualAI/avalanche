@@ -13,10 +13,10 @@ from avalanche.training.utils import trigger_plugins
 
 
 TExperienceType = TypeVar('TExperienceType', bound=CLExperience)
-TPluginType = TypeVar('TPluginType', bound=BasePlugin)
+TPluginType = TypeVar('TPluginType', bound=BasePlugin, contravariant=True)
 
 
-class BaseTemplate(BaseStrategyProtocol[TExperienceType, TPluginType]):
+class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
     """Base class for continual learning skeletons.
 
     **Training loop**
@@ -39,9 +39,10 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType, TPluginType]):
     def __init__(
         self,
         model: Module,
-        device="cpu",
-        plugins: Optional[Sequence[TPluginType]] = None,
+        device: Union[str, torch.device] = "cpu",
+        plugins: Optional[Sequence[BasePlugin]] = None,
     ):
+        super().__init__()
         """Init."""
 
         self.model: Module = model
@@ -53,7 +54,7 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType, TPluginType]):
         self.device = torch.device(device)
         """ PyTorch device where the model will be allocated. """
 
-        self.plugins: List[TPluginType] = [] \
+        self.plugins: List[BasePlugin] = [] \
             if plugins is None else list(plugins)
         """ List of `SupervisedPlugin`s. """
 
@@ -84,9 +85,9 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType, TPluginType]):
 
     def train(
         self,
-        experiences: Union[CLExperience, Iterable[TExperienceType]],
+        experiences: Union[TExperienceType, Iterable[TExperienceType]],
         eval_streams: Optional[
-            Sequence[Union[CLExperience, Iterable[TExperienceType]]]
+            Sequence[Union[TExperienceType, Iterable[TExperienceType]]]
         ] = None,
         **kwargs,
     ):
@@ -301,3 +302,8 @@ def _experiences_parameter_as_iterable(
         return experiences
     else:
         return [experiences]
+
+
+__all__ = [
+    'BaseTemplate'
+]
