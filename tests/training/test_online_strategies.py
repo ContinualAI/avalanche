@@ -57,7 +57,7 @@ class StrategyTest(unittest.TestCase):
         )
         ocl_benchmark = OnlineCLScenario(benchmark_streams,
                                          access_task_boundaries=True)
-        #self.run_strategy_boundaries(ocl_benchmark, strategy)
+        self.run_strategy_boundaries(ocl_benchmark, strategy)
 
         # Without task boundaries
         model, optimizer, criterion, my_nc_benchmark = self.init_sit()

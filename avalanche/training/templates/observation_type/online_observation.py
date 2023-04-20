@@ -1,4 +1,5 @@
-from typing import List, Protocol, TypeVar
+from typing import List, TypeVar
+from typing_extensions import Protocol
 
 from torch import Tensor
 

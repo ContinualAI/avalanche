@@ -492,7 +492,6 @@ class GeneratorMemo(Generic[T]):
             idx += 1
             
 
-
 class CLStream(Generic[TCLExperience]):
     """A CL stream is a named iterator of experiences.
 
