@@ -38,7 +38,8 @@ from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 
 # For CLEAR dataset setup
 DATASET_NAME = "clear100_cvpr2022"
-NUM_CLASSES = {"clear10": 11, "clear100_cvpr2022": 100}
+NUM_CLASSES = {"clear10_neurips_2021": 11, "clear100_cvpr2022": 100,
+               "clear10": 11, "clear100": 100}
 assert DATASET_NAME in NUM_CLASSES.keys()
 
 # please refer to paper for discussion on streaming v.s. iid protocol

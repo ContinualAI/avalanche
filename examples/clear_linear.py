@@ -36,8 +36,9 @@ from avalanche.training.supervised import Naive
 from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 
 # For CLEAR dataset setup
-DATASET_NAME = "clear10"
-NUM_CLASSES = {"clear10": 11}
+DATASET_NAME = "clear10_neurips2021"
+NUM_CLASSES = {"clear10_neurips_2021": 11, "clear100_cvpr2022": 100,
+               "clear10": 11, "clear100": 100}
 CLEAR_FEATURE_TYPE = "moco_b0"  # MoCo V2 pretrained on bucket 0
 # CLEAR_FEATURE_TYPE = "moco_imagenet"  # MoCo V2 pretrained on imagenet
 # CLEAR_FEATURE_TYPE = "byol_imagenet"  # BYOL pretrained on imagenet
