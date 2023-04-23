@@ -30,5 +30,18 @@ clear100 = [
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
     )
 ]
+clear10_neurips2021= [
+    (
+        "clear10-public.zip",  # name
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+    )
+]
+clear100_cvpr2022 = [
+    (
+        "clear100-workshop-avalanche.zip",  # name
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+    )
+]
 
-__all__ = ["clear10", "clear100"]
+
+__all__ = ["clear10", "clear100", "clear10_neurips2021", "clear100_cvpr2022"]

@@ -26,11 +26,13 @@ from avalanche.benchmarks.datasets import (
 from avalanche.benchmarks.utils import default_flist_reader
 from avalanche.benchmarks.datasets.clear import clear_data
 
-_CLEAR_DATA_SPLITS = {"clear10", "clear100"}
+_CLEAR_DATA_SPLITS = {"clear10", "clear100", "clear10_neurips2021", "clear100_cvpr2022"}
 
 CLEAR_FEATURE_TYPES = {
     "clear10": ["moco_b0"],
     "clear100": ["moco_b0"],
+    "clear10_neurips2021": ["moco_b0", "moco_imagenet", "byol_imagenet", "imagenet"],
+    "clear100_cvpr2022": ["moco_b0"],
 }
 
 SPLIT_OPTIONS = ["all", "train", "test"]
@@ -91,7 +93,56 @@ class CLEARDataset(DownloadableDataset):
             os.system(f"wget -P {str(self.root)} {url}")
             self._extract_archive(filepath, remove_archive=True)
 
+
     def _load_metadata(self) -> bool:
+        print("LOAD")
+        if '_' in self.data_name:
+            return self._load_metadata_old()
+        else:
+            return self._load_metadata_new()
+
+    def _load_metadata_old(self) -> bool:
+        """
+            Load Metadata for clear10_neurips2021 and clear100_cvpr2022
+        """
+        train_folder_path = self.root / "training_folder"
+        if not train_folder_path.exists():
+            print(f"{train_folder_path} does not exist. ")
+            return False
+
+        self.bucket_indices = _load_json(
+            train_folder_path / "bucket_indices.json"
+        )
+
+        class_names_file = self.root / "class_names.txt"
+        self.class_names = class_names_file.read_text().split("\n")
+
+        filelist_folder_path = train_folder_path / "filelists"
+
+        filelist_name = f"all.txt"
+
+        filelists = []
+        for bucket_index in self.bucket_indices:
+            f_path = filelist_folder_path / str(bucket_index) / filelist_name
+            try:
+                filelists.append(default_flist_reader(f_path))
+            except Exception as e:
+                print(f"Error reading {f_path}")
+                return False
+
+        self.samples = []
+        for f_list in filelists:
+            self.samples += f_list
+
+        # Check whether all labeled images exist
+        for img_path, _ in self.samples:
+            path = self.root / img_path
+            if not os.path.exists(path):
+                print(f"{path} does not exist. Files not properly extracted?")
+                return False
+        return True
+
+    def _load_metadata_new(self) -> bool:
         splits = ["train", "test"] if self.split == "all" else [self.split]
         for split in splits:
             train_folder_path = self.root / split
@@ -219,7 +270,48 @@ class _CLEARImage(CLEARDataset):
         )
 
     def _load_metadata(self) -> bool:
-        if not super(_CLEARImage, self)._load_metadata():
+        if '_' in self.data_name:
+            return self._load_metadata_old()
+        else:
+            return self._load_metadata_new()
+
+    def _load_metadata_old(self) -> bool:
+        if not super(_CLEARImage, self)._load_metadata_old():
+            print("CLEAR has not yet been downloaded")
+            return False
+
+        train_folder_path = self.root / "training_folder"
+
+        if self.split == "all":
+            filelist_folder_path = train_folder_path / "filelists"
+        else:
+            filelist_folder_path = (
+                train_folder_path / "testset_ratio_0.3" / f"split_{self.seed}"
+            )
+
+        filelist_name = f"{self.split}.txt"
+
+        self._paths_and_targets = []
+        for bucket_index in self.bucket_indices:
+            f_path = filelist_folder_path / str(bucket_index) / filelist_name
+            try:
+                self._paths_and_targets.append(default_flist_reader(f_path))
+            except Exception as e:
+                print(f"Error reading {f_path}")
+                return False
+
+        self.paths = []
+        self.targets = []
+
+        for path_and_target_list in self._paths_and_targets:
+            for img_path, target in path_and_target_list:
+                self.paths.append(img_path)
+                self.targets.append(target)
+
+        return True
+
+    def _load_metadata_new(self) -> bool:
+        if not super(_CLEARImage, self)._load_metadata_new():
             print("CLEAR has not yet been downloaded")
             return False
         
@@ -326,9 +418,13 @@ class _CLEARFeature(CLEARDataset):
             If split=='all', then seed must be None (since no split is done)
             otherwise, choose from [0, 1, 2, 3, 4]
         :param feature_type: The type of features.
-            For CLEAR10, choose from [
+            For CLEAR10_NeurIPS2021, choose from [
                 'moco_b0', # Moco V2 ResNet50 pretrained on bucket 0
+                'moco_imagenet', # Moco V2 ResNet50 pretrained on Imagenet
+                'byol_imagenet', # BYOL ResNet50 pretrained on Imagenet
+                'imagenet', # ResNet50 pretrained on Imagenet
             ]
+            For other datasets: 'moco_b0' only
         :param target_transform: The transformations to apply to the Y values.
         """
         self.split = split
@@ -349,7 +445,57 @@ class _CLEARFeature(CLEARDataset):
         )
 
     def _load_metadata(self) -> bool:
-        if not super(_CLEARFeature, self)._load_metadata():
+        if '_' in self.data_name:
+            return self._load_metadata_old()
+        else:
+            return self._load_metadata_new()
+
+    def _load_metadata_old(self) -> bool:
+        if not super(_CLEARFeature, self)._load_metadata_old():
+            print("CLEAR has not yet been downloaded")
+            return False
+
+        train_folder_path = self.root / "training_folder"
+
+        feature_folder_path = train_folder_path / "features" / self.feature_type
+
+        if self.split in ["train", "test"]:
+            split_folder_path = (
+                train_folder_path / "testset_ratio_0.3" / f"split_{self.seed}"
+            )
+
+            split_name = f"{self.split}_indices.json"
+        else:
+            split_name = None
+
+        self.tensors_and_targets = []
+        for bucket_index in self.bucket_indices:
+            f_path = feature_folder_path / str(bucket_index) / "all.pth"
+            try:
+                tensors, targets = torch.load(f_path)
+                if split_name:
+                    indices_json = (
+                        split_folder_path / str(bucket_index) / split_name
+                    )
+                    chosen_indices = _load_json(indices_json)
+                    tensors = [tensors[i] for i in chosen_indices]
+                    targets = [targets[i] for i in chosen_indices]
+                self.tensors_and_targets.append((tensors, targets))
+            except Exception as e:
+                print(f"Error loading {f_path}")
+                return False
+
+        self.tensors = []
+        self.targets = []
+        for tensors, targets in self.tensors_and_targets:
+            for tensor, target in zip(tensors, targets):
+                self.tensors.append(tensor)
+                self.targets.append(target)
+
+        return True
+
+    def _load_metadata_new(self) -> bool:
+        if not super(_CLEARFeature, self)._load_metadata_new():
             print("CLEAR has not yet been downloaded")
             return False
         
@@ -423,76 +569,78 @@ if __name__ == "__main__":
             normalize,
         ]
     )
+    data_names = ["clear10_neurips2021", "clear100_cvpr2022", "clear10", "clear100"]
+    for data_name in data_names:
+        root = f"../avalanche_datasets/{data_name}"
+        print(root)
+        if not os.path.exists(root):
+            Path(root).mkdir(parents=True)
+        clear_dataset_all = _CLEARImage(
+            root=root,
+            data_name=data_name,
+            download=True,
+            split="all",
+            seed=None,
+            transform=transform,
+        )
+        clear_dataset_train = _CLEARImage(
+            root=root,
+            data_name=data_name,
+            download=True,
+            split="train",
+            seed=0,
+            transform=transform,
+        )
+        clear_dataset_test = _CLEARImage(
+            root=root,
+            data_name=data_name,
+            download=True,
+            split="test",
+            seed=0,
+            transform=transform,
+        )
+        print(f"{data_name} size (all): ", len(clear_dataset_all))
+        print(f"{data_name} size (train): ", len(clear_dataset_train))
+        print(f"{data_name} size (test): ", len(clear_dataset_test))
 
-    data_name = "clear10"
-    root = f"../avalanche_datasets/{data_name}"
-    if not os.path.exists(root):
-        Path(root).mkdir(parents=True)
-    clear_dataset_all = _CLEARImage(
-        root=root,
-        data_name=data_name,
-        download=True,
-        split="all",
-        seed=None,
-        transform=transform,
-    )
-    clear_dataset_train = _CLEARImage(
-        root=root,
-        data_name=data_name,
-        download=True,
-        split="train",
-        seed=0,
-        transform=transform,
-    )
-    clear_dataset_test = _CLEARImage(
-        root=root,
-        data_name=data_name,
-        download=True,
-        split="test",
-        seed=0,
-        transform=transform,
-    )
-    print("clear10 size (all): ", len(clear_dataset_all))
-    print("clear10 size (train): ", len(clear_dataset_train))
-    print("clear10 size (test): ", len(clear_dataset_test))
+        clear_dataset_train_feature = _CLEARFeature(
+            root=root,
+            data_name=data_name,
+            download=True,
+            feature_type="moco_b0",
+            split="train",
+            seed=0,
+        )
+        print("clear10 size (train features): ", len(clear_dataset_train_feature))
+        if '_' in data_name:
+            clear_dataset_all_feature = _CLEARFeature(
+                root=root,
+                data_name=data_name,
+                download=True,
+                feature_type="moco_b0",
+                split="all",
+                seed=None,
+            )
+            clear_dataset_test_feature = _CLEARFeature(
+                root=root,
+                data_name=data_name,
+                download=True,
+                feature_type="moco_b0",
+                split="test",
+                seed=0,
+            )
+            print(f"{data_name} size (test features): ", len(clear_dataset_test_feature))
+            print(f"{data_name} size (all features): ", len(clear_dataset_all_feature))
+        print("Classes are: ")
+        for i, name in enumerate(clear_dataset_test.class_names):
+            print(f"{i} : {name}")
+        dataloader = DataLoader(clear_dataset_test_feature, batch_size=1)
 
-    clear_dataset_all_feature = _CLEARFeature(
-        root=root,
-        data_name=data_name,
-        download=True,
-        feature_type="moco_b0",
-        split="all",
-        seed=None,
-    )
-    clear_dataset_train_feature = _CLEARFeature(
-        root=root,
-        data_name=data_name,
-        download=True,
-        feature_type="moco_b0",
-        split="train",
-        seed=0,
-    )
-    clear_dataset_test_feature = _CLEARFeature(
-        root=root,
-        data_name=data_name,
-        download=True,
-        feature_type="moco_b0",
-        split="test",
-        seed=0,
-    )
-    print("clear10 size (all features): ", len(clear_dataset_all_feature))
-    print("clear10 size (train features): ", len(clear_dataset_train_feature))
-    print("clear10 size (test features): ", len(clear_dataset_test_feature))
-    print("Classes are: ")
-    for i, name in enumerate(clear_dataset_test.class_names):
-        print(f"{i} : {name}")
-    dataloader = DataLoader(clear_dataset_test_feature, batch_size=1)
-
-    for batch_data in dataloader:
-        x, y = batch_data
-        print(x.size())
-        print(len(y))
-        break
+        for batch_data in dataloader:
+            x, y = batch_data
+            print(x.size())
+            print(len(y))
+            break
 
 __all__ = [
     "CLEARDataset",
