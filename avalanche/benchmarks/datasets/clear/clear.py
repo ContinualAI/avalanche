@@ -27,13 +27,13 @@ from avalanche.benchmarks.utils import default_flist_reader
 from avalanche.benchmarks.datasets.clear import clear_data
 
 _CLEAR_DATA_SPLITS = {"clear10", "clear100", 
-        "clear10_neurips2021", "clear100_cvpr2022"}
+                      "clear10_neurips2021", "clear100_cvpr2022"}
 
 CLEAR_FEATURE_TYPES = {
     "clear10": ["moco_b0"],
     "clear100": ["moco_b0"],
     "clear10_neurips2021": ["moco_b0", 
-        "moco_imagenet", "byol_imagenet", "imagenet"],
+                            "moco_imagenet", "byol_imagenet", "imagenet"],
     "clear100_cvpr2022": ["moco_b0"],
 }
 
@@ -570,7 +570,7 @@ if __name__ == "__main__":
         ]
     )
     data_names = ["clear10_neurips2021", "clear100_cvpr2022", 
-            "clear10", "clear100"]
+                  "clear10", "clear100"]
     for data_name in data_names:
         root = f"../avalanche_datasets/{data_name}"
         print(root)
@@ -613,7 +613,7 @@ if __name__ == "__main__":
             seed=0,
         )
         print("clear10 size (train features): ", 
-                len(clear_dataset_train_feature))
+              len(clear_dataset_train_feature))
         if '_' in data_name:
             clear_dataset_all_feature = _CLEARFeature(
                 root=root,
@@ -632,9 +632,9 @@ if __name__ == "__main__":
                 seed=0,
             )
             print(f"{data_name} size (test features): ", 
-                    len(clear_dataset_test_feature))
+                  len(clear_dataset_test_feature))
             print(f"{data_name} size (all features): ", 
-                    len(clear_dataset_all_feature))
+                  len(clear_dataset_all_feature))
         print("Classes are: ")
         for i, name in enumerate(clear_dataset_test.class_names):
             print(f"{i} : {name}")
