@@ -30,7 +30,7 @@ clear100 = [
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
     )
 ]
-clear10_neurips2021= [
+clear10_neurips2021 = [
     (
         "clear10-public.zip",  # name
         "https://clear-challenge.s3.us-east-2.amazonaws.com",

@@ -26,12 +26,14 @@ from avalanche.benchmarks.datasets import (
 from avalanche.benchmarks.utils import default_flist_reader
 from avalanche.benchmarks.datasets.clear import clear_data
 
-_CLEAR_DATA_SPLITS = {"clear10", "clear100", "clear10_neurips2021", "clear100_cvpr2022"}
+_CLEAR_DATA_SPLITS = {"clear10", "clear100", 
+        "clear10_neurips2021", "clear100_cvpr2022"}
 
 CLEAR_FEATURE_TYPES = {
     "clear10": ["moco_b0"],
     "clear100": ["moco_b0"],
-    "clear10_neurips2021": ["moco_b0", "moco_imagenet", "byol_imagenet", "imagenet"],
+    "clear10_neurips2021": ["moco_b0", 
+        "moco_imagenet", "byol_imagenet", "imagenet"],
     "clear100_cvpr2022": ["moco_b0"],
 }
 
@@ -92,7 +94,6 @@ class CLEARDataset(DownloadableDataset):
             filepath = self.root / name
             os.system(f"wget -P {str(self.root)} {url}")
             self._extract_archive(filepath, remove_archive=True)
-
 
     def _load_metadata(self) -> bool:
         print("LOAD")
@@ -175,7 +176,7 @@ class CLEARDataset(DownloadableDataset):
             for img_path, _ in self.samples:
                 path = self.root / img_path
                 if not os.path.exists(path):
-                    print(f"{path} does not exist. Files not properly extracted?")
+                    print(f"{path} does not exist.")
                     return False
             return True
 
@@ -499,7 +500,6 @@ class _CLEARFeature(CLEARDataset):
             print("CLEAR has not yet been downloaded")
             return False
         
-        
         self.tensors_and_targets = []
         splits = ["test", "train"] if self.split == "all" else [self.split]
         for split in splits:
@@ -569,7 +569,8 @@ if __name__ == "__main__":
             normalize,
         ]
     )
-    data_names = ["clear10_neurips2021", "clear100_cvpr2022", "clear10", "clear100"]
+    data_names = ["clear10_neurips2021", "clear100_cvpr2022", 
+            "clear10", "clear100"]
     for data_name in data_names:
         root = f"../avalanche_datasets/{data_name}"
         print(root)
@@ -611,7 +612,8 @@ if __name__ == "__main__":
             split="train",
             seed=0,
         )
-        print("clear10 size (train features): ", len(clear_dataset_train_feature))
+        print("clear10 size (train features): ", 
+                len(clear_dataset_train_feature))
         if '_' in data_name:
             clear_dataset_all_feature = _CLEARFeature(
                 root=root,
@@ -629,8 +631,10 @@ if __name__ == "__main__":
                 split="test",
                 seed=0,
             )
-            print(f"{data_name} size (test features): ", len(clear_dataset_test_feature))
-            print(f"{data_name} size (all features): ", len(clear_dataset_all_feature))
+            print(f"{data_name} size (test features): ", 
+                    len(clear_dataset_test_feature))
+            print(f"{data_name} size (all features): ", 
+                    len(clear_dataset_all_feature))
         print("Classes are: ")
         for i, name in enumerate(clear_dataset_test.class_names):
             print(f"{i} : {name}")
