@@ -96,7 +96,6 @@ class CLEARDataset(DownloadableDataset):
             self._extract_archive(filepath, remove_archive=True)
 
     def _load_metadata(self) -> bool:
-        print("LOAD")
         if '_' in self.data_name:
             return self._load_metadata_old()
         else:

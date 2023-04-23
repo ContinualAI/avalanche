@@ -109,6 +109,7 @@ def main():
         seed = 0
 
     benchmark = CLEAR(
+        data_name=DATASET_NAME,
         evaluation_protocol=EVALUATION_PROTOCOL,
         feature_type=CLEAR_FEATURE_TYPE,
         seed=seed,
