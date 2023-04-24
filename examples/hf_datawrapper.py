@@ -24,14 +24,12 @@ class HFTextDataWrapper:
         self.dataset = []
         self.collate_fn = None
 
-
     def download_data(self, **kwargs):
-        self.dataset = ds.load_dataset(self.dataset_name, split=self.split, **kwargs)
-
+        self.dataset = ds.load_dataset(
+            self.dataset_name, split=self.split, **kwargs)
 
     def add_collate_function(self, collate_fn):
         self.collate_fn = collate_fn
-
 
     def map_preprocess_func(self, preproc_func, batched, columns_to_keep=[]):
         """
@@ -55,32 +53,32 @@ class HFTextDataWrapper:
             self.dataset = self.dataset.remove_columns(list(old_f))
             print(f'Kept columns: {new_f - old_f}')
             print('If the resulting dataset has 0 columns left. Please ensure that the'
-                ' preprocessing phase saves the modified features in new columns or pass a lisof column names to this method')
+                  ' preprocessing phase saves the modified features in new columns or pass a list of column names')
         else:
-            print('else=')
             old_f = self._all_features()
             self.dataset = self.dataset.map(preproc_func, batched=batched)
             to_remove = old_f - columns_to_keep
             self.dataset = self.dataset.remove_columns(list(to_remove))
-            print(f'The following columns have been removed from dataset: {to_remove}')
+            print(
+                f'The following columns have been removed from dataset: {to_remove}')
         print('Dataset features: ', self.dataset.features.keys())
-
 
     def to_avalanche_dataset(self, dataset_index):
         tl = DataAttribute(
-            ConstantSequence(dataset_index, len(self.dataset)), "targets_task_labels"
+            ConstantSequence(dataset_index, len(
+                self.dataset)), "targets_task_labels"
         )
         return AvalancheDataset(
-                    [self.dataset], data_attributes=[tl], collate_fn=self.collate_fn
+                    [self.dataset], data_attributes=[
+                        tl], collate_fn=self.collate_fn
         )
-
 
     def _all_features(self):
         return self.dataset.features.keys()
-    
 
     def _get_hf_dataset(self):
         return self.dataset
+
 
 class HGNaive(avalanche.training.Naive):
     """There are only a couple of modifications needed to
@@ -150,34 +148,32 @@ def main():
 
     def t2t_converter(example):
 
-
         example['input_text'] = f"question: {example['question']}  context: {example['context']} </s>"
         example['target_text'] = f"{example['answers']['text'][0]} </s>"
         return example
 
-
     def preprocess_function(examples, encoder_max_len=encoder_max_len, decoder_max_len=decoder_max_len, tokenizer=AutoTokenizer.from_pretrained("t5-small")):
-  
+
         encoder_inputs = tokenizer(examples['input_text'], truncation=True, 
-                                return_tensors='pt', max_length=encoder_max_len,
-                                pad_to_max_length=True)
-        
+                                   return_tensors='pt', max_length=encoder_max_len,
+                                   pad_to_max_length=True)
+
         decoder_inputs = tokenizer(examples['target_text'], truncation=True, 
-                                return_tensors='pt', max_length=decoder_max_len,
-                                pad_to_max_length=True)
-        
+                                   return_tensors='pt', max_length=decoder_max_len,
+                                   pad_to_max_length=True)
+
         input_ids = encoder_inputs['input_ids']
         input_attention = encoder_inputs['attention_mask']
         target_ids = decoder_inputs['input_ids']
         target_attention = decoder_inputs['attention_mask']
-        
-        outputs = {'input_ids':input_ids, 'attention_mask': input_attention, 
-                'labels':target_ids, 'decoder_attention_mask':target_attention}
+
+        outputs = {'input_ids': input_ids, 'attention_mask': input_attention, 
+                   'labels': target_ids, 'decoder_attention_mask': target_attention}
         return outputs
 
-
     # define the data collator to pass to the resulting avalanche dataset
-    data_collator = DataCollatorForSeq2Seq(AutoTokenizer.from_pretrained('t5-small'))
+    data_collator = DataCollatorForSeq2Seq(
+        AutoTokenizer.from_pretrained('t5-small'))
     data_wrap.add_collate_function(data_collator)
 
     # download the dataset 
@@ -185,9 +181,12 @@ def main():
 
     # Optional: define the columns to keep after applying the preprocessing function.
     # By default, only columns added to dataset by the preprocessing function are kept
-    columns_list = ['input_ids', 'attention_masks', 'decoder_attention_mask', 'labels']
-    data_wrap.map_preprocess_func(preproc_func=t2t_converter, batched=False, columns_to_keep=columns_list)
-    data_wrap.map_preprocess_func(preproc_func=preprocess_function, batched=True, columns_to_keep=columns_list)
+    columns_list = ['input_ids', 'attention_masks',
+                    'decoder_attention_mask', 'labels']
+    data_wrap.map_preprocess_func(
+        preproc_func=t2t_converter, batched=False, columns_to_keep=columns_list)
+    data_wrap.map_preprocess_func(
+        preproc_func=preprocess_function, batched=True, columns_to_keep=columns_list)
 
     # Convert to an AvalancheDataset
     dataset = data_wrap.to_avalanche_dataset(1)
@@ -231,7 +230,6 @@ def main():
     for experience in benchmark.train_stream:
         strategy.train(experience, collate_fn=data_collator)
         strategy.eval(benchmark.train_stream)
-
 
 
 if __name__ == "__main__":

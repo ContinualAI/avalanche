@@ -86,45 +86,44 @@ def main():
 
     def t2t_converter(example):
 
-
         example['input_text'] = f"question: {example['question']}  context: {example['context']} </s>"
         example['target_text'] = f"{example['answers']['text'][0]} </s>"
         return example
 
-
     def preprocess_function(examples, encoder_max_len=encoder_max_len, decoder_max_len=decoder_max_len):
-  
+
         encoder_inputs = tokenizer(examples['input_text'], truncation=True, 
-                                return_tensors='pt', max_length=encoder_max_len,
-                                pad_to_max_length=True)
-        
+                                   return_tensors='pt', max_length=encoder_max_len,
+                                   pad_to_max_length=True)
+
         decoder_inputs = tokenizer(examples['target_text'], truncation=True, 
-                                return_tensors='pt', max_length=decoder_max_len,
-                                pad_to_max_length=True)
-        
+                                   return_tensors='pt', max_length=decoder_max_len,
+                                   pad_to_max_length=True)
+
         input_ids = encoder_inputs['input_ids']
         input_attention = encoder_inputs['attention_mask']
         target_ids = decoder_inputs['input_ids']
         target_attention = decoder_inputs['attention_mask']
-        
-        outputs = {'input_ids':input_ids, 'attention_mask': input_attention, 
-                'labels':target_ids, 'decoder_attention_mask':target_attention}
+
+        outputs = {'input_ids': input_ids, 'attention_mask': input_attention, 
+                   'labels': target_ids, 'decoder_attention_mask': target_attention}
         return outputs
 
     # Map the preprocessing function to the dataset so that it's applied to 
     # all examples
     squad_tr = squad_tr.map(t2t_converter)
     squad_tr = squad_tr.map(preprocess_function, batched=True)
-    squad_tr = squad_tr.remove_columns(['id', 'title', 'context', 'question','answers', 'input_text', 'target_text'])
+    squad_tr = squad_tr.remove_columns(
+        ['id', 'title', 'context', 'question', 'answers', 'input_text', 'target_text'])
     squad_val = squad_val.map(t2t_converter)
     squad_val = squad_val.map(preprocess_function, batched=True)
-    squad_val = squad_val.remove_columns(['id', 'title', 'context', 'question','answers'])#,' input_text', 'target_text'])
-
+    # ,' input_text', 'target_text'])
+    squad_val = squad_val.remove_columns(
+        ['id', 'title', 'context', 'question', 'answers'])
 
     model = T5ForConditionalGeneration.from_pretrained("t5-small")
     # Use a standard data collator for QA
     data_collator = DataCollatorForSeq2Seq(tokenizer)
-
 
     train_exps = []
     for i in range(0, 2):
@@ -178,8 +177,7 @@ def main():
         strategy.train(experience, collate_fn=data_collator)
         strategy.eval(benchmark.train_stream)
 
-
-    ## Test the model:
+    # Test the model:
     model.eval()
     question = "Which libraries is Avalanche based upon?"
     context = """
@@ -189,7 +187,7 @@ def main():
     training and reproducible evaluation of continual learning algorithms."
     """
 
-    input_text =  f"answer_me: {question} context: {context} </s>"
+    input_text = f"answer_me: {question} context: {context} </s>"
     encoded_query = tokenizer(input_text,
                               return_tensors='pt',
                               pad_to_max_length=True,
@@ -199,11 +197,11 @@ def main():
     input_ids = encoded_query["input_ids"]
     attention_mask = encoded_query["attention_mask"]
     generated_answer = model.generate(input_ids, attention_mask=attention_mask, 
-                                    max_length=50, top_p=0.95, top_k=50, repetition_penalty=2.0)
+                                      max_length=50, top_p=0.95, top_k=50, repetition_penalty=2.0)
 
-    decoded_answer = tokenizer.batch_decode(generated_answer, skip_special_tokens=True)
+    decoded_answer = tokenizer.batch_decode(
+        generated_answer, skip_special_tokens=True)
     print(f'Answer: {decoded_answer}')
-
 
 
 if __name__ == "__main__":
