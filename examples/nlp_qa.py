@@ -1,36 +1,13 @@
-
-
-## 1. Create examples to use quetion answering data in Squad Format
-## Create a wrapper class that can hold text data (json format), can take a tokenizer and a preprocess function(example, tokenizer) to generate tensors
-## Optionally pass a datacollator do Avalanche Datasets
-
-## E.g. GenericSquadLikeDataset
-
-'''
-init with raw data
-
-get_avalancheDataversion(tokenizer, preprocess_func) -> avalanche Dataset
-
-Pensare a un qualcosa di generico che accetti più tokenizzatori
-
-'''
-
+"""
+Simple example that show how to use Avalanche for Question Answering on Squad by using T5
+"""
 from avalanche.benchmarks.utils import DataAttribute, ConstantSequence
 from avalanche.training.plugins import ReplayPlugin
-
-from dataclasses import dataclass
-
-from transformers import PreTrainedTokenizerBase, DefaultDataCollator, DataCollatorForSeq2Seq
-from typing import Optional, Union, Any
-
-from transformers.utils import PaddingStrategy
+from transformers import DataCollatorForSeq2Seq
 import torch
-
 import avalanche
 import torch.nn
-
 from avalanche.benchmarks import CLScenario, CLStream, CLExperience
-from avalanche.evaluation.metrics import accuracy_metrics
 import avalanche.training.templates.base
 from avalanche.benchmarks.utils import AvalancheDataset
 from transformers import AutoTokenizer

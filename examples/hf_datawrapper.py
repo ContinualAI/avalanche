@@ -1,33 +1,18 @@
-
 import datasets as ds
-
-
+import numpy as np
+import torch
+import torch.nn
+from transformers import (AutoTokenizer, DataCollatorForSeq2Seq,
+                          T5ForConditionalGeneration)
+import avalanche
+import avalanche.training.templates.base
+from avalanche.benchmarks import CLExperience, CLScenario, CLStream
+from avalanche.benchmarks.utils import (AvalancheDataset, ConstantSequence,
+                                        DataAttribute)
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
-
-
-from avalanche.benchmarks.utils import DataAttribute, ConstantSequence
 from avalanche.training.plugins import ReplayPlugin
-
-from dataclasses import dataclass
-
-from transformers import PreTrainedTokenizerBase, DefaultDataCollator, DataCollatorForSeq2Seq
-from typing import Optional, Union, Any
-
-from transformers.utils import PaddingStrategy
-import torch
-
-import avalanche
-import torch.nn
-
-from avalanche.benchmarks import CLScenario, CLStream, CLExperience
-from avalanche.evaluation.metrics import accuracy_metrics
-import avalanche.training.templates.base
-from avalanche.benchmarks.utils import AvalancheDataset
-from transformers import AutoTokenizer
-from transformers import T5ForConditionalGeneration
-import numpy as np
 
 
 class HFTextDataWrapper:
@@ -194,15 +179,19 @@ def main():
     # define the data collator to pass to the resulting avalanche dataset
     data_collator = DataCollatorForSeq2Seq(AutoTokenizer.from_pretrained('t5-small'))
     data_wrap.add_collate_function(data_collator)
+
     # download the dataset 
     data_wrap.download_data()
+
     # Optional: define the columns to keep after applying the preprocessing function.
     # By default, only columns added to dataset by the preprocessing function are kept
     columns_list = ['input_ids', 'attention_masks', 'decoder_attention_mask', 'labels']
     data_wrap.map_preprocess_func(preproc_func=t2t_converter, batched=False, columns_to_keep=columns_list)
     data_wrap.map_preprocess_func(preproc_func=preprocess_function, batched=True, columns_to_keep=columns_list)
+
     # Convert to an AvalancheDataset
     dataset = data_wrap.to_avalanche_dataset(1)
+
     # Print the type
     print(dataset, type(dataset))
 
