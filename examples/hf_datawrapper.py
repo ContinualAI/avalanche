@@ -2,15 +2,14 @@ import datasets as ds
 import numpy as np
 import torch
 import torch.nn
-from transformers import (
-    AutoTokenizer,
-    DataCollatorForSeq2Seq,
-    T5ForConditionalGeneration,
-)
+from transformers import (AutoTokenizer, DataCollatorForSeq2Seq,
+                          T5ForConditionalGeneration)
+
 import avalanche
 import avalanche.training.templates.base
 from avalanche.benchmarks import CLExperience, CLScenario, CLStream
-from avalanche.benchmarks.utils import AvalancheDataset, ConstantSequence, DataAttribute
+from avalanche.benchmarks.utils import (AvalancheDataset, ConstantSequence,
+                                        DataAttribute)
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
@@ -208,15 +207,17 @@ def main():
     # download the dataset
     data_wrap.download_data()
 
-    # Optional: define the columns to keep after applying the preprocessing function.
-    # By default, only columns added to dataset by the preprocessing function are kept
+    # Optional: define the columns to keep after applying the preprocessing
+    # function By default, only columns added to dataset by the preprocessing
+    # function are kept
     columns_list = ["input_ids", "attention_masks",
                     "decoder_attention_mask", "labels"]
     data_wrap.map_preprocess_func(
         preproc_func=t2t_converter, batched=False, columns_to_keep=columns_list
     )
     data_wrap.map_preprocess_func(
-        preproc_func=preprocess_function, batched=True, columns_to_keep=columns_list
+        preproc_func=preprocess_function, batched=True, 
+        columns_to_keep=columns_list
     )
 
     # Convert to an AvalancheDataset
