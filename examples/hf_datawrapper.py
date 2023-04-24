@@ -2,13 +2,15 @@ import datasets as ds
 import numpy as np
 import torch
 import torch.nn
-from transformers import (AutoTokenizer, DataCollatorForSeq2Seq,
-                          T5ForConditionalGeneration)
+from transformers import (
+    AutoTokenizer,
+    DataCollatorForSeq2Seq,
+    T5ForConditionalGeneration,
+)
 import avalanche
 import avalanche.training.templates.base
 from avalanche.benchmarks import CLExperience, CLScenario, CLStream
-from avalanche.benchmarks.utils import (AvalancheDataset, ConstantSequence,
-                                        DataAttribute)
+from avalanche.benchmarks.utils import AvalancheDataset, ConstantSequence, DataAttribute
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
@@ -16,7 +18,10 @@ from avalanche.training.plugins import ReplayPlugin
 
 
 class HFTextDataWrapper:
-    """ A simple wrapper class to use HugginFace Datasets and convert them to AvalancheDatasets"""
+    """
+    A simple wrapper class to use HugginFace Datasets and convert them
+    to AvalancheDatasets
+    """
 
     def __init__(self, dataset_name, split) -> None:
         self.dataset_name = dataset_name
@@ -36,10 +41,14 @@ class HFTextDataWrapper:
         Applies a preprocessing function to the wrapped Hugging Face Datasets.
 
         Args:
-        - preproc_func: A preprocessing function that will be applied to the dataset. See H.F. library documentation for details.
-        - batched: A boolean indicating whether the preprocessing function should be applied to the dataset in batches.
-        - columns_to_keep: A list of column names to keep in the dataset after the preprocessing function has been applied.
-                        If set to an empty list (default), ONLY columns added by the preproc_func will be kept. 
+        - preproc_func: A preprocessing function that will be applied to the 
+            dataset. See H.F. library documentation for details.
+        - batched: A boolean indicating whether the preprocessing function 
+            should be applied to the dataset in batches.
+        - columns_to_keep: A list of column names to keep in the dataset 
+            after the preprocessing function has been applied. If set to an 
+            empty list (default), ONLY columns added by the preproc_func will
+            be kept.
 
         Returns:
         None
@@ -49,19 +58,23 @@ class HFTextDataWrapper:
             old_f = self._all_features()
             self.dataset = self.dataset.map(preproc_func, batched=batched)
             new_f = self._all_features() - old_f
-            print(f'The following columns are removed from dataset: {old_f}')
+            print(f"The following columns are removed from dataset: {old_f}")
             self.dataset = self.dataset.remove_columns(list(old_f))
-            print(f'Kept columns: {new_f - old_f}')
-            print('If the resulting dataset has 0 columns left. Please ensure that the'
-                  ' preprocessing phase saves the modified features in new columns or pass a list of column names')
+            print(f"Kept columns: {new_f - old_f}")
+            print(
+                "If the resulting dataset has 0 columns left. Please ensure" 
+                "that the preprocessing phase saves the modified features in"
+                "new columns or pass a list of column names"
+            )
         else:
             old_f = self._all_features()
             self.dataset = self.dataset.map(preproc_func, batched=batched)
             to_remove = old_f - columns_to_keep
             self.dataset = self.dataset.remove_columns(list(to_remove))
             print(
-                f'The following columns have been removed from dataset: {to_remove}')
-        print('Dataset features: ', self.dataset.features.keys())
+                f"The following columns have been removed"
+                "from dataset: {to_remove}")
+        print("Dataset features: ", self.dataset.features.keys())
 
     def to_avalanche_dataset(self, dataset_index):
         tl = DataAttribute(
@@ -69,8 +82,7 @@ class HFTextDataWrapper:
                 self.dataset)), "targets_task_labels"
         )
         return AvalancheDataset(
-                    [self.dataset], data_attributes=[
-                        tl], collate_fn=self.collate_fn
+            [self.dataset], data_attributes=[tl], collate_fn=self.collate_fn
         )
 
     def _all_features(self):
@@ -133,9 +145,8 @@ class HGNaive(avalanche.training.Naive):
 
 
 def main():
-
     # Load SQuAD datasets from HuggingFace
-    data_wrap = HFTextDataWrapper(dataset_name='squad', split='train')
+    data_wrap = HFTextDataWrapper(dataset_name="squad", split="train")
 
     encoder_max_len = 40
     decoder_max_len = 60
@@ -147,46 +158,66 @@ def main():
     """
 
     def t2t_converter(example):
-
-        example['input_text'] = f"question: {example['question']}  context: {example['context']} </s>"
-        example['target_text'] = f"{example['answers']['text'][0]} </s>"
+        example[
+            "input_text"
+        ] = f"question: {example['question']}"
+        + f"context: {example['context']} </s>"
+        example["target_text"] = f"{example['answers']['text'][0]} </s>"
         return example
 
-    def preprocess_function(examples, encoder_max_len=encoder_max_len, decoder_max_len=decoder_max_len, tokenizer=AutoTokenizer.from_pretrained("t5-small")):
+    def preprocess_function(
+        examples,
+        encoder_max_len=encoder_max_len,
+        decoder_max_len=decoder_max_len,
+        tokenizer=AutoTokenizer.from_pretrained("t5-small"),
+    ):
+        encoder_inputs = tokenizer(
+            examples["input_text"],
+            truncation=True,
+            return_tensors="pt",
+            max_length=encoder_max_len,
+            pad_to_max_length=True,
+        )
 
-        encoder_inputs = tokenizer(examples['input_text'], truncation=True, 
-                                   return_tensors='pt', max_length=encoder_max_len,
-                                   pad_to_max_length=True)
+        decoder_inputs = tokenizer(
+            examples["target_text"],
+            truncation=True,
+            return_tensors="pt",
+            max_length=decoder_max_len,
+            pad_to_max_length=True,
+        )
 
-        decoder_inputs = tokenizer(examples['target_text'], truncation=True, 
-                                   return_tensors='pt', max_length=decoder_max_len,
-                                   pad_to_max_length=True)
+        input_ids = encoder_inputs["input_ids"]
+        input_attention = encoder_inputs["attention_mask"]
+        target_ids = decoder_inputs["input_ids"]
+        target_attention = decoder_inputs["attention_mask"]
 
-        input_ids = encoder_inputs['input_ids']
-        input_attention = encoder_inputs['attention_mask']
-        target_ids = decoder_inputs['input_ids']
-        target_attention = decoder_inputs['attention_mask']
-
-        outputs = {'input_ids': input_ids, 'attention_mask': input_attention, 
-                   'labels': target_ids, 'decoder_attention_mask': target_attention}
+        outputs = {
+            "input_ids": input_ids,
+            "attention_mask": input_attention,
+            "labels": target_ids,
+            "decoder_attention_mask": target_attention,
+        }
         return outputs
 
     # define the data collator to pass to the resulting avalanche dataset
     data_collator = DataCollatorForSeq2Seq(
-        AutoTokenizer.from_pretrained('t5-small'))
+        AutoTokenizer.from_pretrained("t5-small"))
     data_wrap.add_collate_function(data_collator)
 
-    # download the dataset 
+    # download the dataset
     data_wrap.download_data()
 
     # Optional: define the columns to keep after applying the preprocessing function.
     # By default, only columns added to dataset by the preprocessing function are kept
-    columns_list = ['input_ids', 'attention_masks',
-                    'decoder_attention_mask', 'labels']
+    columns_list = ["input_ids", "attention_masks",
+                    "decoder_attention_mask", "labels"]
     data_wrap.map_preprocess_func(
-        preproc_func=t2t_converter, batched=False, columns_to_keep=columns_list)
+        preproc_func=t2t_converter, batched=False, columns_to_keep=columns_list
+    )
     data_wrap.map_preprocess_func(
-        preproc_func=preprocess_function, batched=True, columns_to_keep=columns_list)
+        preproc_func=preprocess_function, batched=True, columns_to_keep=columns_list
+    )
 
     # Convert to an AvalancheDataset
     dataset = data_wrap.to_avalanche_dataset(1)

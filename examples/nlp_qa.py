@@ -1,5 +1,6 @@
 """
-Simple example that show how to use Avalanche for Question Answering on Squad by using T5
+Simple example that show how to use Avalanche for Question Answering on 
+Squad by using T5
 """
 from avalanche.benchmarks.utils import DataAttribute, ConstantSequence
 from avalanche.training.plugins import ReplayPlugin
@@ -69,7 +70,6 @@ class HGNaive(avalanche.training.Naive):
 
 
 def main():
-
     # Load SQuAD datasets from HuggingFace
     squad_tr = load_dataset("squad", split="train")
     squad_val = load_dataset("squad", split="validation")
@@ -78,48 +78,67 @@ def main():
     encoder_max_len = tokenizer.model_max_length
     decoder_max_len = 60
 
-    '''
+    """
     Define a preprocessing function (code from HuggingFace) to:
     1. Convert squad dataset to be used in a text 2 text setting
     2. Encode the question and context with the tokenizer of T5 model
-    '''
+    """
 
     def t2t_converter(example):
-
-        example['input_text'] = f"question: {example['question']}  context: {example['context']} </s>"
-        example['target_text'] = f"{example['answers']['text'][0]} </s>"
+        example[
+            "input_text"
+        ] = f"question: {example['question']}"
+        + f"context: {example['context']} </s>"
+        example["target_text"] = f"{example['answers']['text'][0]} </s>"
         return example
 
-    def preprocess_function(examples, encoder_max_len=encoder_max_len, decoder_max_len=decoder_max_len):
+    def preprocess_function(
+        examples, encoder_max_len=encoder_max_len,
+        decoder_max_len=decoder_max_len
+    ):
+        encoder_inputs = tokenizer(
+            examples["input_text"],
+            truncation=True,
+            return_tensors="pt",
+            max_length=encoder_max_len,
+            pad_to_max_length=True,
+        )
 
-        encoder_inputs = tokenizer(examples['input_text'], truncation=True, 
-                                   return_tensors='pt', max_length=encoder_max_len,
-                                   pad_to_max_length=True)
+        decoder_inputs = tokenizer(
+            examples["target_text"],
+            truncation=True,
+            return_tensors="pt",
+            max_length=decoder_max_len,
+            pad_to_max_length=True,
+        )
 
-        decoder_inputs = tokenizer(examples['target_text'], truncation=True, 
-                                   return_tensors='pt', max_length=decoder_max_len,
-                                   pad_to_max_length=True)
+        input_ids = encoder_inputs["input_ids"]
+        input_attention = encoder_inputs["attention_mask"]
+        target_ids = decoder_inputs["input_ids"]
+        target_attention = decoder_inputs["attention_mask"]
 
-        input_ids = encoder_inputs['input_ids']
-        input_attention = encoder_inputs['attention_mask']
-        target_ids = decoder_inputs['input_ids']
-        target_attention = decoder_inputs['attention_mask']
-
-        outputs = {'input_ids': input_ids, 'attention_mask': input_attention, 
-                   'labels': target_ids, 'decoder_attention_mask': target_attention}
+        outputs = {
+            "input_ids": input_ids,
+            "attention_mask": input_attention,
+            "labels": target_ids,
+            "decoder_attention_mask": target_attention,
+        }
         return outputs
 
-    # Map the preprocessing function to the dataset so that it's applied to 
+    # Map the preprocessing function to the dataset so that it's applied to
     # all examples
     squad_tr = squad_tr.map(t2t_converter)
     squad_tr = squad_tr.map(preprocess_function, batched=True)
     squad_tr = squad_tr.remove_columns(
-        ['id', 'title', 'context', 'question', 'answers', 'input_text', 'target_text'])
+        ["id", "title", "context", "question",
+            "answers", "input_text", "target_text"]
+    )
     squad_val = squad_val.map(t2t_converter)
     squad_val = squad_val.map(preprocess_function, batched=True)
     # ,' input_text', 'target_text'])
     squad_val = squad_val.remove_columns(
-        ['id', 'title', 'context', 'question', 'answers'])
+        ["id", "title", "context", "question", "answers"]
+    )
 
     model = T5ForConditionalGeneration.from_pretrained("t5-small")
     # Use a standard data collator for QA
@@ -130,22 +149,20 @@ def main():
         # We use very small experiences only to showcase the library.
         # Adapt this to your own benchmark
         exp_data = squad_tr.select(range(30 * i, 30 * (i + 1)))
-        tl = DataAttribute(
-            ConstantSequence(i, len(exp_data)), "targets_task_labels"
-        )
+        tl = DataAttribute(ConstantSequence(
+            i, len(exp_data)), "targets_task_labels")
 
         exp = CLExperience()
         exp.dataset = AvalancheDataset(
             [exp_data], data_attributes=[tl], collate_fn=data_collator
         )
         train_exps.append(exp)
-    tl = DataAttribute(
-        ConstantSequence(2, len(squad_val)), "targets_task_labels"
-    )
+    tl = DataAttribute(ConstantSequence(
+        2, len(squad_val)), "targets_task_labels")
     val_exp = CLExperience()
     val_exp.dataset = AvalancheDataset(
-            [squad_val], data_attributes=[tl], collate_fn=data_collator
-        )
+        [squad_val], data_attributes=[tl], collate_fn=data_collator
+    )
     val_exp = [val_exp]
 
     benchmark = CLScenario(
@@ -182,26 +199,34 @@ def main():
     question = "Which libraries is Avalanche based upon?"
     context = """
     Avalanche is an End-to-End Continual Learning Library 
-    based on PyTorch, born within ContinualAI with the goal of providing a shared and 
-    collaborative open-source (MIT licensed) codebase for fast prototyping, 
-    training and reproducible evaluation of continual learning algorithms."
+    based on PyTorch, born within ContinualAI with the goal of providing 
+    a shared and collaborative open-source (MIT licensed) codebase for fast
+    prototyping, training and reproducible evaluation of continual learning
+    algorithms."
     """
 
     input_text = f"answer_me: {question} context: {context} </s>"
-    encoded_query = tokenizer(input_text,
-                              return_tensors='pt',
-                              pad_to_max_length=True,
-                              truncation=True,
-                              max_length=250
-                              )
+    encoded_query = tokenizer(
+        input_text,
+        return_tensors="pt",
+        pad_to_max_length=True,
+        truncation=True,
+        max_length=250,
+    )
     input_ids = encoded_query["input_ids"]
     attention_mask = encoded_query["attention_mask"]
-    generated_answer = model.generate(input_ids, attention_mask=attention_mask, 
-                                      max_length=50, top_p=0.95, top_k=50, repetition_penalty=2.0)
+    generated_answer = model.generate(
+        input_ids,
+        attention_mask=attention_mask,
+        max_length=50,
+        top_p=0.95,
+        top_k=50,
+        repetition_penalty=2.0,
+    )
 
     decoded_answer = tokenizer.batch_decode(
         generated_answer, skip_special_tokens=True)
-    print(f'Answer: {decoded_answer}')
+    print(f"Answer: {decoded_answer}")
 
 
 if __name__ == "__main__":
