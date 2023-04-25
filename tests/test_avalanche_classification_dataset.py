@@ -1632,6 +1632,40 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         # self.assertIsInstance(y7, int)
         # self.assertEqual(y, y7)
 
+    def test_avalanche_inherit_groups_freeze_transforms(self):
+        original_dataset = MNIST(
+            root=default_dataset_location("mnist"), download=True
+        )
+
+        transform_groups = dict(
+            train=(RandomCrop(16), None), eval=(None, None)
+        )
+        dataset = make_classification_dataset(
+            original_dataset, transform_groups=transform_groups
+        )
+
+        # test for #1353
+        dataset_inherit = make_classification_dataset(dataset)
+        x, *_ = dataset_inherit[0]
+
+        dataset_frozen = dataset_inherit.freeze_transforms()
+        x2, *_ = dataset_frozen[0]
+
+        dataset_frozen_reset = dataset_frozen.replace_current_transform_group(
+            None
+        )
+        x3, *_ = dataset_frozen_reset[0]
+
+        dataset_reset = dataset_inherit.replace_current_transform_group(
+            None
+        )
+        x4, *_ = dataset_reset[0]
+
+        self.assertEqual(x.size, (16, 16))
+        self.assertEqual(x2.size, (16, 16))
+        self.assertEqual(x3.size, (16, 16))
+        self.assertEqual(x4.size, (28, 28))
+
     def test_freeze_transforms(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
