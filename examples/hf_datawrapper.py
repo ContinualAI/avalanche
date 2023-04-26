@@ -1,3 +1,12 @@
+"""
+An example to show how to use huggingface datasets by using a wrapper to 
+convert them to AvalancheDataset and using them for CL experiments.
+
+This example requires datasets and transformers libraries
+
+You can install them by running:
+pip install datasets transformers
+"""
 import datasets as ds
 import numpy as np
 import torch
