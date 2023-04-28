@@ -23,6 +23,9 @@ class SCR(SupervisedTemplate):
     embeddings produced by the encoder.
 
     Accuracy cannot be monitored during training (no NCM classifier).
+    During training, NCRLoss is monitored, while during eval
+    CrossEntropyLoss is monitored.
+
     """
     def __init__(self,
                  model: Module,
