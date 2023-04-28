@@ -455,10 +455,28 @@ class TrainEvalModel(DynamicModule):
         self.classifier = self.eval_classifier
 
 
+class NormalizedTrainEvalModel(TrainEvalModel):
+    """
+    TrainEvalModel.
+    This module allows to wrap together a common feature extractor and
+    two classifiers: one used during training time and another
+    used at test time. The classifier is switched when `self.adaptation()`
+    is called.
+
+    After the call to the feature extractor, the output is normalized
+    in 2-norm along the right-most dimension.
+    """
+    def forward(self, x):
+        x = self.feature_extractor(x)
+        x = torch.nn.functional.normalize(x, p=2, dim=-1)
+        return self.classifier(x)
+
+
 __all__ = [
     "DynamicModule",
     "MultiTaskModule",
     "IncrementalClassifier",
     "MultiHeadClassifier",
     "TrainEvalModel",
+    "NormalizedTrainEvalModel"
 ]
