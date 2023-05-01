@@ -14,3 +14,4 @@ csvlogs/
 docs/generated/
 .fleet
 pip-wheel-metadata
+**/.DS_Store
