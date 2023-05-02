@@ -34,6 +34,7 @@ class SCR(SupervisedTemplate):
                  mem_size: int = 100,
                  temperature: int = 0.1,
                  train_mb_size: int = 1,
+                 batch_size_mem: int = 100,
                  train_epochs: int = 1,
                  eval_mb_size: Optional[int] = 1,
                  device="cpu",
@@ -58,6 +59,7 @@ class SCR(SupervisedTemplate):
             dataloader is a task-balanced dataloader that divides each
             mini-batch evenly between samples from all existing tasks in
             the dataset.
+        :param batch_size_mem: number of examples drawn from the buffer.
         :param train_epochs: number of training epochs.
         :param eval_mb_size: mini-batch size for eval.
         :param device: PyTorch device where the model will be allocated.
@@ -76,6 +78,8 @@ class SCR(SupervisedTemplate):
 
         self.replay_plugin = ReplayPlugin(
             mem_size,
+            batch_size=train_mb_size,
+            batch_size_mem=batch_size_mem,
             storage_policy=ClassBalancedBuffer(max_size=mem_size))
 
         self.augmentations = augmentations
@@ -113,27 +117,27 @@ class SCR(SupervisedTemplate):
         """
         Concatenate together original and augmented examples.
         """
+        assert self.is_training
         super()._before_forward(**kwargs)
-        if self.is_training:
-            mb_x_augmented = self.augmentations(self.mbatch[0])
-            # (batch_size*2, input_size)
-            self.mbatch[0] = torch.cat([self.mbatch[0], mb_x_augmented], dim=0)
+        mb_x_augmented = self.augmentations(self.mbatch[0])
+        # (batch_size*2, input_size)
+        self.mbatch[0] = torch.cat([self.mbatch[0], mb_x_augmented], dim=0)
 
     def _after_forward(self, **kwargs):
         """
         Reshape the model output to have 2 views: one for original examples,
         one for augmented examples.
         """
+        assert self.is_training
         super()._after_forward(**kwargs)
-        if self.is_training:
-            assert self.mb_output.size(0) % 2 == 0
-            original_batch_size = int(self.mb_output.size(0) / 2)
-            original_examples = self.mb_output[:original_batch_size]
-            augmented_examples = self.mb_output[original_batch_size:]
-            # (original_batch_size, 2, output_size)
-            self.mb_output = torch.stack(
-                [original_examples, augmented_examples],
-                dim=1)
+        assert self.mb_output.size(0) % 2 == 0
+        original_batch_size = int(self.mb_output.size(0) / 2)
+        original_examples = self.mb_output[:original_batch_size]
+        augmented_examples = self.mb_output[original_batch_size:]
+        # (original_batch_size, 2, output_size)
+        self.mb_output = torch.stack(
+            [original_examples, augmented_examples],
+            dim=1)
 
     def _after_training_exp(self, **kwargs):
         """Update NCM means"""
