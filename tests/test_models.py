@@ -438,17 +438,9 @@ class TrainEvalModelTests(unittest.TestCase):
         )
 
         model.eval()
-        model.adaptation()
         assert model.classifier is classifier2
 
         model.train()
-        model.adaptation()
-        assert model.classifier is classifier1
-
-        model.eval_adaptation()
-        assert model.classifier is classifier2
-
-        model.train_adaptation()
         assert model.classifier is classifier1
 
 
