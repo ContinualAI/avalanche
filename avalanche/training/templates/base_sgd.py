@@ -129,7 +129,7 @@ class BaseSGDTemplate(
         peval = PeriodicEval(eval_every, peval_mode)
         self.plugins.append(peval)
 
-        self.clock = Clock()
+        self.clock: Clock = Clock()
         """ Incremental counters for strategy events. """
         # WARNING: Clock needs to be the last plugin, otherwise
         # counters will be wrong for plugins called after it.
@@ -424,7 +424,7 @@ class BaseSGDTemplate(
         raise NotImplementedError()
 
     def _make_empty_loss(self) -> Tensor:
-        return torch.zeros(1)
+        return torch.zeros(1, device=self.device)
 
     #########################################################
     # Plugin Triggers                                       #

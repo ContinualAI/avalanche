@@ -8,6 +8,7 @@ from typing import (
     Optional,
     List,
     Counter,
+    overload,
 )
 
 from matplotlib.figure import Figure
@@ -19,10 +20,7 @@ from avalanche.evaluation.metric_utils import (
     default_history_repartition_image_creator,
 )
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing_extensions import Literal
 
 
 if TYPE_CHECKING:
@@ -30,7 +28,7 @@ if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricResult
 
 
-class LabelsRepartition(Metric):
+class LabelsRepartition(Metric[Dict[int, Dict[int, int]]]):
     """
     Metric used to monitor the labels repartition.
     """
@@ -40,16 +38,14 @@ class LabelsRepartition(Metric):
         self.class_order = None
         self.reset()
 
-    def reset(self, **kargs) -> None:
+    def reset(self) -> None:
         self.task2label2count = defaultdict(Counter)
 
     def update(
         self,
         tasks: Sequence[int],
-        labels: Sequence[Union[str, int]],
-        class_order: Optional[List[int]],
+        labels: Sequence[int]
     ):
-        self.class_order = class_order
         for task, label in zip(tasks, labels):
             self.task2label2count[task][label] += 1
 
@@ -74,7 +70,7 @@ LabelsRepartitionImageCreator = Callable[
 ]
 
 
-class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
+class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
     """
     A plugin to monitor the labels repartition.
 
@@ -88,18 +84,41 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
     :return: The list of corresponding plugins.
     """
 
+    @overload
     def __init__(
         self,
         *,
         image_creator: Optional[
             LabelsRepartitionImageCreator
         ] = default_history_repartition_image_creator,
-        mode: Literal["train", "eval"] = "train",
+        mode: Literal["train"] = "train",
         emit_reset_at: Literal["stream", "experience", "epoch"] = "epoch",
     ):
-        self.labels_repartition = LabelsRepartition()
+        ...
+        
+    @overload
+    def __init__(
+        self,
+        *,
+        image_creator: Optional[
+            LabelsRepartitionImageCreator
+        ] = default_history_repartition_image_creator,
+        mode: Literal["eval"] = "eval",
+        emit_reset_at: Literal["stream", "experience"],
+    ):
+        ...
+
+    def __init__(
+        self,
+        *,
+        image_creator: Optional[
+            LabelsRepartitionImageCreator
+        ] = default_history_repartition_image_creator,
+        mode="train",
+        emit_reset_at="epoch",
+    ):
         super().__init__(
-            metric=self.labels_repartition,
+            LabelsRepartition(),
             emit_at=emit_reset_at,
             reset_at=emit_reset_at,
             mode=mode,
@@ -111,33 +130,56 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure]):
         self.task2label2counts: Dict[int, Dict[int, List[int]]] = defaultdict(
             dict
         )
+        self.strategy: Optional[SupervisedTemplate] = None
 
-    def reset(self, strategy) -> None:
-        self.steps.append(strategy.clock.train_iterations)
-        return super().reset(strategy)
+    def before_training(self, strategy: "SupervisedTemplate"):
+        self.strategy = strategy
+        return super().before_training(strategy)
+
+    def before_eval(self, strategy: "SupervisedTemplate"):
+        self.strategy = strategy
+        return super().before_eval(strategy)
+
+    def reset(self) -> None:
+        assert self.strategy is not None
+        self.steps.append(self.strategy.clock.train_iterations)
+        return super().reset()
 
     def update(self, strategy: "SupervisedTemplate"):
-        if strategy.clock.train_exp_epochs and self.emit_reset_at != "epoch":
-            return
-        self.labels_repartition.update(
+        assert strategy.experience is not None
+
+        if self.mode == 'train':
+            if strategy.clock.train_exp_epochs and \
+                    self.emit_reset_at != "epoch":
+                # Do not update after first epoch
+                return
+        
+        self._metric.update(
             strategy.mb_task_id.tolist(),
-            strategy.mb_y.tolist(),
-            class_order=getattr(
-                strategy.experience.benchmark, "classes_order", None
-            ),
+            strategy.mb_y.tolist()
         )
 
+        if hasattr(strategy.experience, "classes_order"):
+            self._metric.update_order(
+                strategy.experience.classes_order
+            )
+
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
+        assert strategy.experience is not None
+        
         self.steps.append(strategy.clock.train_iterations)
-        task2label2count = self.labels_repartition.result()
+        task2label2count = self._metric.result()
+
         for task, label2count in task2label2count.items():
             for label, count in label2count.items():
                 self.task2label2counts[task].setdefault(
                     label, [0] * (len(self.steps) - 2)
                 ).extend((count, count))
+        
         for task, label2counts in self.task2label2counts.items():
             for label, counts in label2counts.items():
                 counts.extend([0] * (len(self.steps) - len(counts)))
+        
         return [
             MetricValue(
                 self,
@@ -186,7 +228,7 @@ def labels_repartition_metrics(
         If set to None, only the raw data is emitted.
     :return: The list of corresponding plugins.
     """
-    plugins = []
+    plugins: List[PluginMetric] = []
     if on_eval:
         plugins.append(
             LabelsRepartitionPlugin(

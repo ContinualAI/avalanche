@@ -179,7 +179,7 @@ def MAC_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[PluginMetric] = []
     if minibatch:
         metrics.append(MinibatchMAC())
 

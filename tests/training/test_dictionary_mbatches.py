@@ -112,3 +112,7 @@ class TestDictionaryDatasets(unittest.TestCase):
         )
         for experience in benchmark.train_stream:
             strategy.train(experience)
+
+
+if __name__ == "__main__":
+    unittest.main()

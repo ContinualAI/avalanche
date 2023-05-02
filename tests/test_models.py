@@ -490,3 +490,7 @@ class PNNTest(unittest.TestCase):
         avalanche_model_adaptation(model, benchmark.train_stream[1])
         model(mb0[0], task_labels=mb0[-1])
         model(mb1[0], task_labels=mb1[-1])
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -12,7 +12,6 @@
 """ CORe50 Pytorch Dataset """
 
 import glob
-import logging
 import os
 import pickle as pkl
 from pathlib import Path

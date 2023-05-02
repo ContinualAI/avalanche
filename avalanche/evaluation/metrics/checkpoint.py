@@ -89,6 +89,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
     ) -> "MetricResult":
         model_params = copy.deepcopy(strategy.model.parameters())
         self.update(model_params)
+        return None
 
     def __str__(self):
         return "WeightCheckpoint"

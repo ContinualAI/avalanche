@@ -44,7 +44,7 @@ from avalanche.benchmarks.utils.utils import (
     _traverse_supported_dataset,
 )
 
-from .collate_functions import DetectionCollate
+from .collate_functions import detection_collate_fn
 from .data import AvalancheDataset
 from .data_attribute import DataAttribute
 from .dataset_definitions import (
@@ -297,7 +297,7 @@ def make_detection_dataset(
         task_labels_data is not None)
     
     if collate_fn is None:
-        collate_fn = getattr(dataset, 'collate_fn', DetectionCollate())
+        collate_fn = getattr(dataset, 'collate_fn', detection_collate_fn)
 
     data: Union[DetectionDataset, SupervisedDetectionDataset]
     if is_supervised:
@@ -568,7 +568,7 @@ def detection_subset(
         task_labels_data is not None)
 
     if collate_fn is None:
-        collate_fn = DetectionCollate()
+        collate_fn = detection_collate_fn
 
     if is_supervised:
         return SupervisedDetectionDataset(
