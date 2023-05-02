@@ -420,13 +420,13 @@ class MultiHeadClassifier(MultiTaskModule):
         return out
 
 
-class TrainEvalModel(DynamicModule):
+class TrainEvalModel(torch.nn.Module):
     """
     TrainEvalModel.
     This module allows to wrap together a common feature extractor and
     two classifiers: one used during training time and another
-    used at test time. The classifier is switched when `self.adaptation()`
-    is called.
+    used at test time. The classifier is switched depending on the
+    `training` state of the module.
     """
 
     def __init__(self, feature_extractor, train_classifier, eval_classifier):
@@ -446,13 +446,10 @@ class TrainEvalModel(DynamicModule):
 
     def forward(self, x):
         x = self.feature_extractor(x)
-        return self.classifier(x)
-
-    def train_adaptation(self, experience: CLExperience = None):
-        self.classifier = self.train_classifier
-
-    def eval_adaptation(self, experience: CLExperience = None):
-        self.classifier = self.eval_classifier
+        if self.training:
+            return self.train_classifier(x)
+        else:
+            return self.eval_classifier(x)
 
 
 __all__ = [

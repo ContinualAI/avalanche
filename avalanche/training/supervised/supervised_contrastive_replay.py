@@ -43,9 +43,11 @@ class SCR(SupervisedTemplate):
                  eval_every=-1,
                  peval_mode="epoch"):
         """
-        :param model: an Avalanche NormalizedTrainEvalModel, where the train
-            classifier uses a projection network (e.g., MLP)
+        :param model: an Avalanche model like the avalanche.models.SCRModel,
+            where the train classifier uses a projection network (e.g., MLP)
             while the test classifier uses a NCM Classifier.
+            Normalization should be applied between feature extractor
+            and classifier.
         :param optimizer: PyTorch optimizer.
         :param augmentations: TorchVision Compose Transformations to augment
             the input minibatch. The augmented mini-batch will be concatenated
