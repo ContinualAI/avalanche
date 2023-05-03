@@ -26,6 +26,7 @@ from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
+    labels_repartition_metrics,
     loss_metrics,
     cpu_usage_metrics,
     timing_metrics,
@@ -159,6 +160,7 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True
         ),
         MAC_metrics(minibatch=True, epoch=True, experience=True),
+        labels_repartition_metrics(on_train=True, on_eval=True),
         loggers=[interactive_logger, text_logger, csv_logger, tb_logger],
         collect_all=True,
     )  # collect all metrics (set to True by default)

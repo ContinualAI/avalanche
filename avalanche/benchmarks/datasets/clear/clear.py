@@ -78,6 +78,7 @@ class CLEARDataset(DownloadableDataset):
         assert data_name in _CLEAR_DATA_SPLITS
         self.data_name = data_name
         self.module = clear_data
+        self._paths_and_targets: List[List[Tuple[str, int]]] = []
 
         super(CLEARDataset, self).__init__(
             root, download=download, verbose=True
@@ -91,9 +92,12 @@ class CLEARDataset(DownloadableDataset):
             if self.verbose:
                 print("Downloading " + name + "...")
             url = os.path.join(base_url, name)
-            filepath = self.root / name
-            os.system(f"wget -P {str(self.root)} {url}")
-            self._extract_archive(filepath, remove_archive=True)
+            self._download_and_extract_archive(
+                url=url,
+                file_name=name,
+                checksum=None,
+                remove_archive=True
+            )
 
     def _load_metadata(self) -> bool:
         if '_' in self.data_name:
@@ -177,7 +181,7 @@ class CLEARDataset(DownloadableDataset):
                 if not os.path.exists(path):
                     print(f"{path} does not exist.")
                     return False
-            return True
+        return True
 
     def _download_error_message(self) -> str:
         all_urls = [
@@ -258,7 +262,7 @@ class _CLEARImage(CLEARDataset):
         self.transform = transform
         self.target_transform = target_transform
         self.loader = loader
-        self._paths_and_targets: List[List[Tuple[str, int]]] = []
+        self.paths: List[Union[str, Path]] = []
 
         self.class_names: List[str] = []
         """
@@ -354,7 +358,8 @@ class _CLEARImage(CLEARDataset):
                 self.targets.append(target)
         return True
 
-    def get_paths_and_targets(self, root_appended=True):
+    def get_paths_and_targets(self, root_appended=True) -> \
+            Sequence[Sequence[Tuple[Union[str, Path], int]]]:
         """Return self._paths_and_targets with root appended or not"""
         if not root_appended:
             return self._paths_and_targets
@@ -441,8 +446,8 @@ class _CLEARFeature(CLEARDataset):
         assert feature_type in CLEAR_FEATURE_TYPES[data_name]
         self.target_transform = target_transform
 
-        self.tensors_and_targets: List[Tuple[Sequence[torch.Tensor],
-                                             Sequence[int]]] = []
+        self.tensors_and_targets: List[Tuple[List[torch.Tensor],
+                                             List[int]]] = []
 
         super(_CLEARFeature, self).__init__(
             root, data_name=data_name, download=download, verbose=True
@@ -648,6 +653,7 @@ if __name__ == "__main__":
             print(x.size())
             print(len(y))
             break
+
 
 __all__ = [
     "CLEARDataset",

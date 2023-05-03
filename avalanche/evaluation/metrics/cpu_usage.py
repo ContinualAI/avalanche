@@ -124,7 +124,7 @@ class CPUPluginMetric(GenericPluginMetric[float, CPUUsage]):
             CPUUsage(), reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
-    def update(self):
+    def update(self, strategy):
         self._metric.update()
 
 
@@ -149,7 +149,7 @@ class MinibatchCPUUsage(CPUPluginMetric):
 
     def before_training_iteration(self, strategy):
         super().before_training_iteration(strategy)
-        self.update()  # start monitoring thread
+        self.update(strategy)  # start monitoring thread
 
     def __str__(self):
         return "CPUUsage_MB"
@@ -173,7 +173,7 @@ class EpochCPUUsage(CPUPluginMetric):
 
     def before_training_epoch(self, strategy):
         super().before_training_epoch(strategy)
-        self.update()  # start monitoring thread
+        self.update(strategy)  # start monitoring thread
 
     def __str__(self):
         return "CPUUsage_Epoch"
@@ -206,11 +206,11 @@ class RunningEpochCPUUsage(CPUPluginMetric):
 
     def before_training_iteration(self, strategy):
         super().before_training_iteration(strategy)
-        self.update()  # start monitoring thread
+        self.update(strategy)  # start monitoring thread
 
     def after_training_iteration(self, strategy):
         super().after_training_iteration(strategy)
-        self.update()
+        self.update(strategy)
         self._mean.update(self._metric.result())
         self._metric.reset()
         return self._package_result(strategy)
@@ -238,7 +238,7 @@ class ExperienceCPUUsage(CPUPluginMetric):
 
     def before_eval_exp(self, strategy):
         super().before_eval_exp(strategy)
-        self.update()  # start monitoring thread
+        self.update(strategy)  # start monitoring thread
 
     def __str__(self):
         return "CPUUsage_Exp"
@@ -263,7 +263,7 @@ class StreamCPUUsage(CPUPluginMetric):
 
     def before_eval(self, strategy):
         super().before_eval(strategy)
-        self.update()  # start monitoring thread
+        self.update(strategy)  # start monitoring thread
 
     def __str__(self):
         return "CPUUsage_Stream"

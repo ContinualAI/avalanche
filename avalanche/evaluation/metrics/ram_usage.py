@@ -121,7 +121,7 @@ class RAMPluginMetric(GenericPluginMetric[float, MaxRAM]):
             MaxRAM(every), reset_at, emit_at, mode
         )
 
-    def update(self):
+    def update(self, strategy):
         self._metric.update()
 
 

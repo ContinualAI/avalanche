@@ -300,14 +300,21 @@ class DownloadableDataset(Dataset[T_co], ABC):
             extract_root = self.root / sub_directory
 
         self.root.mkdir(parents=True, exist_ok=True)
-        download_and_extract_archive(
-            url,
-            str(self.root),
-            extract_root=str(extract_root),
-            filename=file_name,
-            md5=checksum,
-            remove_finished=remove_archive,
-        )
+        try:
+            download_and_extract_archive(
+                url,
+                str(self.root),
+                extract_root=str(extract_root),
+                filename=file_name,
+                md5=checksum,
+                remove_finished=remove_archive,
+            )
+        except BaseException:
+            print('Error while downloading the dataset archive. '
+                  'The partially downloaded archive will be removed.')
+            attempt_fpath = self.root / file_name
+            attempt_fpath.unlink(missing_ok=True)
+            raise
 
         return extract_root
 

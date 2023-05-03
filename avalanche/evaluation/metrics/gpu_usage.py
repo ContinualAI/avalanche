@@ -142,7 +142,7 @@ class GPUPluginMetric(GenericPluginMetric[float, MaxGPU]):
             mode=mode
         )
 
-    def update(self):
+    def update(self, strategy):
         self._metric.update()
 
 

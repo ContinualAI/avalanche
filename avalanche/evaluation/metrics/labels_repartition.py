@@ -4,7 +4,6 @@ from typing import (
     Dict,
     Sequence,
     TYPE_CHECKING,
-    Union,
     Optional,
     List,
     Counter,

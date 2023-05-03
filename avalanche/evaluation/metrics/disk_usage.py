@@ -13,9 +13,9 @@ import os
 from pathlib import Path
 from typing import Union, Sequence, List, Optional
 
-from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
+from avalanche.evaluation import Metric, GenericPluginMetric
 
-PathAlike = Union[Union[str, Path]]
+PathAlike = Union[str, Path]
 
 
 class DiskUsage(Metric[float]):
@@ -114,7 +114,7 @@ class DiskPluginMetric(GenericPluginMetric[float, DiskUsage]):
             disk, reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
-    def update(self):
+    def update(self, strategy):
         self._metric.update()
 
 
