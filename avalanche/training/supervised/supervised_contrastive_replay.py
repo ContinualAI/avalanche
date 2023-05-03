@@ -33,7 +33,7 @@ class SCR(SupervisedTemplate):
     def __init__(self,
                  model: Module,
                  optimizer: Optimizer,
-                 augmentations = Compose([Lambda(lambda el: el)]),
+                 augmentations=Compose([Lambda(lambda el: el)]),
                  mem_size: int = 100,
                  temperature: int = 0.1,
                  train_mb_size: int = 1,
@@ -178,4 +178,3 @@ class SCR(SupervisedTemplate):
         self.model.eval_classifier.class_means = torch.stack(
             means,
             dim=0).T.to(self.device)  # (H, n_classes_so_far)
-
