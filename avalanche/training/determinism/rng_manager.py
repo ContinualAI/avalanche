@@ -1,6 +1,7 @@
 import hashlib
 import random
 from collections import OrderedDict
+from typing import Any, Dict, Type
 
 import numpy as np
 import torch
@@ -10,7 +11,7 @@ from avalanche.training.determinism.cuda_rng import cuda_rng_seed, \
 
 
 class _Singleton(type):
-    _instances = {}
+    _instances: Dict[Type, Any] = {}
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:

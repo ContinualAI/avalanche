@@ -11,12 +11,12 @@
 
 from abc import abstractmethod, ABC
 from pathlib import Path
-from typing import Union, Optional
+from typing import TypeVar, Union, Optional
 
 import shutil
 
 import os
-from torch.utils.data.dataset import Dataset, T_co
+from torch.utils.data.dataset import Dataset
 from torchvision.datasets.utils import (
     download_and_extract_archive,
     extract_archive,
@@ -25,6 +25,8 @@ from torchvision.datasets.utils import (
 )
 
 from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
+
+T_co = TypeVar('T_co', covariant=True)
 
 
 class DownloadableDataset(Dataset[T_co], ABC):
@@ -235,7 +237,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
     def _extract_archive(
         self,
         path: Union[str, Path],
-        sub_directory: str = None,
+        sub_directory: Optional[str] = None,
         remove_archive: bool = False,
     ) -> Path:
         """
@@ -269,7 +271,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
         url: str,
         file_name: str,
         checksum: Optional[str],
-        sub_directory: str = None,
+        sub_directory: Optional[str] = None,
         remove_archive: bool = False,
     ) -> Path:
         """
@@ -298,14 +300,21 @@ class DownloadableDataset(Dataset[T_co], ABC):
             extract_root = self.root / sub_directory
 
         self.root.mkdir(parents=True, exist_ok=True)
-        download_and_extract_archive(
-            url,
-            str(self.root),
-            extract_root=str(extract_root),
-            filename=file_name,
-            md5=checksum,
-            remove_finished=remove_archive,
-        )
+        try:
+            download_and_extract_archive(
+                url,
+                str(self.root),
+                extract_root=str(extract_root),
+                filename=file_name,
+                md5=checksum,
+                remove_finished=remove_archive,
+            )
+        except BaseException:
+            print('Error while downloading the dataset archive. '
+                  'The partially downloaded archive will be removed.')
+            attempt_fpath = self.root / file_name
+            attempt_fpath.unlink(missing_ok=True)
+            raise
 
         return extract_root
 
@@ -344,7 +353,7 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
 
     def __init__(
         self,
-        root_or_dataset_name: str,
+        root_or_dataset_name: Union[str, Path],
         url: str,
         checksum: Optional[str],
         download: bool = False,
@@ -380,13 +389,11 @@ class SimpleDownloadableDataset(DownloadableDataset[T_co], ABC):
         self.url = url
         self.checksum = checksum
 
-        is_path = (
+        if (
             isinstance(root_or_dataset_name, Path)
             or "/" in root_or_dataset_name
             or "\\" in root_or_dataset_name
-        )
-
-        if is_path:
+        ):
             root = Path(root_or_dataset_name)
         else:
             root = default_dataset_location(root_or_dataset_name)

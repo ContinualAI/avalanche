@@ -53,7 +53,7 @@ def SplitCIFAR10(
     class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_cifar10_train_transform,
     eval_transform: Optional[Any] = _default_cifar10_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ) -> NCScenario:
     """
     Creates a CL benchmark using the CIFAR10 dataset.

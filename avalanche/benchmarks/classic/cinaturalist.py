@@ -54,7 +54,7 @@ def SplitInaturalist(
     class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_train_transform,
     eval_transform: Optional[Any] = _default_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """Creates a CL benchmark using the iNaturalist2018 dataset.
 
@@ -168,10 +168,16 @@ def _get_inaturalist_dataset(dataset_root, super_categories, download):
         dataset_root = default_dataset_location("inatuarlist2018")
 
     train_set = INATURALIST2018(
-        dataset_root, split="train", supcats=super_categories, download=download
+        str(dataset_root),
+        split="train",
+        supcats=super_categories,
+        download=download
     )
     test_set = INATURALIST2018(
-        dataset_root, split="val", supcats=super_categories, download=download
+        str(dataset_root),
+        split="val",
+        supcats=super_categories,
+        download=download
     )
 
     return train_set, test_set

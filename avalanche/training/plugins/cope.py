@@ -57,7 +57,8 @@ class CoPEPlugin(SupervisedPlugin):
         )
 
         # Operational memory: Prototypical memory
-        self.p_mem = {}  # Scales with nb classes * feature size
+        # Scales with nb classes * feature size
+        self.p_mem: Dict[int, Tensor] = {}  
         self.p_size = p_size  # Prototype size determined on runtime
         self.tmp_p_mem = {}  # Intermediate to process batch for multiple times
         self.alpha = alpha
@@ -147,9 +148,9 @@ class CoPEPlugin(SupervisedPlugin):
         """Initialize prototypes for previously unseen classes.
         :param targets: The targets Tensor to make prototypes for.
         """
-        y_unique = torch.unique(targets).squeeze().view(-1)
+        y_unique: Tensor = torch.unique(targets).squeeze().view(-1)
         for idx in range(y_unique.size(0)):
-            c = y_unique[idx].item()
+            c: int = y_unique[idx].item()
             if c not in self.p_mem:  # Init new prototype
                 self.p_mem[c] = (
                     normalize(

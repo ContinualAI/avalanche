@@ -60,3 +60,7 @@ class TestLoggers(unittest.TestCase):
         for e in self.benchmark.train_stream:
             strat.train(e)
         strat.eval(self.benchmark.train_stream)
+
+
+if __name__ == "__main__":
+    unittest.main()

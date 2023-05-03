@@ -8,16 +8,17 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
-from numpy import arange, ndarray
+from matplotlib.figure import Figure
+from numpy import arange
 from typing_extensions import Literal
 from typing import (
+    Any,
     Callable,
+    Iterable,
     Union,
     Optional,
-    Mapping,
     TYPE_CHECKING,
     List,
-    Sequence,
 )
 
 import wandb
@@ -73,8 +74,8 @@ class ConfusionMatrix(Metric[Tensor]):
 
     def __init__(
         self,
-        num_classes: int = None,
-        normalize: Literal["true", "pred", "all"] = None,
+        num_classes: Optional[int] = None,
+        normalize: Optional[Literal["true", "pred", "all"]] = None,
     ):
         """Creates an instance of the standalone confusion matrix metric.
 
@@ -268,11 +269,11 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
 
     def __init__(
         self,
-        num_classes: Union[int, Mapping[int, int]] = None,
-        normalize: Literal["true", "pred", "all"] = None,
+        num_classes: Optional[int] = None,
+        normalize: Optional[Literal["true", "pred", "all"]] = None,
         save_image: bool = True,
         image_creator: Callable[
-            [Tensor, Sequence], Image
+            [Tensor, Optional[Iterable[Any]]], Union[Figure, Image]
         ] = default_cm_image_creator,
         absolute_class_order: bool = False,
     ):
@@ -341,6 +342,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         return self._package_result(strategy)
 
     def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
+        assert strategy.experience is not None
         exp_cm = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
@@ -370,7 +372,8 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
 
     def _get_display_class_order(
         self, exp_cm: Tensor, strategy: "SupervisedTemplate"
-    ) -> ndarray:
+    ) -> Iterable[int]:
+        assert strategy.experience is not None
         benchmark = strategy.experience.benchmark
 
         if self.absolute_class_order or not isinstance(benchmark, NCScenario):
@@ -430,6 +433,7 @@ class WandBStreamConfusionMatrix(PluginMetric):
         return self._package_result(strategy)
 
     def _package_result(self, strategy: "SupervisedTemplate") -> MetricResult:
+        assert strategy.experience is not None
         outputs, targets = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
@@ -503,7 +507,7 @@ def confusion_matrix_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[PluginMetric] = []
 
     if stream:
         metrics.append(

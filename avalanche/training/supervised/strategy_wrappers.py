@@ -9,6 +9,8 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 from typing import Optional, Sequence, List, Union
+import torch
+from torch.nn.parameter import Parameter
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer, SGD
@@ -118,7 +120,7 @@ class PNNStrategy(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,
@@ -172,7 +174,7 @@ class CWRStar(SupervisedTemplate):
         cwr_layer_name: str,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -236,7 +238,7 @@ class Replay(SupervisedTemplate):
         mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -311,13 +313,13 @@ class GenerativeReplay(SupervisedTemplate):
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
-        generator_strategy: BaseTemplate = None,
-        replay_size: int = None,
+        generator_strategy: Optional[BaseTemplate] = None,
+        replay_size: Optional[int] = None,
         increasing_replay_size: bool = False,
         **base_kwargs
     ):
@@ -360,8 +362,11 @@ class GenerativeReplay(SupervisedTemplate):
             lr = 0.01
             from torch.optim import Adam
 
+            to_optimize: List[Parameter] = list(
+                filter(lambda p: p.requires_grad, generator.parameters())
+            )
             optimizer_generator = Adam(
-                filter(lambda p: p.requires_grad, generator.parameters()),
+                to_optimize,
                 lr=lr,
                 weight_decay=0.0001,
             )
@@ -435,7 +440,7 @@ class VAETraining(SupervisedTemplate):
         criterion=VAE_loss,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = get_default_vae_logger(),
@@ -501,7 +506,7 @@ class GSS_greedy(SupervisedTemplate):
         input_size=[],
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -567,7 +572,7 @@ class GDumb(SupervisedTemplate):
         mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -632,7 +637,7 @@ class LwF(SupervisedTemplate):
         temperature: float,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -700,7 +705,7 @@ class AGEM(SupervisedTemplate):
         sample_size: int = 64,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -768,7 +773,7 @@ class GEM(SupervisedTemplate):
         memory_strength: float = 0.5,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -838,7 +843,7 @@ class EWC(SupervisedTemplate):
         keep_importance_data: bool = False,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -925,7 +930,7 @@ class SynapticIntelligence(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,
@@ -960,6 +965,8 @@ class SynapticIntelligence(SupervisedTemplate):
         """
         if plugins is None:
             plugins = []
+        
+        plugins = list(plugins)
 
         # This implementation relies on the S.I. Plugin, which contains the
         # entire implementation of the strategy!
@@ -999,7 +1006,7 @@ class CoPE(SupervisedTemplate):
         T: float = 0.1,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -1072,7 +1079,7 @@ class LFL(SupervisedTemplate):
         lambda_e: Union[float, Sequence[float]],
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -1217,7 +1224,7 @@ class BiC(SupervisedTemplate):
         lr: float = 0.1,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
@@ -1378,7 +1385,7 @@ class FromScratchTraining(SupervisedTemplate):
         reset_optimizer: bool = True,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
+        eval_mb_size: Optional[int] = None,
         device=None,
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),

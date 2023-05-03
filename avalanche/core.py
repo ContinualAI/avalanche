@@ -163,13 +163,6 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         `BaseTemplate`."""
         pass
 
-
-class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
-    """ABC for SupervisedTemplate plugins.
-
-    See `BaseTemplate` for complete description of the train/eval loop.
-    """
-
     def before_train_dataset_adaptation(
         self, strategy: Template, *args, **kwargs
     ) -> CallbackResult:
@@ -193,6 +186,14 @@ class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
     ) -> CallbackResult:
         """Called after `eval_dataset_adaptation` by the `BaseTemplate`."""
         pass
+
+
+class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
+    """ABC for SupervisedTemplate plugins.
+
+    See `BaseTemplate` for complete description of the train/eval loop.
+    """
+    pass
 
 
 class SupervisedMetaLearningPlugin(SupervisedPlugin[Template], ABC):

@@ -21,6 +21,7 @@ from avalanche.evaluation.metrics import (
     ElapsedTime,
     Forgetting,
     ForwardTransfer,
+    LabelsRepartition
 )
 
 
@@ -385,9 +386,9 @@ class GeneralMetricTests(unittest.TestCase):
 
     def test_loss(self):
         metric = TaskAwareLoss()
-        self.assertEqual(metric.result(0)[0], 0)
+        self.assertEqual(metric.result_task_label(0)[0], 0)
         metric.update(torch.tensor(1.0), self.batch_size, 0)
-        self.assertGreaterEqual(metric.result(0)[0], 0)
+        self.assertGreaterEqual(metric.result_task_label(0)[0], 0)
         metric.reset()
         self.assertEqual(metric.result(), {})
 
@@ -489,13 +490,13 @@ class GeneralMetricTests(unittest.TestCase):
         metric = Forgetting()
         f = metric.result()
         self.assertEqual(f, {})
-        f = metric.result(k=0)
+        f = metric.result_key(k=0)
         self.assertIsNone(f)
         metric.update(0, 1, initial=True)
-        f = metric.result(k=0)
+        f = metric.result_key(k=0)
         self.assertIsNone(f)
         metric.update(0, 0.4)
-        f = metric.result(k=0)
+        f = metric.result_key(k=0)
         self.assertEqual(f, 0.6)
         metric.reset()
         self.assertEqual(metric.result(), {})
@@ -504,14 +505,91 @@ class GeneralMetricTests(unittest.TestCase):
         metric = ForwardTransfer()
         f = metric.result()
         self.assertEqual(f, {})
-        f = metric.result(k=0)
+        f = metric.result_key(k=0)
         self.assertIsNone(f)
         metric.update(0, 1, initial=True)
-        f = metric.result(k=0)
+        f = metric.result_key(k=0)
         self.assertIsNone(f)
         metric.update(0, 0.4)
-        f = metric.result(k=0)
+        f = metric.result_key(k=0)
         self.assertEqual(f, -0.6)
+        metric.reset()
+        self.assertEqual(metric.result(), {})
+
+    def test_labels_repartition(self):
+        metric = LabelsRepartition()
+        f = metric.result()
+        self.assertEqual(f, {})
+        metric.update(
+            [0, 0, 1, 0, 2, 1, 2], 
+            [1, 1, 2, 2, 3, 3, 5])
+        
+        metric.update(
+            [0, 3], 
+            [7, 8])
+        
+        f = metric.result()
+        reference_dict = {
+            0: {
+                1: 2,
+                2: 1,
+                7: 1
+            },
+            1: {
+                2: 1,
+                3: 1
+            },
+            2: {
+                3: 1,
+                5: 1
+            },
+            3: {
+                8: 1
+            }
+        }
+        self.assertDictEqual(reference_dict, f)
+        metric.update_order([7, 8, 9, 10, 0, 2, 1, 5, 3])
+        f = metric.result()
+        self.assertDictEqual(reference_dict, f)
+        self.assertSequenceEqual(
+            list(f[0].keys()), [7, 2, 1]
+        )
+        self.assertSequenceEqual(
+            list(f[1].keys()), [2, 3]
+        )
+        self.assertSequenceEqual(
+            list(f[2].keys()), [5, 3]
+        )
+        self.assertSequenceEqual(
+            list(f[3].keys()), [8]
+        )
+
+        # Should not return a defaultdict
+        with self.assertRaises(Exception):
+            a = f[4]
+
+        # Missing class in order
+        metric.update_order([7, 8, 9, 10, 0, 2, 1, 5])
+        f2 = metric.result()
+        reference_dict2 = {
+            0: {
+                1: 2,
+                2: 1,
+                7: 1
+            },
+            1: {
+                2: 1,
+            },
+            2: {
+                5: 1
+            },
+            3: {
+                8: 1
+            }
+        }
+        self.assertDictEqual(reference_dict2, f2)
+
+        # Check reset
         metric.reset()
         self.assertEqual(metric.result(), {})
 
