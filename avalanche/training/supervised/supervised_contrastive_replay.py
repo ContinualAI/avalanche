@@ -26,11 +26,14 @@ class SCR(SupervisedTemplate):
     During training, NCRLoss is monitored, while during eval
     CrossEntropyLoss is monitored.
 
+    The original paper uses an additional fine-tuning phase on the buffer
+    at the end of each experience (called review trick, but not mentioned
+    in the paper). This implementation does not implement the review trick.
     """
     def __init__(self,
                  model: Module,
                  optimizer: Optimizer,
-                 augmentations: Compose = Compose([Lambda(lambda el: el)]),
+                 augmentations = Compose([Lambda(lambda el: el)]),
                  mem_size: int = 100,
                  temperature: int = 0.1,
                  train_mb_size: int = 1,
@@ -161,16 +164,18 @@ class SCR(SupervisedTemplate):
                 # class-balanced buffer, label is the same across mini-batch
                 label = y[0].item()
                 out = self.model.feature_extractor(x.to(self.device))
-                out = torch.nn.functional.normalize(out, p=2, dim=-1)
+                out = torch.nn.functional.normalize(out, p=2, dim=1)
                 if label in class_means:
                     class_means[label] += out.sum(0).cpu().detach().clone()
                 else:
                     class_means[label] = out.sum(0).cpu().detach().clone()
             class_means[label] /= float(num_els)
+            class_means[label] /= class_means[label].norm()
 
         means = []
         for _, v in sorted(class_means.items()):
             means.append(v)
         self.model.eval_classifier.class_means = torch.stack(
             means,
-            dim=0).T.to(self.device)
+            dim=0).T.to(self.device)  # (H, n_classes_so_far)
+
