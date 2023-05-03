@@ -14,20 +14,24 @@ from typing import Optional, List, Sequence, Dict, Any
 import torch
 
 from avalanche.benchmarks.scenarios.classification_scenario import (
-    GenericCLScenario,
+    ClassificationScenario,
     ClassificationStream,
-    GenericClassificationExperience,
+    ClassificationExperience,
 )
 from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
     _exp_structure_from_assignment,
 )
 from avalanche.benchmarks.utils import classification_subset
 from avalanche.benchmarks.utils.classification_dataset import \
-    ClassificationDataset
+    ClassificationDataset, SupervisedClassificationDataset
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
-class NIScenario(GenericCLScenario["NIExperience"]):
+class NIScenario(
+        ClassificationScenario[
+            'NIStream',
+            'NIExperience',
+            SupervisedClassificationDataset]):
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -103,9 +107,12 @@ class NIScenario(GenericCLScenario["NIExperience"]):
             test datasets must be used. Defaults to None.
         """
 
+        train_dataset = SupervisedClassificationDataset(train_dataset)
+        test_dataset = SupervisedClassificationDataset(test_dataset)
+
         self._has_task_labels = task_labels
 
-        self.train_exps_patterns_assignment = []
+        self.train_exps_patterns_assignment: List[List[int]] = []
 
         if reproducibility_data is not None:
             self.train_exps_patterns_assignment = reproducibility_data[
@@ -153,9 +160,15 @@ class NIScenario(GenericCLScenario["NIExperience"]):
         The amount of patterns for each class in the original training set.
         """
 
-        if fixed_exp_assignment:
-            included_patterns = list()
-            for exp_def in fixed_exp_assignment:
+        lst_fixed_exp_assignment: Optional[List[List[int]]] = None
+        if fixed_exp_assignment is not None:
+            lst_fixed_exp_assignment = list()
+            for lst in fixed_exp_assignment:
+                lst_fixed_exp_assignment.append(list(lst))
+
+        if lst_fixed_exp_assignment is not None:
+            included_patterns: List[int] = list()
+            for exp_def in lst_fixed_exp_assignment:
                 included_patterns.extend(exp_def)
             subset = classification_subset(
                 train_dataset, indices=included_patterns
@@ -178,7 +191,7 @@ class NIScenario(GenericCLScenario["NIExperience"]):
         """ This field contains, for each training experience, the number of
         instances of each class assigned to that experience. """
 
-        if reproducibility_data or fixed_exp_assignment:
+        if reproducibility_data or lst_fixed_exp_assignment:
             # fixed_patterns_assignment/reproducibility_data is the user
             # provided pattern assignment. All we have to do is populate
             # remaining fields of the class!
@@ -188,7 +201,8 @@ class NIScenario(GenericCLScenario["NIExperience"]):
             if reproducibility_data:
                 exp_patterns = self.train_exps_patterns_assignment
             else:
-                exp_patterns = fixed_exp_assignment
+                assert lst_fixed_exp_assignment is not None
+                exp_patterns = lst_fixed_exp_assignment
             self.exp_structure = _exp_structure_from_assignment(
                 train_dataset, exp_patterns, self.n_classes
             )
@@ -349,20 +363,21 @@ class NIScenario(GenericCLScenario["NIExperience"]):
                         remaining_patterns.difference_update(selected_patterns)
                         next_idx_per_class[class_id] = end_idx
 
-                remaining_patterns = list(remaining_patterns)
+                lst_remaining_patterns = list(remaining_patterns)
 
                 # We have assigned the required min_class_patterns_in_exp,
                 # now we assign the remaining patterns
                 #
-                # We'll work on remaining_patterns, which contains indexes of
-                # patterns not assigned in the previous experience.
+                # We'll work on lst_remaining_patterns, which contains
+                # indexes of patterns not assigned in the previous 
+                # experience.
                 if shuffle:
-                    patterns_order = torch.as_tensor(remaining_patterns)[
-                        torch.randperm(len(remaining_patterns))
+                    patterns_order = torch.as_tensor(lst_remaining_patterns)[
+                        torch.randperm(len(lst_remaining_patterns))
                     ].tolist()
                 else:
-                    remaining_patterns.sort()
-                    patterns_order = remaining_patterns
+                    lst_remaining_patterns.sort()
+                    patterns_order = lst_remaining_patterns
                 targets_order = [
                     train_dataset.targets[pattern_idx]
                     for pattern_idx in patterns_order
@@ -419,12 +434,13 @@ class NIScenario(GenericCLScenario["NIExperience"]):
                 train_task_labels.append(t_id)
             else:
                 train_task_labels.append(0)
-            task_labels = ConstantSequence(
+            
+            exp_task_labels = ConstantSequence(
                 train_task_labels[-1], len(train_dataset)
             )
             train_experiences.append(
                 classification_subset(
-                    train_dataset, indices=exp_def, task_labels=task_labels
+                    train_dataset, indices=exp_def, task_labels=exp_task_labels
                 )
             )
 
@@ -433,13 +449,14 @@ class NIScenario(GenericCLScenario["NIExperience"]):
         experience in the train stream. Instances are identified by their id 
         w.r.t. the dataset found in the original_train_dataset field. """
 
-        super(NIScenario, self).__init__(
+        super().__init__(
             stream_definitions={
                 "train": (train_experiences, train_task_labels, train_dataset),
                 "test": (test_dataset, [0], test_dataset),
             },
             complete_test_set_only=True,
-            experience_factory=NIExperience,
+            stream_factory=NIStream,
+            experience_factory=NIExperience
         )
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
@@ -450,11 +467,24 @@ class NIScenario(GenericCLScenario["NIExperience"]):
         return reproducibility_data
 
 
-class NIExperience(
-    GenericClassificationExperience[
-        NIScenario, ClassificationStream["NIExperience", NIScenario]
-    ]
-):
+class NIStream(ClassificationStream['NIExperience']):
+    def __init__(
+        self,
+        name: str,
+        benchmark: NIScenario,
+        *,
+        slice_ids: Optional[List[int]] = None,
+        set_stream_info: bool = True
+    ):
+        self.benchmark: NIScenario = benchmark
+        super().__init__(
+            name=name,
+            benchmark=benchmark,
+            slice_ids=slice_ids,
+            set_stream_info=set_stream_info)
+
+
+class NIExperience(ClassificationExperience[SupervisedClassificationDataset]):
     """
     Defines a "New Instances" experience. It defines fields to obtain the
     current dataset and the associated task label. It also keeps a reference
@@ -463,7 +493,7 @@ class NIExperience(
 
     def __init__(
         self,
-        origin_stream: ClassificationStream["NIExperience", NIScenario],
+        origin_stream: NIStream,
         current_experience: int,
     ):
         """
@@ -474,7 +504,26 @@ class NIExperience(
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        super(NIExperience, self).__init__(origin_stream, current_experience)
+
+        self._benchmark: NIScenario = origin_stream.benchmark
+
+        super().__init__(origin_stream, current_experience)
+
+    @property  # type: ignore[override]
+    def benchmark(self) -> NIScenario:
+        bench = self._benchmark
+        NIExperience._check_unset_attribute(
+            'benchmark', bench
+        )   
+        return bench
+
+    @benchmark.setter
+    def benchmark(self, bench: NIScenario):
+        self._benchmark = bench
 
 
-__all__ = ["NIScenario", "NIExperience"]
+__all__ = [
+    "NIScenario",
+    "NIStream",
+    "NIExperience"
+]

@@ -131,17 +131,19 @@ class MaxGPU(Metric[float]):
         pass
 
 
-class GPUPluginMetric(GenericPluginMetric[float]):
+class GPUPluginMetric(GenericPluginMetric[float, MaxGPU]):
     def __init__(self, gpu_id, every, reset_at, emit_at, mode):
         self.gpu_id = gpu_id
-        self._gpu = MaxGPU(gpu_id, every)
 
         super(GPUPluginMetric, self).__init__(
-            self._gpu, reset_at=reset_at, emit_at=emit_at, mode=mode
+            MaxGPU(gpu_id, every), 
+            reset_at=reset_at,
+            emit_at=emit_at,
+            mode=mode
         )
 
     def update(self, strategy):
-        self._gpu.update()
+        self._metric.update()
 
 
 class MinibatchMaxGPU(GPUPluginMetric):
@@ -168,11 +170,11 @@ class MinibatchMaxGPU(GPUPluginMetric):
 
     def before_training(self, strategy: "SupervisedTemplate") -> None:
         super().before_training(strategy)
-        self._gpu.start_thread()
+        self._metric.start_thread()
 
     def after_training(self, strategy: "SupervisedTemplate") -> None:
         super().before_training(strategy)
-        self._gpu.stop_thread()
+        self._metric.stop_thread()
 
     def __str__(self):
         return f"MaxGPU{self.gpu_id}Usage_MB"
@@ -198,10 +200,10 @@ class EpochMaxGPU(GPUPluginMetric):
 
     def before_training(self, strategy: "SupervisedTemplate"):
         super().before_training(strategy)
-        self._gpu.start_thread()
+        self._metric.start_thread()
 
     def after_training(self, strategy: "SupervisedTemplate") -> None:
-        self._gpu.stop_thread()
+        self._metric.stop_thread()
 
     def __str__(self):
         return f"MaxGPU{self.gpu_id}Usage_Epoch"
@@ -231,11 +233,11 @@ class ExperienceMaxGPU(GPUPluginMetric):
 
     def before_eval(self, strategy: "SupervisedTemplate"):
         super().before_eval(strategy)
-        self._gpu.start_thread()
+        self._metric.start_thread()
 
     def after_eval(self, strategy: "SupervisedTemplate"):
         super().after_eval(strategy)
-        self._gpu.stop_thread()
+        self._metric.stop_thread()
 
     def __str__(self):
         return f"MaxGPU{self.gpu_id}Usage_Experience"
@@ -261,11 +263,11 @@ class StreamMaxGPU(GPUPluginMetric):
 
     def before_eval(self, strategy):
         super().before_eval(strategy)
-        self._gpu.start_thread()
+        self._metric.start_thread()
 
     def after_eval(self, strategy: "SupervisedTemplate") -> MetricResult:
         packed = super().after_eval(strategy)
-        self._gpu.stop_thread()
+        self._metric.stop_thread()
         return packed
 
     def __str__(self):
@@ -299,7 +301,7 @@ def gpu_usage_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[PluginMetric] = []
     if minibatch:
         metrics.append(MinibatchMaxGPU(gpu_id, every))
 

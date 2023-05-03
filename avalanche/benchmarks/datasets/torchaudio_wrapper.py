@@ -32,14 +32,15 @@ def speech_commands_collate(batch):
         targets += [torch.tensor(label)]
         t_labels += [torch.tensor(t_label)]
     tensors = [item.t() for item in tensors]
-    tensors = torch.nn.utils.rnn.pad_sequence(
+    tensors_padded = torch.nn.utils.rnn.pad_sequence(
         tensors, batch_first=True, padding_value=0.0
     )
-    if len(tensors.size()) == 2:  # no MFCC, add feature dimension
-        tensors = tensors.unsqueeze(-1)
+
+    if len(tensors_padded.size()) == 2:  # no MFCC, add feature dimension
+        tensors_padded = tensors_padded.unsqueeze(-1)
     targets = torch.stack(targets)
     t_labels = torch.stack(t_labels)
-    return tensors, targets, t_labels
+    return tensors_padded, targets, t_labels
 
 
 class SpeechCommandsData(SPEECHCOMMANDS):

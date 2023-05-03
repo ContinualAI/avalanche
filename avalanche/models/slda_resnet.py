@@ -1,3 +1,4 @@
+from typing import Union
 import torch
 import torch.nn as nn
 import torchvision.models as models
@@ -16,7 +17,7 @@ class SLDAResNetModel(nn.Module):
         arch="resnet18",
         output_layer_name="layer4.1",
         imagenet_pretrained=True,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
     ):
         """Init.
 

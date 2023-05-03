@@ -51,13 +51,19 @@ class PixelsPermutation(object):
         if (not is_image) and (not isinstance(img, Tensor)):
             raise ValueError("Invalid input: must be a PIL image or a Tensor")
 
+        image_as_tensor: Tensor
         if is_image:
-            img = self._to_tensor(img)
+            image_as_tensor = self._to_tensor(img)
+        else:
+            image_as_tensor = img
 
-        img = img.view(-1)[self.permutation].view(*img.shape)
+        image_as_tensor = image_as_tensor.view(-1)[self.permutation].view(
+            *image_as_tensor.shape)
 
         if is_image:
-            img = self._to_image(img)
+            img = self._to_image(image_as_tensor)
+        else:
+            img = image_as_tensor
 
         return img
 
@@ -71,7 +77,7 @@ def SplitAlphabetOmniglot(
     shuffle: bool = True,
     train_transform: Optional[Any] = _default_omniglot_train_transform,
     eval_transform: Optional[Any] = _default_omniglot_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """Class-incremental OMNIGLOT with the alphabet used as target.
 
@@ -140,7 +146,7 @@ def SplitOmniglot(
     class_ids_from_zero_in_each_exp: bool = False,
     train_transform: Optional[Any] = _default_omniglot_train_transform,
     eval_transform: Optional[Any] = _default_omniglot_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark using the OMNIGLOT dataset.

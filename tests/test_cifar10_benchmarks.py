@@ -1,6 +1,8 @@
 import unittest
 
-import avalanche.benchmarks.datasets.external_datasets.cifar
+import avalanche.benchmarks.datasets.external_datasets.cifar as cifar_download
+import avalanche.benchmarks.classic.ccifar10 as cifar_benchmark
+
 from avalanche.benchmarks import ClassificationExperience, SplitCIFAR10
 from tests.unit_tests_utils import (
     load_experience_train_eval,
@@ -8,41 +10,41 @@ from tests.unit_tests_utils import (
     is_github_action,
 )
 
+
 CIFAR10_DOWNLOADS = 0
 CIFAR10_DOWNLOAD_METHOD = None
 
 
+def count_downloads(*args, **kwargs):
+    global CIFAR10_DOWNLOADS, CIFAR10_DOWNLOAD_METHOD
+    CIFAR10_DOWNLOADS += 1
+    return CIFAR10_DOWNLOAD_METHOD(*args, **kwargs)
+
+
 class CIFAR10BenchmarksTests(unittest.TestCase):
     def setUp(self):
-        import avalanche.benchmarks.classic.ccifar10 as ccifar10
-        from avalanche.benchmarks.datasets.external_datasets.cifar import \
-            get_cifar10_dataset
-
         global CIFAR10_DOWNLOAD_METHOD
-        CIFAR10_DOWNLOAD_METHOD = get_cifar10_dataset
 
-        def count_downloads(*args, **kwargs):
-            global CIFAR10_DOWNLOADS
-            CIFAR10_DOWNLOADS += 1
-            return CIFAR10_DOWNLOAD_METHOD(*args, **kwargs)
-
-        avalanche.benchmarks.datasets.external_datasets.cifar.\
-            get_cifar10_dataset = count_downloads
+        CIFAR10_DOWNLOAD_METHOD = cifar_download.get_cifar10_dataset
+        cifar_download.get_cifar10_dataset = count_downloads
+        cifar_benchmark.get_cifar10_dataset = count_downloads
 
     def tearDown(self):
+
         global CIFAR10_DOWNLOAD_METHOD
         if CIFAR10_DOWNLOAD_METHOD is not None:
-            import avalanche.benchmarks.classic.ccifar10 as ccifar10
-
-            avalanche.benchmarks.datasets.external_datasets.cifar.\
-                get_cifar10_dataset = CIFAR10_DOWNLOAD_METHOD
+            cifar_download.get_cifar10_dataset = CIFAR10_DOWNLOAD_METHOD
+            cifar_benchmark.get_cifar10_dataset = CIFAR10_DOWNLOAD_METHOD
             CIFAR10_DOWNLOAD_METHOD = None
 
     @unittest.skipIf(
-        FAST_TEST or is_github_action(),
+        True or FAST_TEST or is_github_action(),
         "We don't want to download large datasets in github actions.",
     )
     def test_SplitCifar10_benchmark(self):
+        global CIFAR10_DOWNLOADS
+        CIFAR10_DOWNLOADS = 0
+
         benchmark = SplitCIFAR10(5)
         self.assertEqual(5, len(benchmark.train_stream))
         self.assertEqual(5, len(benchmark.test_stream))

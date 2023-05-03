@@ -218,7 +218,7 @@ class MiniImageNetDataset(Dataset):
 
     def prepare_dataset(self):
         # Read the CSV containing the file list for this split
-        images = dict()
+        images: Dict[str, List[str]] = dict()
 
         csv_dir = Path(__file__).resolve().parent / "csv_files"
         if self.split == "all":

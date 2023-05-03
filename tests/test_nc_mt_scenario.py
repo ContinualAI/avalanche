@@ -1,6 +1,7 @@
 import unittest
 
 from os.path import expanduser
+import torch
 
 from torchvision.datasets import MNIST
 
@@ -370,6 +371,70 @@ class MultiTaskTests(unittest.TestCase):
             self.assertTrue(exp_classes_test == exp_classes_ref1)
         else:
             self.assertTrue(exp_classes_test == exp_classes_ref2)
+
+    def test_nc_utils_corner_cases(self):
+        mnist_train = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True,
+            download=True,
+        )
+        mnist_test = MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=False,
+            download=True,
+        )
+
+        unique_train_targets, train_targets_count = \
+            torch.as_tensor(mnist_train.targets).unique(return_counts=True)
+
+        train_part1 = make_nc_transformation_subset(
+            mnist_train, None, None, None
+        )
+        test_part1 = make_nc_transformation_subset(
+            mnist_test, None, None, None, bucket_classes=True
+        )
+        my_nc_benchmark = nc_benchmark(
+            [train_part1],
+            [test_part1],
+            2,
+            task_labels=True,
+            seed=1234,
+            class_ids_from_zero_in_each_exp=True,
+            one_dataset_per_exp=True,
+        )
+
+        self.assertEqual(1, my_nc_benchmark.n_experiences)
+        self.assertEqual(10, my_nc_benchmark.n_classes)
+        self.assertEqual(1, len(my_nc_benchmark.train_stream))
+        self.assertEqual(1, len(my_nc_benchmark.test_stream))
+
+        train_exp = my_nc_benchmark.train_stream[0]
+        test_exp = my_nc_benchmark.test_stream[0]
+        self.assertSetEqual(set(range(10)), set(train_exp.dataset.targets))
+        self.assertSetEqual(set(range(10)), set(test_exp.dataset.targets))
+        self.assertEqual(len(mnist_train), len(train_exp.dataset))
+        self.assertEqual(len(mnist_test), len(test_exp.dataset))
+
+        other_split = make_nc_transformation_subset(
+            mnist_train, None, None, None, 
+            bucket_classes=False, 
+            sort_indexes=True
+        )
+
+        for b, s in zip([False, True], [False, True]):
+            other_split = make_nc_transformation_subset(
+                mnist_train, None, None, None, 
+                bucket_classes=b, 
+                sort_indexes=s
+            )
+
+            self.assertEqual(len(mnist_train), len(other_split))
+            unique_other_targets, other_targets_count = \
+                torch.as_tensor(other_split.targets).unique(return_counts=True)
+            self.assertTrue(torch.equal(unique_train_targets, 
+                                        unique_other_targets))
+            self.assertTrue(torch.equal(train_targets_count, 
+                                        other_targets_count))
 
     def test_nc_mt_slicing(self):
         mnist_train = MNIST(

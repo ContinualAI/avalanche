@@ -22,12 +22,14 @@ from typing import (
     SupportsInt,
     Union,
     Any,
-    List,
     Tuple,
 )
 
-import torch
 from torch import Tensor
+from avalanche.benchmarks.generators.benchmark_generators import (
+    nc_benchmark,
+    ni_benchmark,
+)
 
 from avalanche.benchmarks.scenarios.classification_scenario import (
     GenericCLScenario,
@@ -35,11 +37,9 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils.utils import (
-    concat_datasets_sequentially,
-    as_classification_dataset,
+from avalanche.benchmarks.utils.classification_dataset import (
+    SupportedDataset
 )
-from avalanche.benchmarks.utils.classification_dataset import SupportedDataset
 
 
 def nc_scenario(
@@ -50,12 +50,12 @@ def nc_scenario(
     *,
     shuffle: bool = True,
     seed: Optional[int] = None,
-    fixed_class_order: Sequence[int] = None,
-    per_exp_classes: Dict[int, int] = None,
+    fixed_class_order: Optional[Sequence[int]] = None,
+    per_exp_classes: Optional[Dict[int, int]] = None,
     class_ids_from_zero_from_first_exp: bool = False,
     class_ids_from_zero_in_each_exp: bool = False,
     one_dataset_per_exp: bool = False,
-    reproducibility_data: Dict[str, Any] = None
+    reproducibility_data: Optional[Dict[str, Any]] = None
 ) -> NCScenario:
     """
     This helper function is DEPRECATED in favor of `nc_benchmark`.
@@ -144,75 +144,19 @@ def nc_scenario(
         DeprecationWarning,
     )
 
-    if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
-        raise ValueError(
-            "Invalid mutually exclusive options "
-            "class_ids_from_zero_from_first_exp and "
-            "classes_ids_from_zero_in_each_exp set at the "
-            "same time"
-        )
-
-    if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
-        # Multi-dataset setting
-
-        if len(train_dataset) != len(test_dataset):
-            raise ValueError(
-                "Train/test dataset lists must contain the "
-                "exact same number of datasets"
-            )
-
-        if per_exp_classes and one_dataset_per_exp:
-            raise ValueError(
-                "Both per_experience_classes and one_dataset_per_exp are"
-                "used, but those options are mutually exclusive"
-            )
-
-        if fixed_class_order and one_dataset_per_exp:
-            raise ValueError(
-                "Both fixed_class_order and one_dataset_per_exp are"
-                "used, but those options are mutually exclusive"
-            )
-
-        (
-            seq_train_dataset,
-            seq_test_dataset,
-            mapping,
-        ) = concat_datasets_sequentially(train_dataset, test_dataset)
-
-        if one_dataset_per_exp:
-            # If one_dataset_per_exp is True, each dataset will be treated as
-            # a experience. In this scenario, shuffle refers to the experience
-            # order, not to the class one.
-            (
-                fixed_class_order,
-                per_exp_classes,
-            ) = _one_dataset_per_exp_class_order(mapping, shuffle, seed)
-
-            # We pass a fixed_class_order to the NCGenericScenario
-            # constructor, so we don't need shuffling.
-            shuffle = False
-            seed = None
-
-            # Overrides n_experiences (and per_experience_classes, already done)
-            n_experiences = len(train_dataset)
-        train_dataset, test_dataset = seq_train_dataset, seq_test_dataset
-
-    # Datasets should be instances of AvalancheDataset
-    train_dataset = as_classification_dataset(train_dataset).train()
-    test_dataset = as_classification_dataset(test_dataset).eval()
-
-    return NCScenario(
-        train_dataset,
-        test_dataset,
-        n_experiences,
-        task_labels,
-        shuffle,
-        seed,
-        fixed_class_order,
-        per_exp_classes,
-        class_ids_from_zero_from_first_exp,
-        class_ids_from_zero_in_each_exp,
-        reproducibility_data,
+    return nc_benchmark(
+        train_dataset=train_dataset,
+        test_dataset=test_dataset,
+        n_experiences=n_experiences,
+        task_labels=task_labels,
+        shuffle=shuffle,
+        seed=seed,
+        fixed_class_order=fixed_class_order,
+        per_exp_classes=per_exp_classes,
+        class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
+        class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+        one_dataset_per_exp=one_dataset_per_exp,
+        reproducibility_data=reproducibility_data
     )
 
 
@@ -289,33 +233,17 @@ def ni_scenario(
         DeprecationWarning,
     )
 
-    seq_train_dataset, seq_test_dataset = train_dataset, test_dataset
-    if isinstance(train_dataset, list) or isinstance(train_dataset, tuple):
-        if len(train_dataset) != len(test_dataset):
-            raise ValueError(
-                "Train/test dataset lists must contain the "
-                "exact same number of datasets"
-            )
-
-        seq_train_dataset, seq_test_dataset, _ = concat_datasets_sequentially(
-            train_dataset, test_dataset
-        )
-
-    # Datasets should be instances of AvalancheDataset
-    seq_train_dataset = as_classification_dataset(seq_train_dataset).train()
-    seq_test_dataset = as_classification_dataset(seq_test_dataset).eval()
-
-    return NIScenario(
-        seq_train_dataset,
-        seq_test_dataset,
-        n_experiences,
-        task_labels,
+    return ni_benchmark(
+        train_dataset=train_dataset,
+        test_dataset=test_dataset,
+        n_experiences=n_experiences,
+        task_labels=task_labels,
         shuffle=shuffle,
         seed=seed,
         balance_experiences=balance_experiences,
         min_class_patterns_in_exp=min_class_patterns_in_exp,
         fixed_exp_assignment=fixed_exp_assignment,
-        reproducibility_data=reproducibility_data,
+        reproducibility_data=reproducibility_data
     )
 
 
@@ -769,41 +697,6 @@ def tensor_scenario(
         eval_transform=eval_transform,
         eval_target_transform=eval_target_transform,
     )
-
-
-def _one_dataset_per_exp_class_order(
-    class_list_per_exp: Sequence[Sequence[int]],
-    shuffle: bool,
-    seed: Union[int, None],
-) -> (List[int], Dict[int, int]):
-    """
-    Utility function that shuffles the class order by keeping classes from the
-    same experience together. Each experience is defined by a different entry in
-    the class_list_per_exp parameter.
-
-    :param class_list_per_exp: A list of class lists, one for each experience
-    :param shuffle: If True, the experience order will be shuffled. If False,
-        this function will return the concatenation of lists from the
-        class_list_per_exp parameter.
-    :param seed: If not None, an integer used to initialize the random
-        number generator.
-
-    :returns: A class order that keeps class IDs from the same experience
-        together (adjacent).
-    """
-    dataset_order = list(range(len(class_list_per_exp)))
-    if shuffle:
-        if seed is not None:
-            torch.random.manual_seed(seed)
-        dataset_order = torch.as_tensor(dataset_order)[
-            torch.randperm(len(dataset_order))
-        ].tolist()
-    fixed_class_order = []
-    classes_per_exp = {}
-    for dataset_position, dataset_idx in enumerate(dataset_order):
-        fixed_class_order.extend(class_list_per_exp[dataset_idx])
-        classes_per_exp[dataset_position] = len(class_list_per_exp[dataset_idx])
-    return fixed_class_order, classes_per_exp
 
 
 __all__ = [

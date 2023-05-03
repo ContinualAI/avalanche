@@ -1,4 +1,5 @@
 import operator
+from typing import Optional
 import warnings
 from copy import deepcopy
 
@@ -76,7 +77,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
 
         self.best_state = None  # Contains the best parameters
         self.best_val = None
-        self.best_step = None
+        self.best_step: Optional[int] = None
 
     def before_training(self, strategy, **kwargs):
         self.best_state = None

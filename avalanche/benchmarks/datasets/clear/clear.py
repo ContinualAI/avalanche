@@ -12,7 +12,7 @@
 """ CLEAR Pytorch Dataset """
 
 from pathlib import Path
-from typing import Union, List
+from typing import Optional, Sequence, Tuple, Union, List
 import json
 import os
 
@@ -53,7 +53,7 @@ class CLEARDataset(DownloadableDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         data_name: str = "clear10",
         download: bool = True,
@@ -78,6 +78,7 @@ class CLEARDataset(DownloadableDataset):
         assert data_name in _CLEAR_DATA_SPLITS
         self.data_name = data_name
         self.module = clear_data
+        self._paths_and_targets: List[List[Tuple[str, int]]] = []
 
         super(CLEARDataset, self).__init__(
             root, download=download, verbose=True
@@ -91,9 +92,12 @@ class CLEARDataset(DownloadableDataset):
             if self.verbose:
                 print("Downloading " + name + "...")
             url = os.path.join(base_url, name)
-            filepath = self.root / name
-            os.system(f"wget -P {str(self.root)} {url}")
-            self._extract_archive(filepath, remove_archive=True)
+            self._download_and_extract_archive(
+                url=url,
+                file_name=name,
+                checksum=None,
+                remove_archive=True
+            )
 
     def _load_metadata(self) -> bool:
         if '_' in self.data_name:
@@ -177,7 +181,7 @@ class CLEARDataset(DownloadableDataset):
                 if not os.path.exists(path):
                     print(f"{path} does not exist.")
                     return False
-            return True
+        return True
 
     def _download_error_message(self) -> str:
         all_urls = [
@@ -211,13 +215,13 @@ class _CLEARImage(CLEARDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         data_name: str = "clear10",
         download: bool = True,
         verbose: bool = True,
         split: str = "all",
-        seed: int = None,
+        seed: Optional[int] = None,
         transform=None,
         target_transform=None,
         loader=default_loader,
@@ -258,8 +262,9 @@ class _CLEARImage(CLEARDataset):
         self.transform = transform
         self.target_transform = target_transform
         self.loader = loader
+        self.paths: List[Union[str, Path]] = []
 
-        self.class_names: List[str] = None
+        self.class_names: List[str] = []
         """
         After _load_metadata(), the class names will be loaded in order
         aligned with target index.
@@ -353,12 +358,13 @@ class _CLEARImage(CLEARDataset):
                 self.targets.append(target)
         return True
 
-    def get_paths_and_targets(self, root_appended=True):
+    def get_paths_and_targets(self, root_appended=True) -> \
+            Sequence[Sequence[Tuple[Union[str, Path], int]]]:
         """Return self._paths_and_targets with root appended or not"""
         if not root_appended:
             return self._paths_and_targets
         else:
-            paths_and_targets = []
+            paths_and_targets: List[List[Tuple[Path, int]]] = []
             for path_and_target_list in self._paths_and_targets:
                 paths_and_targets.append([])
                 for img_path, target in path_and_target_list:
@@ -387,13 +393,13 @@ class _CLEARFeature(CLEARDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         data_name: str = "clear10",
         download: bool = True,
         verbose: bool = True,
         split: str = "all",
-        seed: int = None,
+        seed: Optional[int] = None,
         feature_type: str = "moco_b0",
         target_transform=None,
     ):
@@ -439,6 +445,9 @@ class _CLEARFeature(CLEARDataset):
         self.feature_type = feature_type
         assert feature_type in CLEAR_FEATURE_TYPES[data_name]
         self.target_transform = target_transform
+
+        self.tensors_and_targets: List[Tuple[List[torch.Tensor],
+                                             List[int]]] = []
 
         super(_CLEARFeature, self).__init__(
             root, data_name=data_name, download=download, verbose=True
@@ -644,6 +653,7 @@ if __name__ == "__main__":
             print(x.size())
             print(len(y))
             break
+
 
 __all__ = [
     "CLEARDataset",

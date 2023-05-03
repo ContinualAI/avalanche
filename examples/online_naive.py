@@ -33,6 +33,7 @@ from avalanche.evaluation.metrics import (
 )
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
+from torch.optim import Adam
 
 
 def main(args):
@@ -94,7 +95,7 @@ def main(args):
     # CREATE THE STRATEGY INSTANCE (ONLINE-NAIVE)
     cl_strategy = OnlineNaive(
         model,
-        torch.optim.Adam(model.parameters(), lr=0.1),
+        Adam(model.parameters(), lr=0.1),
         CrossEntropyLoss(),
         train_passes=1,
         train_mb_size=10,
@@ -120,7 +121,7 @@ def main(args):
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.train_stream)
 
-        results.append(cl_strategy.eval(benchmark.original_test_stream))
+        results.append(cl_strategy.eval(ocl_benchmark.original_test_stream))
 
 
 if __name__ == "__main__":

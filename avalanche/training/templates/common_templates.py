@@ -1,10 +1,17 @@
-from typing import Sequence, Optional
+from typing import Callable, Sequence, Optional, TypeVar, Union
+import torch
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
 
-from avalanche.core import SupervisedPlugin
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.core import BasePlugin, BaseSGDPlugin, SupervisedPlugin
+from avalanche.training.plugins.evaluation import (
+    EvaluationPlugin,
+    default_evaluator,
+)
+from avalanche.training.templates.strategy_mixin_protocol import \
+    SupervisedStrategyProtocol
 
 from .observation_type import *
 from .problem_type import *
@@ -12,8 +19,25 @@ from .update_type import *
 from .base_sgd import BaseSGDTemplate
 
 
-class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
-                         BaseSGDTemplate):
+TDatasetExperience = TypeVar('TDatasetExperience', bound=DatasetExperience)
+TMBInput = TypeVar('TMBInput')
+TMBOutput = TypeVar('TMBOutput')
+
+
+class SupervisedTemplate(
+        BatchObservation,
+        SupervisedProblem,
+        SGDUpdate,
+        SupervisedStrategyProtocol[
+            TDatasetExperience,
+            TMBInput,
+            TMBOutput],
+        BaseSGDTemplate[
+            TDatasetExperience,
+            TMBInput,
+            TMBOutput
+        ],):
+    
     """Base class for continual learning strategies.
 
     SupervisedTemplate is the super class of all supervised task-based
@@ -68,8 +92,8 @@ class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
             train_mb_size: int = 1,
             train_epochs: int = 1,
             eval_mb_size: Optional[int] = 1,
-            device="cpu",
-            plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
+            device: Union[str, torch.device] = "cpu",
+            plugins: Optional[Sequence[BasePlugin]] = None,
             evaluator=default_evaluator,
             eval_every=-1,
             peval_mode="epoch",
@@ -98,7 +122,9 @@ class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__(
+        super().__init__()  # type: ignore
+        BaseSGDTemplate.__init__(
+            self=self,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -126,8 +152,15 @@ class SupervisedTemplate(BatchObservation, SupervisedProblem, SGDUpdate,
         #    use :attr:`.BaseTemplate.experience`.
 
 
-class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
-                                     MetaUpdate, BaseSGDTemplate):
+class SupervisedMetaLearningTemplate(
+        BatchObservation,
+        SupervisedProblem,
+        MetaUpdate,
+        BaseSGDTemplate[
+            TDatasetExperience,
+            TMBInput,
+            TMBOutput
+        ]):
     """Base class for continual learning strategies.
 
     SupervisedMetaLearningTemplate is the super class of all supervised
@@ -182,8 +215,8 @@ class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
             train_mb_size: int = 1,
             train_epochs: int = 1,
             eval_mb_size: Optional[int] = 1,
-            device="cpu",
-            plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
+            device: Union[str, torch.device] = "cpu",
+            plugins: Optional[Sequence[BasePlugin]] = None,
             evaluator=default_evaluator,
             eval_every=-1,
             peval_mode="epoch",
@@ -212,7 +245,9 @@ class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__(
+        super().__init__()  # type: ignore
+        BaseSGDTemplate.__init__(
+            self=self,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -240,8 +275,15 @@ class SupervisedMetaLearningTemplate(BatchObservation, SupervisedProblem,
         #    use :attr:`.BaseTemplate.experience`.
 
 
-class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
-                               BaseSGDTemplate):
+class OnlineSupervisedTemplate(
+        OnlineObservation,
+        SupervisedProblem,
+        SGDUpdate,
+        BaseSGDTemplate[
+            TDatasetExperience,
+            TMBInput,
+            TMBOutput
+        ]):
     """Base class for continual learning strategies.
 
     OnlineSupervisedTemplate is the super class of all online supervised
@@ -296,11 +338,15 @@ class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
             train_mb_size: int = 1,
             train_passes: int = 1,
             eval_mb_size: Optional[int] = 1,
-            device="cpu",
-            plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
-            evaluator=default_evaluator,
+            device: Union[str, torch.device] = "cpu",
+            plugins: Optional[Sequence[BasePlugin]] = None,
+            evaluator: Union[
+                EvaluationPlugin, 
+                Callable[[], EvaluationPlugin]
+            ] = default_evaluator,
             eval_every=-1,
             peval_mode="experience",
+            **kwargs
     ):
         """Init.
 
@@ -326,7 +372,9 @@ class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
             the periodic evaluation during training should execute every
             `eval_every` experience or iterations (Default='experience').
         """
-        super().__init__(
+        super().__init__(self)  # type: ignore
+        BaseSGDTemplate.__init__(
+            self=self,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -338,13 +386,21 @@ class OnlineSupervisedTemplate(OnlineObservation, SupervisedProblem, SGDUpdate,
             evaluator=evaluator,
             eval_every=eval_every,
             peval_mode=peval_mode,
+            **kwargs
         )
 
         self.train_passes = train_passes
 
 
-class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
-                                           MetaUpdate, BaseSGDTemplate):
+class OnlineSupervisedMetaLearningTemplate(
+        OnlineObservation,
+        SupervisedProblem,
+        MetaUpdate,
+        BaseSGDTemplate[
+            TDatasetExperience,
+            TMBInput,
+            TMBOutput
+        ]):
     """Base class for continual learning strategies.
 
     OnlineSupervisedMetaLearningTemplate is the super class of all online
@@ -399,8 +455,8 @@ class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
             train_mb_size: int = 1,
             train_passes: int = 1,
             eval_mb_size: Optional[int] = 1,
-            device="cpu",
-            plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
+            device: Union[str, torch.device] = "cpu",
+            plugins: Optional[Sequence[BasePlugin]] = None,
             evaluator=default_evaluator,
             eval_every=-1,
             peval_mode="epoch",
@@ -429,7 +485,9 @@ class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__(
+        super().__init__()  # type: ignore
+        BaseSGDTemplate.__init__(
+            self=self,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -455,3 +513,11 @@ class OnlineSupervisedMetaLearningTemplate(OnlineObservation, SupervisedProblem,
         #    This dataset may contain samples from different experiences. If you
         #    want the original data for the current experience
         #    use :attr:`.BaseTemplate.experience`.
+
+
+__all__ = [
+    'SupervisedTemplate',
+    'SupervisedMetaLearningTemplate',
+    'OnlineSupervisedTemplate',
+    'OnlineSupervisedMetaLearningTemplate'
+]

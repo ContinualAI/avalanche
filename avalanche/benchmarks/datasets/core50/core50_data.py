@@ -53,6 +53,7 @@ extra_data = [
     (
         "core50_imgs.npz",
         "http://bias.csr.unibo.it/maltoni/download/core50/core50_imgs.npz",
+        "3689d65d0a1c760b87821b114c8c4c6c"
     ),
     (
         "core50_32x32.zip",

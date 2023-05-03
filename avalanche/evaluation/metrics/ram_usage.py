@@ -44,8 +44,8 @@ class MaxRAM(Metric[float]):
         :param every: seconds after which update the maximum RAM usage.
         """
 
-        self._process_handle: Optional[Process] = Process(os.getpid())
-        """The process handle, lazily initialized."""
+        self._process_handle: Process = Process(os.getpid())
+        """The process handle."""
 
         self.every = every
 
@@ -114,16 +114,15 @@ class MaxRAM(Metric[float]):
         pass
 
 
-class RAMPluginMetric(GenericPluginMetric[float]):
+class RAMPluginMetric(GenericPluginMetric[float, MaxRAM]):
     def __init__(self, every, reset_at, emit_at, mode):
-        self._ram = MaxRAM(every)
 
         super(RAMPluginMetric, self).__init__(
-            self._ram, reset_at, emit_at, mode
+            MaxRAM(every), reset_at, emit_at, mode
         )
 
     def update(self, strategy):
-        self._ram.update()
+        self._metric.update()
 
 
 class MinibatchMaxRAM(RAMPluginMetric):
@@ -144,11 +143,11 @@ class MinibatchMaxRAM(RAMPluginMetric):
 
     def before_training(self, strategy: "SupervisedTemplate") -> None:
         super().before_training(strategy)
-        self._ram.start_thread()
+        self._metric.start_thread()
 
     def after_training(self, strategy: "SupervisedTemplate") -> None:
         super().after_training(strategy)
-        self._ram.stop_thread()
+        self._metric.stop_thread()
 
     def __str__(self):
         return "MaxRAMUsage_MB"
@@ -171,11 +170,11 @@ class EpochMaxRAM(RAMPluginMetric):
 
     def before_training(self, strategy: "SupervisedTemplate") -> None:
         super().before_training(strategy)
-        self._ram.start_thread()
+        self._metric.start_thread()
 
     def after_training(self, strategy: "SupervisedTemplate") -> None:
         super().before_training(strategy)
-        self._ram.stop_thread()
+        self._metric.stop_thread()
 
     def __str__(self):
         return "MaxRAMUsage_Epoch"
@@ -198,11 +197,11 @@ class ExperienceMaxRAM(RAMPluginMetric):
 
     def before_eval(self, strategy: "SupervisedTemplate") -> None:
         super().before_eval(strategy)
-        self._ram.start_thread()
+        self._metric.start_thread()
 
     def after_eval(self, strategy: "SupervisedTemplate") -> None:
         super().after_eval(strategy)
-        self._ram.stop_thread()
+        self._metric.stop_thread()
 
     def __str__(self):
         return "MaxRAMUsage_Experience"
@@ -225,11 +224,11 @@ class StreamMaxRAM(RAMPluginMetric):
 
     def before_eval(self, strategy):
         super().before_eval(strategy)
-        self._ram.start_thread()
+        self._metric.start_thread()
 
     def after_eval(self, strategy: "SupervisedTemplate") -> MetricResult:
         packed = super().after_eval(strategy)
-        self._ram.stop_thread()
+        self._metric.stop_thread()
         return packed
 
     def __str__(self):
@@ -238,7 +237,7 @@ class StreamMaxRAM(RAMPluginMetric):
 
 def ram_usage_metrics(
     *, every=1, minibatch=False, epoch=False, experience=False, stream=False
-) -> List[PluginMetric]:
+) -> List[RAMPluginMetric]:
     """Helper method that can be used to obtain the desired set of
     plugin metrics.
 
@@ -256,7 +255,7 @@ def ram_usage_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[RAMPluginMetric] = []
     if minibatch:
         metrics.append(MinibatchMaxRAM(every=every))
 

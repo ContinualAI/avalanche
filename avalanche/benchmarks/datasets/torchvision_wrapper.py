@@ -78,10 +78,6 @@ def LSUN(*args, **kwargs):
     return torchLSUN(*args, **kwargs)
 
 
-def LSUN(*args, **kwargs):
-    return torchLSUN(*args, **kwargs)
-
-
 def ImageFolder(*args, **kwargs):
     return torchImageFolder(*args, **kwargs)
 
