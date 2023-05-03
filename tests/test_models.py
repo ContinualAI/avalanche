@@ -429,8 +429,9 @@ class TrainEvalModelTests(unittest.TestCase):
 
         feature_extractor = base_model.features
         classifier1 = base_model.classifier
-        classifier2 = NCMClassifier()
+        classifier2 = torch.nn.Linear(64, 7)
 
+        x = torch.randn(2, 3, 32, 32)
         model = TrainEvalModel(
             feature_extractor,
             train_classifier=classifier1,
@@ -438,10 +439,12 @@ class TrainEvalModelTests(unittest.TestCase):
         )
 
         model.eval()
-        assert model.classifier is classifier2
+        out = model(x)
+        assert out.shape[-1] == 7
 
         model.train()
-        assert model.classifier is classifier1
+        out = model(x)
+        assert out.shape[-1] == 10
 
 
 class NCMClassifierTest(unittest.TestCase):

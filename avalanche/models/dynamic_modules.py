@@ -442,8 +442,6 @@ class TrainEvalModel(torch.nn.Module):
         self.train_classifier = train_classifier
         self.eval_classifier = eval_classifier
 
-        self.classifier = train_classifier
-
     def forward(self, x):
         x = self.feature_extractor(x)
         if self.training:
