@@ -42,6 +42,8 @@ jobs:
              done' sh {} +
       - name: commit to repo
         run: |
+          pwd &&
+          ls -altrh &&
           git config --local user.email ${{ secrets.BOT_EMAIL }} &&
           git config --local user.name ${{ secrets.BOT_NAME }} &&
           git add . &&
