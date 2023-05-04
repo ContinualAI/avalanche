@@ -44,6 +44,9 @@ jobs:
         run: |
           pwd &&
           ls -altrh &&
+          ls -altrh .git &&
+          git status &&
+          git --version &&
           git config --local user.email ${{ secrets.BOT_EMAIL }} &&
           git config --local user.name ${{ secrets.BOT_NAME }} &&
           git add . &&
