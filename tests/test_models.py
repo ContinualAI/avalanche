@@ -427,7 +427,9 @@ class TrainEvalModelTests(unittest.TestCase):
     def test_classifier_selection(self):
         base_model = SimpleCNN()
 
-        feature_extractor = base_model.features
+        feature_extractor = torch.nn.Sequential(
+            base_model.features,
+            torch.nn.Flatten())
         classifier1 = base_model.classifier
         classifier2 = torch.nn.Linear(64, 7)
 
@@ -438,13 +440,13 @@ class TrainEvalModelTests(unittest.TestCase):
             eval_classifier=classifier2,
         )
 
-        model.eval()
-        out = model(x)
-        assert out.shape[-1] == 7
-
         model.train()
         out = model(x)
         assert out.shape[-1] == 10
+
+        model.eval()
+        out = model(x)
+        assert out.shape[-1] == 7
 
 
 class NCMClassifierTest(unittest.TestCase):
