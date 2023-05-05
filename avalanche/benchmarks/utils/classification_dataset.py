@@ -332,12 +332,10 @@ def _init_targets(dataset, targets, check_shape=True) -> \
             )
         return DataAttribute(targets, "targets")
 
-    if isinstance(dataset, AvalancheDataset):
-        return None  # targets are initialized automatically
-    else:
-        targets = _traverse_supported_dataset(
-            dataset, _select_targets)
-        
+    targets = _traverse_supported_dataset(
+        dataset, _select_targets)
+    
+    if targets is not None:
         if isinstance(targets, torch.Tensor):
             targets = targets.tolist()
 
