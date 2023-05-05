@@ -2,6 +2,7 @@ from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.templates.strategy_mixin_protocol import \
     SGDStrategyProtocol
+from avalanche.benchmarks import OnlineCLExperience
 
 
 class BatchObservation(SGDStrategyProtocol):
@@ -12,9 +13,24 @@ class BatchObservation(SGDStrategyProtocol):
         """
         if model is None:
             model = self.model
-        
+
         assert self.experience is not None
-        avalanche_model_adaptation(model, self.experience)
+
+        # For training:
+        if isinstance(self.experience, OnlineCLExperience) and self.is_training:
+            # If the strategy has access to task boundaries, adapt the model
+            # for the whole origin experience to add the
+            if self.experience.access_task_boundaries:
+                avalanche_model_adaptation(model,
+                                           self.experience.origin_experience)
+            else:
+                avalanche_model_adaptation(model, self.experience)
+
+        # For evaluation, the experience is not necessarily an online
+        # experience:
+        else:
+            avalanche_model_adaptation(model, self.experience)
+
         return model.to(self.device)
 
     def make_optimizer(self):
