@@ -390,7 +390,7 @@ class DetectionMetrics(
         )
 
     def __str__(self):
-        return "LvisMetrics"
+        return "DetectionMetrics"
 
 
 def lvis_evaluator_factory(lvis_gt: LVIS, iou_types: List[str]):

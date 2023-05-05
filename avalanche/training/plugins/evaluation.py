@@ -1,7 +1,17 @@
 import warnings
 from copy import copy
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple, Union, Sequence, TYPE_CHECKING
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    Sequence,
+    TYPE_CHECKING,
+)
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
@@ -37,7 +47,10 @@ class EvaluationPlugin:
     def __init__(
         self,
         *metrics: Union["PluginMetric", Sequence["PluginMetric"]],
-        loggers: Union["BaseLogger", Sequence["BaseLogger"]] = None,
+        loggers: Optional[Union[
+            "BaseLogger",
+            Sequence["BaseLogger"],
+            Callable[[], Sequence["BaseLogger"]]]] = None,
         collect_all=True,
         strict_checks=False
     ):
@@ -65,6 +78,8 @@ class EvaluationPlugin:
 
         if loggers is None:
             loggers = []
+        elif callable(loggers):
+            loggers = loggers()
         elif not isinstance(loggers, Sequence):
             loggers = [loggers]
 
@@ -219,14 +234,21 @@ class EvaluationPlugin:
                 raise ValueError(msge)
 
 
-def default_evaluator():
+def default_loggers() -> Sequence["BaseLogger"]:
+    return [InteractiveLogger()]
+
+
+def default_evaluator() -> EvaluationPlugin:
     return EvaluationPlugin(
         accuracy_metrics(
             minibatch=False, epoch=True, experience=True, stream=True
         ),
         loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
-        loggers=[InteractiveLogger()],
+        loggers=default_loggers,
     )
 
 
-__all__ = ["EvaluationPlugin", "default_evaluator"]
+__all__ = [
+    "EvaluationPlugin",
+    "default_evaluator"
+]

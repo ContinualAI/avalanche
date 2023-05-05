@@ -1,18 +1,16 @@
-#!/usr/bin/env python3
-import copy
-from typing import List, Optional, Sequence, Union
+from typing import Callable, List, Optional, Union
 
-import numpy as np
 import torch
-import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss, Module
 from torch.optim import Optimizer
 
-from avalanche.benchmarks.utils import concat_datasets
 from avalanche.core import SupervisedPlugin
 from avalanche.models.utils import avalanche_forward
 from avalanche.training import ACECriterion
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import (
+    EvaluationPlugin,
+    default_evaluator,
+)
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import (OnlineSupervisedTemplate,
                                           SupervisedTemplate)
@@ -45,7 +43,10 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
         eval_mb_size: Optional[int] = 1,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator=default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         peval_mode="experience",
     ):
@@ -201,7 +202,10 @@ class ER_ACE(SupervisedTemplate):
         eval_mb_size: Optional[int] = 1,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator=default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
     ):

@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Sequence, List, Tuple
+from typing import Callable, Optional, List, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -59,9 +59,12 @@ class AR1(SupervisedTemplate):
         ewc_lambda: float = 0,
         train_mb_size: int = 128,
         eval_mb_size: int = 128,
-        device=None,
+        device: Optional[Union[str, torch.device]] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
     ):
         """
@@ -271,13 +274,19 @@ class AR1(SupervisedTemplate):
             if hasattr(self.adapted_dataset, "collate_fn")
             else None
         )
+
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=current_batch_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            **kwargs
+        )
+
         # AR1 only supports SIT scenarios (no task labels).
         self.dataloader = DataLoader(
             self.adapted_dataset,
-            num_workers=num_workers,
-            batch_size=current_batch_mb_size,
-            shuffle=shuffle,
             collate_fn=collate_fn,
+            **other_dataloader_args
         )
 
     def training_epoch(self, **kwargs):

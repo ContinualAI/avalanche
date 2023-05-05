@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 import torch
@@ -36,9 +36,12 @@ class LearningToPrompt(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
-        device: str = "cpu",
+        device: Optional[Union[str, torch.device]] = "cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every: int = -1,
         peval_mode: str = "epoch",
         prompt_pool: bool = True,
@@ -88,6 +91,10 @@ class LearningToPrompt(SupervisedTemplate):
         :param use_vit: Boolean to confirm the usage of a visual Transformer.\
             Default True
         """
+
+        if device is None:
+            device = torch.device("cpu")
+        
         self.num_classes = num_classes
         self.lr = lr
         self.sim_coefficient = sim_coefficient
@@ -113,7 +120,7 @@ class LearningToPrompt(SupervisedTemplate):
             if n.startswith(tuple(["blocks", "patch_embed", 
                                    "cls_token", "norm", "pos_embed"])):
                 p.requires_grad = False
-
+        
         model.head = torch.nn.Linear(768, num_classes).to(device)
 
         optimizer = torch.optim.Adam(

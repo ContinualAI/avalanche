@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 import copy
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 import torch
 from avalanche.benchmarks.utils import concat_datasets
 from avalanche.models.utils import avalanche_forward

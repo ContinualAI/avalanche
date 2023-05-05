@@ -28,8 +28,11 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 )
 from avalanche.benchmarks.datasets.external_datasets.mnist import \
     get_mnist_dataset
-from ..utils import make_classification_dataset, DefaultTransformGroups
-from ..utils.data import make_avalanche_dataset
+from avalanche.benchmarks.utils import (
+    make_classification_dataset,
+    DefaultTransformGroups,
+)
+from avalanche.benchmarks.utils.data import make_avalanche_dataset
 
 _default_mnist_train_transform = Compose(
     [Normalize((0.1307,), (0.3081,))]

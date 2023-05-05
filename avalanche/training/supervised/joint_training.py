@@ -9,7 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import Iterable, List, Optional, Sequence, TypeVar, Union
+from typing import Callable, Iterable, List, Optional, Sequence, TypeVar, Union
 import torch
 
 from torch.nn import Module
@@ -18,7 +18,10 @@ from torch.optim import Optimizer
 from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
 from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.core import BasePlugin
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import (
+    EvaluationPlugin,
+    default_evaluator,
+)
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.models import DynamicModule
 from avalanche.training.templates.base import (
@@ -66,7 +69,10 @@ class JointTraining(SupervisedTemplate[
         eval_mb_size: int = 1,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[TPluginType]] = None,
-        evaluator=default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
     ):
         """Init.

@@ -17,7 +17,7 @@
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
-from torch.utils.data import RandomSampler, DistributedSampler
+from torch.utils.data import RandomSampler, DistributedSampler, Dataset
 from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks.utils.collate_functions import (
@@ -584,11 +584,11 @@ class ReplayDataLoader:
 
 
 def _make_data_loader(
-    dataset,
-    distributed_sampling,
-    data_loader_args,
-    batch_size,
-    force_no_workers=False,
+    dataset: Dataset,
+    distributed_sampling: bool,
+    data_loader_args: Dict[str, Any],
+    batch_size: int,
+    force_no_workers: bool = False,
 ):
     data_loader_args = data_loader_args.copy()
 
@@ -602,13 +602,21 @@ def _make_data_loader(
             data_loader_args['prefetch_factor'] = 2
 
     if _DistributedHelper.is_distributed and distributed_sampling:
+        # Note: shuffle only goes in the sampler, while
+        # drop_last must be passed to both the sampler
+        # and the DataLoader
+        drop_last = data_loader_args.pop("drop_last", False)
         sampler = DistributedSampler(
             dataset,
-            shuffle=data_loader_args.pop("shuffle", False),
-            drop_last=data_loader_args.pop("drop_last", False),
+            shuffle=data_loader_args.pop("shuffle", True),
+            drop_last=drop_last,
         )
         data_loader = DataLoader(
-            dataset, sampler=sampler, batch_size=batch_size, **data_loader_args
+            dataset,
+            sampler=sampler,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            **data_loader_args
         )
     else:
         sampler = None

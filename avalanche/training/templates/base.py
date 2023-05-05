@@ -39,7 +39,7 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
     def __init__(
         self,
         model: Module,
-        device: Union[str, torch.device] = "cpu",
+        device: Optional[Union[str, torch.device]] = "cpu",
         plugins: Optional[Sequence[BasePlugin]] = None,
     ):
         super().__init__()
