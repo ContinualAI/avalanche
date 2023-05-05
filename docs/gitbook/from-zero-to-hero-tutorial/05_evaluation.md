@@ -195,13 +195,13 @@ class MyStandaloneMetric(Metric[float]):
         """
         pass
 
-    def result(self) -> float:
+    def result(self, **kwargs) -> float:
         """
         Emit the metric result here
         """
         return 0
 
-    def reset(self):
+    def reset(self, **kwargs):
         """
         Reset your metric here
         """
@@ -232,13 +232,13 @@ class MyPluginMetric(PluginMetric[float]):
 
         self._accuracy_metric = Accuracy()
 
-    def reset(self) -> None:
+    def reset(self, **kwargs) -> None:
         """
         Reset the metric
         """
         self._accuracy_metric.reset()
 
-    def result(self) -> float:
+    def result(self, **kwargs) -> float:
         """
         Emit the result
         """
