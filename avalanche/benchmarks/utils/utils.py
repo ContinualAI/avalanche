@@ -394,12 +394,13 @@ def _init_task_labels(dataset, task_labels, check_shape=True) -> \
             )
         tls = SubSequence(task_labels, converter=int)
     else:
-        if isinstance(dataset, AvalancheDataset):
+        task_labels = _traverse_supported_dataset(
+            dataset, _select_task_labels
+        )
+
+        if task_labels is None:
             tls = None
         else:
-            task_labels = _traverse_supported_dataset(
-                dataset, _select_task_labels
-            )
             tls = SubSequence(task_labels, converter=int)
 
     if tls is None:
