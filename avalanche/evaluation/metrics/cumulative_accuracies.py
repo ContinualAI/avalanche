@@ -18,8 +18,12 @@ from torch import Tensor
 
 from avalanche.benchmarks import OnlineCLExperience
 from avalanche.evaluation import GenericPluginMetric, Metric, PluginMetric
-from avalanche.evaluation.metric_utils import phase_and_task
 from avalanche.evaluation.metrics.mean import Mean
+from avalanche.evaluation.metric_utils import (phase_and_task,
+                                               stream_type,
+                                               generic_get_metric_name,
+                                               default_metric_name_template)
+from avalanche.evaluation.metric_results import MetricValue
 
 
 class CumulativeAccuracy(Metric[float]):
@@ -146,6 +150,30 @@ class CumulativeAccuracyPluginMetric(GenericPluginMetric[float]):
                               strategy.mb_output, 
                               strategy.mb_y)
 
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
+        metric_value = self.result(strategy)
+        plot_x_position = strategy.clock.train_iterations
+
+        phase_name, task_label = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+
+        metrics = []
+        for k, v in metric_value.items():
+            metric_name = generic_get_metric_name(
+                default_metric_name_template,
+                {
+                    "metric_name": str(self),
+                    "task_label": None,
+                    "phase_name": phase_name,
+                    "experience_id": k,
+                    "stream_name": stream,
+                },
+            )
+            metrics.append(
+                MetricValue(self, metric_name, v, plot_x_position)
+            )
+        return metrics
+
     def __repr__(self):
         return "CumulativeAccuracy"
 
@@ -221,6 +249,30 @@ class CumulativeForgettingPluginMetric(GenericPluginMetric):
     def result(self, strategy=None) -> float:
         forgetting = self._compute_forgetting()
         return forgetting
+
+    def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
+        metric_value = self.result(strategy)
+        plot_x_position = strategy.clock.train_iterations
+
+        phase_name, task_label = phase_and_task(strategy)
+        stream = stream_type(strategy.experience)
+
+        metrics = []
+        for k, v in metric_value.items():
+            metric_name = generic_get_metric_name(
+                default_metric_name_template,
+                {
+                    "metric_name": str(self),
+                    "task_label": None,
+                    "phase_name": phase_name,
+                    "experience_id": k,
+                    "stream_name": stream,
+                },
+            )
+            metrics.append(
+                MetricValue(self, metric_name, v, plot_x_position)
+            )
+        return metrics
 
     def update(self, strategy):
         self._accuracy.update(self.classes_splits, 
