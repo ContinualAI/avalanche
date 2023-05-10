@@ -3,6 +3,7 @@ from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.templates.strategy_mixin_protocol import \
     SGDStrategyProtocol
 from avalanche.benchmarks import OnlineCLExperience
+from avalanche.models.dynamic_optimizers import update_optimizer
 
 
 class BatchObservation(SGDStrategyProtocol):
@@ -38,14 +39,34 @@ class BatchObservation(SGDStrategyProtocol):
 
         Called before each training experiene to configure the optimizer.
         """
-        # we reset the optimizer's state after each experience.
-        # This allows to add new parameters (new heads) and
-        # freezing old units during the model's adaptation phase.
-        reset_optimizer(self.optimizer, self.model)
+        if isinstance(self.experience, OnlineCLExperience):
+            if self.experience.access_task_boundaries:
+                assert self.experience.is_first_subexp
+                reset_optimizer(self.optimizer, self.model)
+
+            # Otherwise, update the optimizer
+            else:
+                update_optimizer(
+                    self.optimizer,
+                    self.model_params_before_adaptation,  # type: ignore
+                    self.model.parameters(),
+                    reset_state=False)
+        else:
+            reset_optimizer(self.optimizer, self.model)
 
     def check_model_and_optimizer(self):
-        self.model = self.model_adaptation()
-        self.make_optimizer()
+        # If strategy has access to the task boundaries, and the current
+        # sub-experience is the first sub-experience in the online stream,
+        # then adapt the model with the full origin experience:
+        assert self.experience is not None
+        if isinstance(self.experience, OnlineCLExperience):
+            if self.experience.access_task_boundaries:
+                if self.experience.is_first_subexp:
+                    self.model = self.model_adaptation()
+                    self.make_optimizer()
+        else:
+            self.model = self.model_adaptation()
+            self.make_optimizer()
 
 
 __all__ = [
