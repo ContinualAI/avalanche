@@ -10,7 +10,7 @@
 ################################################################################
 
 from collections import defaultdict
-from typing import Dict, List, Union
+from typing import Dict, List, Union, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -24,6 +24,10 @@ from avalanche.evaluation.metric_utils import (phase_and_task,
                                                generic_get_metric_name,
                                                default_metric_name_template)
 from avalanche.evaluation.metric_results import MetricValue
+
+if TYPE_CHECKING:
+    from avalanche.evaluation.metric_results import MetricResult
+    from avalanche.training.templates import SupervisedTemplate
 
 
 class CumulativeAccuracy(Metric[float]):
