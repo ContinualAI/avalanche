@@ -145,3 +145,7 @@ class ConversionMethodTests(unittest.TestCase):
         for t, experience in enumerate(self.benchmark.train_stream):
             strategy.train(experience)
             strategy.eval(self.benchmark.test_stream[: t + 1])
+
+
+if __name__ == "__main__":
+    unittest.main()

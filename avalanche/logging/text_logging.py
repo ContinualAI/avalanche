@@ -81,7 +81,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
             if isinstance(val, UNSUPPORTED_TYPES):
                 continue
             val = self._val_to_str(val)
-            print(f"\t{name} = {val}", file=self.file, flush=True)
+            print(f"\t{name} = {val}", file=self.file)
 
     def before_training_exp(
         self,
@@ -110,8 +110,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         super().after_training_epoch(strategy, metric_values, **kwargs)
         print(
             f"Epoch {strategy.clock.train_exp_epochs} ended.",
-            file=self.file,
-            flush=True,
+            file=self.file
         )
         self.print_current_metrics()
         self.metric_vals = {}
@@ -129,16 +128,14 @@ class TextLogger(BaseLogger, SupervisedPlugin):
             print(
                 f"> Eval on experience {exp_id} "
                 f"from {stream_type(strategy.experience)} stream ended.",
-                file=self.file,
-                flush=True,
+                file=self.file
             )
         else:
             print(
                 f"> Eval on experience {exp_id} (Task "
                 f"{task_id}) "
                 f"from {stream_type(strategy.experience)} stream ended.",
-                file=self.file,
-                flush=True,
+                file=self.file
             )
         self.print_current_metrics()
         self.metric_vals = {}
@@ -150,7 +147,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         **kwargs,
     ):
         super().before_training(strategy, metric_values, **kwargs)
-        print("-- >> Start of training phase << --", file=self.file, flush=True)
+        print("-- >> Start of training phase << --", file=self.file)
 
     def before_eval(
         self,
@@ -159,7 +156,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         **kwargs,
     ):
         super().before_eval(strategy, metric_values, **kwargs)
-        print("-- >> Start of eval phase << --", file=self.file, flush=True)
+        print("-- >> Start of eval phase << --", file=self.file)
 
     def after_training(
         self,
@@ -168,7 +165,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         **kwargs,
     ):
         super().after_training(strategy, metric_values, **kwargs)
-        print("-- >> End of training phase << --", file=self.file, flush=True)
+        print("-- >> End of training phase << --", file=self.file)
 
     def after_eval(
         self,
@@ -177,7 +174,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         **kwargs,
     ):
         super().after_eval(strategy, metric_values, **kwargs)
-        print("-- >> End of eval phase << --", file=self.file, flush=True)
+        print("-- >> End of eval phase << --", file=self.file)
         self.print_current_metrics()
         self.metric_vals = {}
 
@@ -191,15 +188,13 @@ class TextLogger(BaseLogger, SupervisedPlugin):
                 "-- Starting {} on experience {} from {} stream --".format(
                     action_name, exp_id, stream
                 ),
-                file=self.file,
-                flush=True,
+                file=self.file
             )
         else:
             print(
                 "-- Starting {} on experience {} (Task {}) from {}"
                 " stream --".format(action_name, exp_id, task_id, stream),
-                file=self.file,
-                flush=True,
+                file=self.file
             )
 
     def __getstate__(self):
@@ -236,8 +231,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
             f'[{self.__class__.__name__}] Resuming from checkpoint.',
             f'Current time is',
             now_w_timezone.strftime("%Y-%m-%d %H:%M:%S %z"),
-            file=self.file,
-            flush=True
+            file=self.file
         )
 
     @staticmethod

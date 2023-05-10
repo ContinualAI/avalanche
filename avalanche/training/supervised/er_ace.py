@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import copy
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -37,13 +37,13 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
         self,
         model: Module,
         optimizer: Optimizer,
+        batch_size_mem: int,
         criterion=CrossEntropyLoss(),
         mem_size: int = 200,
-        batch_size_mem: int = None,
         train_mb_size: int = 1,
         train_passes: int = 1,
         eval_mb_size: Optional[int] = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,
@@ -118,7 +118,7 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
                 )
 
             self.optimizer.zero_grad()
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Forward
             self._before_forward(**kwargs)
@@ -169,6 +169,11 @@ class OnlineER_ACE(OnlineSupervisedTemplate):
 
         super()._before_training_exp(**kwargs)
 
+    def _train_cleanup(self):
+        super()._train_cleanup()
+        # reset the value to avoid serialization failures
+        self.replay_loader = None
+
 
 class ER_ACE(SupervisedTemplate):
     """
@@ -194,7 +199,7 @@ class ER_ACE(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator=default_evaluator(),
         eval_every=-1,
@@ -267,7 +272,7 @@ class ER_ACE(SupervisedTemplate):
                 )
 
             self.optimizer.zero_grad()
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Forward
             self._before_forward(**kwargs)
@@ -314,3 +319,8 @@ class ER_ACE(SupervisedTemplate):
                 )
             )
         super()._before_training_exp(**kwargs)
+
+    def _train_cleanup(self):
+        super()._train_cleanup()
+        # reset the value to avoid serialization failures
+        self.replay_loader = None

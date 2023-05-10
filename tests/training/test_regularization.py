@@ -54,3 +54,7 @@ class TestLwF(unittest.TestCase):
                 model.zero_grad()
 
             lwf.update(exp, teacher)
+
+
+if __name__ == "__main__":
+    unittest.main()

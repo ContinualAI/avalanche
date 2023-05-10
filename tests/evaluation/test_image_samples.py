@@ -100,3 +100,7 @@ class ImageSamplesTests(unittest.TestCase):
         img_grid = mval[0].value.image
         assert img_grid.shape == (3, 152, 152)
         # save_image(img_grid, './logs/test_image_with_aug.png')
+
+
+if __name__ == "__main__":
+    unittest.main()

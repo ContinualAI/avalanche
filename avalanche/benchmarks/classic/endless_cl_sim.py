@@ -47,7 +47,7 @@ def EndlessCLSim(
     task_order: Optional[List[int]] = None,
     train_transform: Optional[Any] = _default_transform,
     eval_transform: Optional[Any] = _default_transform,
-    dataset_root: Union[str, Path] = None,
+    dataset_root: Optional[Union[str, Path]] = None,
     semseg=False
 ):
     """Creates a CL scenario for the Endless-Continual-Learning Simulator's

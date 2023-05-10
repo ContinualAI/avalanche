@@ -15,6 +15,9 @@ This example will use a toy benchmark based on the Penn Fudan dataset in which
 the stream of experiences is obtained by splitting the dataset in equal parts.
 """
 
+import argparse
+import torch
+import torchvision
 import logging
 from pathlib import Path
 from typing import Union
@@ -34,10 +37,7 @@ from avalanche.evaluation.metrics import (
 from avalanche.evaluation.metrics.detection import DetectionMetrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
-import argparse
-import torch
 from torchvision.transforms import ToTensor
-import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 

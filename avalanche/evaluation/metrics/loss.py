@@ -76,7 +76,7 @@ class LossMetric(Metric[float]):
         self._mean_loss.reset()
 
 
-class TaskAwareLoss(Metric[float]):
+class TaskAwareLoss(Metric[Dict[int, float]]):
     """The standalone Loss metric. This is a general metric
     used to compute more specific ones.
 
@@ -120,22 +120,27 @@ class TaskAwareLoss(Metric[float]):
         """
         self._mean_loss[task_label].update(torch.mean(loss), weight=patterns)
 
-    def result(self, task_label=None) -> Dict[int, float]:
+    def result(self) -> Dict[int, float]:
         """
-        Retrieves the running average loss per pattern.
+        Retrieves the running average loss per pattern for all tasks.
 
         Calling this method will not change the internal state of the metric.
-        :param task_label: None to return metric values for all the task labels.
-            If an int, return value only for that task label
-        :return: The running loss, as a float.
+        :return: A dictionary `{task_label: mean_loss}`.
         """
-        assert task_label is None or isinstance(task_label, int)
-        if task_label is None:
-            return {k: v.result() for k, v in self._mean_loss.items()}
-        else:
-            return {task_label: self._mean_loss[task_label].result()}
+        return {k: v.result() for k, v in self._mean_loss.items()}
+    
+    def result_task_label(self, task_label: int):
+        """
+        Retrieves the running average loss per pattern for a specific task.
 
-    def reset(self, task_label=None) -> None:
+        Calling this method will not change the internal state of the metric.
+        :param task_label: The task label
+        :return: A dictionary `{task_label: mean_loss}`.
+        """
+        assert task_label is not None
+        return {task_label: self._mean_loss[task_label].result()}
+
+    def reset(self) -> None:
         """
         Resets the metric.
 
@@ -143,39 +148,52 @@ class TaskAwareLoss(Metric[float]):
             reset metric value corresponding to that task label.
         :return: None.
         """
-        assert task_label is None or isinstance(task_label, int)
-        if task_label is None:
-            self._mean_loss = defaultdict(Mean)
-        else:
-            self._mean_loss[task_label].reset()
+        self._mean_loss = defaultdict(Mean)
+
+    def reset_task_label(self, task_label: int):
+        assert task_label is not None
+        self._mean_loss[task_label].reset()
 
 
-class LossPluginMetric(GenericPluginMetric[float]):
-    def __init__(self, reset_at, emit_at, mode, split_by_task=False):
-        self.split_by_task = split_by_task
-        if self.split_by_task:
-            self._loss = TaskAwareLoss()
-        else:
-            self._loss = LossMetric()
+class LossPluginMetric(GenericPluginMetric[float, LossMetric]):
+    def __init__(self, reset_at, emit_at, mode):
+        self._loss = LossMetric()
         super(LossPluginMetric, self).__init__(
             self._loss, reset_at, emit_at, mode
         )
 
-    def reset(self, strategy=None) -> None:
+    def reset(self) -> None:
         self._metric.reset()
 
-    def result(self, strategy=None) -> float:
+    def result(self) -> float:
         return self._metric.result()
 
     def update(self, strategy):
-        if self.split_by_task:
-            self._loss.update(
-                loss=strategy.loss,
-                patterns=len(strategy.mb_y),
-                task_label=strategy.mb_task_id,
-            )
-        else:
-            self._loss.update(strategy.loss, patterns=len(strategy.mb_y))
+        self._loss.update(strategy.loss, patterns=len(strategy.mb_y))
+
+
+class LossPerTaskPluginMetric(
+        GenericPluginMetric[
+            Dict[int, float],
+            TaskAwareLoss]):
+    def __init__(self, reset_at, emit_at, mode):
+        self._loss = TaskAwareLoss()
+        super().__init__(
+            self._loss, reset_at, emit_at, mode
+        )
+
+    def reset(self) -> None:
+        self._metric.reset()
+
+    def result(self) -> Dict[int, float]:
+        return self._metric.result()
+
+    def update(self, strategy):
+        self._loss.update(
+            loss=strategy.loss,
+            patterns=len(strategy.mb_y),
+            task_label=strategy.mb_task_id,
+        )
 
 
 class MinibatchLoss(LossPluginMetric):
@@ -295,7 +313,7 @@ def loss_metrics(
     epoch_running=False,
     experience=False,
     stream=False
-) -> List[PluginMetric]:
+) -> List[LossPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -314,7 +332,7 @@ def loss_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[LossPluginMetric] = []
     if minibatch:
         metrics.append(MinibatchLoss())
 

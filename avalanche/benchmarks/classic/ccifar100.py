@@ -21,7 +21,8 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 
 from avalanche.benchmarks.datasets.external_datasets.cifar import \
     get_cifar100_dataset, get_cifar10_dataset
-from avalanche.benchmarks.utils import concat_datasets_sequentially
+from avalanche.benchmarks.utils.classification_dataset import \
+    concat_classification_datasets_sequentially
 
 from avalanche.benchmarks import nc_benchmark, NCScenario
 
@@ -55,9 +56,10 @@ def SplitCIFAR100(
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
     class_ids_from_zero_in_each_exp: bool = False,
+    class_ids_from_zero_from_first_exp: bool = False,
     train_transform: Optional[Any] = _default_cifar100_train_transform,
     eval_transform: Optional[Any] = _default_cifar100_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark using the CIFAR100 dataset.
@@ -108,6 +110,17 @@ def SplitCIFAR100(
         will be mapped to range [0, n_classes_in_exp) for each experience.
         Defaults to False. Mutually exclusive with the
         ``class_ids_from_zero_from_first_exp`` parameter.
+    :param class_ids_from_zero_from_first_exp: If True, original class IDs
+        will be remapped so that they will appear as having an ascending
+        order. For instance, if the resulting class order after shuffling
+        (or defined by fixed_class_order) is [23, 34, 11, 7, 6, ...] and
+        class_ids_from_zero_from_first_exp is True, then all the patterns
+        belonging to class 23 will appear as belonging to class "0",
+        class "34" will be mapped to "1", class "11" to "2" and so on.
+        This is very useful when drawing confusion matrices and when dealing
+        with algorithms with dynamic head expansion. Defaults to False.
+        Mutually exclusive with the ``class_ids_from_zero_in_each_exp``
+        parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -137,6 +150,7 @@ def SplitCIFAR100(
         shuffle=shuffle,
         per_exp_classes={0: 50} if first_exp_with_half_classes else None,
         class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+        class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
@@ -147,10 +161,11 @@ def SplitCIFAR110(
     *,
     seed: Optional[int] = None,
     fixed_class_order: Optional[Sequence[int]] = None,
+    class_ids_from_zero_from_first_exp: bool = False,
     train_transform: Optional[Any] = _default_cifar100_train_transform,
     eval_transform: Optional[Any] = _default_cifar100_eval_transform,
-    dataset_root_cifar10: Union[str, Path] = None,
-    dataset_root_cifar100: Union[str, Path] = None
+    dataset_root_cifar10: Optional[Union[str, Path]] = None,
+    dataset_root_cifar100: Optional[Union[str, Path]] = None
 ) -> NCScenario:
     """
     Creates a CL benchmark using both the CIFAR100 and CIFAR10 datasets.
@@ -191,6 +206,17 @@ def SplitCIFAR110(
         If None, value of ``seed`` will be used to define the class order for
         the incremental batches on cifar100. If non-None, ``seed`` parameter
         will be ignored. Defaults to None.
+    :param class_ids_from_zero_from_first_exp: If True, original class IDs
+        will be remapped so that they will appear as having an ascending
+        order. For instance, if the resulting class order after shuffling
+        (or defined by fixed_class_order) is [23, 34, 11, 7, 6, ...] and
+        class_ids_from_zero_from_first_exp is True, then all the patterns
+        belonging to class 23 will appear as belonging to class "0",
+        class "34" will be mapped to "1", class "11" to "2" and so on.
+        This is very useful when drawing confusion matrices and when dealing
+        with algorithms with dynamic head expansion. Defaults to False.
+        Mutually exclusive with the ``class_ids_from_zero_in_each_exp``
+        parameter.
     :param train_transform: The transformation to apply to the training data,
         e.g. a random crop, a normalization or a concatenation of different
         transformations (see torchvision.transform documentation for a
@@ -216,9 +242,10 @@ def SplitCIFAR110(
     cifar10_train, cifar10_test = get_cifar10_dataset(dataset_root_cifar10)
     cifar100_train, cifar100_test = get_cifar100_dataset(dataset_root_cifar100)
 
-    cifar_10_100_train, cifar_10_100_test, _ = concat_datasets_sequentially(
-        [cifar10_train, cifar100_train], [cifar10_test, cifar100_test]
-    )
+    cifar_10_100_train, cifar_10_100_test, _ = \
+        concat_classification_datasets_sequentially(
+            [cifar10_train, cifar100_train], [cifar10_test, cifar100_test]
+        )
     # cifar10 classes
     class_order = [_ for _ in range(10)]
     # if a class order is defined (for cifar100) the given class labels are
@@ -240,6 +267,7 @@ def SplitCIFAR110(
         shuffle=False,
         seed=None,
         fixed_class_order=class_order,
+        class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
         per_exp_classes={0: 10},
         train_transform=train_transform,
         eval_transform=eval_transform,

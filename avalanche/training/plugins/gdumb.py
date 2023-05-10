@@ -26,7 +26,7 @@ class GDumbPlugin(SupervisedPlugin):
         self.mem_size = mem_size
 
         # model initialization
-        self.buffer = {}
+        # self.buffer = {}  # TODO: remove buffer
         self.storage_policy = ClassBalancedBuffer(
             max_size=self.mem_size, adaptive_size=True
         )

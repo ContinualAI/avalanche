@@ -1,7 +1,7 @@
 import warnings
 from copy import copy
 from collections import defaultdict
-from typing import Union, Sequence, TYPE_CHECKING
+from typing import Any, Dict, List, Tuple, Union, Sequence, TYPE_CHECKING
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
@@ -11,6 +11,12 @@ if TYPE_CHECKING:
     from avalanche.evaluation import PluginMetric
     from avalanche.logging import BaseLogger
     from avalanche.training.templates import SupervisedTemplate
+
+
+def _init_metrics_list_lambda():
+    # SERIALIZATION NOTICE: we need these because lambda serialization
+    # does not work in some cases (yes, even with dill).
+    return [], []
 
 
 class EvaluationPlugin:
@@ -67,6 +73,7 @@ class EvaluationPlugin:
         if len(self.loggers) == 0:
             warnings.warn("No loggers specified, metrics will not be logged")
 
+        self.all_metric_results: Dict[str, Tuple[List[int], List[Any]]]
         if self.collect_all:
             # for each curve collect all emitted values.
             # dictionary key is full metric name.
@@ -75,16 +82,21 @@ class EvaluationPlugin:
             # time steps at which the corresponding metric value
             # has been emitted)
             # second list gathers metric values
-            self.all_metric_results = defaultdict(lambda: ([], []))
+            # SERIALIZATION NOTICE: don't use a lambda here, otherwise
+            # serialization may fail in some cases.
+            self.all_metric_results = defaultdict(_init_metrics_list_lambda)
+        else:
+            self.all_metric_results = dict()
+        
         # Dictionary of last values emitted. Dictionary key
         # is the full metric name, while dictionary value is
         # metric value.
-        self.last_metric_results = {}
+        self.last_metric_results: Dict[str, Any] = {}
 
         self._active = True
         """If False, no metrics will be collected."""
 
-        self._metric_values = []
+        self._metric_values: List[MetricValue] = []
         """List of metrics that have yet to be processed by loggers."""
 
     @property
@@ -115,23 +127,31 @@ class EvaluationPlugin:
     ):
         """Call the metric plugins with the correct callback `callback` and
         update the loggers with the new metric values."""
-        if not self._active:
-            return []
+        original_experience = strategy.experience
+        if original_experience is not None:
+            # Set experience to LOGGING so that certain fields can be accessed
+            strategy.experience = original_experience.logging()
+        try:
+            if not self._active:
+                return []
 
-        for metric in self.metrics:
-            if hasattr(metric, callback):
-                metric_result = getattr(metric, callback)(strategy)
-                if isinstance(metric_result, Sequence):
-                    for mval in metric_result:
-                        self.publish_metric_value(mval)
-                elif metric_result is not None:
-                    self.publish_metric_value(metric_result)
+            for metric in self.metrics:
+                if hasattr(metric, callback):
+                    metric_result = getattr(metric, callback)(strategy)
+                    if isinstance(metric_result, Sequence):
+                        for mval in metric_result:
+                            self.publish_metric_value(mval)
+                    elif metric_result is not None:
+                        self.publish_metric_value(metric_result)
 
-        for logger in self.loggers:
-            logger.log_metrics(self._metric_values)
-            if hasattr(logger, callback):
-                getattr(logger, callback)(strategy, self._metric_values)
-        self._metric_values = []
+            for logger in self.loggers:
+                logger.log_metrics(self._metric_values)
+                if hasattr(logger, callback):
+                    getattr(logger, callback)(strategy, self._metric_values)
+            self._metric_values = []
+        finally:
+            # Revert to previous experience (mode = EVAL or TRAIN)
+            strategy.experience = original_experience
 
     def get_last_metrics(self):
         """
@@ -190,7 +210,8 @@ class EvaluationPlugin:
             "evaluation stream."
         )
         if self.strict_checks:
-            curr_stream = strategy.current_eval_stream[0].origin_stream
+
+            curr_stream = next(iter(strategy.current_eval_stream)).origin_stream
             benchmark = curr_stream[0].origin_stream.benchmark
             full_stream = benchmark.streams[curr_stream.name]
 

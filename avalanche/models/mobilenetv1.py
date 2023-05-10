@@ -13,6 +13,7 @@
 This is the definition od the Mid-caffenet high resolution in Pythorch
 """
 
+from typing import List
 import torch.nn as nn
 import torch
 
@@ -24,7 +25,7 @@ except Exception:
     from pytorchcv.models.common import DwsConvBlock
 
 
-def remove_sequential(network, all_layers):
+def remove_sequential(network: nn.Module, all_layers: List[nn.Module]):
 
     for layer in network.children():
         # if sequential layer, apply recursively to layers in sequential layer
@@ -59,7 +60,7 @@ class MobilenetV1(nn.Module):
         model = mobilenet_w1(pretrained=pretrained)
         model.features.final_pool = nn.AvgPool2d(4)
 
-        all_layers = []
+        all_layers: List[nn.Module] = []
         remove_sequential(model, all_layers)
         all_layers = remove_DwsConvBlock(all_layers)
 

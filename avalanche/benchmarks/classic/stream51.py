@@ -9,13 +9,13 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from pathlib import Path
-from typing import Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 from typing_extensions import Literal
 
 from avalanche.benchmarks.datasets import Stream51
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_generic_benchmark_from_paths,
+    create_generic_benchmark_from_paths, FileAndLabel
 )
 from torchvision import transforms
 import math
@@ -32,7 +32,7 @@ _default_stream51_transform = transforms.Compose(
 )
 
 
-def _adjust_bbox(img_shapes, bbox, ratio=1.1):
+def _adjust_bbox(img_shapes, bbox, ratio=1.1) -> List[int]:
     """
     Adapts bounding box coordinates so that they can be used by
     torchvision.transforms.functional.crop function.
@@ -70,7 +70,7 @@ def CLStream51(
     download=True,
     train_transform=_default_stream51_transform,
     eval_transform=_default_stream51_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark for Stream-51.
@@ -156,12 +156,18 @@ def CLStream51(
     else:
         num_tasks = math.ceil(51 / eval_num)  # evaluate every eval_num classes
 
+    test_filelists_paths: List[List[FileAndLabel]] = []
+    train_filelists_paths: List[List[FileAndLabel]] = []
+    test_ood_filelists_paths: Optional[
+        List[List[FileAndLabel]]
+    ] = []
     if scenario == "instance":
         # break files into task lists based on eval_num samples
         train_filelists_paths = []
         start = 0
         for i in range(num_tasks):
             end = min(start + eval_num, len(train_set))
+
             train_filelists_paths.append(
                 [
                     (
@@ -179,7 +185,7 @@ def CLStream51(
             start = end
 
         # use all test data for instance ordering
-        test_filelists_paths = [
+        test_filelists_paths = [[
             (
                 os.path.join(dataset_root, test_set.samples[j][-1]),
                 test_set.samples[j][0],
@@ -188,12 +194,10 @@ def CLStream51(
                 ),
             )
             for j in range(len(test_set))
-        ]
+        ]]
         test_ood_filelists_paths = None  # no ood testing for instance ordering
     elif scenario == "class_instance":
         # break files into task lists based on classes
-        train_filelists_paths = []
-        test_filelists_paths = []
         test_ood_filelists_paths = []
         class_change = [
             i
@@ -268,14 +272,15 @@ def CLStream51(
     if not bbox_crop:
         # remove bbox coordinates from lists
         train_filelists_paths = [
-            [[j[0], j[1]] for j in i] for i in train_filelists_paths
+            [(j[0], j[1]) for j in i] for i in train_filelists_paths
         ]
         test_filelists_paths = [
-            [[j[0], j[1]] for j in i] for i in test_filelists_paths
+            [(j[0], j[1]) for j in i] for i in test_filelists_paths
         ]
         if scenario == "class_instance":
+            assert test_ood_filelists_paths is not None
             test_ood_filelists_paths = [
-                [[j[0], j[1]] for j in i] for i in test_ood_filelists_paths
+                [(j[0], j[1]) for j in i] for i in test_ood_filelists_paths
             ]
 
     benchmark_obj = create_generic_benchmark_from_paths(

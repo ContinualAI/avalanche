@@ -8,7 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import torch
 from pkg_resources import parse_version
@@ -54,7 +54,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator: EvaluationPlugin = default_evaluator(),
         eval_every=-1,
@@ -150,6 +150,8 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         if parse_version(torch.__version__) >= parse_version("1.7.0"):
             other_dataloader_args["persistent_workers"] = persistent_workers
 
+        assert self.adapted_dataset is not None
+
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
@@ -172,6 +174,9 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         :param kwargs:
         :return:
         """
+
+        assert self.adapted_dataset is not None
+
         self.dataloader = DataLoader(
             self.adapted_dataset,
             num_workers=num_workers,
@@ -191,6 +196,8 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         Beware that the loss can only be obtained for the training phase as no
         loss dictionary is returned when evaluating.
         """
+
+        assert self.detection_loss_dict is not None
         if self.is_training:
             return sum(loss for loss in self.detection_loss_dict.values())
         else:

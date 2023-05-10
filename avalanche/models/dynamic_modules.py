@@ -12,6 +12,7 @@
 to allow architectural modifications (multi-head classifiers, progressive
 networks, ...).
 """
+from typing import Optional
 import torch
 from torch.nn import Module
 import numpy as np
@@ -29,7 +30,7 @@ class DynamicModule(Module):
     `model_adaptation`, which adapts the model given the current experience.
     """
 
-    def adaptation(self, experience: CLExperience = None):
+    def adaptation(self, experience: CLExperience):
         """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
@@ -94,7 +95,7 @@ class MultiTaskModule(DynamicModule):
         self.known_train_tasks_labels = set()
         """ Set of task labels encountered up to now. """
 
-    def adaptation(self, experience: CLExperience = None):
+    def adaptation(self, experience: CLExperience):
         """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
@@ -121,7 +122,7 @@ class MultiTaskModule(DynamicModule):
     def eval_adaptation(self, experience: CLExperience):
         pass
 
-    def train_adaptation(self, experience: CLExperience = None):
+    def train_adaptation(self, experience: CLExperience):
         """Update known task labels."""
         task_labels = experience.task_labels
         self.known_train_tasks_labels = self.known_train_tasks_labels.union(
@@ -218,6 +219,7 @@ class IncrementalClassifier(DynamicModule):
         self.classifier = torch.nn.Linear(in_features, initial_out_features)
         au_init = torch.zeros(initial_out_features, dtype=torch.bool)
         self.register_buffer("active_units", au_init)
+        self.active_units: torch.Tensor = au_init  # Needed for type checks
 
     @torch.no_grad()
     def adaptation(self, experience: CLExperience):
@@ -447,11 +449,17 @@ class TrainEvalModel(DynamicModule):
     def forward(self, x):
         x = self.feature_extractor(x)
         return self.classifier(x)
+    
+    def adaptation(self, experience: Optional[CLExperience] = None):
+        if self.training:
+            self.train_adaptation(experience)
+        else:
+            self.eval_adaptation(experience)
 
-    def train_adaptation(self, experience: CLExperience = None):
+    def train_adaptation(self, experience: Optional[CLExperience] = None):
         self.classifier = self.train_classifier
 
-    def eval_adaptation(self, experience: CLExperience = None):
+    def eval_adaptation(self, experience: Optional[CLExperience] = None):
         self.classifier = self.eval_classifier
 
 

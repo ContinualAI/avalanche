@@ -48,9 +48,10 @@ def SplitTinyImageNet(
     fixed_class_order=None,
     shuffle: bool = True,
     class_ids_from_zero_in_each_exp: bool = False,
+    class_ids_from_zero_from_first_exp: bool = False,
     train_transform: Optional[Any] = _default_train_transform,
     eval_transform: Optional[Any] = _default_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark using the Tiny ImageNet dataset.
@@ -123,6 +124,7 @@ def SplitTinyImageNet(
         fixed_class_order=fixed_class_order,
         shuffle=shuffle,
         class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+        class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
         train_transform=train_transform,
         eval_transform=eval_transform,
     )

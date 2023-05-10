@@ -14,7 +14,7 @@
 import copy
 import itertools
 import logging
-from typing import List
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pycocotools.mask as mask_util
@@ -22,8 +22,16 @@ import torch
 import torch.distributed as dist
 from lvis import LVISEval, LVISResults, LVIS
 
+from avalanche.evaluation.metrics.detection import (
+    DetectionEvaluator,
+    TCommonDetectionOutput,
+)
 
-class LvisEvaluator:
+
+class LvisEvaluator(
+        DetectionEvaluator[
+            Dict[str, LVISEval],
+            TCommonDetectionOutput]):
     """
     Defines an evaluator for the LVIS dataset.
 
@@ -38,11 +46,11 @@ class LvisEvaluator:
         self.lvis_gt = lvis_gt
 
         self.iou_types = iou_types
-        self.img_ids = []
-        self.predictions = []
-        self.lvis_eval_per_iou = dict()
+        self.img_ids: List[int] = []
+        self.predictions: List[Dict[str, Any]] = []
+        self.lvis_eval_per_iou: Dict[str, LVISEval] = dict()
 
-    def update(self, predictions):
+    def update(self, predictions: TCommonDetectionOutput):
         img_ids = list(np.unique(list(predictions.keys())))
         self.img_ids.extend(img_ids)
 
@@ -58,19 +66,31 @@ class LvisEvaluator:
                 group = dist.group.WORLD
 
             my_rank = dist.get_rank()
-            output = [None for _ in range(dist.get_world_size())]
-            dist.gather_object(
-                self.predictions,
-                output if my_rank == 0 else None,
-                dst=0,
-                group=group,
-            )
-
-            return list(itertools.chain.from_iterable(output)), my_rank == 0
+            is_main_rank = my_rank == 0
+            if is_main_rank:
+                output: List[Dict[str, Any]] = \
+                    [None] * dist.get_world_size()  # type: ignore
+                dist.gather_object(
+                    self.predictions,
+                    output,
+                    dst=0,
+                    group=group,
+                )
+                return list(itertools.chain.from_iterable(output)), True
+            else:
+                dist.gather_object(
+                    self.predictions,
+                    None,
+                    dst=0,
+                    group=group,
+                )
+                return None, False
         else:
             return self.predictions, True
 
-    def evaluate(self, max_dets_per_image=None):
+    def evaluate(self, max_dets_per_image=None) -> Optional[
+        Union[Dict[str, Any], Tuple[Dict[str, Any], Dict[str, LVISEval]]]
+    ]:
         all_preds, main_process = self.synchronize_between_processes()
         if main_process:
             if max_dets_per_image is None:
@@ -99,21 +119,23 @@ class LvisEvaluator:
                 lvis_eval.run()
                 self.lvis_eval_per_iou[iou_type] = lvis_eval
         else:
-            self.lvis_eval_per_iou = None
+            self.lvis_eval_per_iou = None  # type: ignore
 
         if dist.is_initialized():
             dist.barrier()
 
-        result_dict = None
+        result_dict: Dict[str, Dict[str, Union[int, float]]] = dict()
         if self.lvis_eval_per_iou is not None:
-            result_dict = dict()
             for iou, eval_data in self.lvis_eval_per_iou.items():
                 result_dict[iou] = dict()
                 for key in eval_data.results:
                     value = eval_data.results[key]
                     result_dict[iou][key] = value
 
-        return result_dict
+        if main_process:
+            return result_dict, self.lvis_eval_per_iou
+        else:
+            return None
 
     def summarize(self):
         if self.lvis_eval_per_iou is not None:
@@ -121,8 +143,8 @@ class LvisEvaluator:
                 print(f"IoU metric: {iou_type}")
                 lvis_eval.print_results()
 
-    def prepare_for_lvis_detection(self, predictions):
-        lvis_results = []
+    def prepare_for_lvis_detection(self, predictions: TCommonDetectionOutput):
+        lvis_results: List[Dict[str, Any]] = []
         for original_id, prediction in predictions.items():
             if len(prediction) == 0:
                 continue

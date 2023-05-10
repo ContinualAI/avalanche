@@ -168,11 +168,13 @@ class GSS_greedyPlugin(SupervisedPlugin):
         temp_y_tensors = self.ext_mem_list_y.to("cpu")
 
         memory = list(zip(temp_x_tensors, temp_y_tensors))
-        memory = make_classification_dataset(memory, targets=temp_y_tensors)
+        memory_dataset = make_classification_dataset(
+            memory,
+            targets=temp_y_tensors.tolist())
 
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
-            memory,
+            memory_dataset,
             oversample_small_tasks=True,
             num_workers=num_workers,
             batch_size=strategy.train_mb_size,
