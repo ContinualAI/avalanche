@@ -18,9 +18,12 @@ class Clock(SupervisedPlugin):
     wrong for plugins called after it.
     """
 
-    def __init__(self):
+    def __init__(self, supports_distributed=None):
         """Init."""
-        super().__init__()
+        super().__init__(
+            supports_distributed=self._check_distributed_support(
+                supports_distributed, Clock)
+        )
         # train
         self.train_iterations = 0
         """ Total number of training iterations. """

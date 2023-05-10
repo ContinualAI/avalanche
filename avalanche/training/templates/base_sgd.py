@@ -536,7 +536,12 @@ class PeriodicEval(BaseSGDPlugin):
     This plugin is automatically configured and added by the BaseTemplate.
     """
 
-    def __init__(self, eval_every=-1, peval_mode="epoch", do_initial=True):
+    def __init__(
+            self,
+            eval_every=-1,
+            peval_mode="epoch",
+            do_initial=True,
+            supports_distributed: Optional[bool] = None):
         """Init.
 
         :param eval_every: the frequency of the calls to `eval` inside the
@@ -551,12 +556,15 @@ class PeriodicEval(BaseSGDPlugin):
             Occasionally needed becuase some metrics need to know the
             accuracy before training.
         """
-        super().__init__()
+        super().__init__(supports_distributed=self._check_distributed_support(
+            supports_distributed, 
+            PeriodicEval
+        ))
         assert peval_mode in {"experience", "epoch", "iteration"}
         self.eval_every = eval_every
         self.peval_mode = peval_mode
         self.do_initial = do_initial and eval_every > -1
-        self.do_final = None
+        self.do_final: Optional[bool] = None
         self._is_eval_updated = False
 
     def before_training(self, strategy, **kwargs):

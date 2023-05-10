@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     TYPE_CHECKING,
 )
+from avalanche.distributed.distributed_helper import DistributedHelper
 
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
@@ -65,6 +66,7 @@ class EvaluationPlugin:
             is used when calling `eval`. An error will be raised otherwise.
         """
         super().__init__()
+        self.supports_distributed = True
         self.collect_all = collect_all
         self.strict_checks = strict_checks
 
@@ -85,7 +87,7 @@ class EvaluationPlugin:
 
         self.loggers: Sequence["BaseLogger"] = loggers
 
-        if len(self.loggers) == 0:
+        if len(self.loggers) == 0 and DistributedHelper.is_main_process:
             warnings.warn("No loggers specified, metrics will not be logged")
 
         self.all_metric_results: Dict[str, Tuple[List[int], List[Any]]]
@@ -235,7 +237,10 @@ class EvaluationPlugin:
 
 
 def default_loggers() -> Sequence["BaseLogger"]:
-    return [InteractiveLogger()]
+    if DistributedHelper.is_main_process:
+        return [InteractiveLogger()]
+    else:
+        return []
 
 
 def default_evaluator() -> EvaluationPlugin:

@@ -31,6 +31,7 @@ from avalanche.benchmarks.utils.collate_functions import (
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
+from avalanche.distributed.distributed_helper import DistributedHelper
 
 _default_collate_mbatches_fn = classification_collate_mbatches_fn
 
@@ -284,14 +285,14 @@ class GroupBalancedInfiniteDataLoader:
         self.collate_mbatches = collate_mbatches
 
         for data in self.datasets:
-            if _DistributedHelper.is_distributed and distributed_sampling:
+            if DistributedHelper.is_distributed and distributed_sampling:
                 seed = torch.randint(
                     0,
-                    2 ** 32 - 1 - _DistributedHelper.world_size,
+                    2 ** 32 - 1 - DistributedHelper.world_size,
                     (1,),
                     dtype=torch.int64,
                 )
-                seed += _DistributedHelper.rank
+                seed += DistributedHelper.rank
                 generator = torch.Generator()
                 generator.manual_seed(int(seed))
             else:
@@ -601,7 +602,7 @@ def _make_data_loader(
         if 'prefetch_factor' in data_loader_args:
             data_loader_args['prefetch_factor'] = 2
 
-    if _DistributedHelper.is_distributed and distributed_sampling:
+    if DistributedHelper.is_distributed and distributed_sampling:
         # Note: shuffle only goes in the sampler, while
         # drop_last must be passed to both the sampler
         # and the DataLoader
@@ -625,15 +626,6 @@ def _make_data_loader(
         )
 
     return data_loader, sampler
-
-
-class __DistributedHelperPlaceholder:
-    is_distributed = False
-    world_size = 1
-    rank = 0
-
-
-_DistributedHelper = __DistributedHelperPlaceholder()
 
 
 __all__ = [

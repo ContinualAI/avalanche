@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TypeVar, Generic
+from typing import Optional, Type, TypeVar, Generic
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,8 +27,18 @@ class BasePlugin(Generic[Template], ABC):
     and loggers.
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, supports_distributed: bool = False):
+        """
+        Initializes a strategy plugin.
+
+        :param: If True, this plugin instance supports distributed training.
+            Defaults to false.
+        """
+
+        self.supports_distributed = supports_distributed
+        """
+        A flag describing whether this plugin supports distributed training
+        """
 
     def before_training(self, strategy: Template, *args, **kwargs):
         """Called before `train` by the `BaseTemplate`."""
@@ -67,6 +77,18 @@ class BasePlugin(Generic[Template], ABC):
     def after_eval(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called after `eval` by the `BaseTemplate`."""
         pass
+
+    def _check_distributed_support(
+            self,
+            distributed_training_param: Optional[bool],
+            main_class: Type) -> bool:
+        if distributed_training_param is None:
+            if self.__class__ == main_class:
+                return True
+            else:
+                return False
+        
+        return distributed_training_param
 
 
 class BaseSGDPlugin(BasePlugin[Template], ABC):

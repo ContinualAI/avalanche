@@ -1,5 +1,5 @@
 import copy
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
@@ -21,8 +21,14 @@ class GDumbPlugin(SupervisedPlugin):
     https://www.robots.ox.ac.uk/~tvg/publications/2020/gdumb.pdf
     """
 
-    def __init__(self, mem_size: int = 200):
-        super().__init__()
+    def __init__(
+            self, 
+            mem_size: int = 200,
+            supports_distributed: Optional[bool] = None):
+        super().__init__(
+            supports_distributed=self._check_distributed_support(
+                supports_distributed, GDumbPlugin)
+        )
         self.mem_size = mem_size
 
         # model initialization
@@ -52,3 +58,8 @@ class GDumbPlugin(SupervisedPlugin):
     ):
         self.storage_policy.update(strategy, **kwargs)
         strategy.adapted_dataset = self.storage_policy.buffer
+
+
+__all__ = [
+    'GDumbPlugin'
+]
