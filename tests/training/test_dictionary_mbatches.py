@@ -79,14 +79,19 @@ class TestDictionaryDatasets(unittest.TestCase):
             av_data = AvalancheDataset(
                 [data], data_attributes=[tl], collate_fn=collate_dictionaries
             )
-            exp = CLExperience()
+            exp = CLExperience(i, None)
             exp.dataset = av_data
             train_exps.append(exp)
             test_exps.append(exp)
-
+        
+        train_stream = CLStream("train", train_exps, None)
+        test_stream = CLStream("test", test_exps, None)
         benchmark = CLScenario(
-            [CLStream("train", train_exps), CLStream("test", test_exps)]
+            [train_stream, test_stream]
         )
+        train_stream.benchmark = benchmark
+        test_stream.benchmark = benchmark
+        
         eval_plugin = avalanche.training.plugins.EvaluationPlugin(
             avalanche.evaluation.metrics.loss_metrics(
                 epoch=True, experience=True, stream=True
@@ -107,3 +112,7 @@ class TestDictionaryDatasets(unittest.TestCase):
         )
         for experience in benchmark.train_stream:
             strategy.train(experience)
+
+
+if __name__ == "__main__":
+    unittest.main()

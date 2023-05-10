@@ -32,3 +32,7 @@ class TestICaRLLossPlugin(unittest.TestCase):
         loss3 = criterion(new_pred, mb_y)
 
         assert loss3 == loss1
+
+
+if __name__ == "__main__":
+    unittest.main()

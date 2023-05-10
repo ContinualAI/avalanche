@@ -9,9 +9,9 @@ E. Belouadah and A. Popescu,
 It selects the scores of the true class and then average them for past and new
 classes.
 """
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Callable, Dict, Set, TYPE_CHECKING, List, Optional
+from typing import Callable, Dict, Set, TYPE_CHECKING, List, Optional, TypeVar
 
 import torch
 from matplotlib.axes import Axes
@@ -26,20 +26,18 @@ from avalanche.evaluation.metrics import Mean
 from avalanche.evaluation.metric_results import MetricValue, AlternativeValues
 
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
     from avalanche.evaluation.metric_results import MetricResult
 
 
+TAggregation = TypeVar('TAggregation')
 LabelCat = Literal["new", "old"]
 
 
-class MeanScores(Metric):
+class MeanScores(Metric[Dict[TAggregation, float]], ABC):
     """
     Average the scores of the true class by label
     """
@@ -65,11 +63,18 @@ class MeanScores(Metric):
         for score, label in zip(scores.tolist(), true_y.tolist()):
             self.label2mean[label].update(score)
 
+    @abstractmethod
+    def result(self) -> Dict[TAggregation, float]:
+        pass
+
+
+class PerClassMeanScores(MeanScores[int]):
+
     def result(self) -> Dict[int, float]:
         return {label: m.result() for label, m in self.label2mean.items()}
 
 
-class MeanNewOldScores(MeanScores):
+class MeanNewOldScores(MeanScores[LabelCat]):
     """
     Average the scores of the true class by old and new classes
     """
@@ -91,7 +96,7 @@ class MeanNewOldScores(MeanScores):
 
     def result(self) -> Dict[LabelCat, float]:
         # print(self.new_classes, self.label2mean)
-        rv = {
+        rv: Dict[LabelCat, float] = {
             "new": sum(
                 (self.label2mean[label] for label in self.new_classes),
                 start=Mean(),
@@ -120,8 +125,8 @@ def default_mean_scores_image_creator(
         step of the observation.
     :return: The figure containing the graphs.
     """
-    fig, ax = subplots()
     ax: Axes
+    fig, ax = subplots()
 
     markers = "*o"
 
@@ -143,7 +148,7 @@ def default_mean_scores_image_creator(
     return fig
 
 
-MeanScoresImageCreator = Callable[[Dict[LabelCat, Dict[int, int]]], Figure]
+MeanScoresImageCreator = Callable[[Dict[LabelCat, Dict[int, float]]], Figure]
 
 
 class MeanScoresPluginMetricABC(PluginMetric, ABC):
@@ -172,6 +177,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
         self.mean_scores.reset()
 
     def update_new_classes(self, strategy: "SupervisedTemplate"):
+        assert strategy.experience is not None
         self.mean_scores.update_new_classes(
             strategy.experience.classes_in_this_experience
         )
@@ -253,6 +259,8 @@ class MeanScoresTrainPluginMetric(MeanScoresPluginMetricABC):
     ) -> "MetricResult":
         if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             return self._package_result(strategy)
+        else:
+            return None
 
 
 class MeanScoresEvalPluginMetric(MeanScoresPluginMetricABC):
@@ -294,7 +302,7 @@ def mean_scores_metrics(
         of the mean scores grouped by old and new classes
     :return: The list of plugins that were specified
     """
-    plugins = []
+    plugins: List[PluginMetric] = []
 
     if on_eval:
         plugins.append(MeanScoresEvalPluginMetric(image_creator=image_creator))

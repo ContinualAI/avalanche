@@ -1,8 +1,10 @@
 import os
+from pathlib import Path
 import torch
 import json
 from typing import (
     Any,
+    Generic,
     List,
     Union,
     TypeVar,
@@ -36,29 +38,20 @@ from json import JSONEncoder
 from torch.utils.data import Subset, ConcatDataset
 from typing_extensions import Protocol
 
-from avalanche.benchmarks.utils import (
-    classification_subset,
-    concat_classification_datasets,
-    make_classification_dataset,
-)
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.evaluation.metric_utils import get_metric_name
-from avalanche.evaluation.metrics.detection_evaluators.coco_evaluator import (
-    CocoEvaluator,
-)
-from avalanche.evaluation.metrics.detection_evaluators.lvis_evaluator import (
-    LvisEvaluator,
-)
 
 if TYPE_CHECKING:
-    from avalanche.training.templates import SupervisedTemplate
     from avalanche.training.supervised.naive_object_detection import (
         ObjectDetectionTemplate,
     )
 
 
-TDetPredictions = TypeVar("TDetPredictions")
+TDetPredictions_co = TypeVar('TDetPredictions_co', covariant=True)
+TDetModelOutput = TypeVar('TDetModelOutput', contravariant=True)
+
+TCommonDetectionOutput = Dict[str, Dict[str, Tensor]]
 
 
 class TensorEncoder(JSONEncoder):
@@ -87,7 +80,7 @@ def tensor_decoder(dct):
     return dct
 
 
-class DetectionEvaluator(Protocol[TDetPredictions]):
+class DetectionEvaluator(Protocol[TDetPredictions_co, TDetModelOutput]):
     """
     Interface for object detection/segmentation evaluators.
 
@@ -95,7 +88,7 @@ class DetectionEvaluator(Protocol[TDetPredictions]):
     the relevant metrics.
     """
 
-    def update(self, model_output):
+    def update(self, model_output: TDetModelOutput):
         """
         Adds new predictions.
 
@@ -110,7 +103,7 @@ class DetectionEvaluator(Protocol[TDetPredictions]):
     def evaluate(
         self,
     ) -> Optional[
-        Union[Dict[str, Any], Tuple[Dict[str, Any], TDetPredictions]]
+        Union[Dict[str, Any], Tuple[Dict[str, Any], TDetPredictions_co]]
     ]:
         """
         Computes the performance metrics on the outputs previously obtained
@@ -144,7 +137,15 @@ DEFAULT_SUPPROTED_DETECTION_DATASETS: Sequence[SupportedDatasetApiDef] = (
 )
 
 
-class DetectionMetrics(PluginMetric[dict]):
+def coco_evaluator_factory(coco_gt: COCO, iou_types: List[str]):
+    from avalanche.evaluation.metrics.detection_evaluators.coco_evaluator \
+        import CocoEvaluator
+    return CocoEvaluator(coco_gt=coco_gt, iou_types=iou_types)
+
+
+class DetectionMetrics(
+        PluginMetric[dict],
+        Generic[TDetPredictions_co, TDetModelOutput]):
     """
     Metric used to compute the detection and segmentation metrics using the
     dataset-specific API.
@@ -162,8 +163,9 @@ class DetectionMetrics(PluginMetric[dict]):
         self,
         *,
         evaluator_factory: Callable[
-            [Any, List[str]], DetectionEvaluator
-        ] = CocoEvaluator,
+            [Any, List[str]], 
+            DetectionEvaluator[TDetPredictions_co, TDetModelOutput]
+        ] = coco_evaluator_factory,
         gt_api_def: Sequence[
             SupportedDatasetApiDef
         ] = DEFAULT_SUPPROTED_DETECTION_DATASETS,
@@ -240,7 +242,9 @@ class DetectionMetrics(PluginMetric[dict]):
         The factory of the evaluator object.
         """
 
-        self.evaluator = None
+        self.evaluator: Optional[
+            DetectionEvaluator[TDetPredictions_co, TDetModelOutput]
+        ] = None
         """
         Main evaluator object to compute metrics.
         """
@@ -256,12 +260,12 @@ class DetectionMetrics(PluginMetric[dict]):
         If True, it will try to convert the dataset to the COCO format.
         """
 
-        self.current_filename = None
+        self.current_filename: Optional[Union[str, Path]] = None
         """
         File containing the current model outputs.
         """
 
-        self.current_outputs = []
+        self.current_outputs: List[TDetModelOutput] = []
         """
         List of dictionaries containing the current model outputs.
         """
@@ -283,46 +287,60 @@ class DetectionMetrics(PluginMetric[dict]):
         self.evaluator = None
         self.current_additional_metrics = None
 
-    def update(self, res):
-        if self.save:
-            self.current_outputs.append(res)
-        self.evaluator.update(res)
-
-    def result(self):
-        # result_dict may be None if not running in the main process
-        result_dict = self.evaluator.evaluate()
-        if result_dict is not None and self.summarize_to_stdout:
-            self.evaluator.summarize()
-
-        if isinstance(result_dict, Tuple):
-            result_dict, self.current_additional_metrics = result_dict
-
-        return result_dict
-
-    def before_eval_exp(self, strategy) -> None:
-        super().before_eval_exp(strategy)
-
-        self.reset()
+    def initialize_evaluator(self, dataset: Any):
         detection_api = get_detection_api_from_dataset(
-            strategy.experience.dataset,
+            dataset,
             supported_types=self.gt_api_def,
             default_to_coco=self.default_to_coco,
         )
         self.evaluator = self.evaluator_factory(detection_api, self.iou_types)
+
+    def update(self, res: TDetModelOutput):
+        self._check_evaluator()
+        if self.save:
+            self.current_outputs.append(res)
+        
+        self.evaluator.update(res)  # type: ignore
+
+    def result(self):
+        self._check_evaluator()
+        # result_dict may be None if not running in the main process
+        result_dict = self.evaluator.evaluate()  # type: ignore
+        if result_dict is not None and self.summarize_to_stdout:
+            self.evaluator.summarize()  # type: ignore
+
+        if isinstance(result_dict, tuple):
+            result, self.current_additional_metrics = result_dict
+        else:
+            result = result_dict
+
+        return result
+
+    def before_eval_exp(self, strategy) -> None:
+        assert strategy.experience is not None
+
+        self.reset()
+        self.initialize_evaluator(strategy.experience.dataset)
         if self.save:
             self.current_filename = self._get_filename(strategy)
 
-    def after_eval_iteration(self, strategy: "ObjectDetectionTemplate") -> None:
-        super().after_eval_iteration(strategy)
+    def after_eval_iteration(  # type: ignore[override]
+            self, strategy: "ObjectDetectionTemplate"):
+        assert strategy.detection_predictions is not None
         self.update(strategy.detection_predictions)
 
-    def after_eval_exp(self, strategy: "SupervisedTemplate"):
-        super().after_eval_exp(strategy)
-
+    def after_eval_exp(  # type: ignore[override]
+            self, strategy: "ObjectDetectionTemplate"):
+        assert strategy.experience is not None
         if (
             self.save
             and strategy.experience.origin_stream.name == self.save_stream
         ):
+            assert self.current_filename is not None, (
+                'The current_filename field is None, which may happen if the '
+                '`before_eval_exp` was not properly invoked.'
+            )
+
             with open(self.current_filename, "w") as f:
                 json.dump(self.current_outputs, f, cls=TensorEncoder)
 
@@ -351,7 +369,7 @@ class DetectionMetrics(PluginMetric[dict]):
 
         return metric_values
 
-    def _get_filename(self, strategy):
+    def _get_filename(self, strategy) -> Union[str, Path]:
         """e.g. prefix_eval_exp0.json"""
         middle = "_eval_exp"
         if self.filename_prefix == "":
@@ -361,9 +379,24 @@ class DetectionMetrics(PluginMetric[dict]):
             f"{self.filename_prefix}{middle}"
             f"{strategy.experience.current_experience}.json",
         )
+    
+    def _check_evaluator(self):
+        assert self.evaluator is not None, (
+            'The evaluator was not initialized. This may happen if you try '
+            'to update or obtain results for this metric before the '
+            '`before_eval_exp` callback is invoked. If you are using this '
+            'metric in a standalone way, you can initialize the evaluator '
+            'by calling `initialize_evaluator` instead.'
+        )
 
     def __str__(self):
         return "LvisMetrics"
+
+
+def lvis_evaluator_factory(lvis_gt: LVIS, iou_types: List[str]):
+    from avalanche.evaluation.metrics.detection_evaluators.lvis_evaluator \
+        import LvisEvaluator
+    return LvisEvaluator(lvis_gt=lvis_gt, iou_types=iou_types)
 
 
 def make_lvis_metrics(
@@ -373,7 +406,7 @@ def make_lvis_metrics(
     summarize_to_stdout: bool = True,
     evaluator_factory: Callable[
         [Any, List[str]], DetectionEvaluator
-    ] = LvisEvaluator,
+    ] = lvis_evaluator_factory,
     gt_api_def: Sequence[
         SupportedDatasetApiDef
     ] = DEFAULT_SUPPROTED_DETECTION_DATASETS,
@@ -478,7 +511,11 @@ def convert_to_coco_api(ds):
     coco_ds = COCO()
     # annotation IDs need to start at 1, not 0, see torchvision issue #1530
     ann_id = 1
-    dataset = {"images": [], "categories": [], "annotations": []}
+    dataset: Dict[str, List[Any]] = {
+        "images": [],
+        "categories": [],
+        "annotations": []
+    }
     categories = set()
     for img_idx in range(len(ds)):
         img_dict = {}
@@ -528,6 +565,7 @@ def convert_to_coco_api(ds):
 
 
 __all__ = [
+    "TCommonDetectionOutput",
     "DetectionEvaluator",
     "DetectionMetrics",
     "make_lvis_metrics",

@@ -28,9 +28,9 @@ def get_mnist_dataset(dataset_root):
     if dataset_root is None:
         dataset_root = default_dataset_location("mnist")
 
-    train_set = TensorMNIST(root=dataset_root, train=True, download=True)
+    train_set = TensorMNIST(root=str(dataset_root), train=True, download=True)
 
-    test_set = TensorMNIST(root=dataset_root, train=False, download=True)
+    test_set = TensorMNIST(root=str(dataset_root), train=False, download=True)
 
     return train_set, test_set
 

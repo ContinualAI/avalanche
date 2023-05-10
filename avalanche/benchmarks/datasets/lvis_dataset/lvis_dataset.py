@@ -13,7 +13,7 @@
 """ LVIS PyTorch Object Detection Dataset """
 
 from pathlib import Path
-from typing import Union, List, Sequence
+from typing import Optional, Union, List, Sequence
 
 import torch
 from PIL import Image
@@ -43,14 +43,14 @@ class LvisDataset(DownloadableDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         train=True,
         transform=None,
         loader=default_loader,
         download=True,
-        lvis_api=None,
-        img_ids: List[int] = None,
+        lvis_api: Optional[LVIS] = None,
+        img_ids: Optional[List[int]] = None,
     ):
         """
         Creates an instance of the LVIS dataset.
@@ -79,10 +79,10 @@ class LvisDataset(DownloadableDataset):
         self.transform = transform
         self.loader = loader
         self.bbox_crop = True
-        self.img_ids = img_ids
+        self.img_ids: List[int] = img_ids  # type: ignore
 
-        self.targets = None
-        self.lvis_api = lvis_api
+        self.targets: LVISDetectionTargets = None  # type: ignore
+        self.lvis_api: LVIS = lvis_api  # type: ignore
 
         super(LvisDataset, self).__init__(root, download=download, verbose=True)
 
@@ -116,10 +116,11 @@ class LvisDataset(DownloadableDataset):
 
                 self.lvis_api = LVIS(ann_json_path)
 
+            lvis_api = self.lvis_api
             if must_load_img_ids:
-                self.img_ids = list(sorted(self.lvis_api.get_img_ids()))
+                self.img_ids = list(sorted(lvis_api.get_img_ids()))
 
-            self.targets = LVISDetectionTargets(self.lvis_api, self.img_ids)
+            self.targets = LVISDetectionTargets(lvis_api, self.img_ids)
 
             # Try loading an image
             if len(self.img_ids) > 0:
@@ -130,11 +131,11 @@ class LvisDataset(DownloadableDataset):
                 assert self._load_img(img_dict) is not None
         except BaseException:
             if must_load_api:
-                self.lvis_api = None
+                self.lvis_api = None  # type: ignore
             if must_load_img_ids:
-                self.img_ids = None
+                self.img_ids = None  # type: ignore
 
-            self.targets = None
+            self.targets = None  # type: ignore
             raise
 
         return True
@@ -233,7 +234,10 @@ class LVISAnnotationEntry(TypedDict):
 
 
 class LVISDetectionTargets(Sequence[List[LVISAnnotationEntry]]):
-    def __init__(self, lvis_api: LVIS, img_ids: List[int] = None):
+    def __init__(
+            self, 
+            lvis_api: LVIS,
+            img_ids: Optional[List[int]] = None):
         super(LVISDetectionTargets, self).__init__()
         self.lvis_api = lvis_api
         if img_ids is None:

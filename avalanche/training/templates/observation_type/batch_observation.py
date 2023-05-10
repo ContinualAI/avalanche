@@ -1,11 +1,10 @@
-from typing import Iterable
-
-from avalanche.benchmarks import CLExperience
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
+from avalanche.training.templates.strategy_mixin_protocol import \
+    SGDStrategyProtocol
 
 
-class BatchObservation:
+class BatchObservation(SGDStrategyProtocol):
     def model_adaptation(self, model=None):
         """Adapts the model to the current data.
 
@@ -13,6 +12,8 @@ class BatchObservation:
         """
         if model is None:
             model = self.model
+        
+        assert self.experience is not None
         avalanche_model_adaptation(model, self.experience)
         return model.to(self.device)
 
@@ -29,3 +30,8 @@ class BatchObservation:
     def check_model_and_optimizer(self):
         self.model = self.model_adaptation()
         self.make_optimizer()
+
+
+__all__ = [
+    'BatchObservation'
+]

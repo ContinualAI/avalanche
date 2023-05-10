@@ -91,3 +91,7 @@ class CTrLTests(unittest.TestCase):
                 ):
                     for sample1, sample2 in zip(exp1.dataset, exp2.dataset):
                         self.assertTrue(custom_equals(sample1, sample2))
+
+
+if __name__ == "__main__":
+    unittest.main()

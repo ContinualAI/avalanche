@@ -179,7 +179,7 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
         :return: A dictionary `{task_id -> {class_id -> running_accuracy}}`. The
             running accuracy of each class is a float value between 0 and 1.
         """
-        running_class_accuracies = OrderedDict()
+        running_class_accuracies: Dict[int, Dict[int, float]] = OrderedDict()
         for task_label in sorted(self._class_accuracies.keys()):
             task_dict = self._class_accuracies[task_label]
             running_class_accuracies[task_label] = OrderedDict()
@@ -209,30 +209,36 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
         return set(int(c) for c in classes_iterable)
 
 
-class ClassAccuracyPluginMetric(_ExtendedGenericPluginMetric):
+class ClassAccuracyPluginMetric(_ExtendedGenericPluginMetric[ClassAccuracy]):
     """
     Base class for all class accuracy plugin metrics
     """
 
     def __init__(self, reset_at, emit_at, mode, classes=None):
-        self._class_accuracy = ClassAccuracy(classes=classes)
         super(ClassAccuracyPluginMetric, self).__init__(
-            self._class_accuracy, reset_at=reset_at, emit_at=emit_at, mode=mode
+            ClassAccuracy(classes=classes), 
+            reset_at=reset_at,
+            emit_at=emit_at,
+            mode=mode
         )
+        self.phase_name = 'train'
+        self.stream_name = 'train'
+        self.experience_id = 0
 
     def update(self, strategy: "SupervisedTemplate"):
-        self._class_accuracy.update(
+        assert strategy.mb_output is not None
+        assert strategy.experience is not None
+        self._metric.update(
             strategy.mb_output, strategy.mb_y, strategy.mb_task_id
         )
 
-    def result(
-        self, strategy: "SupervisedTemplate"
-    ) -> List[_ExtendedPluginMetricValue]:
+        self.phase_name = "train" if strategy.is_training else "eval"
+        self.stream_name = strategy.experience.origin_stream.name
+        self.experience_id = strategy.experience.current_experience
+
+    def result(self) -> List[_ExtendedPluginMetricValue]:
         metric_values = []
-        task_accuracies = self._class_accuracy.result()
-        phase_name = "train" if strategy.is_training else "eval"
-        stream_name = strategy.experience.origin_stream.name
-        experience_id = strategy.experience.current_experience
+        task_accuracies = self._metric.result()
 
         for task_id, task_classes in task_accuracies.items():
             for class_id, class_accuracy in task_classes.items():
@@ -240,10 +246,10 @@ class ClassAccuracyPluginMetric(_ExtendedGenericPluginMetric):
                     _ExtendedPluginMetricValue(
                         metric_name=str(self),
                         metric_value=class_accuracy,
-                        phase_name=phase_name,
-                        stream_name=stream_name,
+                        phase_name=self.phase_name,
+                        stream_name=self.stream_name,
                         task_label=task_id,
-                        experience_id=experience_id,
+                        experience_id=self.experience_id,
                         class_id=class_id,
                     )
                 )
@@ -391,7 +397,7 @@ def class_accuracy_metrics(
     experience=False,
     stream=False,
     classes=None,
-) -> List[PluginMetric]:
+) -> List[ClassAccuracyPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -412,7 +418,7 @@ def class_accuracy_metrics(
 
     :return: A list of plugin metrics.
     """
-    metrics = []
+    metrics: List[ClassAccuracyPluginMetric] = []
     if minibatch:
         metrics.append(MinibatchClassAccuracy(classes=classes))
 

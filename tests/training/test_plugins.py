@@ -912,16 +912,21 @@ class EvaluationPluginTest(unittest.TestCase):
             def before_blabla(self, strategy):
                 self.x += 1
 
+        class StrategyMock:
+            def __init__(self):
+                self.experience = None
+
         met = MetricMock()
+        strat = StrategyMock()
         evalp = EvaluationPlugin(met)
-        evalp.before_blabla(None)
+        evalp.before_blabla(strat)
 
         # it should ignore undefined callbacks
-        evalp.after_blabla(None)
+        evalp.after_blabla(strat)
 
         # it should raise error for other undefined attributes
         with self.assertRaises(AttributeError):
-            evalp.asd(None)
+            evalp.asd(strat)
 
 
 class EarlyStoppingPluginTest(unittest.TestCase):

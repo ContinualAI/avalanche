@@ -71,3 +71,7 @@ class TestParamData(unittest.TestCase):
         p.reset_like((4, 5), init_function=torch.ones)
         self.assertTrue((p.data == 1).all())
         self.assertTrue(p.init_function == torch.zeros)
+
+
+if __name__ == "__main__":
+    unittest.main()

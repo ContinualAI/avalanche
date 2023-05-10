@@ -1,18 +1,22 @@
 import warnings
 from collections import defaultdict
-from typing import Iterable, Sequence, Optional, Union, List
+from typing import Generic, Iterable, Sequence, Optional, TypeVar, Union, List
 
 import torch
 from torch.nn import Module
 
 from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BasePlugin
+from avalanche.training.templates.strategy_mixin_protocol import \
+    BaseStrategyProtocol
 from avalanche.training.utils import trigger_plugins
 
-ExpSequence = Iterable[CLExperience]
+
+TExperienceType = TypeVar('TExperienceType', bound=CLExperience)
+TPluginType = TypeVar('TPluginType', bound=BasePlugin, contravariant=True)
 
 
-class BaseTemplate:
+class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
     """Base class for continual learning skeletons.
 
     **Training loop**
@@ -35,9 +39,10 @@ class BaseTemplate:
     def __init__(
         self,
         model: Module,
-        device="cpu",
-        plugins: Optional[List[BasePlugin]] = None,
+        device: Union[str, torch.device] = "cpu",
+        plugins: Optional[Sequence[BasePlugin]] = None,
     ):
+        super().__init__()
         """Init."""
 
         self.model: Module = model
@@ -49,7 +54,8 @@ class BaseTemplate:
         self.device = torch.device(device)
         """ PyTorch device where the model will be allocated. """
 
-        self.plugins = [] if plugins is None else plugins
+        self.plugins: List[BasePlugin] = [] \
+            if plugins is None else list(plugins)
         """ List of `SupervisedPlugin`s. """
 
         # check plugin compatibility
@@ -58,14 +64,19 @@ class BaseTemplate:
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
         ###################################################################
-        self.experience: Optional[CLExperience] = None
+        self.experience: Optional[TExperienceType] = None
         """ Current experience. """
 
         self.is_training: bool = False
         """ True if the strategy is in training mode. """
 
-        self.current_eval_stream: Optional[ExpSequence] = None
+        self.current_eval_stream: Iterable[TExperienceType] = []
         """ Current evaluation stream. """
+
+        ###################################################################
+        # Other variables #
+        ###################################################################
+        self._eval_streams: Optional[List[List[CLExperience]]] = None
 
     @property
     def is_eval(self):
@@ -74,9 +85,9 @@ class BaseTemplate:
 
     def train(
         self,
-        experiences: Union[CLExperience, ExpSequence],
+        experiences: Union[TExperienceType, Iterable[TExperienceType]],
         eval_streams: Optional[
-            Sequence[Union[CLExperience, ExpSequence]]
+            Sequence[Union[TExperienceType, Iterable[TExperienceType]]]
         ] = None,
         **kwargs,
     ):
@@ -102,20 +113,27 @@ class BaseTemplate:
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        if not isinstance(experiences, Iterable):
-            experiences = [experiences]
+        experiences_list: Iterable[TExperienceType] = \
+            _experiences_parameter_as_iterable(experiences)
+
         if eval_streams is None:
-            eval_streams = [experiences]
+            eval_streams = [experiences_list]
 
         self._eval_streams = _group_experiences_by_stream(eval_streams)
 
         self._before_training(**kwargs)
 
-        for self.experience in experiences:
+        for self.experience in experiences_list:
             self._before_training_exp(**kwargs)
             self._train_exp(self.experience, eval_streams, **kwargs)
             self._after_training_exp(**kwargs)
         self._after_training(**kwargs)
+        self._train_cleanup()
+
+    def _train_cleanup(self):
+        # reset _eval_streams for faster serialization
+        self._eval_streams = None
+        self.experience = None
 
     def _train_exp(self, experience: CLExperience, eval_streams, **kwargs):
         raise NotImplementedError()
@@ -123,7 +141,7 @@ class BaseTemplate:
     @torch.no_grad()
     def eval(
         self,
-        exp_list: Union[CLExperience, CLStream],
+        experiences: Union[TExperienceType, CLStream[TExperienceType]],
         **kwargs,
     ):
         """
@@ -142,20 +160,26 @@ class BaseTemplate:
         self.is_training = False
         self.model.eval()
 
-        if not isinstance(exp_list, Iterable):
-            exp_list = [exp_list]
-        self.current_eval_stream = exp_list
+        experiences_list: Iterable[TExperienceType] = \
+            _experiences_parameter_as_iterable(experiences)
+        self.current_eval_stream = experiences_list
 
         self._before_eval(**kwargs)
-        for self.experience in exp_list:
+        for self.experience in experiences_list:
             self._before_eval_exp(**kwargs)
             self._eval_exp(**kwargs)
             self._after_eval_exp(**kwargs)
 
         self._after_eval(**kwargs)
+        self._eval_cleanup()
 
         # restore previous shared state.
         self._load_train_state(prev_train_state)
+
+    def _eval_cleanup(self):
+        # reset for faster serialization
+        self.current_eval_stream = []
+        self.experience = None
 
     def _eval_exp(self, **kwargs):
         raise NotImplementedError()
@@ -251,11 +275,11 @@ class BaseTemplate:
         trigger_plugins(self, "after_eval_exp", **kwargs)
 
 
-def _group_experiences_by_stream(eval_streams):
-    if len(eval_streams) == 1:
-        return eval_streams
+def _group_experiences_by_stream(
+    eval_streams: Iterable[Union[Iterable[CLExperience], CLExperience]]
+) -> List[List[CLExperience]]:
 
-    exps = []
+    exps: List[CLExperience] = []
     # First, we unpack the list of experiences.
     for exp in eval_streams:
         if isinstance(exp, Iterable):
@@ -268,4 +292,18 @@ def _group_experiences_by_stream(eval_streams):
         sname = exp.origin_stream.name
         exps_by_stream[sname].append(exp)
     # Finally, we return a list of lists.
-    return list(exps_by_stream.values())
+    return list(list(exps_by_stream.values()))
+
+
+def _experiences_parameter_as_iterable(
+    experiences: Union[Iterable[TExperienceType], TExperienceType]
+) -> Iterable[TExperienceType]:
+    if isinstance(experiences, Iterable):
+        return experiences
+    else:
+        return [experiences]
+
+
+__all__ = [
+    'BaseTemplate'
+]

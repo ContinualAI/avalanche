@@ -15,6 +15,7 @@ All plugins related to Generative Replay.
 """
 
 from copy import deepcopy
+from typing import Optional
 from avalanche.core import SupervisedPlugin
 import torch
 
@@ -54,7 +55,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         self,
         generator_strategy=None,
         untrained_solver: bool = True,
-        replay_size: int = None,
+        replay_size: Optional[int] = None,
         increasing_replay_size: bool = False,
     ):
         """
