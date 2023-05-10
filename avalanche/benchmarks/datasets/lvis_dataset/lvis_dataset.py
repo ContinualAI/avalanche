@@ -347,5 +347,6 @@ __all__ = [
     "LvisDataset",
     "LVISImgEntry",
     "LVISAnnotationEntry",
+    "LVISImgTargets",
     "LVISDetectionTargets",
 ]
