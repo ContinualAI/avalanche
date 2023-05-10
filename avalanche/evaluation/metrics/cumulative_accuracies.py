@@ -100,7 +100,7 @@ class CumulativeAccuracy(Metric[float]):
             self._mean_accuracy[t].reset()
 
 
-class CumulativeAccuracyPluginMetric(GenericPluginMetric[float]):
+class CumulativeAccuracyPluginMetric(GenericPluginMetric):
     def __init__(self, reset_at="stream", emit_at="stream", mode="eval"):
         """
         Creates the CumulativeAccuracy plugin metric,
