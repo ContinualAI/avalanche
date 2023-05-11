@@ -29,7 +29,7 @@ class DynamicModule(Module):
     `model_adaptation`, which adapts the model given the current experience.
     """
 
-    def adaptation(self, experience: CLExperience = None):
+    def adaptation(self, experience: CLExperience):
         """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 

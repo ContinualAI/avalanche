@@ -12,6 +12,7 @@ from torchvision.transforms import Lambda
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.losses import SCRLoss
 from avalanche.training.storage_policy import ClassBalancedBuffer
+from avalanche.models import SCRModel
 
 
 class SCR(SupervisedTemplate):
@@ -31,7 +32,7 @@ class SCR(SupervisedTemplate):
     in the paper). This implementation does not implement the review trick.
     """
     def __init__(self,
-                 model: Module,
+                 model: SCRModel,
                  optimizer: Optimizer,
                  augmentations=Compose([Lambda(lambda el: el)]),
                  mem_size: int = 100,
@@ -80,6 +81,11 @@ class SCR(SupervisedTemplate):
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
+
+        if not isinstance(model, SCRModel):
+            raise ValueError(
+                "Supervised Contrastive Replay model "
+                "needs to be an instance of avalanche.models.SCRModel.")
 
         self.replay_plugin = ReplayPlugin(
             mem_size,
