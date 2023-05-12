@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
 
 
-class CumulativeAccuracy(Metric[float]):
+class CumulativeAccuracy(Metric[Dict[int, float]]):
     """
     Metric used by the CumulativeAccuracyPluginMetric,
     holds a dictionnary of per-task cumulative accuracies
@@ -81,7 +81,7 @@ class CumulativeAccuracy(Metric[float]):
                 true_positives / total_patterns, total_patterns
             )
 
-    def result(self) -> float:
+    def result(self) -> Dict[int, float]:
         """Retrieves the running accuracy.
 
         Calling this method will not change the internal state of the metric.
@@ -100,7 +100,9 @@ class CumulativeAccuracy(Metric[float]):
             self._mean_accuracy[t].reset()
 
 
-class CumulativeAccuracyPluginMetric(GenericPluginMetric):
+class CumulativeAccuracyPluginMetric(
+    GenericPluginMetric[Dict[int, float], CumulativeAccuracy]
+):
     def __init__(self, reset_at="stream", emit_at="stream", mode="eval"):
         """
         Creates the CumulativeAccuracy plugin metric,
@@ -109,10 +111,10 @@ class CumulativeAccuracyPluginMetric(GenericPluginMetric):
         features for class-incremental learning"
         Soutif et. al, https://arxiv.org/abs/2106.11930
         """
-        self._accuracy = CumulativeAccuracy()
+
         self.classes_seen_so_far = set()
         self.classes_splits = {}
-        super().__init__(self._accuracy, 
+        super().__init__(CumulativeAccuracy(), 
                          reset_at=reset_at, 
                          emit_at=emit_at, 
                          mode=mode)
@@ -143,19 +145,21 @@ class CumulativeAccuracyPluginMetric(GenericPluginMetric):
         self.classes_seen_so_far = self.classes_seen_so_far.union(new_classes)
         self.classes_splits[task_id] = self.classes_seen_so_far
 
-    def reset(self, strategy=None) -> None:
+    def reset(self) -> None:
         self._metric.reset()
 
-    def result(self, strategy=None) -> float:
+    def result(self) -> Dict[int, float]:
         return self._metric.result()
 
     def update(self, strategy):
-        self._accuracy.update(self.classes_splits, 
-                              strategy.mb_output, 
-                              strategy.mb_y)
+        self._metric.update(
+            self.classes_splits,
+            strategy.mb_output,
+            strategy.mb_y)
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
-        metric_value = self.result(strategy)
+        assert strategy.experience is not None
+        metric_value = self.result()
         plot_x_position = strategy.clock.train_iterations
 
         phase_name, task_label = phase_and_task(strategy)
@@ -182,7 +186,9 @@ class CumulativeAccuracyPluginMetric(GenericPluginMetric):
         return "CumulativeAccuracy"
 
 
-class CumulativeForgettingPluginMetric(GenericPluginMetric):
+class CumulativeForgettingPluginMetric(
+    GenericPluginMetric[Dict[int, float], CumulativeAccuracy]
+):
     """
     The CumulativeForgetting metric, describing the accuracy loss
     detected for a certain experience.
@@ -199,7 +205,6 @@ class CumulativeForgettingPluginMetric(GenericPluginMetric):
         """
         Creates an instance of the CumulativeForgetting metric.
         """
-        self._accuracy = CumulativeAccuracy()
 
         self.classes_splits = {}
         self.classes_seen_so_far = set()
@@ -209,7 +214,7 @@ class CumulativeForgettingPluginMetric(GenericPluginMetric):
 
         self.train_task_id = None
 
-        super().__init__(self._accuracy, 
+        super().__init__(CumulativeAccuracy(), 
                          reset_at=reset_at, 
                          emit_at=emit_at, 
                          mode=mode)
@@ -247,15 +252,16 @@ class CumulativeForgettingPluginMetric(GenericPluginMetric):
         else:
             self.train_task_id = experience.current_experience
 
-    def reset(self, strategy=None):
-        self._accuracy.reset()
+    def reset(self):
+        self._metric.reset()
 
-    def result(self, strategy=None) -> float:
+    def result(self) -> Dict[int, float]:
         forgetting = self._compute_forgetting()
         return forgetting
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
-        metric_value = self.result(strategy)
+        assert strategy.experience is not None
+        metric_value = self.result()
         plot_x_position = strategy.clock.train_iterations
 
         phase_name, task_label = phase_and_task(strategy)
@@ -279,12 +285,13 @@ class CumulativeForgettingPluginMetric(GenericPluginMetric):
         return metrics
 
     def update(self, strategy):
-        self._accuracy.update(self.classes_splits, 
-                              strategy.mb_output, 
-                              strategy.mb_y)
+        self._metric.update(
+            self.classes_splits, 
+            strategy.mb_output, 
+            strategy.mb_y)
 
     def _compute_forgetting(self):
-        for t, item in self._accuracy.result().items():
+        for t, item in self._metric.result().items():
             if t not in self.initial:
                 self.initial[t] = item
             else:
