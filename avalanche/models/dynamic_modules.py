@@ -94,7 +94,7 @@ class MultiTaskModule(DynamicModule):
         self.known_train_tasks_labels = set()
         """ Set of task labels encountered up to now. """
 
-    def adaptation(self, experience: CLExperience = None):
+    def adaptation(self, experience: CLExperience):
         """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
@@ -121,7 +121,7 @@ class MultiTaskModule(DynamicModule):
     def eval_adaptation(self, experience: CLExperience):
         pass
 
-    def train_adaptation(self, experience: CLExperience = None):
+    def train_adaptation(self, experience: CLExperience):
         """Update known task labels."""
         task_labels = experience.task_labels
         self.known_train_tasks_labels = self.known_train_tasks_labels.union(
