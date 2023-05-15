@@ -350,12 +350,17 @@ class BaseSGDTemplate(
         Utility function that returns the dictionary of parameters to be passed
         to the train and eval dataloaders.
 
-        The resulting dataset does not include the collate function.
+        This function can be useful when in need to customize the data loading
+        parameters but no radical changes are needed. When overriding to 
+        add/customize parameters, it is recommended to first call this 
+        implementation (super) to obtain a base dictionary of parameters.
 
-        Overriding this function can be useful if particular/runtime computed
-        parameters are needed. However, when overriding, it is recommended to
-        first call this implementation (super) to obtain a base dictionary of
-        parameters .
+        However, if a more deep change is needed in the data loading procedure,
+        it is better to overrride :meth:`make_train_dataloader` and/or
+        :meth:`make_eval_dataloader` directly.
+
+        Note: the resulting dictionary does not include the collate function
+        unless explicitly passed.
 
         :param kwargs: The dataloader arguments as passed to the `train`
             or `eval` method.
