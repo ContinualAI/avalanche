@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
 
 
-class GDumbPlugin(SupervisedPlugin):
+class GDumbPlugin(SupervisedPlugin, supports_distributed=True):
     """GDumb plugin.
 
     At each experience the model is trained  from scratch using a buffer of
@@ -23,12 +23,8 @@ class GDumbPlugin(SupervisedPlugin):
 
     def __init__(
             self, 
-            mem_size: int = 200,
-            supports_distributed: Optional[bool] = None):
-        super().__init__(
-            supports_distributed=self._check_distributed_support(
-                supports_distributed, GDumbPlugin)
-        )
+            mem_size: int = 200):
+        super().__init__()
         self.mem_size = mem_size
 
         # model initialization

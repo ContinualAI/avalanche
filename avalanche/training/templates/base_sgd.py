@@ -530,7 +530,7 @@ class BaseSGDTemplate(
         trigger_plugins(self, "after_eval_dataset_adaptation", **kwargs)
 
 
-class PeriodicEval(BaseSGDPlugin):
+class PeriodicEval(BaseSGDPlugin, supports_distributed=True):
     """Schedules periodic evaluation during training.
 
     This plugin is automatically configured and added by the BaseTemplate.
@@ -540,8 +540,7 @@ class PeriodicEval(BaseSGDPlugin):
             self,
             eval_every=-1,
             peval_mode="epoch",
-            do_initial=True,
-            supports_distributed: Optional[bool] = None):
+            do_initial=True):
         """Init.
 
         :param eval_every: the frequency of the calls to `eval` inside the
@@ -556,10 +555,7 @@ class PeriodicEval(BaseSGDPlugin):
             Occasionally needed becuase some metrics need to know the
             accuracy before training.
         """
-        super().__init__(supports_distributed=self._check_distributed_support(
-            supports_distributed, 
-            PeriodicEval
-        ))
+        super().__init__()
         assert peval_mode in {"experience", "epoch", "iteration"}
         self.eval_every = eval_every
         self.peval_mode = peval_mode

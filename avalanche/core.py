@@ -27,18 +27,16 @@ class BasePlugin(Generic[Template], ABC):
     and loggers.
     """
 
-    def __init__(self, supports_distributed: bool = False):
-        """
-        Initializes a strategy plugin.
+    supports_distributed: bool = False
+    """
+    A flag describing whether this plugin supports distributed training.
+    """
 
-        :param: If True, this plugin instance supports distributed training.
-            Defaults to false.
+    def __init__(self):
         """
-
-        self.supports_distributed = supports_distributed
+        Inizializes an instance of a supervised plugin.
         """
-        A flag describing whether this plugin supports distributed training
-        """
+        super().__init__()
 
     def before_training(self, strategy: Template, *args, **kwargs):
         """Called before `train` by the `BaseTemplate`."""
@@ -78,17 +76,12 @@ class BasePlugin(Generic[Template], ABC):
         """Called after `eval` by the `BaseTemplate`."""
         pass
 
-    def _check_distributed_support(
-            self,
-            distributed_training_param: Optional[bool],
-            main_class: Type) -> bool:
-        if distributed_training_param is None:
-            if self.__class__ == main_class:
-                return True
-            else:
-                return False
-        
-        return distributed_training_param
+    def __init_subclass__(
+            cls,
+            supports_distributed: bool = False,
+            **kwargs) -> None:
+        cls.supports_distributed = supports_distributed
+        return super().__init_subclass__(**kwargs)
 
 
 class BaseSGDPlugin(BasePlugin[Template], ABC):
@@ -96,6 +89,12 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
 
     See `BaseSGDTemplate` for complete description of the train/eval loop.
     """
+
+    def __init__(self):
+        """
+        Inizializes an instance of a base SGD plugin.
+        """
+        super().__init__()
 
     def before_training_epoch(
         self, strategy: Template, *args, **kwargs
@@ -215,7 +214,11 @@ class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
 
     See `BaseTemplate` for complete description of the train/eval loop.
     """
-    pass
+    def __init__(self):
+        """
+        Inizializes an instance of a supervised plugin.
+        """
+        super().__init__()
 
 
 class SupervisedMetaLearningPlugin(SupervisedPlugin[Template], ABC):
