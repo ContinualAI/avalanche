@@ -76,8 +76,12 @@ class DynamicModule(Module):
         pass
 
     @property
-    def model_device(self):
-        """Returns the device of the model."""
+    def _adaptation_device(self):
+        """
+        The device to use when expanding (or otherwise adapting)
+        the model. Defaults to the current device of the fist 
+        parameter listed using :meth:`parameters`.
+        """
         return next(self.parameters()).device
 
 
@@ -233,7 +237,7 @@ class IncrementalClassifier(DynamicModule):
         :param experience: data from the current experience.
         :return:
         """
-        device = self.model_device
+        device = self._adaptation_device
         in_features = self.classifier.in_features
         old_nclasses = self.classifier.out_features
         curr_classes = experience.classes_in_this_experience
@@ -355,7 +359,7 @@ class MultiHeadClassifier(MultiTaskModule):
         :return:
         """
         super().adaptation(experience)
-        device = self.model_device
+        device = self._adaptation_device
         curr_classes = experience.classes_in_this_experience
         task_labels = experience.task_labels
         if isinstance(task_labels, ConstantSequence):
@@ -423,7 +427,7 @@ class MultiHeadClassifier(MultiTaskModule):
         :param task_label:
         :return:
         """
-        device = self.model_device
+        device = self._adaptation_device
         task_label = str(task_label)
         out = self.classifiers[task_label](x)
         if self.masking:
