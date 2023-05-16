@@ -6,6 +6,7 @@ import torch
 
 from avalanche.evaluation.metrics import (
     TaskAwareAccuracy,
+    TopkAccuracy,
     AverageMeanClassAccuracy,
     MultiStreamAMCA,
     ClassAccuracy,
@@ -51,6 +52,69 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertGreaterEqual(metric.result(0)[0], 0)
         metric.reset()
         self.assertEqual(metric.result(), {})
+
+    def test_topk_accuracy(self):
+        test_y = torch.as_tensor([0, 1, 0, 2, 3, 0, 3])
+        test_out = torch.zeros(test_y.shape[0], 4, dtype=torch.float32)
+
+        # top-1. gt = 0
+        test_out[0][0] = 1.0
+
+        # top-3. gt = 1
+        test_out[1][0] = 1.0
+        test_out[1][1] = 0.8
+        test_out[1][2] = 0.9
+
+        # top-2. gt = 0
+        test_out[2][0] = 0.1
+        test_out[2][1] = 0.8
+        test_out[2][2] = 0.05
+
+        # top-4. gt = 2
+        test_out[3][0] = 0.1
+        test_out[3][1] = 0.8
+        test_out[3][2] = 0.07
+        test_out[3][3] = 0.2
+
+        # top-1. gt = 3
+        test_out[4][0] = 0.085
+        test_out[4][1] = 0.25
+        test_out[4][2] = 0.07
+        test_out[4][3] = 0.3
+
+        # top-2. gt = 0
+        test_out[5][0] = 0.085
+        test_out[5][1] = 0.075
+        test_out[5][2] = 0.1
+        test_out[5][3] = 0.0
+
+        # top-3. gt = 3
+        test_out[6][0] = 0.0
+        test_out[6][1] = 0.9
+        test_out[6][2] = 0.8
+        test_out[6][3] = 0.7
+
+        expected_per_k = [
+            2/7,  # top-1
+            4/7,  # top-2
+            6/7,  # top-3
+            1.0   # top-4
+        ]
+
+        for k in range(1, 5):
+            with self.subTest(k=k):
+                test_t_label = k % 2
+                metric = TopkAccuracy(k)
+                expected_result = expected_per_k[k-1]
+            
+                self.assertEqual(metric.result(), {})
+                metric.update(test_out, test_y, test_t_label)
+
+                self.assertAlmostEqual(
+                    expected_result,
+                    metric.result()[test_t_label])
+                metric.reset()
+                self.assertEqual(metric.result(), {})
 
     def test_accuracy_task_per_pattern(self):
         metric = TaskAwareAccuracy()
