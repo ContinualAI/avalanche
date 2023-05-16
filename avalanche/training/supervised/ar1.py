@@ -59,7 +59,7 @@ class AR1(SupervisedTemplate):
         ewc_lambda: float = 0,
         train_mb_size: int = 128,
         eval_mb_size: int = 128,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,

@@ -67,7 +67,7 @@ class Naive(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -184,7 +184,7 @@ class CWRStar(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -251,7 +251,7 @@ class Replay(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -329,7 +329,7 @@ class GenerativeReplay(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -459,7 +459,7 @@ class VAETraining(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -528,7 +528,7 @@ class GSS_greedy(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -597,7 +597,7 @@ class GDumb(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -665,7 +665,7 @@ class LwF(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -736,7 +736,7 @@ class AGEM(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -807,7 +807,7 @@ class GEM(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -880,7 +880,7 @@ class EWC(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -1049,7 +1049,7 @@ class CoPE(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -1125,7 +1125,7 @@ class LFL(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -1195,7 +1195,7 @@ class MAS(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -1276,7 +1276,7 @@ class BiC(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -1363,7 +1363,7 @@ class MIR(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,
@@ -1443,7 +1443,7 @@ class FromScratchTraining(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
             EvaluationPlugin,

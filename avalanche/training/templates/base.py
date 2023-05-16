@@ -41,7 +41,7 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
     def __init__(
         self,
         model: Module,
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[BasePlugin]] = None,
     ):
         super().__init__()
@@ -51,6 +51,9 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
         """ PyTorch model. """
 
         if device is None:
+            warnings.warn(
+                'When instantiating a strategy, please pass a non-None device.'
+            )
             device = 'cpu'
 
         self.device = torch.device(device)
