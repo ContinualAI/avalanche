@@ -20,7 +20,7 @@ class BatchObservation(SGDStrategyProtocol):
     def make_optimizer(self):
         """Optimizer initialization.
 
-        Called before each training experiene to configure the optimizer.
+        Called before each training experience to configure the optimizer.
         """
         # we reset the optimizer's state after each experience.
         # This allows to add new parameters (new heads) and

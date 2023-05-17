@@ -1,4 +1,4 @@
-from typing import List, Sequence, Optional, Union
+from typing import Callable, List, Sequence, Optional, Union
 
 import pkg_resources
 from pkg_resources import DistributionNotFound, VersionConflict
@@ -43,7 +43,10 @@ class LaMAML(SupervisedMetaLearningTemplate):
         eval_mb_size: int = 1,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
     ):
