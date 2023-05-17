@@ -193,7 +193,7 @@ class BaseSGDTemplate(
     def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
-    def make_optimizer(self):
+    def make_optimizer(self, **kwargs):
         """Optimizer initialization."""
         # Should be implemented in Observation Type
         raise NotImplementedError()

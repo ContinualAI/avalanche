@@ -1,9 +1,30 @@
+from collections import defaultdict
+from typing import List, TypeVar
+from torch import Tensor
+
+from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.templates.strategy_mixin_protocol import \
     SGDStrategyProtocol
-from avalanche.benchmarks import OnlineCLExperience
-from avalanche.models.dynamic_optimizers import update_optimizer
+
+
+def detect_param_change(optimizer, new_params) -> bool:
+    number_found = 0
+    indexes_found = set()
+    for group in optimizer.param_groups:
+        for old_param in group["params"]:
+            found = False
+            for i, new_param in enumerate(new_params):
+                if id(new_param) == id(old_param):
+                    found = True
+                    number_found += 1
+                    break
+            if not found:
+                return False
+    if number_found != len(new_params):
+        return True
+    return False
 
 
 class BatchObservation(SGDStrategyProtocol):
@@ -22,36 +43,29 @@ class BatchObservation(SGDStrategyProtocol):
             # If the strategy has access to task boundaries, adapt the model
             # for the whole origin experience to add the
             if self.experience.access_task_boundaries:
-                avalanche_model_adaptation(model,
+                avalanche_model_adaptation(model, 
                                            self.experience.origin_experience)
             else:
                 avalanche_model_adaptation(model, self.experience)
-
-        # For evaluation, the experience is not necessarily an online
-        # experience:
         else:
             avalanche_model_adaptation(model, self.experience)
 
         return model.to(self.device)
 
-    def make_optimizer(self):
+    def make_optimizer(self, reset_opt=True, reset_state=False):
         """Optimizer initialization.
 
         Called before each training experiene to configure the optimizer.
         """
-        if isinstance(self.experience, OnlineCLExperience):
-            if self.experience.access_task_boundaries:
-                assert self.experience.is_first_subexp
-                reset_optimizer(self.optimizer, self.model)
+        reset_opt = detect_param_change(
+            self.optimizer, list(self.model.named_parameters()),
+        ) or reset_opt
 
-            # Otherwise, update the optimizer
-            else:
-                update_optimizer(
-                    self.optimizer,
-                    self.model_params_before_adaptation,  # type: ignore
-                    self.model.parameters(),
-                    reset_state=False)
-        else:
+        if reset_state:
+            self.optimizer.state = defaultdict(dict)
+
+        if reset_opt:
+            # Here, optimizer state is also reset
             reset_optimizer(self.optimizer, self.model)
 
     def check_model_and_optimizer(self):
@@ -63,12 +77,10 @@ class BatchObservation(SGDStrategyProtocol):
             if self.experience.access_task_boundaries:
                 if self.experience.is_first_subexp:
                     self.model = self.model_adaptation()
-                    self.make_optimizer()
+                    self.make_optimizer(reset_opt=False)
         else:
             self.model = self.model_adaptation()
-            self.make_optimizer()
+            self.make_optimizer(reset_opt=False)
 
 
-__all__ = [
-    'BatchObservation'
-]
+__all__ = ["BatchObservation"]
