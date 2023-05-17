@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
 
 
-class ReplayPlugin(SupervisedPlugin):
+class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
     """
     Experience replay plugin.
 
@@ -50,7 +50,7 @@ class ReplayPlugin(SupervisedPlugin):
         batch_size: Optional[int] = None,
         batch_size_mem: Optional[int] = None,
         task_balanced_dataloader: bool = False,
-        storage_policy: Optional["ExemplarsBuffer"] = None,
+        storage_policy: Optional["ExemplarsBuffer"] = None
     ):
         super().__init__()
         self.mem_size = mem_size

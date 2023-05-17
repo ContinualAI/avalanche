@@ -1,5 +1,14 @@
 from collections import defaultdict
-from typing import Dict, List, Optional, Sequence, Set, SupportsInt, Union
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    SupportsInt,
+    Union,
+)
 
 import torch
 import torch.nn.functional as F
@@ -10,7 +19,10 @@ from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
 from avalanche.core import SupervisedPlugin
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import (
+    EvaluationPlugin,
+    default_evaluator,
+)
 from avalanche.training.storage_policy import (
     BalancedExemplarsBuffer,
     ReservoirSamplingBuffer,
@@ -149,7 +161,10 @@ class DER(SupervisedTemplate):
         eval_mb_size: Optional[int] = 1,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator=default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
     ):

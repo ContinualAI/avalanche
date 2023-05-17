@@ -1,4 +1,5 @@
-from typing import Optional, List
+from typing import Callable, Optional, List, Union
+import torch
 
 from torch.nn import Module
 from torch.optim import Optimizer
@@ -26,9 +27,12 @@ class Cumulative(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device=None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
     ):
         """Init.

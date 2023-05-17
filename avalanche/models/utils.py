@@ -1,19 +1,29 @@
 from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.models.dynamic_modules import MultiTaskModule, DynamicModule
 import torch.nn as nn
+from torch.nn.parallel import DistributedDataParallel
 from collections import OrderedDict
 
 from avalanche.benchmarks.scenarios import CLExperience
 
 
+def is_multi_task_module(model: nn.Module) -> bool:
+    return isinstance(model, MultiTaskModule) or \
+        (isinstance(model, DistributedDataParallel) and 
+         isinstance(model.module, MultiTaskModule))
+
+
 def avalanche_forward(model, x, task_labels):
-    if isinstance(model, MultiTaskModule):
+    if is_multi_task_module(model):
         return model(x, task_labels)
     else:  # no task labels
         return model(x)
 
 
 def avalanche_model_adaptation(model: nn.Module, experience: CLExperience):
+    if isinstance(model, DistributedDataParallel):
+        raise RuntimeError('The model is wrapped in DistributedDataParallel. '
+                           'Please unwrap it before calling this method.')
     for module in model.modules():
         if isinstance(module, DynamicModule):
             module.adaptation(experience)
