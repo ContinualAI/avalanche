@@ -4,10 +4,6 @@ from typing import List
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
 from avalanche.evaluation.metrics.accuracy import Accuracy
-from avalanche.benchmarks.scenarios.online_scenario import (
-    OnlineCLExperience, 
-    OnlineCLScenario,
-)
 from avalanche.training.templates import SupervisedTemplate
 
 
@@ -18,10 +14,8 @@ class AccuracyMatrixPluginMetric(PluginMetric[float]):
 
     def __init__(self, mode="eval"):
         """Creates the Accuracy plugin
-
-        :param reset_at:
-        :param emit_at:
-        :param mode:
+        :param mode: If it going to run in eval or train. For now only 
+            available in evaluation.
         """
         self._accuracy = Accuracy()
         self._mode = mode
@@ -98,11 +92,6 @@ def accuracy_matrix_metrics(
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
-
-    :param minibatch: If True, will return a metric able to log
-        the minibatch accuracy at training time.
-    :param epoch: If True, will return a metric able to log
-        the epoch accuracy at training time.
 
     :return: A list of plugin metrics.
     """
