@@ -500,6 +500,12 @@ class HighLevelGeneratorTests(unittest.TestCase):
         self.assertTrue(torch.equal(test_x, mb[0]))
         self.assertTrue(torch.equal(test_y, mb[1]))
 
+        # Regression test for #1371
+        self.assertEquals(
+            [0],
+            valid_benchmark.train_stream[0].classes_in_this_experience
+        )
+
     def test_lazy_benchmark_with_validation_stream_fixed_size(self):
         lazy_options = [None, True, False]
         for lazy_option in lazy_options:
@@ -704,3 +710,7 @@ class DataSplitStrategiesTests(unittest.TestCase):
             data_cnt = (torch.as_tensor(exp.dataset.targets) == cid).sum()
             valid_cnt = (torch.as_tensor(valid_d.targets) == cid).sum()
             assert_almost_equal(valid_cnt / data_cnt, ratio, decimal=2)
+
+
+if __name__ == "__main__":
+    unittest.main()

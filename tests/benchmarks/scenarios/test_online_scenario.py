@@ -22,3 +22,7 @@ class OCLTests(unittest.TestCase):
 
             for s in ocl_benchmark.streams.values():
                 print(s.name)
+
+
+if __name__ == "__main__":
+    unittest.main()

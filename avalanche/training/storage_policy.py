@@ -1,6 +1,16 @@
+from collections import defaultdict
 import random
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, List, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Optional,
+    List,
+    TYPE_CHECKING,
+    Set,
+    TypeVar,
+)
 
 import torch
 from numpy import inf
@@ -9,7 +19,6 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.utils import (
-    make_classification_dataset,
     classification_subset,
     AvalancheDataset,
 )
@@ -17,7 +26,7 @@ from avalanche.models import FeatureExtractorBackbone
 from ..benchmarks.utils.utils import concat_datasets
 
 if TYPE_CHECKING:
-    from .templates import SupervisedTemplate
+    from .templates import SupervisedTemplate, BaseSGDTemplate
 
 
 class ExemplarsBuffer(ABC):
@@ -85,7 +94,9 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
         """Update buffer."""
-        self.update_from_dataset(strategy.experience.dataset)
+        experience = strategy.experience
+        assert experience is not None
+        self.update_from_dataset(experience.dataset)
 
     def update_from_dataset(self, new_data: AvalancheDataset):
         """Update the buffer using the given dataset.
@@ -103,18 +114,19 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         self.buffer = cat_data.subset(buffer_idxs)
         self._buffer_weights = sorted_weights[: self.max_size]
 
-    def resize(self, strategy, new_size):
+    def resize(self, strategy: Any, new_size: int):
         """Update the maximum size of the buffer."""
         self.max_size = new_size
         if len(self.buffer) <= self.max_size:
             return
-        self.buffer = classification_subset(
-            self.buffer, torch.arange(self.max_size)
-        )
+        self.buffer = self.buffer.subset(torch.arange(self.max_size))
         self._buffer_weights = self._buffer_weights[: self.max_size]
 
 
-class BalancedExemplarsBuffer(ExemplarsBuffer):
+TGroupBuffer = TypeVar('TGroupBuffer', bound=ExemplarsBuffer)
+
+
+class BalancedExemplarsBuffer(ExemplarsBuffer, Generic[TGroupBuffer]):
     """A buffer that stores exemplars for rehearsal in separate groups.
 
     The grouping allows to balance the data (by task, experience,
@@ -150,7 +162,7 @@ class BalancedExemplarsBuffer(ExemplarsBuffer):
                 "`adaptive_size=False`."
             )
 
-        self.buffer_groups: Dict[int, ExemplarsBuffer] = {}
+        self.buffer_groups: Dict[int, TGroupBuffer] = {}
         """ Dictionary of buffers. """
 
     @property
@@ -202,7 +214,9 @@ class BalancedExemplarsBuffer(ExemplarsBuffer):
             buffer.resize(strategy, ll)
 
 
-class ExperienceBalancedBuffer(BalancedExemplarsBuffer):
+class ExperienceBalancedBuffer(
+        BalancedExemplarsBuffer[
+            ReservoirSamplingBuffer]):
     """Rehearsal buffer with samples balanced over experiences.
 
     The number of experiences can be fixed up front or adaptive, based on
@@ -224,6 +238,7 @@ class ExperienceBalancedBuffer(BalancedExemplarsBuffer):
         super().__init__(max_size, adaptive_size, num_experiences)
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
+        assert strategy.experience is not None
         new_data = strategy.experience.dataset
         num_exps = strategy.clock.train_exp_counter + 1
         lens = self.get_group_lengths(num_exps)
@@ -236,7 +251,7 @@ class ExperienceBalancedBuffer(BalancedExemplarsBuffer):
             b.resize(strategy, ll)
 
 
-class ClassBalancedBuffer(BalancedExemplarsBuffer):
+class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
     """Stores samples for replay, equally divided over classes.
 
     There is a separate buffer updated by reservoir sampling for each class.
@@ -251,7 +266,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
         self,
         max_size: int,
         adaptive_size: bool = True,
-        total_num_classes: int = None,
+        total_num_classes: Optional[int] = None,
     ):
         """Init.
 
@@ -262,23 +277,38 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer):
                                   of classes to divide capacity over.
         """
         if not adaptive_size:
-            assert (
+            
+            assert total_num_classes is not None and (
                 total_num_classes > 0
             ), """When fixed exp mem size, total_num_classes should be > 0."""
 
         super().__init__(max_size, adaptive_size, total_num_classes)
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes
-        self.seen_classes = set()
+        self.seen_classes: Set[int] = set()
 
-    def update(self, strategy: "SupervisedTemplate", **kwargs):
-        new_data = strategy.experience.dataset
+    def update(self, strategy: "BaseSGDTemplate", **kwargs):
+        """Update buffer."""
+        assert strategy.experience is not None
+        self.update_from_dataset(strategy.experience.dataset, strategy)
+
+    def update_from_dataset(
+        self,
+        new_data: AvalancheDataset,
+        strategy: Optional["BaseSGDTemplate"] = None
+    ):
+        if len(new_data) == 0:
+            return
+        
+        targets = getattr(new_data, 'targets', None)
+        assert targets is not None
 
         # Get sample idxs per class
-        cl_idxs = {}
-        for idx, target in enumerate(new_data.targets):
-            if target not in cl_idxs:
-                cl_idxs[target] = []
+        cl_idxs: Dict[int, List[int]] = defaultdict(list)
+        for idx, target in enumerate(targets):
+            # Conversion to int may fix issues when target
+            # is a single-element torch.tensor
+            target = int(target)
             cl_idxs[target].append(idx)
 
         # Make AvalancheSubset per class
@@ -340,11 +370,12 @@ class ParametricBuffer(BalancedExemplarsBuffer):
         self.groupby = groupby
         ss = selection_strategy or RandomExemplarsSelectionStrategy()
         self.selection_strategy = ss
-        self.seen_groups = set()
+        self.seen_groups: Set[int] = set()
         self._curr_strategy = None
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
-        new_data = strategy.experience.dataset
+        assert strategy.experience is not None
+        new_data: AvalancheDataset = strategy.experience.dataset
         new_groups = self._make_groups(strategy, new_data)
         self.seen_groups.update(new_groups.keys())
 
@@ -374,7 +405,8 @@ class ParametricBuffer(BalancedExemplarsBuffer):
                 strategy, group_to_len[group_id]
             )
 
-    def _make_groups(self, strategy, data):
+    def _make_groups(self, strategy, data: AvalancheDataset) -> \
+            Dict[int, AvalancheDataset]:
         """Split the data by group according to `self.groupby`."""
         if self.groupby is None:
             return {0: data}
@@ -387,28 +419,32 @@ class ParametricBuffer(BalancedExemplarsBuffer):
         else:
             assert False, "Invalid groupby key. Should never get here."
 
-    def _split_by_class(self, data):
+    def _split_by_class(self, data: AvalancheDataset) -> \
+            Dict[int, AvalancheDataset]:
         # Get sample idxs per class
-        class_idxs = {}
-        for idx, target in enumerate(data.targets):
-            if target not in class_idxs:
-                class_idxs[target] = []
-            class_idxs[target].append(idx)
+        cl_idxs: Dict[int, List[int]] = defaultdict(list)
+        targets = getattr(data, 'targets')
+        for idx, target in enumerate(targets):
+            target = int(target)
+            cl_idxs[target].append(idx)
 
         # Make AvalancheSubset per class
-        new_groups = {}
-        for c, c_idxs in class_idxs.items():
+        new_groups: Dict[int, AvalancheDataset] = {}
+        for c, c_idxs in cl_idxs.items():
             new_groups[c] = classification_subset(data, indices=c_idxs)
         return new_groups
 
-    def _split_by_experience(self, strategy, data):
+    def _split_by_experience(self, strategy, data: AvalancheDataset) -> \
+            Dict[int, AvalancheDataset]:
         exp_id = strategy.clock.train_exp_counter + 1
         return {exp_id: data}
 
-    def _split_by_task(self, data):
+    def _split_by_task(self, data: AvalancheDataset) -> \
+            Dict[int, AvalancheDataset]:
         new_groups = {}
-        for task_id in data.task_set:
-            new_groups[task_id] = data.task_set[task_id]
+        task_set = getattr(data, 'task_set')
+        for task_id in task_set:
+            new_groups[task_id] = task_set[task_id]
         return new_groups
 
 
@@ -436,6 +472,7 @@ class _ParametricSingleBuffer(ExemplarsBuffer):
         self._curr_strategy = None
 
     def update(self, strategy: "SupervisedTemplate", **kwargs):
+        assert strategy.experience is not None
         new_data = strategy.experience.dataset
         self.update_from_dataset(strategy, new_data)
 
@@ -521,7 +558,7 @@ class HerdingSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
     """
 
     def make_sorted_indices_from_features(self, features: Tensor) -> List[int]:
-        selected_indices = []
+        selected_indices: List[int] = []
 
         center = features.mean(dim=0)
         current_center = center * 0

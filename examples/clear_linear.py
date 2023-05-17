@@ -36,8 +36,9 @@ from avalanche.training.supervised import Naive
 from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 
 # For CLEAR dataset setup
-DATASET_NAME = "clear10"
-NUM_CLASSES = {"clear10": 11}
+DATASET_NAME = "clear10_neurips2021"
+NUM_CLASSES = {"clear10_neurips_2021": 11, "clear100_cvpr2022": 100,
+               "clear10": 11, "clear100": 100}
 CLEAR_FEATURE_TYPE = "moco_b0"  # MoCo V2 pretrained on bucket 0
 # CLEAR_FEATURE_TYPE = "moco_imagenet"  # MoCo V2 pretrained on imagenet
 # CLEAR_FEATURE_TYPE = "byol_imagenet"  # BYOL pretrained on imagenet
@@ -109,6 +110,7 @@ def main():
         seed = 0
 
     benchmark = CLEAR(
+        data_name=DATASET_NAME,
         evaluation_protocol=EVALUATION_PROTOCOL,
         feature_type=CLEAR_FEATURE_TYPE,
         seed=seed,
@@ -166,7 +168,8 @@ def main():
     accuracy_matrix = np.zeros((num_timestamp, num_timestamp))
     for train_idx in range(num_timestamp):
         for test_idx in range(num_timestamp):
-            mname = f'Top1_Acc_Exp/eval_phase/test_stream/Exp00{test_idx}'
+            mname = f"Top1_Acc_Exp/eval_phase/test_stream" \
+                    f"/Task00{test_idx}/Exp00{test_idx}"
             accuracy_matrix[train_idx][test_idx] = results[train_idx][mname]
     print("Accuracy_matrix : ")
     print(accuracy_matrix)

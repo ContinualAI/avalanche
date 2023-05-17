@@ -66,8 +66,8 @@ class EWCPlugin(SupervisedPlugin):
         else:
             self.keep_importance_data = keep_importance_data
 
-        self.saved_params = defaultdict(dict)
-        self.importances = defaultdict(dict)
+        self.saved_params: Dict[int, Dict[str, ParamData]] = defaultdict(dict)
+        self.importances: Dict[int, Dict[str, ParamData]] = defaultdict(dict)
 
     def before_backward(self, strategy, **kwargs):
         """
@@ -130,7 +130,7 @@ class EWCPlugin(SupervisedPlugin):
 
     def compute_importances(
         self, model, criterion, optimizer, dataset, device, batch_size
-    ):
+    ) -> Dict[str, ParamData]:
         """
         Compute EWC importance matrix for each parameter
         """
@@ -182,7 +182,7 @@ class EWCPlugin(SupervisedPlugin):
         return importances
 
     @torch.no_grad()
-    def update_importances(self, importances, t):
+    def update_importances(self, importances, t: int):
         """
         Update importance for each parameter based on the currently computed
         importances.
@@ -198,10 +198,15 @@ class EWCPlugin(SupervisedPlugin):
             ):
                 # Add new module importances to the importances value (New head)
                 if k1 is None:
+                    assert k2 is not None
+                    assert curr_imp is not None
                     self.importances[t][k2] = curr_imp
                     continue
 
                 assert k1 == k2, "Error in importance computation."
+                assert curr_imp is not None
+                assert old_imp is not None
+                assert k2 is not None
 
                 # manage expansion of existing layers
                 self.importances[t][k1] = ParamData(

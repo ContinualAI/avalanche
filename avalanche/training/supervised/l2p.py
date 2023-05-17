@@ -165,6 +165,7 @@ class LearningToPrompt(SupervisedTemplate):
         )
 
     def forward(self):
+        assert self.experience is not None
         if self.use_cls_features:
             with torch.no_grad():
                 cls_features = self.original_vit(self.mb_x)["pre_logits"]

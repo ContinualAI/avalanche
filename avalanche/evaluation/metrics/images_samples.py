@@ -4,6 +4,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 from torchvision.utils import make_grid
+from avalanche.benchmarks.utils.data import AvalancheDataset
 
 from avalanche.evaluation.metric_definitions import PluginMetric
 
@@ -13,17 +14,12 @@ from avalanche.evaluation.metric_results import (
     MetricValue,
 )
 from avalanche.evaluation.metric_utils import get_metric_name
-from avalanche.benchmarks.utils import DefaultTransformGroups
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing_extensions import Literal
 
 
 if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
-    from avalanche.benchmarks.utils import make_classification_dataset
 
 
 class ImagesSamplePlugin(PluginMetric):
@@ -66,12 +62,14 @@ class ImagesSamplePlugin(PluginMetric):
     ) -> "MetricResult":
         if self.mode == "train" or self.mode == "both":
             return self._make_grid_sample(strategy)
+        return None
 
     def after_eval_dataset_adaptation(
         self, strategy: "SupervisedTemplate"
     ) -> "MetricResult":
         if self.mode == "eval" or self.mode == "both":
             return self._make_grid_sample(strategy)
+        return None
 
     def reset(self) -> None:
         self.images = []
@@ -114,11 +112,14 @@ class ImagesSamplePlugin(PluginMetric):
     def _load_data(
         self, strategy: "SupervisedTemplate"
     ) -> Tuple[List[Tensor], List[int], List[int]]:
+        assert strategy.adapted_dataset is not None
         dataloader = self._make_dataloader(
             strategy.adapted_dataset, strategy.eval_mb_size
         )
 
-        images, labels, tasks = [], [], []
+        images: List[Tensor] = []
+        labels: List[Tensor] = []
+        tasks: List[Tensor] = []
 
         for batch_images, batch_labels, batch_tasks in dataloader:
             n_missing_images = self.n_wanted_images - len(images)
@@ -127,6 +128,7 @@ class ImagesSamplePlugin(PluginMetric):
             images.extend(batch_images[:n_missing_images])
             if len(images) == self.n_wanted_images:
                 return images, labels, tasks
+        return images, labels, tasks
 
     def _sort_images(self, labels: List[int], tasks: List[int]):
         self.images = [
@@ -138,7 +140,7 @@ class ImagesSamplePlugin(PluginMetric):
         ]
 
     def _make_dataloader(
-        self, data: "make_classification_dataset", mb_size: int
+        self, data: AvalancheDataset, mb_size: int
     ) -> DataLoader:
         if self.disable_augmentations:
             data = data.replace_current_transform_group(_MaybeToTensor())
@@ -176,7 +178,7 @@ def images_samples_metrics(
     group: bool = True,
     on_train: bool = True,
     on_eval: bool = False,
-) -> List[PluginMetric]:
+) -> List[ImagesSamplePlugin]:
     """
     Create the plugins to log some images samples in grids.
     No data augmentation is shown.
@@ -190,7 +192,7 @@ def images_samples_metrics(
     :param on_eval: If True, will emit some images samples during evaluation.
     :return: The corresponding plugins.
     """
-    plugins = []
+    plugins: List[ImagesSamplePlugin] = []
     if on_eval:
         plugins.append(
             ImagesSamplePlugin(

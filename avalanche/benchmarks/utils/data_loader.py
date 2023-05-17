@@ -14,14 +14,12 @@
     support for balanced dataloading between different tasks or balancing
     between the current data and the replay memory.
 """
-from itertools import chain
-from typing import Dict, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
 from torch.utils.data import RandomSampler, DistributedSampler
 from torch.utils.data.dataloader import DataLoader
 
-from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.collate_functions import (
     classification_collate_mbatches_fn,
 )
@@ -32,6 +30,7 @@ from avalanche.benchmarks.utils.collate_functions import (
     detection_collate_mbatches_fn as _detection_collate_mbatches_fn,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.data_attribute import DataAttribute
 
 _default_collate_mbatches_fn = classification_collate_mbatches_fn
 
@@ -95,8 +94,11 @@ class TaskBalancedDataLoader:
 
         # split data by task.
         task_datasets = []
-        for task_label in self.data.targets_task_labels.uniques:
-            tidxs = self.data.targets_task_labels.val_to_idx[task_label]
+        task_labels_field = getattr(self.data, 'targets_task_labels')
+        assert isinstance(task_labels_field, DataAttribute)
+        for task_label in task_labels_field.uniques:
+
+            tidxs = task_labels_field.val_to_idx[task_label]
             tdata = self.data.subset(tidxs)
             task_datasets.append(tdata)
 
@@ -122,7 +124,7 @@ class GroupBalancedDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[make_classification_dataset],
+        datasets: Sequence[AvalancheDataset],
         oversample_small_groups: bool = False,
         batch_size: int = 32,
         distributed_sampling: bool = True,
@@ -260,7 +262,7 @@ class GroupBalancedInfiniteDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[make_classification_dataset],
+        datasets: Sequence[AvalancheDataset],
         collate_mbatches=_default_collate_mbatches_fn,
         distributed_sampling: bool = True,
         **kwargs
@@ -391,7 +393,9 @@ class ReplayDataLoader:
         self.loader_kwargs["collate_fn"] = lambda x: x
 
         if task_balanced_dataloader:
-            num_keys = len(self.memory.targets_task_labels.uniques)
+            memory_task_labels = getattr(self.memory, 'targets_task_labels')
+            assert isinstance(memory_task_labels, DataAttribute)
+            num_keys = len(memory_task_labels.uniques)
             assert batch_size_mem >= num_keys, (
                 "Batch size must be greator or equal "
                 "to the number of tasks in the memory "
@@ -404,7 +408,9 @@ class ReplayDataLoader:
 
         # Create dataloader for memory items
         if task_balanced_dataloader:
-            num_keys = len(self.memory.targets_task_labels.uniques)
+            memory_task_labels = getattr(self.memory, 'targets_task_labels')
+            assert isinstance(memory_task_labels, DataAttribute)
+            num_keys = len(memory_task_labels.uniques)
             single_group_batch_size = batch_size_mem // num_keys
             remaining_example = batch_size_mem % num_keys
         else:
@@ -432,8 +438,10 @@ class ReplayDataLoader:
             )
         else:
             # Task balanced
-            for task_id in data.task_set:
-                dataset = data.task_set[task_id]
+            data_task_set: Mapping[int, AvalancheDataset] = \
+                getattr(data, 'task_set')
+            for task_id in data_task_set:
+                dataset = data_task_set[task_id]
                 mb_sz = self.data_batch_sizes[task_id]
 
                 loaders_for_len_estimation.append(
@@ -469,7 +477,7 @@ class ReplayDataLoader:
 
         try:
             for it in range(max_len):
-                mb_curr = []
+                mb_curr: List[Any] = []
                 ReplayDataLoader._get_mini_batch_from_data_dict(
                     iter_data_dataloaders,
                     sampler_data,
