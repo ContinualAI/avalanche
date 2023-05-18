@@ -60,19 +60,21 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
         old_p_hash = old_param_hash[key] 
         found = False
         for i, group in enumerate(optimizer.param_groups):
+            keys_to_remove.append([])
             for j, curr_p in enumerate(group["params"]):
                 if id(curr_p) == old_p_hash:
                     found = True
-                    keys_to_remove.append((i, j, curr_p))
+                    keys_to_remove[i].append((j, curr_p))
                     break
         if not found:
             raise Exception(
                 f"Parameter {key} not found "
                 f"in the current optimizer"
             )
-    for i, j, p in keys_to_remove:
-        del optimizer.param_groups[j]["params"][i]
-        optimizer.state.pop(p)
+    for i, idx_list in enumerate(keys_to_remove):
+        for (j, p) in sorted(idx_list, key=lambda x: x[0], reverse=True):
+            del optimizer.param_groups[i]["params"][j]
+            optimizer.state.pop(p)
 
     # Add newly added parameters (i.e Multitask, PNN)
     # by default, add to param groups 0
@@ -128,6 +130,8 @@ class BatchObservation(SGDStrategyProtocol):
                              dict(self.model.named_parameters()),
                              self.optimized_param_id, 
                              reset_state=reset_optimizer_state)
+            self.optimized_param_id = {n: id(p) for (n, p) in 
+                                       self.model.named_parameters()}
 
     def check_model_and_optimizer(self):
         # If strategy has access to the task boundaries, and the current
