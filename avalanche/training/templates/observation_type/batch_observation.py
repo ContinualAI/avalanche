@@ -1,5 +1,7 @@
+import warnings
 from collections import defaultdict
 from typing import List, TypeVar
+
 from torch import Tensor
 
 from avalanche.benchmarks import OnlineCLExperience
@@ -9,25 +11,85 @@ from avalanche.training.templates.strategy_mixin_protocol import \
     SGDStrategyProtocol
 
 
-def detect_param_change(optimizer, new_params) -> bool:
-    number_found = 0
-    indexes_found = set()
-    for group in optimizer.param_groups:
-        for old_param in group["params"]:
-            found = False
-            for i, new_param in enumerate(new_params):
-                if id(new_param) == id(old_param):
+def compare_keys(old_dict, new_dict):
+    not_in_new = list(set(old_dict.keys()) - set(new_dict.keys()))
+    in_both = list(set(old_dict.keys()) & set(new_dict.keys()))
+    not_in_old = list(set(new_dict.keys()) - set(old_dict.keys()))
+    return not_in_new, in_both, not_in_old
+
+
+def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
+    """
+    Detects param change and updates only the modified parameter
+    """
+
+    not_in_new, in_both, not_in_old = compare_keys(old_param_hash, new_params)
+
+    # Change reference to already existing parameters
+    # i.e growing IncrementalClassifier
+    for key in in_both:
+        old_p_hash = old_param_hash[key]
+        new_p = new_params[key]
+
+        # Look for old parameter id in current optimizer
+        found = False
+        for group in optimizer.param_groups:
+            for i, curr_p in enumerate(group["params"]):
+                if id(curr_p) == old_p_hash:
                     found = True
-                    number_found += 1
+                    # Parameter id has changed, 
+                    # most probably parameter 
+                    # dimension has changed, we need
+                    # to update reference and reset state
+                    if id(curr_p) != id(new_p):
+                        group["params"][i] = new_p
+                        optimizer.state.pop(curr_p)
+                        optimizer.state[new_p] = {}
                     break
-            if not found:
-                return False
-    if number_found != len(new_params):
-        return True
-    return False
+
+        if not found:
+            raise Exception(
+                f"Parameter {key} not found "
+                f"in the current optimizer"
+            )
+
+    # Remove parameters that are not here anymore
+    # This should not happend in most use case
+    keys_to_remove = []
+    for key in not_in_new:
+        old_p_hash = old_param_hash[key] 
+        found = False
+        for i, group in enumerate(optimizer.param_groups):
+            for j, curr_p in enumerate(group["params"]):
+                if id(curr_p) == old_p_hash:
+                    found = True
+                    keys_to_remove.append((i, j, curr_p))
+                    break
+        if not found:
+            raise Exception(
+                f"Parameter {key} not found "
+                f"in the current optimizer"
+            )
+    for i, j, p in keys_to_remove:
+        del optimizer.param_groups[j]["params"][i]
+        optimizer.state.pop(p)
+
+    # Add newly added parameters (i.e Multitask, PNN)
+    # by default, add to param groups 0
+    for key in not_in_old:
+        new_p = new_params[key]
+        optimizer.param_groups[0]["params"].append(new_p)
+        optimizer.state[new_p] = {}
+
+    if reset_state:
+        optimizer.state = defaultdict(dict)
 
 
 class BatchObservation(SGDStrategyProtocol):
+    def __init__(self):
+        super().__init__()
+        self.optimized_param_id = None
+
     def model_adaptation(self, model=None):
         """Adapts the model to the current data.
 
@@ -52,21 +114,20 @@ class BatchObservation(SGDStrategyProtocol):
 
         return model.to(self.device)
 
-    def make_optimizer(self, reset_opt=True, reset_state=False):
+    def make_optimizer(self, reset_optimizer_state=False):
         """Optimizer initialization.
 
-        Called before each training experiene to configure the optimizer.
+        Called before each training experience to configure the optimizer.
         """
-        reset_opt = detect_param_change(
-            self.optimizer, list(self.model.named_parameters()),
-        ) or reset_opt
-
-        if reset_state:
-            self.optimizer.state = defaultdict(dict)
-
-        if reset_opt:
-            # Here, optimizer state is also reset
+        if self.optimized_param_id is None:
             reset_optimizer(self.optimizer, self.model)
+            self.optimized_param_id = {n: id(p) for (n, p) in 
+                                       self.model.named_parameters()}
+        else:
+            update_optimizer(self.optimizer, 
+                             dict(self.model.named_parameters()),
+                             self.optimized_param_id, 
+                             reset_state=reset_optimizer_state)
 
     def check_model_and_optimizer(self):
         # If strategy has access to the task boundaries, and the current
@@ -77,10 +138,10 @@ class BatchObservation(SGDStrategyProtocol):
             if self.experience.access_task_boundaries:
                 if self.experience.is_first_subexp:
                     self.model = self.model_adaptation()
-                    self.make_optimizer(reset_opt=False)
+                    self.make_optimizer(reset_optimizer_state=False)
         else:
             self.model = self.model_adaptation()
-            self.make_optimizer(reset_opt=False)
+            self.make_optimizer(reset_optimizer_state=False)
 
 
 __all__ = ["BatchObservation"]
