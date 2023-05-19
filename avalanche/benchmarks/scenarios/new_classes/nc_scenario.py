@@ -402,18 +402,20 @@ class NCScenario(
         for exp_id in range(n_experiences):
             selected_classes = self.original_classes_in_exp[exp_id]
             selected_indexes_train = []
-            for idx, element in enumerate(original_training_dataset.targets):
-                if element in selected_classes:
-                    selected_indexes_train.append(idx)
-                    if self._has_task_labels:
-                        pattern_train_task_labels[idx] = exp_id  # type: ignore
+            for sc in selected_classes:
+                train_targets_idx = original_training_dataset.targets.val_to_idx[sc]
+                selected_indexes_train.extend(train_targets_idx)
+                if self._has_task_labels:
+                    for idx in train_targets_idx:
+                        pattern_train_task_labels[idx] = exp_id
 
             selected_indexes_test = []
-            for idx, element in enumerate(original_test_dataset.targets):
-                if element in selected_classes:
-                    selected_indexes_test.append(idx)
-                    if self._has_task_labels:
-                        pattern_test_task_labels[idx] = exp_id  # type: ignore
+            for sc in selected_classes:
+                test_targets_idx = original_test_dataset.targets.val_to_idx[sc]
+                selected_indexes_test.extend(test_targets_idx)
+                if self._has_task_labels:
+                    for idx in test_targets_idx:
+                        pattern_test_task_labels[idx] = exp_id
 
             train_exps_patterns_assignment.append(selected_indexes_train)
             test_exps_patterns_assignment.append(selected_indexes_test)
