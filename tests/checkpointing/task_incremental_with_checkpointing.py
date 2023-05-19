@@ -36,13 +36,14 @@ from avalanche.models import SimpleMLP, as_multitask
 from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.plugins import EvaluationPlugin, CWRStarPlugin, \
     ReplayPlugin, GDumbPlugin, LwFPlugin, SynapticIntelligencePlugin, EWCPlugin
-from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
-    FileSystemCheckpointStorage
+from avalanche.training.checkpoint import maybe_load_checkpoint, save_checkpoint
 from avalanche.training.supervised import Naive
 from tests.unit_tests_utils import get_fast_benchmark
 
 
 def main(args):
+    fname = './checkpoint.pkl'
+
     # FIRST CHANGE: SET THE RANDOM SEEDS
     # In fact, you should to this no matter the checkpointing functionality.
     # Remember to load checkpoints by setting the same random seed used when
@@ -112,109 +113,80 @@ def main(args):
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
     criterion = CrossEntropyLoss()
 
-    # SECOND CHANGE: INSTANTIATE THE CHECKPOINT PLUGIN
-    # FileSystemCheckpointStorage is a good default choice.
-    # The provided directory should point to the SPECIFIC experiment: do not
-    # re-use the same folder for different experiments/runs.
-    # Obvious noob advice: do not use a runtime-computed timestamp for the
-    # directory name, or you will end up by NOT loading the previous
-    # checkpoint ;)
-    # Please notice the `map_location`: you should set the current device there.
-    # That will take care of loading the checkpoint on the correct device, even
-    # if it was previously produced on a cuda device with a different id. It
-    # can also be used to resume a cuda checkpoint from cuda to CPU.
-    # However, it will not work when loading a CPU checkpoint to cuda...
-    # In brief: CUDA -> CPU (OK), CUDA:0 -> CUDA:1 (OK), CPU -> CUDA (NO!)
-    checkpoint_plugin = CheckpointPlugin(
-        FileSystemCheckpointStorage(
-            directory='./checkpoints/task_incremental',
+    # Create other plugins
+    # ...
+    plugins = []
+    cli_plugin_names = '_'.join(args.plugins)
+    for cli_plugin in args.plugins:
+        if cli_plugin == 'cwr':
+            plugin_instance = CWRStarPlugin(
+                model, freeze_remaining_model=False)
+        elif cli_plugin == 'replay':
+            plugin_instance = ReplayPlugin(mem_size=500)
+        elif cli_plugin == 'gdumb':
+            plugin_instance = GDumbPlugin(mem_size=500)
+        elif cli_plugin == 'lwf':
+            plugin_instance = LwFPlugin()
+        elif cli_plugin == 'si':
+            plugin_instance = SynapticIntelligencePlugin(0.001)
+        elif cli_plugin == 'ewc':
+            plugin_instance = EWCPlugin(0.001)
+        else:
+            raise ValueError('Unrecognized plugin name from CLI.')
+        print('Adding plugin', plugin_instance)
+        plugins.append(plugin_instance)
+
+    # Create loggers (as usual)
+    os.makedirs(f'./logs/checkpointing_{args.checkpoint_at}',
+                exist_ok=True)
+
+    loggers = [
+        TextLogger(
+            open(f'./logs/checkpointing_'
+                 f'{args.checkpoint_at}/log.txt', 'w')),
+        InteractiveLogger(),
+        TensorboardLogger(f'./logs/checkpointing_{args.checkpoint_at}')
+    ]
+
+    if args.wandb:
+        loggers.append(WandBLogger(
+            project_name='AvalancheCheckpointing',
+            run_name=f'checkpointing_{args.benchmark}_'
+                     f'{args.checkpoint_at}_'
+                     f'{cli_plugin_names}'
+        ))
+
+    # Create the evaluation plugin (when not using the default one)
+    evaluation_plugin = EvaluationPlugin(
+        accuracy_metrics(minibatch=False, epoch=True,
+                         experience=True, stream=True),
+        loss_metrics(minibatch=False, epoch=True,
+                     experience=True, stream=True),
+        class_accuracy_metrics(
+            stream=True
         ),
-        map_location=device
+        loggers=loggers
+    )
+
+    # Create the strategy
+    strategy = Naive(
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
+        train_mb_size=128,
+        train_epochs=1,
+        eval_mb_size=128,
+        device=device,
+        plugins=plugins,
+        evaluator=evaluation_plugin
     )
 
     # THIRD CHANGE: LOAD THE CHECKPOINT IF EXISTS
     # IF THE CHECKPOINT EXISTS, SKIP THE CREATION OF THE STRATEGY!
     # OTHERWISE, CREATE THE STRATEGY AS USUAL.
     # NOTE: add the checkpoint plugin to the list of strategy plugins!
-
     # Load checkpoint (if exists)
-    strategy, initial_exp = checkpoint_plugin.load_checkpoint_if_exists()
-
-    # Create the CL strategy (if not already loaded from checkpoint)
-    if strategy is None:
-        # Add the checkpoint plugin to the list of plugins!
-        plugins = [
-            checkpoint_plugin
-        ]
-
-        # Create other plugins
-        # ...
-        cli_plugins = []
-        cli_plugin_names = '_'.join(args.plugins)
-        for cli_plugin in args.plugins:
-            if cli_plugin == 'cwr':
-                plugin_instance = CWRStarPlugin(
-                    model, freeze_remaining_model=False)
-            elif cli_plugin == 'replay':
-                plugin_instance = ReplayPlugin(mem_size=500)
-            elif cli_plugin == 'gdumb':
-                plugin_instance = GDumbPlugin(mem_size=500)
-            elif cli_plugin == 'lwf':
-                plugin_instance = LwFPlugin()
-            elif cli_plugin == 'si':
-                plugin_instance = SynapticIntelligencePlugin(0.001)
-            elif cli_plugin == 'ewc':
-                plugin_instance = EWCPlugin(0.001)
-            else:
-                raise ValueError('Unrecognized plugin name from CLI.')
-            print('Adding plugin', plugin_instance)
-            cli_plugins.append(plugin_instance)
-        plugins += cli_plugins
-
-        # Create loggers (as usual)
-        os.makedirs(f'./logs/checkpointing_{args.checkpoint_at}',
-                    exist_ok=True)
-
-        loggers = [
-            TextLogger(
-                open(f'./logs/checkpointing_'
-                     f'{args.checkpoint_at}/log.txt', 'w')),
-            InteractiveLogger(),
-            TensorboardLogger(f'./logs/checkpointing_{args.checkpoint_at}')
-        ]
-
-        if args.wandb:
-            loggers.append(WandBLogger(
-                project_name='AvalancheCheckpointing',
-                run_name=f'checkpointing_{args.benchmark}_'
-                         f'{args.checkpoint_at}_'
-                         f'{cli_plugin_names}'
-            ))
-
-        # Create the evaluation plugin (when not using the default one)
-        evaluation_plugin = EvaluationPlugin(
-            accuracy_metrics(minibatch=False, epoch=True,
-                             experience=True, stream=True),
-            loss_metrics(minibatch=False, epoch=True,
-                         experience=True, stream=True),
-            class_accuracy_metrics(
-                stream=True
-            ),
-            loggers=loggers
-        )
-
-        # Create the strategy
-        strategy = Naive(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
-            train_mb_size=128,
-            train_epochs=1,
-            eval_mb_size=128,
-            device=device,
-            plugins=plugins,
-            evaluator=evaluation_plugin
-        )
+    strategy, initial_exp = maybe_load_checkpoint(strategy, fname)
 
     # Train and test loop: as usual
     # Notice the if checking "checkpoint_at", which here is only used to
@@ -226,8 +198,9 @@ def main(args):
     # all the work done between the previous checkpoint and the current moment
     # is lost.
     for train_task in train_stream[initial_exp:]:
-        strategy.train(train_task, num_workers=10, persistent_workers=True)
-        metrics = strategy.eval(test_stream, num_workers=10)
+        strategy.train(train_task, num_workers=2, persistent_workers=True)
+        metrics = strategy.eval(test_stream, num_workers=2)
+        save_checkpoint(strategy, fname)
 
         Path(args.log_metrics_to).mkdir(parents=True, exist_ok=True)
         with open(Path(args.log_metrics_to) /

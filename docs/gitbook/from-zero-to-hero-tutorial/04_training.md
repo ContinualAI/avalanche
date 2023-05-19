@@ -9,7 +9,7 @@ First, let's install Avalanche. You can skip this step if you have installed it 
 
 
 ```python
-!pip install avalanche-lib==0.2.0
+!pip install avalanche-lib==0.3.1
 ```
 
 ## 💪 The Training Module
@@ -23,13 +23,13 @@ At the moment, the `training` module includes three main components:
 
 * **Templates**: these are high level abstractions used as a starting point to define the actual strategies. The templates contain already implemented basic utilities and functionalities shared by a group of strategies (e.g. the `BaseSGDTemplate` contains all the implemented methods to deal with strategies based on SGD).
 * **Strategies**: these are popular baselines already implemented for you which you can use for comparisons or as base classes to define a custom strategy.
-* **Plugins**: these are classes that allow to add some specific behaviour to your own strategy. The plugin system allows to define reusable components which can be easily combined (e.g. a replay strategy, a regularization strategy). They are also used to automatically manage logging and evaluation.
+* **Plugins**: these are classes that allow adding some specific behavior to your own strategy. The plugin system allows defining reusable components which can be easily combined (e.g. a replay strategy, a regularization strategy). They are also used to automatically manage logging and evaluation.
 
 Keep in mind that many Avalanche components are independent of Avalanche strategies. If you already have your own strategy which does not use Avalanche, you can use Avalanche's benchmarks, models, data loaders, and metrics without ever looking at Avalanche's strategies!
 
 ## 📈 How to Use Strategies & Plugins
 
-If you want to compare your strategy with other classic continual learning algorithm or baselines, in _Avalanche_ you can instantiate a strategy with a couple lines of code.
+If you want to compare your strategy with other classic continual learning algorithms or baselines, in _Avalanche_ you can instantiate a strategy with a couple of lines of code.
 
 ### Strategy Instantiation
 Most strategies require only 3 mandatory arguments:
@@ -198,7 +198,7 @@ The strategy state is accessible via several attributes. Most of these can be mo
 ## How to Write a Plugin
 Plugins provide a simple solution to define a new strategy by augmenting the behavior of another strategy (typically the `Naive` strategy). This approach reduces the overhead and code duplication, **improving code readability and prototyping speed**.
 
-Creating a plugin is straightforward. As with strategies, you have to create a class which inherits from the corresponding plugin template (`BasePlugin`, `BaseSGDPlugin`, `SupervisedPlugin`) and implements the callbacks that you need. The exact callback to use depend on the aim of your plugin. You can use the loop shown above to understand what callbacks you need to use. For example, we show below a simple replay plugin that uses `after_training_exp` to update the buffer after each training experience, and the `before_training_exp` to customize the dataloader. Notice that `before_training_exp` is executed after `make_train_dataloader`, which means that the `Naive` strategy already updated the dataloader. If we used another callback, such as `before_train_dataset_adaptation`, our dataloader would have been overwritten by the `Naive` strategy. Plugin methods always receive the `strategy` as an argument, so they can access and modify the strategy's state.
+Creating a plugin is straightforward. As with strategies, you must create a class that inherits from the corresponding plugin template (`BasePlugin`, `BaseSGDPlugin`, `SupervisedPlugin`) and implements the callbacks that you need. The exact callback to use depend on the aim of your plugin. You can use the loop shown above to understand what callbacks you need to use. For example, we show below a simple replay plugin that uses `after_training_exp` to update the buffer after each training experience, and the `before_training_exp` to customize the dataloader. Notice that `before_training_exp` is executed after `make_train_dataloader`, which means that the `Naive` strategy already updated the dataloader. If we used another callback, such as `before_train_dataset_adaptation`, our dataloader would have been overwritten by the `Naive` strategy. Plugin methods always receive the `strategy` as an argument, so they can access and modify the strategy's state.
 
 
 ```python
@@ -250,14 +250,15 @@ Check base plugin's documentation for a complete list of the available callbacks
 ## How to Write a Custom Strategy
 
 You can always define a custom strategy by overriding the corresponding template methods.
-However, There is an important caveat to keep in mind. If you override a method, you must remember to call all the callback's handlers (the methods starting with `before/after`) at the appropriate points. For example, `train` calls `before_training` and `after_training` before and after the training loops, respectively. The easiest way to avoid mistakes is to start from the template's method that you want to override and modify it to your own needs without removing the callbacks handling.
+However, There is an important caveat to keep in mind. If you override a method, you must remember to call all the callback's handlers (the methods starting with `before/after`) at the appropriate points. For example, `train` calls `before_training` and `after_training` before and after the training loops, respectively. The easiest way to avoid mistakes is to start from the template's method that you want to override and modify it based on your own needs without removing the callbacks handling.
 
 Notice that the `EvaluationPlugin` (see `evaluation` tutorial) uses the strategy callbacks.
 
 As an example, the `SupervisedTemplate`, for continual supervised strategies, provides the global state of the loop in the strategy's attributes, which you can safely use when you override a method. For instance, the `Cumulative` strategy trains a model continually on the union of all the experiences encountered so far. To achieve this, the cumulative strategy overrides `adapt_train_dataset` and updates `self.adapted_dataset' by concatenating all the previous experiences with the current one.
 
+
 ```python
-from avalanche.benchmarks.utils import concat_classification_datasets
+from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.templates import SupervisedTemplate
 
 
@@ -272,9 +273,8 @@ class Cumulative(SupervisedTemplate):
         if self.dataset is None:
             self.dataset = curr_data
         else:
-            self.dataset = self.dataset.concat(curr_data)
+            self.dataset = AvalancheConcatDataset([self.dataset, curr_data])
         self.adapted_dataset = self.dataset.train()
-
 
 strategy = Cumulative(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128)
 strategy.train(benchmark.train_stream)
@@ -282,9 +282,9 @@ strategy.train(benchmark.train_stream)
 
 Easy, isn't it? :-\)
 
-In general, we recommend to _implement a Strategy via plugins_, if possible. This approach is the easiest to use and requires a minimal knowledge of the strategy templates. It also allows other people to re-use your plugin and facilitates interoperability among different strategies.
+In general, we recommend to _implement a Strategy via plugins_, if possible. This approach is the easiest to use and requires minimal knowledge of the strategy templates. It also allows other people to re-use your plugin and facilitates interoperability among different strategies.
 
-For example, replay strategies can be implemented as a custom strategy or as plugins. However, creating a plugin allows to use the replay in conjunction with other strategies or plugins, making possible the combination of different approach to build the ultimate continual learning algorithm!.
+For example, replay strategies can be implemented as a custom strategy or as plugins. However, creating a plugin allows using the replay in conjunction with other strategies or plugins, making it possible to combine different approaches to build the ultimate continual learning algorithm!
 
 This completes the "_Training_" chapter for the "_From Zero to Hero_" series. We hope you enjoyed it!
 

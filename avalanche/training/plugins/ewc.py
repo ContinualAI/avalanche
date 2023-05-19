@@ -1,15 +1,15 @@
 from collections import defaultdict
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Union
 import warnings
 import itertools
 
 import torch
-from torch import Tensor
 from torch.utils.data import DataLoader
 
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
+    ParamData
 
 
 class EWCPlugin(SupervisedPlugin):
@@ -66,8 +66,8 @@ class EWCPlugin(SupervisedPlugin):
         else:
             self.keep_importance_data = keep_importance_data
 
-        self.saved_params = defaultdict(list)
-        self.importances = defaultdict(list)
+        self.saved_params: Dict[int, Dict[str, ParamData]] = defaultdict(dict)
+        self.importances: Dict[int, Dict[str, ParamData]] = defaultdict(dict)
 
     def before_backward(self, strategy, **kwargs):
         """
@@ -81,28 +81,29 @@ class EWCPlugin(SupervisedPlugin):
 
         if self.mode == "separate":
             for experience in range(exp_counter):
-                for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                    strategy.model.named_parameters(),
-                    self.saved_params[experience],
-                    self.importances[experience],
-                ):
-                    # dynamic models may add new units
-                    # new units are ignored by the regularization
-                    n_units = saved_param.shape[0]
-                    cur_param = cur_param[:n_units]
-                    penalty += (imp * (cur_param - saved_param).pow(2)).sum()
-        elif self.mode == "online":
+                for k, cur_param in strategy.model.named_parameters():
+                    # new parameters do not count
+                    if k not in self.saved_params[experience]:
+                        continue
+                    saved_param = self.saved_params[experience][k]
+                    imp = self.importances[experience][k]
+                    new_shape = cur_param.shape
+                    penalty += (imp.expand(new_shape) *
+                                (cur_param -
+                                 saved_param.expand(new_shape))
+                                .pow(2)).sum()
+        elif self.mode == "online":  # may need importance and param expansion
             prev_exp = exp_counter - 1
-            for (_, cur_param), (_, saved_param), (_, imp) in zip(
-                strategy.model.named_parameters(),
-                self.saved_params[prev_exp],
-                self.importances[prev_exp],
-            ):
-                # dynamic models may add new units
-                # new units are ignored by the regularization
-                n_units = saved_param.shape[0]
-                cur_param = cur_param[:n_units]
-                penalty += (imp * (cur_param - saved_param).pow(2)).sum()
+            for k, cur_param in strategy.model.named_parameters():
+                # new parameters do not count
+                if k not in self.saved_params[prev_exp]:
+                    continue
+                saved_param = self.saved_params[prev_exp][k]
+                imp = self.importances[prev_exp][k]
+                new_shape = cur_param.shape
+                penalty += (imp.expand(new_shape) *
+                            (cur_param - saved_param.expand(new_shape))
+                            .pow(2)).sum()
         else:
             raise ValueError("Wrong EWC mode.")
 
@@ -129,7 +130,7 @@ class EWCPlugin(SupervisedPlugin):
 
     def compute_importances(
         self, model, criterion, optimizer, dataset, device, batch_size
-    ):
+    ) -> Dict[str, ParamData]:
         """
         Compute EWC importance matrix for each parameter
         """
@@ -168,20 +169,20 @@ class EWCPlugin(SupervisedPlugin):
             loss.backward()
 
             for (k1, p), (k2, imp) in zip(
-                model.named_parameters(), importances
+                model.named_parameters(), importances.items()
             ):
                 assert k1 == k2
                 if p.grad is not None:
-                    imp += p.grad.data.clone().pow(2)
+                    imp.data += p.grad.data.clone().pow(2)
 
         # average over mini batch length
-        for _, imp in importances:
-            imp /= float(len(dataloader))
+        for _, imp in importances.items():
+            imp.data /= float(len(dataloader))
 
         return importances
 
     @torch.no_grad()
-    def update_importances(self, importances, t):
+    def update_importances(self, importances, t: int):
         """
         Update importance for each parameter based on the currently computed
         importances.
@@ -191,20 +192,28 @@ class EWCPlugin(SupervisedPlugin):
             self.importances[t] = importances
         elif self.mode == "online":
             for (k1, old_imp), (k2, curr_imp) in itertools.zip_longest(
-                self.importances[t - 1],
-                importances,
+                self.importances[t-1].items(),
+                importances.items(),
                 fillvalue=(None, None),
             ):
                 # Add new module importances to the importances value (New head)
                 if k1 is None:
-                    self.importances[t].append((k2, curr_imp))
+                    assert k2 is not None
+                    assert curr_imp is not None
+                    self.importances[t][k2] = curr_imp
                     continue
 
                 assert k1 == k2, "Error in importance computation."
+                assert curr_imp is not None
+                assert old_imp is not None
+                assert k2 is not None
 
-                self.importances[t].append(
-                    (k1, (self.decay_factor * old_imp + curr_imp))
-                )
+                # manage expansion of existing layers
+                self.importances[t][k1] = ParamData(
+                    f'imp_{k1}', curr_imp.shape,
+                    init_tensor=self.decay_factor * old_imp.expand(
+                        curr_imp.shape) + curr_imp.data,
+                    device=curr_imp.device)
 
             # clear previous parameter importances
             if t > 0 and (not self.keep_importance_data):
@@ -214,5 +223,5 @@ class EWCPlugin(SupervisedPlugin):
             raise ValueError("Wrong EWC mode.")
 
 
-ParamDict = Dict[str, Tensor]
+ParamDict = Dict[str, Union[ParamData]]
 EwcDataType = Tuple[ParamDict, ParamDict]

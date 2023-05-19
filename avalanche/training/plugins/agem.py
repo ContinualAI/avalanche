@@ -1,10 +1,11 @@
 import warnings
-from typing import List
-
+import random
+from typing import Any, Iterator, List, Optional
 import torch
-from torch.utils.data import random_split
+from torch import Tensor
 
 from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import (
     GroupBalancedInfiniteDataLoader,
 )
@@ -35,20 +36,19 @@ class AGEMPlugin(SupervisedPlugin):
         self.patterns_per_experience = int(patterns_per_experience)
         self.sample_size = int(sample_size)
 
-        self.buffers: List[
-            make_classification_dataset
-        ] = []  # one AvalancheDataset for
-        # each experience.
-        self.buffer_dataloader = None
-        self.buffer_dliter = None
-
-        self.reference_gradients = None
-        self.memory_x, self.memory_y = None, None
+        # One AvalancheDataset for each experience
+        self.buffers: List[AvalancheDataset] = []
+        self.buffer_dataloader: Optional[GroupBalancedInfiniteDataLoader] = None
+        # Placeholder iterator to avoid typing issues
+        self.buffer_dliter: Iterator[Any] = iter([])
+        # Placeholder Tensor to avoid typing issues
+        self.reference_gradients: Tensor = torch.empty(0)
 
     def before_training_iteration(self, strategy, **kwargs):
         """
         Compute reference gradient on memory sample.
         """
+
         if len(self.buffers) > 0:
             strategy.model.train()
             strategy.optimizer.zero_grad()
@@ -60,13 +60,13 @@ class AGEMPlugin(SupervisedPlugin):
             loss = strategy._criterion(out, yref)
             loss.backward()
             # gradient can be None for some head on multi-headed models
-            self.reference_gradients = [
+            reference_gradients_list = [
                 p.grad.view(-1)
                 if p.grad is not None
                 else torch.zeros(p.numel(), device=strategy.device)
                 for n, p in strategy.model.named_parameters()
             ]
-            self.reference_gradients = torch.cat(self.reference_gradients)
+            self.reference_gradients = torch.cat(reference_gradients_list)
             strategy.optimizer.zero_grad()
 
     @torch.no_grad()
@@ -75,13 +75,13 @@ class AGEMPlugin(SupervisedPlugin):
         Project gradient based on reference gradients
         """
         if len(self.buffers) > 0:
-            current_gradients = [
+            current_gradients_list = [
                 p.grad.view(-1)
                 if p.grad is not None
                 else torch.zeros(p.numel(), device=strategy.device)
                 for n, p in strategy.model.named_parameters()
             ]
-            current_gradients = torch.cat(current_gradients)
+            current_gradients = torch.cat(current_gradients_list)
 
             assert (
                 current_gradients.shape == self.reference_gradients.shape
@@ -127,16 +127,18 @@ class AGEMPlugin(SupervisedPlugin):
             )
         removed_els = len(dataset) - self.patterns_per_experience
         if removed_els > 0:
-            dataset, _ = random_split(
-                dataset, [self.patterns_per_experience, removed_els]
-            )
+            indices = list(range(len(dataset)))
+            random.shuffle(indices)
+            dataset = dataset.subset(indices[:self.patterns_per_experience])
+
         self.buffers.append(dataset)
+
         persistent_workers = num_workers > 0
         self.buffer_dataloader = GroupBalancedInfiniteDataLoader(
             self.buffers,
-            batch_size=self.sample_size // len(self.buffers),
+            batch_size=(self.sample_size // len(self.buffers)),
             num_workers=num_workers,
-            pin_memory=True,
+            pin_memory=False,
             persistent_workers=persistent_workers,
         )
         self.buffer_dliter = iter(self.buffer_dataloader)

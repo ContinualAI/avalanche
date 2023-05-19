@@ -53,7 +53,7 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=1,
             device=self.device,
             eval_mb_size=50,
-            evaluator=default_evaluator(),
+            evaluator=default_evaluator,
         )
         ocl_benchmark = OnlineCLScenario(benchmark_streams,
                                          access_task_boundaries=True)
@@ -68,7 +68,7 @@ class StrategyTest(unittest.TestCase):
             train_mb_size=1,
             device=self.device,
             eval_mb_size=50,
-            evaluator=default_evaluator(),
+            evaluator=default_evaluator,
         )
         ocl_benchmark = OnlineCLScenario(benchmark_streams,
                                          access_task_boundaries=False)
@@ -99,8 +99,8 @@ class StrategyTest(unittest.TestCase):
         print("Starting experiment (with boundaries) ...")
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
-        for train_batch_info in benchmark.train_stream:
-            print("Start of experience ", train_batch_info.current_experience)
+        for exp_idx, train_batch_info in enumerate(benchmark.train_stream):
+            print("Start of experience ", exp_idx)
 
             cl_strategy.train(train_batch_info, num_workers=0)
             print("Training completed")
@@ -115,6 +115,8 @@ class StrategyTest(unittest.TestCase):
 
         cl_strategy.train(benchmark.train_stream, num_workers=0)
         print("Training completed")
+
+        assert cl_strategy.clock.train_exp_counter > 0
 
         print("Computing accuracy on the current test set")
         results.append(cl_strategy.eval(benchmark.original_test_stream[:]))

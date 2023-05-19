@@ -13,7 +13,7 @@
 
 import csv
 from pathlib import Path
-from typing import Union
+from typing import List, Optional, Tuple, Union
 
 from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
@@ -35,7 +35,7 @@ class TinyImagenet(SimpleDownloadableDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         train: bool = True,
         transform=None,
@@ -112,7 +112,7 @@ class TinyImagenet(SimpleDownloadableDataset):
         :return: train_set, test_set: (train_X_paths, train_y).
         """
 
-        data = [[], []]
+        data: Tuple[List[Path], List[int]] = ([], [])
 
         classes = list(range(200))
         for class_id in classes:
@@ -126,12 +126,12 @@ class TinyImagenet(SimpleDownloadableDataset):
                 X = self.get_test_images_paths(class_name)
                 Y = [class_id] * len(X)
 
-            data[0] += X
-            data[1] += Y
+            data[0].extend(X)
+            data[1].extend(Y)
 
         return data
 
-    def get_train_images_paths(self, class_name):
+    def get_train_images_paths(self, class_name) -> List[Path]:
         """
         Gets the training set image paths.
 
@@ -139,13 +139,14 @@ class TinyImagenet(SimpleDownloadableDataset):
             collected.
         :returns img_paths: list of strings (paths)
         """
-        train_img_folder = self.data_folder / "train" / class_name / "images"
+        train_img_folder: Path = \
+            self.data_folder / "train" / class_name / "images"
 
         img_paths = [f for f in train_img_folder.iterdir() if f.is_file()]
 
         return img_paths
 
-    def get_test_images_paths(self, class_name):
+    def get_test_images_paths(self, class_name) -> List[Path]:
         """
         Gets the test set image paths
 
@@ -154,8 +155,10 @@ class TinyImagenet(SimpleDownloadableDataset):
         :returns img_paths: list of strings (paths)
         """
 
-        val_img_folder = self.data_folder / "val" / "images"
-        annotations_file = self.data_folder / "val" / "val_annotations.txt"
+        val_img_folder: Path = \
+            self.data_folder / "val" / "images"
+        annotations_file: Path = \
+            self.data_folder / "val" / "val_annotations.txt"
 
         valid_names = []
 

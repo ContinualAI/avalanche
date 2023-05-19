@@ -13,7 +13,7 @@
 
 import pickle as pkl
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
@@ -30,7 +30,7 @@ class OpenLORIS(DownloadableDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         train=True,
         transform=None,

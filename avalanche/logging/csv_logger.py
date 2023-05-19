@@ -246,3 +246,8 @@ class CSVLogger(BaseLogger, SupervisedPlugin):
     def close(self):
         self.training_file.close()
         self.eval_file.close()
+
+
+__all__ = [
+    'CSVLogger'
+]

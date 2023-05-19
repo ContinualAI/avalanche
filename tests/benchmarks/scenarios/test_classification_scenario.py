@@ -6,13 +6,13 @@ import torch
 
 from avalanche.benchmarks import (
     dataset_benchmark,
-    GenericClassificationExperience,
-    GenericCLScenario,
+    ClassificationExperience,
+    ClassificationScenario,
 )
 from avalanche.benchmarks.utils import make_tensor_classification_dataset
 
 
-class GenericCLScenarioTests(unittest.TestCase):
+class ClassificationScenarioTests(unittest.TestCase):
     def test_classes_in_exp(self):
         train_exps = []
 
@@ -40,7 +40,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
             make_tensor_classification_dataset(
-                test_x, test_y, task_labels=test_t)
+                test_x, test_y, task_labels=test_t
+            )
         )
 
         other_stream_exps = []
@@ -49,7 +50,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
             make_tensor_classification_dataset(
-                other_x, other_y, task_labels=other_t)
+                other_x, other_y, task_labels=other_t
+            )
         )
 
         benchmark_instance = dataset_benchmark(
@@ -121,7 +123,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
             make_tensor_classification_dataset(
-                test_x, test_y, task_labels=test_t)
+                test_x, test_y, task_labels=test_t
+            )
         )
 
         other_stream_exps = []
@@ -130,7 +133,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
             make_tensor_classification_dataset(
-                other_x, other_y, task_labels=other_t)
+                other_x, other_y, task_labels=other_t
+            )
         )
 
         benchmark_instance = dataset_benchmark(
@@ -139,10 +143,10 @@ class GenericCLScenarioTests(unittest.TestCase):
             other_streams_datasets={"other": other_stream_exps},
         )
 
-        train_exp_0: GenericClassificationExperience = (
+        train_exp_0: ClassificationExperience = (
             benchmark_instance.train_stream[0]
         )
-        train_exp_1: GenericClassificationExperience = (
+        train_exp_1: ClassificationExperience = (
             benchmark_instance.train_stream[1]
         )
         train_0_classes = train_exp_0.classes_in_this_experience
@@ -156,7 +160,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertGreaterEqual(train_1_classes_min, 0)
         self.assertLess(train_1_classes_max, 100)
 
-        test_exp_0: GenericClassificationExperience = (
+        test_exp_0: ClassificationExperience = (
             benchmark_instance.test_stream[0]
         )
         test_0_classes = test_exp_0.classes_in_this_experience
@@ -165,7 +169,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertGreaterEqual(test_0_classes_min, 100)
         self.assertLess(test_0_classes_max, 200)
 
-        other_exp_0: GenericClassificationExperience = (
+        other_exp_0: ClassificationExperience = (
             benchmark_instance.other_stream[0]
         )
         other_0_classes = other_exp_0.classes_in_this_experience
@@ -192,7 +196,7 @@ class GenericCLScenarioTests(unittest.TestCase):
             for dataset in other_stream_exps:
                 yield dataset
 
-        benchmark_instance = GenericCLScenario(
+        benchmark_instance = ClassificationScenario(
             stream_definitions=dict(
                 train=(
                     (train_gen(), len(train_exps)),
@@ -225,7 +229,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertIsNone(future_classes)
         # --- END: Test classes timeline before first experience ---
 
-        train_exp_0: GenericClassificationExperience = (
+        train_exp_0: ClassificationExperience = (
             benchmark_instance.train_stream[0]
         )
         # --- START: Test classes timeline at first experience ---
@@ -255,7 +259,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertSetEqual(set(), set(future_classes))
         # --- END: Test classes timeline at first experience ---
 
-        train_exp_1: GenericClassificationExperience = (
+        train_exp_1: ClassificationExperience = (
             benchmark_instance.train_stream[1]
         )
         # --- START: Test classes timeline at second experience ---
@@ -301,11 +305,11 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertLess(train_1_classes_max, 100)
 
         with self.assertRaises(IndexError):
-            train_exp_2: GenericClassificationExperience = (
+            train_exp_2: ClassificationExperience = (
                 benchmark_instance.train_stream[2]
             )
 
-        test_exp_0: GenericClassificationExperience = (
+        test_exp_0: ClassificationExperience = (
             benchmark_instance.test_stream[0]
         )
         test_0_classes = test_exp_0.classes_in_this_experience
@@ -315,11 +319,11 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertLess(test_0_classes_max, 200)
 
         with self.assertRaises(IndexError):
-            test_exp_1: GenericClassificationExperience = (
+            test_exp_1: ClassificationExperience = (
                 benchmark_instance.test_stream[1]
             )
 
-        other_exp_0: GenericClassificationExperience = (
+        other_exp_0: ClassificationExperience = (
             benchmark_instance.other_stream[0]
         )
         other_0_classes = other_exp_0.classes_in_this_experience
@@ -329,7 +333,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertLess(other_0_classes_max, 600)
 
         with self.assertRaises(IndexError):
-            other_exp_1: GenericClassificationExperience = (
+            other_exp_1: ClassificationExperience = (
                 benchmark_instance.other_stream[1]
             )
 
@@ -339,11 +343,12 @@ class GenericCLScenarioTests(unittest.TestCase):
         train_dataset_exp_0_weak_ref = weakref.ref(train_exps[0])
         train_dataset_exp_1_weak_ref = weakref.ref(train_exps[1])
 
-        train_gen = GenericCLScenarioTests._generate_stream(train_exps)
-        test_gen = GenericCLScenarioTests._generate_stream(test_exps)
-        other_gen = GenericCLScenarioTests._generate_stream(other_stream_exps)
+        train_gen = ClassificationScenarioTests._generate_stream(train_exps)
+        test_gen = ClassificationScenarioTests._generate_stream(test_exps)
+        other_gen = ClassificationScenarioTests._generate_stream(
+            other_stream_exps)
 
-        benchmark_instance = GenericCLScenario(
+        benchmark_instance = ClassificationScenario(
             stream_definitions=dict(
                 train=(
                     (train_gen, len(train_exps)),
@@ -376,7 +381,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertIsNone(future_classes)
         # --- END: Test classes timeline before first experience ---
 
-        train_exp_0: GenericClassificationExperience = (
+        train_exp_0: ClassificationExperience = (
             benchmark_instance.train_stream[0]
         )
         # --- START: Test classes timeline at first experience ---
@@ -408,7 +413,7 @@ class GenericCLScenarioTests(unittest.TestCase):
 
         # Check if it works when the previous experience is dropped
         benchmark_instance.train_stream.drop_previous_experiences(0)
-        train_exp_1: GenericClassificationExperience = (
+        train_exp_1: ClassificationExperience = (
             benchmark_instance.train_stream[1]
         )
         # --- START: Test classes timeline at second experience ---
@@ -454,11 +459,11 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertLess(train_1_classes_max, 100)
 
         with self.assertRaises(IndexError):
-            train_exp_2: GenericClassificationExperience = (
+            train_exp_2: ClassificationExperience = (
                 benchmark_instance.train_stream[2]
             )
 
-        test_exp_0: GenericClassificationExperience = (
+        test_exp_0: ClassificationExperience = (
             benchmark_instance.test_stream[0]
         )
         test_0_classes = test_exp_0.classes_in_this_experience
@@ -468,11 +473,11 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertLess(test_0_classes_max, 200)
 
         with self.assertRaises(IndexError):
-            test_exp_1: GenericClassificationExperience = (
+            test_exp_1: ClassificationExperience = (
                 benchmark_instance.test_stream[1]
             )
 
-        other_exp_0: GenericClassificationExperience = (
+        other_exp_0: ClassificationExperience = (
             benchmark_instance.other_stream[0]
         )
         other_0_classes = other_exp_0.classes_in_this_experience
@@ -482,7 +487,7 @@ class GenericCLScenarioTests(unittest.TestCase):
         self.assertLess(other_0_classes_max, 600)
 
         with self.assertRaises(IndexError):
-            other_exp_1: GenericClassificationExperience = (
+            other_exp_1: ClassificationExperience = (
                 benchmark_instance.other_stream[1]
             )
 
@@ -541,7 +546,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
             make_tensor_classification_dataset(
-                test_x, test_y, task_labels=test_t)
+                test_x, test_y, task_labels=test_t
+            )
         )
 
         other_stream_exps = []
@@ -550,7 +556,8 @@ class GenericCLScenarioTests(unittest.TestCase):
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
             make_tensor_classification_dataset(
-                other_x, other_y, task_labels=other_t)
+                other_x, other_y, task_labels=other_t
+            )
         )
 
         return train_exps, test_exps, other_stream_exps

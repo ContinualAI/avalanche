@@ -1,10 +1,21 @@
 """Regularization methods."""
 import copy
+from collections import defaultdict
+from typing import List
 
 import torch
+import torch.nn.functional as F
 
 from avalanche.models import MultiTaskModule, avalanche_forward
-from collections import defaultdict
+
+
+def cross_entropy_with_oh_targets(outputs, targets, eps=1e-5):
+    """ Calculates cross-entropy with temperature scaling, 
+    targets can also be soft targets but they must sum to 1 """
+    outputs = torch.nn.functional.softmax(outputs, dim=1)
+    ce = -(targets * outputs.log()).sum(1)
+    ce = ce.mean()
+    return ce
 
 
 class RegularizationMethod:
@@ -54,6 +65,12 @@ class LearningWithoutForgetting(RegularizationMethod):
         # we compute the loss only on the previously active units.
         au = list(active_units)
 
+        # some people use the crossentropy instead of the KL
+        # They are equivalent. We compute 
+        # kl_div(log_p_curr, p_prev) = p_prev * (log (p_prev / p_curr)) = 
+        #   p_prev * log(p_prev) - p_prev * log(p_curr).
+        # Now, the first term is constant (we don't optimize the teacher), 
+        # so optimizing the crossentropy and kl-div are equivalent.
         log_p = torch.log_softmax(out[:, au] / self.temperature, dim=1)
         q = torch.softmax(prev_out[:, au] / self.temperature, dim=1)
         res = torch.nn.functional.kl_div(log_p, q, reduction="batchmean")
@@ -126,7 +143,27 @@ class LearningWithoutForgetting(RegularizationMethod):
                 ].union(pc)
 
 
-__all__ = [
-    "RegularizationMethod",
-    "LearningWithoutForgetting"
-]
+class ACECriterion(RegularizationMethod):
+    """
+    Asymetric cross-entropy (ACE) Criterion used in
+    "New Insights on Reducing Abrupt Representation 
+    Change in Online Continual Learning"
+    by Lucas Caccia et. al.
+    https://openreview.net/forum?id=N8MaByOzUfb
+    """
+
+    def __init__(self):
+        pass
+
+    def __call__(self, out_in, target_in, out_buffer, target_buffer):
+        current_classes = torch.unique(target_in)
+        loss_buffer = F.cross_entropy(out_buffer, target_buffer)
+        oh_target_in = F.one_hot(target_in, num_classes=out_in.shape[1])
+        oh_target_in = oh_target_in[:, current_classes]
+        loss_current = cross_entropy_with_oh_targets(
+                out_in[:, current_classes], oh_target_in
+        )
+        return (loss_buffer + loss_current) / 2
+
+
+__all__ = ["RegularizationMethod", "LearningWithoutForgetting", "ACECriterion"]

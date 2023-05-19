@@ -14,14 +14,12 @@
     support for balanced dataloading between different tasks or balancing
     between the current data and the replay memory.
 """
-from itertools import chain
-from typing import Dict, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
-from torch.utils.data import RandomSampler, DistributedSampler
+from torch.utils.data import RandomSampler, DistributedSampler, Dataset
 from torch.utils.data.dataloader import DataLoader
 
-from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.utils.collate_functions import (
     classification_collate_mbatches_fn,
 )
@@ -31,12 +29,24 @@ from avalanche.benchmarks.utils.collate_functions import (
 from avalanche.benchmarks.utils.collate_functions import (
     detection_collate_mbatches_fn as _detection_collate_mbatches_fn,
 )
+from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.data_attribute import DataAttribute
+from avalanche.distributed.distributed_helper import DistributedHelper
 
 _default_collate_mbatches_fn = classification_collate_mbatches_fn
 
 detection_collate_fn = _detection_collate_fn
 
 detection_collate_mbatches_fn = _detection_collate_mbatches_fn
+
+
+def return_identity(x):
+    """
+    The identity function. Can be wrapped in 'partial'
+    to act as a getter function.
+    Used to avoid lambda functions that cannot be pickled.
+    """
+    return x
 
 
 def collate_from_data_or_kwargs(data, kwargs):
@@ -51,9 +61,8 @@ class TaskBalancedDataLoader:
 
     def __init__(
         self,
-        data: make_classification_dataset,
+        data: AvalancheDataset,
         oversample_small_tasks: bool = False,
-        collate_mbatches=_default_collate_mbatches_fn,
         **kwargs
     ):
         """Task-balanced data loader for Avalanche's datasets.
@@ -70,21 +79,28 @@ class TaskBalancedDataLoader:
         :param data: an instance of `AvalancheDataset`.
         :param oversample_small_tasks: whether smaller tasks should be
             oversampled to match the largest one.
-        :param collate_mbatches: function that given a sequence of mini-batches
-            (one for each task) combines them into a single mini-batch. Used to
-            combine the mini-batches obtained separately from each task.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
+        if "collate_mbatches" in kwargs:
+            raise ValueError(
+                "collate_mbatches is not needed anymore and it has been "
+                "deprecated. Data loaders will use the collate function"
+                "`data.collate_fn`."
+            )
+
         self.data = data
         self.dataloaders: Dict[int, DataLoader] = dict()
         self.oversample_small_tasks = oversample_small_tasks
-        self.collate_mbatches = collate_mbatches
 
         # split data by task.
         task_datasets = []
-        for task_label in self.data.task_set:
-            tdata = self.data.task_set[task_label]
+        task_labels_field = getattr(self.data, 'targets_task_labels')
+        assert isinstance(task_labels_field, DataAttribute)
+        for task_label in task_labels_field.uniques:
+
+            tidxs = task_labels_field.val_to_idx[task_label]
+            tdata = self.data.subset(tidxs)
             task_datasets.append(tdata)
 
         # the iteration logic is implemented by GroupBalancedDataLoader.
@@ -94,7 +110,6 @@ class TaskBalancedDataLoader:
             del kwargs["data"]
         # needed if they are passed as positional arguments
         kwargs["oversample_small_groups"] = oversample_small_tasks
-        kwargs["collate_mbatches"] = collate_mbatches
         self._dl = GroupBalancedDataLoader(datasets=task_datasets, **kwargs)
 
     def __iter__(self):
@@ -110,9 +125,8 @@ class GroupBalancedDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[make_classification_dataset],
+        datasets: Sequence[AvalancheDataset],
         oversample_small_groups: bool = False,
-        collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,
         distributed_sampling: bool = True,
         **kwargs
@@ -130,20 +144,31 @@ class GroupBalancedDataLoader:
         :param datasets: an instance of `AvalancheDataset`.
         :param oversample_small_groups: whether smaller groups should be
             oversampled to match the largest one.
-        :param collate_mbatches: function that given a sequence of mini-batches
-            (one for each task) combines them into a single mini-batch. Used to
-            combine the mini-batches obtained separately from each task.
         :param batch_size: the size of the batch. It must be greater than or
             equal to the number of groups.
         :param kwargs: data loader arguments used to instantiate the loader for
             each group separately. See pytorch :class:`DataLoader`.
         """
+        if "collate_mbatches" in kwargs:
+            raise ValueError(
+                "collate_mbatches is not needed anymore and it has been "
+                "deprecated. Data loaders will use the collate function"
+                "`data.collate_fn`."
+            )
+
         self.datasets = datasets
         self.batch_sizes = []
         self.oversample_small_groups = oversample_small_groups
-        self.collate_mbatches = collate_mbatches
         self.distributed_sampling = distributed_sampling
         self.loader_kwargs = kwargs
+        if "collate_fn" in kwargs:
+            self.collate_fn = kwargs["collate_fn"]
+        else:
+            self.collate_fn = self.datasets[0].collate_fn
+
+        # collate is done after we have all batches
+        # so we set an empty collate for the internal dataloaders
+        self.loader_kwargs["collate_fn"] = return_identity
 
         # check if batch_size is larger than or equal to the number of datasets
         assert batch_size >= len(datasets)
@@ -177,7 +202,10 @@ class GroupBalancedDataLoader:
         samplers = []
         for dataset, mb_size in zip(self.datasets, self.batch_sizes):
             data_l, data_l_sampler = _make_data_loader(
-                dataset, self.distributed_sampling, self.loader_kwargs, mb_size
+                dataset,
+                self.distributed_sampling,
+                self.loader_kwargs,
+                mb_size,
             )
 
             dataloaders.append(data_l)
@@ -217,8 +245,8 @@ class GroupBalancedDataLoader:
                         samplers[tid] = None
                         removed_dataloaders_idxs.append(tid)
                         continue
-                mb_curr.append(batch)
-            yield self.collate_mbatches(mb_curr)
+                mb_curr.extend(batch)
+            yield self.collate_fn(mb_curr)
 
             # clear empty data-loaders
             for tid in reversed(removed_dataloaders_idxs):
@@ -235,18 +263,16 @@ class GroupBalancedInfiniteDataLoader:
 
     def __init__(
         self,
-        datasets: Sequence[make_classification_dataset],
+        datasets: Sequence[AvalancheDataset],
         collate_mbatches=_default_collate_mbatches_fn,
         distributed_sampling: bool = True,
         **kwargs
     ):
         """Data loader that balances data from multiple datasets emitting an
         infinite stream.
-
         Mini-batches emitted by this dataloader are created by collating
         together mini-batches from each group. It may be used to balance data
         among classes, experiences, tasks, and so on.
-
         :param datasets: an instance of `AvalancheDataset`.
         :param collate_mbatches: function that given a sequence of mini-batches
             (one for each task) combines them into a single mini-batch. Used to
@@ -259,14 +285,14 @@ class GroupBalancedInfiniteDataLoader:
         self.collate_mbatches = collate_mbatches
 
         for data in self.datasets:
-            if _DistributedHelper.is_distributed and distributed_sampling:
+            if DistributedHelper.is_distributed and distributed_sampling:
                 seed = torch.randint(
                     0,
-                    2 ** 32 - 1 - _DistributedHelper.world_size,
+                    2 ** 32 - 1 - DistributedHelper.world_size,
                     (1,),
                     dtype=torch.int64,
                 )
-                seed += _DistributedHelper.rank
+                seed += DistributedHelper.rank
                 generator = torch.Generator()
                 generator.manual_seed(int(seed))
             else:
@@ -303,10 +329,9 @@ class ReplayDataLoader:
 
     def __init__(
         self,
-        data: make_classification_dataset,
-        memory: make_classification_dataset = None,
+        data: AvalancheDataset,
+        memory: Optional[AvalancheDataset] = None,
         oversample_small_tasks: bool = False,
-        collate_mbatches=_default_collate_mbatches_fn,
         batch_size: int = 32,
         batch_size_mem: int = 32,
         task_balanced_dataloader: bool = False,
@@ -321,6 +346,10 @@ class ReplayDataLoader:
         balanced using the task label (i.e. each mini-batch contains a balanced
         number of examples from all the tasks in the `data` and `memory`).
 
+        The length of the loader is determined only by the current 
+        task data and is the same than what it would be when creating a 
+        data loader for this dataset.
+
         If `oversample_small_tasks == True` smaller tasks are oversampled to
         match the largest task.
 
@@ -328,9 +357,6 @@ class ReplayDataLoader:
         :param memory: AvalancheDataset.
         :param oversample_small_tasks: whether smaller tasks should be
             oversampled to match the largest one.
-        :param collate_mbatches: function that given a sequence of mini-batches
-            (one for each task) combines them into a single mini-batch. Used to
-            combine the mini-batches obtained separately from each task.
         :param batch_size: the size of the data batch. It must be greater
             than or equal to the number of tasks.
         :param batch_size_mem: the size of the memory batch. If
@@ -342,19 +368,35 @@ class ReplayDataLoader:
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
+        if "collate_mbatches" in kwargs:
+            raise ValueError(
+                "collate_mbatches is not needed anymore and it has been "
+                "deprecated. Data loaders will use the collate function"
+                "`data.collate_fn`."
+            )
 
         self.data = data
         self.memory = memory
         self.oversample_small_tasks = oversample_small_tasks
         self.task_balanced_dataloader = task_balanced_dataloader
-        self.collate_mbatches = collate_mbatches
         self.data_batch_sizes: Union[int, Dict[int, int]] = dict()
         self.memory_batch_sizes: Union[int, Dict[int, int]] = dict()
         self.distributed_sampling = distributed_sampling
         self.loader_kwargs = kwargs
 
-        num_keys = len(self.memory.task_set)
+        if "collate_fn" in kwargs:
+            self.collate_fn = kwargs["collate_fn"]
+        else:
+            self.collate_fn = self.data.collate_fn
+
+        # collate is done after we have all batches
+        # so we set an empty collate for the internal dataloaders
+        self.loader_kwargs["collate_fn"] = lambda x: x
+
         if task_balanced_dataloader:
+            memory_task_labels = getattr(self.memory, 'targets_task_labels')
+            assert isinstance(memory_task_labels, DataAttribute)
+            num_keys = len(memory_task_labels.uniques)
             assert batch_size_mem >= num_keys, (
                 "Batch size must be greator or equal "
                 "to the number of tasks in the memory "
@@ -367,6 +409,9 @@ class ReplayDataLoader:
 
         # Create dataloader for memory items
         if task_balanced_dataloader:
+            memory_task_labels = getattr(self.memory, 'targets_task_labels')
+            assert isinstance(memory_task_labels, DataAttribute)
+            num_keys = len(memory_task_labels.uniques)
             single_group_batch_size = batch_size_mem // num_keys
             remaining_example = batch_size_mem % num_keys
         else:
@@ -394,34 +439,11 @@ class ReplayDataLoader:
             )
         else:
             # Task balanced
-            for task_id in data.task_set:
-                dataset = data.task_set[task_id]
+            data_task_set: Mapping[int, AvalancheDataset] = \
+                getattr(data, 'task_set')
+            for task_id in data_task_set:
+                dataset = data_task_set[task_id]
                 mb_sz = self.data_batch_sizes[task_id]
-
-                loaders_for_len_estimation.append(
-                    _make_data_loader(
-                        dataset,
-                        distributed_sampling,
-                        kwargs,
-                        mb_sz,
-                        force_no_workers=True,
-                    )[0]
-                )
-
-        if isinstance(self.memory_batch_sizes, int):
-            loaders_for_len_estimation.append(
-                _make_data_loader(
-                    memory,
-                    distributed_sampling,
-                    kwargs,
-                    self.memory_batch_sizes,
-                    force_no_workers=True,
-                )[0]
-            )
-        else:
-            for task_id in memory.task_set:
-                dataset = memory.task_set[task_id]
-                mb_sz = self.memory_batch_sizes[task_id]
 
                 loaders_for_len_estimation.append(
                     _make_data_loader(
@@ -452,19 +474,11 @@ class ReplayDataLoader:
         for t in loader_memory.keys():
             iter_buffer_dataloaders[t] = iter(loader_memory[t])
 
-        max_len = max(
-            [
-                len(d)
-                for d in chain(
-                    loader_data.values(),
-                    loader_memory.values(),
-                )
-            ]
-        )
+        max_len = max([len(d) for d in loader_data.values()])
 
         try:
             for it in range(max_len):
-                mb_curr = []
+                mb_curr: List[Any] = []
                 ReplayDataLoader._get_mini_batch_from_data_dict(
                     iter_data_dataloaders,
                     sampler_data,
@@ -481,7 +495,7 @@ class ReplayDataLoader:
                     mb_curr,
                 )
 
-                yield self.collate_mbatches(mb_curr)
+                yield self.collate_fn(mb_curr)
         except StopIteration:
             return
 
@@ -518,7 +532,7 @@ class ReplayDataLoader:
                     del iter_dataloaders[t]
                     del iter_samplers[t]
                     continue
-            mb_curr.append(tbatch)
+            mb_curr.extend(tbatch)
 
     def _create_loaders_and_samplers(self, data, batch_sizes):
         loaders = dict()
@@ -571,11 +585,11 @@ class ReplayDataLoader:
 
 
 def _make_data_loader(
-    dataset,
-    distributed_sampling,
-    data_loader_args,
-    batch_size,
-    force_no_workers=False,
+    dataset: Dataset,
+    distributed_sampling: bool,
+    data_loader_args: Dict[str, Any],
+    batch_size: int,
+    force_no_workers: bool = False,
 ):
     data_loader_args = data_loader_args.copy()
 
@@ -585,15 +599,25 @@ def _make_data_loader(
         data_loader_args['num_workers'] = 0
         if 'persistent_workers' in data_loader_args:
             data_loader_args['persistent_workers'] = False
+        if 'prefetch_factor' in data_loader_args:
+            data_loader_args['prefetch_factor'] = 2
 
-    if _DistributedHelper.is_distributed and distributed_sampling:
+    if DistributedHelper.is_distributed and distributed_sampling:
+        # Note: shuffle only goes in the sampler, while
+        # drop_last must be passed to both the sampler
+        # and the DataLoader
+        drop_last = data_loader_args.pop("drop_last", False)
         sampler = DistributedSampler(
             dataset,
-            shuffle=data_loader_args.pop("shuffle", False),
-            drop_last=data_loader_args.pop("drop_last", False),
+            shuffle=data_loader_args.pop("shuffle", True),
+            drop_last=drop_last,
         )
         data_loader = DataLoader(
-            dataset, sampler=sampler, batch_size=batch_size, **data_loader_args
+            dataset,
+            sampler=sampler,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            **data_loader_args
         )
     else:
         sampler = None
@@ -602,15 +626,6 @@ def _make_data_loader(
         )
 
     return data_loader, sampler
-
-
-class __DistributedHelperPlaceholder:
-    is_distributed = False
-    world_size = 1
-    rank = 0
-
-
-_DistributedHelper = __DistributedHelperPlaceholder()
 
 
 __all__ = [

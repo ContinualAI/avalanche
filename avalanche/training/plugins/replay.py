@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
 
 
-class ReplayPlugin(SupervisedPlugin):
+class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
     """
     Experience replay plugin.
 
@@ -47,10 +47,10 @@ class ReplayPlugin(SupervisedPlugin):
     def __init__(
         self,
         mem_size: int = 200,
-        batch_size: int = None,
-        batch_size_mem: int = None,
+        batch_size: Optional[int] = None,
+        batch_size_mem: Optional[int] = None,
         task_balanced_dataloader: bool = False,
-        storage_policy: Optional["ExemplarsBuffer"] = None,
+        storage_policy: Optional["ExemplarsBuffer"] = None
     ):
         super().__init__()
         self.mem_size = mem_size
@@ -66,15 +66,17 @@ class ReplayPlugin(SupervisedPlugin):
                 max_size=self.mem_size, adaptive_size=True
             )
 
-    @property
-    def ext_mem(self):
-        return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
+    # TODO: remove ext_mem
+    # @property
+    # def ext_mem(self):
+    #     return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
     def before_training_exp(
         self,
         strategy: "SupervisedTemplate",
         num_workers: int = 0,
         shuffle: bool = True,
+        drop_last: bool = False,
         **kwargs
     ):
         """
@@ -94,6 +96,7 @@ class ReplayPlugin(SupervisedPlugin):
         if batch_size_mem is None:
             batch_size_mem = strategy.train_mb_size
 
+        assert strategy.adapted_dataset is not None
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             self.storage_policy.buffer,
@@ -103,6 +106,7 @@ class ReplayPlugin(SupervisedPlugin):
             task_balanced_dataloader=self.task_balanced_dataloader,
             num_workers=num_workers,
             shuffle=shuffle,
+            drop_last=drop_last,
         )
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):

@@ -14,12 +14,6 @@ This is a simple example on how to use the Evaluation Plugin with metrics
 returning values for different tasks.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from os.path import expanduser
-
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -56,10 +50,11 @@ def main(args):
     )
     # ---------
 
+    # --- BENCHMARK CREATION (USING A FAKE DATASET)
     tr_ds = [
         make_tensor_classification_dataset(
             torch.randn(10, 3),
-            torch.randint(0, 3, (10,)).tolist(),
+            torch.randint(0, 3, (10,)),
             task_labels=torch.randint(0, 5, (10,)).tolist(),
         )
         for _ in range(3)
@@ -67,12 +62,12 @@ def main(args):
     ts_ds = [
         make_tensor_classification_dataset(
             torch.randn(10, 3),
-            torch.randint(0, 3, (10,)).tolist(),
+            torch.randint(0, 3, (10,)),
             task_labels=torch.randint(0, 5, (10,)).tolist(),
         )
         for _ in range(3)
     ]
-    scenario = create_multi_dataset_generic_benchmark(
+    benchmark = create_multi_dataset_generic_benchmark(
         train_datasets=tr_ds, test_datasets=ts_ds
     )
     # ---------
@@ -160,19 +155,19 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for i, experience in enumerate(scenario.train_stream):
+    for i, experience in enumerate(benchmark.train_stream):
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
         # train returns a dictionary containing last recorded value
         # for each metric.
-        res = cl_strategy.train(experience, eval_streams=[scenario.test_stream])
+        cl_strategy.train(experience, eval_streams=[benchmark.test_stream])
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
         # test returns a dictionary with the last metric collected during
         # evaluation on that stream
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
     print(f"Test metrics:\n{results}")
 

@@ -1,11 +1,9 @@
-import copy
 import itertools
-from typing import TYPE_CHECKING, Optional, List
+from typing import Callable, Optional, List, Union
 import torch
 from torch.optim import Optimizer
 
 from avalanche.benchmarks.utils import (
-    concat_classification_datasets,
     make_tensor_classification_dataset,
     classification_subset,
 )
@@ -39,10 +37,13 @@ class ICaRL(SupervisedTemplate):
         criterion=ICaRLLossPlugin(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
     ):
         """Init.
@@ -158,6 +159,7 @@ class _ICaRLPlugin(SupervisedPlugin):
             )
 
     def before_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
+        assert strategy.experience is not None
         tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
@@ -225,6 +227,7 @@ class _ICaRLPlugin(SupervisedPlugin):
             strategy.model.eval_classifier.class_means = self.class_means
 
     def construct_exemplar_set(self, strategy: SupervisedTemplate):
+        assert strategy.experience is not None
         tid = strategy.clock.train_exp_counter
         benchmark = strategy.experience.benchmark
         nb_cl = benchmark.n_classes_per_exp[tid]
@@ -265,14 +268,14 @@ class _ICaRLPlugin(SupervisedPlugin):
                     )
                 mapped_prototypes.append(mapped_pttp)
 
-            class_patterns = torch.cat(class_patterns, dim=0)
-            mapped_prototypes = torch.cat(mapped_prototypes, dim=0)
+            class_patterns_tensor = torch.cat(class_patterns, dim=0)
+            mapped_prototypes_tensor = torch.cat(mapped_prototypes, dim=0)
 
-            D = mapped_prototypes.T
+            D = mapped_prototypes_tensor.T
             D = D / torch.norm(D, dim=0)
 
             mu = torch.mean(D, dim=1)
-            order = torch.zeros(class_patterns.shape[0])
+            order = torch.zeros(class_patterns_tensor.shape[0])
             w_t = mu
 
             i, added, selected = 0, 0, []
@@ -289,13 +292,16 @@ class _ICaRLPlugin(SupervisedPlugin):
                 i += 1
 
             pick = (order > 0) * (order < nb_protos_cl + 1) * 1.0
-            self.x_memory.append(class_patterns[torch.where(pick == 1)[0]])
+            self.x_memory.append(
+                class_patterns_tensor[torch.where(pick == 1)[0]]
+            )
             self.y_memory.append(
                 [new_classes[iter_dico]] * len(torch.where(pick == 1)[0])
             )
             self.order.append(order[torch.where(pick == 1)[0]])
 
     def reduce_exemplar_set(self, strategy: SupervisedTemplate):
+        assert strategy.experience is not None
         tid = strategy.clock.train_exp_counter
         nb_cl = strategy.experience.benchmark.n_classes_per_exp
 

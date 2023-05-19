@@ -49,7 +49,7 @@
 
 
 from pathlib import Path
-from typing import Union
+from typing import Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -79,7 +79,7 @@ class PennFudanDataset(SimpleDownloadableDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         transform=None,
         loader=default_loader,
@@ -102,9 +102,9 @@ class PennFudanDataset(SimpleDownloadableDataset):
         if root is None:
             root = default_dataset_location("pennfudanped")
 
-        self.imgs = None
-        self.masks = None
-        self.targets = None
+        self.imgs: Sequence[Path] = None  # type: ignore
+        self.masks: Sequence[Path] = None  # type: ignore
+        self.targets: List[Dict] = None  # type: ignore
         self.transform = transform
         self.loader = loader
         self.mask_loader = mask_loader
@@ -122,11 +122,11 @@ class PennFudanDataset(SimpleDownloadableDataset):
     def _load_metadata(self):
         # load all image files, sorting them to
         # ensure that they are aligned
-        self.imgs = (self.root / "PennFudanPed" / "PNGImages").iterdir()
-        self.masks = (self.root / "PennFudanPed" / "PedMasks").iterdir()
+        imgs = (self.root / "PennFudanPed" / "PNGImages").iterdir()
+        masks = (self.root / "PennFudanPed" / "PedMasks").iterdir()
 
-        self.imgs = list(sorted(self.imgs))
-        self.masks = list(sorted(self.masks))
+        self.imgs = list(sorted(imgs))
+        self.masks = list(sorted(masks))
 
         self.targets = [self.make_targets(i) for i in range(len(self.imgs))]
         return Path(self.imgs[0]).exists() and Path(self.masks[0]).exists()
@@ -155,25 +155,27 @@ class PennFudanDataset(SimpleDownloadableDataset):
         boxes = []
         for i in range(num_objs):
             pos = np.where(masks[i])
-            xmin = np.min(pos[1])
-            xmax = np.max(pos[1])
-            ymin = np.min(pos[0])
-            ymax = np.max(pos[0])
+            xmin: np.integer = np.min(pos[1])
+            xmax: np.integer = np.max(pos[1])
+            ymin: np.integer = np.min(pos[0])
+            ymax: np.integer = np.max(pos[0])
             boxes.append([xmin, ymin, xmax, ymax])
 
         # convert everything into a torch.Tensor
-        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+        boxes_as_tensor = torch.as_tensor(boxes, dtype=torch.float32)
+        del boxes
         # there is only one class
         labels = torch.ones((num_objs,), dtype=torch.int64)
         masks = torch.as_tensor(masks, dtype=torch.uint8)
 
         image_id = torch.tensor([idx])
-        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        area = (boxes_as_tensor[:, 3] - boxes_as_tensor[:, 1]) * \
+               (boxes_as_tensor[:, 2] - boxes_as_tensor[:, 0])
         # suppose all instances are not crowd
         iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 
         target = {}
-        target["boxes"] = boxes
+        target["boxes"] = boxes_as_tensor
         target["labels"] = labels
         target["masks"] = masks
         target["image_id"] = image_id

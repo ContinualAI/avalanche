@@ -65,3 +65,7 @@ class TestStreamCompleteness(unittest.TestCase):
         for exp in self.benchmark.train_stream:
             strategy.train(exp, eval_streams=[self.benchmark.test_stream])
             strategy.eval(self.benchmark.test_stream)
+
+
+if __name__ == "__main__":
+    unittest.main()

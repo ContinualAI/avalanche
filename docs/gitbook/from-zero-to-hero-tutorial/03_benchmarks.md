@@ -8,7 +8,7 @@ Welcome to the "_benchmarks_" tutorial of the "_From Zero to Hero_" series. In t
 
 
 ```python
-!pip install avalanche-lib==0.2.0
+!pip install avalanche-lib==0.3.1
 ```
 
 ## 🎯 Nomenclature
@@ -49,7 +49,7 @@ import torchvision
 from avalanche.benchmarks.datasets import MNIST, FashionMNIST, KMNIST, EMNIST, \
 QMNIST, FakeData, CocoCaptions, CocoDetection, LSUN, ImageNet, CIFAR10, \
 CIFAR100, STL10, SVHN, PhotoTour, SBU, Flickr8k, Flickr30k, VOCDetection, \
-VOCSegmentation, Cityscapes, SBDataset, USPS, Kinetics400, HMDB51, UCF101, \
+VOCSegmentation, Cityscapes, SBDataset, USPS, HMDB51, UCF101, \
 CelebA, CORe50Dataset, TinyImagenet, CUB200, OpenLORIS
 
 # As we would simply do with any Pytorch dataset we can create the train and 
@@ -80,8 +80,9 @@ Of course also the basic utilities `ImageFolder` and `DatasetFolder` can be used
 
 We also provide an additional `FilelistDataset` and `AvalancheDataset` classes. The former to construct a dataset from a filelist [\(caffe style\)](https://ceciliavision.wordpress.com/2016/03/08/caffedata-layer/) pointing to files anywhere on the disk. The latter to augment the basic Pytorch Dataset functionalities with an extention to better deal with a stack of transformations to be used during train and test.
 
+
 ```python
-from avalanche.benchmarks.utils import ImageFolder, DatasetFolder, FilelistDataset, make_classification_dataset
+from avalanche.benchmarks.utils import ImageFolder, DatasetFolder, FilelistDataset, AvalancheDataset
 ```
 
 ## 🛠️ Benchmarks Basics
@@ -468,12 +469,13 @@ Adding task labels can be achieved by wrapping each datasets using `AvalancheDat
 ```python
 # Alternatively, task labels can also be a list (or tensor)
 # containing the task label of each pattern
+from avalanche.benchmarks.utils import make_classification_dataset
 
-train_MNIST_task0 = AvalancheDataset(train_cifar10, task_labels=0)
-test_MNIST_task0 = AvalancheDataset(test_cifar10, task_labels=0)
+train_MNIST_task0 = make_classification_dataset(train_cifar10, task_labels=0)
+test_MNIST_task0 = make_classification_dataset(test_cifar10, task_labels=0)
 
-train_cifar10_task1 = AvalancheDataset(train_cifar10, task_labels=1)
-test_cifar10_task1 = AvalancheDataset(test_cifar10, task_labels=1)
+train_cifar10_task1 = make_classification_dataset(train_cifar10, task_labels=1)
+test_cifar10_task1 = make_classification_dataset(test_cifar10, task_labels=1)
 
 scenario_custom_task_labels = dataset_benchmark(
     [train_MNIST_task0, train_cifar10_task1],

@@ -24,3 +24,5 @@ from .generator import *
 from .expert_gate import ExpertGate
 from .lenet5 import LeNet5
 from .slim_resnet18 import SlimResNet18, MTSlimResNet18
+from .prompt import Prompt
+from .vit import create_model

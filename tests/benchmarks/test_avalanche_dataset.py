@@ -31,6 +31,7 @@ from avalanche.benchmarks.utils.flat_data import (
 )
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
+    SupervisedClassificationDataset,
 )
 from tests.unit_tests_utils import (
     load_image_benchmark,
@@ -56,6 +57,56 @@ class FrozenTransformGroupsCenterCrop:
 
 
 class AvalancheDatasetTests(unittest.TestCase):
+
+    def test_attribute_cat_sub(self):
+        # Create a dataset of 100 data points described by 22
+        # features + 1 class label
+        x_data = torch.rand(100, 22)
+        y_data = torch.randint(0, 5, (100,))
+        torch_data = TensorDataset(x_data, y_data)
+
+        tls = [0 for _ in range(100)]  # one task label for each sample
+        sup_data = make_classification_dataset(torch_data, task_labels=tls)
+        print(sup_data.targets.name, len(sup_data.targets._data))
+        print(sup_data.targets_task_labels.name,
+              len(sup_data.targets_task_labels._data))
+        assert len(sup_data) == 100
+
+        # after subsampling
+        sub_data = sup_data.subset(range(10))
+        print(sub_data.targets.name, len(sub_data.targets._data))
+        print(sub_data.targets_task_labels.name,
+              len(sub_data.targets_task_labels._data))
+        assert len(sub_data) == 10
+
+        # after concat
+        cat_data = sup_data.concat(sup_data)
+        print(cat_data.targets.name, len(cat_data.targets._data))
+        print(cat_data.targets_task_labels.name,
+              len(cat_data.targets_task_labels._data))
+        assert len(cat_data) == 200
+
+    def test_avldata_subset_size(self):
+        data = [1, 2, 3, 4]
+        attr = DataAttribute(data, "a")
+        # avl data subset expects len(attribute) == len(dataset)
+        AvalancheDataset([data], data_attributes=[attr], indices=[0, 1])
+
+        # avl data should warn if len(attribute) != len(dataset)
+        with self.assertRaises(ValueError):
+            attr = DataAttribute(data[:2], "a")
+            AvalancheDataset([data], data_attributes=[attr], indices=[0, 1])
+
+    def test_avalanche_dataset_creation_without_list(self):
+        dataset_mnist = load_image_benchmark()
+        dataset = AvalancheDataset(dataset_mnist)
+        self.assertIsInstance(dataset, AvalancheDataset)
+        self.assertEqual(len(dataset_mnist), len(dataset))
+
+        dataset = AvalancheDataset(dataset)
+        self.assertIsInstance(dataset, AvalancheDataset)
+        self.assertEqual(len(dataset_mnist), len(dataset))
+
     def test_disallowed_attribute_name(self):
         d_sz = 3
         xdata = torch.rand(d_sz, 2)
@@ -345,6 +396,102 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         with self.assertRaises(KeyError):
             subset_task11 = dataset.task_set[11]
+
+    def test_avalanche_dataset_update_data_attribute(self):
+        dataset_orig = load_image_benchmark()
+
+        dataset: SupervisedClassificationDataset = make_classification_dataset(
+            dataset_orig,
+            transform=ToTensor(),
+            task_labels=0
+        )
+
+        self.assertIsInstance(dataset, SupervisedClassificationDataset)
+        dataset_element = dataset[101]
+        self.assertEqual(3, len(dataset_element))  # x, y, t
+
+        self.assertIsInstance(dataset_element[0], Tensor)
+        self.assertIsInstance(dataset_element[1], int)
+        self.assertIsInstance(dataset_element[2], int)
+
+        self.assertEqual(dataset_element[1], dataset.targets[101])
+        self.assertEqual(dataset_element[2], dataset.targets_task_labels[101])
+
+        # --- Test add data attribute ---
+        plain_attribute = torch.arange(len(dataset))
+        get_item_attribute = DataAttribute(
+            data=torch.arange(len(dataset)) + 5,
+            name='gia',
+            use_in_getitem=True
+        )
+
+        targets_task_labels_not_gia = DataAttribute(
+            data=torch.arange(len(dataset)) + 7,
+            name='targets_task_labels',
+            use_in_getitem=False
+        )
+
+        # Test wrong length
+        for wrong_attr in [torch.arange(len(dataset)-1), 
+                           torch.arange(len(dataset)+1)]:
+            with self.assertRaises(Exception):
+                dataset.update_data_attribute('wrong_attr', wrong_attr)
+
+        # Add plain attribute
+        dataset_plus_plain = dataset.update_data_attribute(
+            'plain_attr', plain_attribute)
+        # check nothing added from plain attribute
+        self.assertEqual(3, len(dataset_plus_plain[0]))
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_plain.plain_attr), plain_attribute))
+
+        # Add get-item attribute
+        dataset_plus_gia = dataset.update_data_attribute(
+            'gia', get_item_attribute)
+        # check element added from gia attribute
+        elem = dataset_plus_gia[100]
+        self.assertEqual(4, len(elem))
+
+        # Name mismatch check
+        with self.assertRaises(Exception):
+            dataset_plus_gia = dataset.update_data_attribute(
+                'name_mismatch', get_item_attribute)
+
+        # DataAttribute must convert tensors to list
+        self.assertIsInstance(elem[3], int)
+        self.assertEqual(105, elem[3])
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_gia.gia), torch.arange(len(dataset)) + 5))
+
+        # Replace attribute (plain)
+        dataset_plus_plain = dataset.update_data_attribute(
+            'targets', plain_attribute)
+        # check nothing added from plain attribute
+        self.assertEqual(3, len(dataset_plus_plain[0]))
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_plain.targets), plain_attribute))
+
+        # Replace attribute (get_item)
+        dataset_plus_plain = dataset.update_data_attribute(
+            'targets_task_labels', plain_attribute)
+        # check element no removed
+        self.assertEqual(3, len(dataset_plus_plain[0]))
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_plain.targets_task_labels), plain_attribute))
+
+        # Replace attribute (remove one from get_item)
+        dataset_plus_plain = dataset.update_data_attribute(
+            'targets_task_labels', targets_task_labels_not_gia)
+        # check element removed
+        self.assertEqual(2, len(dataset_plus_plain[0]))
+        # check content
+        self.assertTrue(torch.equal(torch.as_tensor(
+            dataset_plus_plain.targets_task_labels), 
+            torch.arange(len(dataset)) + 7))
 
 
 if __name__ == "__main__":

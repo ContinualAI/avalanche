@@ -10,14 +10,9 @@
 ################################################################################
 
 """
-This is a simple example on how to use the Replay strategy.
+This is a simple example on how to use the Replay strategy in an online
+benchmark created using OnlineCLScenario.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from os.path import expanduser
 
 import argparse
 import torch
@@ -27,6 +22,7 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_benchmark
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
 from avalanche.training.plugins import ReplayPlugin
@@ -66,24 +62,24 @@ def main(args):
 
     # --- SCENARIO CREATION
     mnist_train = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=True,
         download=True,
         transform=train_transform,
     )
     mnist_test = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=False,
         download=True,
         transform=test_transform,
     )
-    scenario = nc_benchmark(
+    benchmark = nc_benchmark(
         mnist_train, mnist_test, n_batches, task_labels=False, seed=1234
     )
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = SimpleMLP(num_classes=benchmark.n_classes)
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
@@ -108,7 +104,7 @@ def main(args):
         torch.optim.Adam(model.parameters(), lr=0.1),
         CrossEntropyLoss(),
         train_passes=1,
-        train_mb_size=1,
+        train_mb_size=10,
         eval_mb_size=32,
         device=device,
         evaluator=eval_plugin,
@@ -120,16 +116,16 @@ def main(args):
     results = []
 
     # Create online benchmark
-    batch_streams = scenario.streams.values()
+    batch_streams = benchmark.streams.values()
     # ocl_benchmark = OnlineCLScenario(batch_streams)
-    for i, exp in enumerate(scenario.train_stream):
+    for i, exp in enumerate(benchmark.train_stream):
         # Create online scenario from experience exp
         ocl_benchmark = OnlineCLScenario(
-            original_streams=batch_streams, experiences=exp, experience_size=1
+            original_streams=batch_streams, experiences=exp, experience_size=10
         )
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.train_stream)
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
 
 if __name__ == "__main__":

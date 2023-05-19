@@ -20,7 +20,6 @@ from tests.unit_tests_utils import DummyImageDataset
 
 
 class SITTests(unittest.TestCase):
-
     def test_sit_single_dataset(self):
         mnist_train = MNIST(
             root=default_dataset_location("mnist"),
@@ -523,8 +522,8 @@ class SITTests(unittest.TestCase):
         self.assertIsInstance(ds_test_train[0][0], Tensor)
 
     def test_nc_benchmark_classes_in_exp_range(self):
-        train_set = DummyImageDataset()
-        test_set = DummyImageDataset()
+        train_set = DummyImageDataset(n_classes=100)
+        test_set = DummyImageDataset(n_classes=100)
 
         benchmark_instance = nc_benchmark(
             train_dataset=train_set,
@@ -536,19 +535,14 @@ class SITTests(unittest.TestCase):
         )
 
         cie_data = benchmark_instance.classes_in_exp_range(0, None)
-        self.assertEqual(5, len(cie_data))
-
-        for i in range(5):
-            expected = set(range(i * 20, (i + 1) * 20))
-            self.assertSetEqual(expected, set(cie_data[i]))
+        self.assertEqual(100, len(cie_data))
+        self.assertSetEqual(set(range(0, 100)), set(cie_data))
 
         cie_data = benchmark_instance.classes_in_exp_range(1, 4)
-        self.assertEqual(3, len(cie_data))
+        self.assertEqual(60, len(cie_data))
+        self.assertSetEqual(set(range(20, 80)), set(cie_data))
 
-        for i in range(1, 3):
-            expected = set(range(i * 20, (i + 1) * 20))
-            self.assertSetEqual(expected, set(cie_data[i - 1]))
-
+        # Test additional desired behavior: classes are ordered by experience
         random_class_order = list(range(100))
         random.shuffle(random_class_order)
         benchmark_instance = nc_benchmark(
@@ -560,13 +554,13 @@ class SITTests(unittest.TestCase):
             fixed_class_order=random_class_order,
             shuffle=False,
         )
-
+        
         cie_data = benchmark_instance.classes_in_exp_range(0, None)
-        self.assertEqual(5, len(cie_data))
+        self.assertEqual(100, len(cie_data))
 
         for i in range(5):
             expected = set(random_class_order[i * 20 : (i + 1) * 20])
-            self.assertSetEqual(expected, set(cie_data[i]))
+            self.assertSetEqual(expected, set(cie_data[i*20: (i+1)*20]))
 
 
 if __name__ == "__main__":

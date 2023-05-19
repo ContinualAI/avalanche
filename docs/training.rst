@@ -79,6 +79,8 @@ Ready-to-use continual learning strategies.
     GenerativeReplay
     LaMAML
     MAS
+    BiC
+    MIR
 
 Replay Buffers and Selection Strategies
 ----------------------------------------
@@ -168,3 +170,24 @@ Strategy implemented as plugins in `avalanche.training.plugins`.
     TrainGeneratorAfterExpPlugin
     RWalkPlugin
     GenerativeReplayPlugin
+    BiCPlugin
+    MIRPlugin
+
+
+Utilities
+----------------------------------------
+
+Checkpointing allows to save and load serialized strategies to stop and resume experiments.
+
+Utilities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Utilities in `avalanche.training.checkpoint`.
+
+.. currentmodule:: avalanche.training.checkpoint
+
+.. autosummary::
+    :toctree: generated
+
+    save_checkpoint
+    maybe_load_checkpoint

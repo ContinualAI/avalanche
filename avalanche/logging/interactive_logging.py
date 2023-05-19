@@ -53,7 +53,6 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
     def __init__(self):
         super().__init__(file=sys.stdout)
         self._pbar = None
-        self.last_length = 0
 
     def before_training_epoch(
         self,
@@ -87,12 +86,7 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
             experience = strategy.experience.logging()
             if experience.is_first_subexp:
                 super().before_training_exp(strategy, metric_values, **kwargs)
-                self._progress.total = (
-                    experience.sub_stream_length
-                    * strategy.train_passes
-                    * (experience.subexp_size // strategy.train_mb_size)
-                )
-                self.last_length = self._progress.total
+                self._progress.total = experience.sub_stream_length
 
     def after_training_exp(
         self,
@@ -105,6 +99,9 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
             if experience.is_last_subexp:
                 self._end_progress()
                 super().after_training_exp(strategy, metric_values, **kwargs)
+            else:
+                self._progress.update()
+                self._progress.refresh()
 
     def before_eval_exp(
         self,
@@ -130,6 +127,9 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
+        if isinstance(strategy.experience, OnlineCLExperience):
+            return
+
         self._progress.update()
         self._progress.refresh()
         super().after_training_iteration(strategy, metric_values, **kwargs)
@@ -163,3 +163,8 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
     def __setstate__(self, state):
         state['_pbar'] = None
         super().__setstate__(state)
+
+
+__all__ = [
+    'InteractiveLogger'
+]

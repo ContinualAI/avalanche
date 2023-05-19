@@ -28,15 +28,18 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 )
 from avalanche.benchmarks.datasets.external_datasets.mnist import \
     get_mnist_dataset
-from ..utils import make_classification_dataset, DefaultTransformGroups
-from ..utils.data import make_avalanche_dataset
+from avalanche.benchmarks.utils import (
+    make_classification_dataset,
+    DefaultTransformGroups,
+)
+from avalanche.benchmarks.utils.data import make_avalanche_dataset
 
 _default_mnist_train_transform = Compose(
-    [ToTensor(), Normalize((0.1307,), (0.3081,))]
+    [Normalize((0.1307,), (0.3081,))]
 )
 
 _default_mnist_eval_transform = Compose(
-    [ToTensor(), Normalize((0.1307,), (0.3081,))]
+    [Normalize((0.1307,), (0.3081,))]
 )
 
 
@@ -57,14 +60,20 @@ class PixelsPermutation(object):
         is_image = isinstance(img, Image)
         if (not is_image) and (not isinstance(img, Tensor)):
             raise ValueError("Invalid input: must be a PIL image or a Tensor")
+    
+        image_as_tensor: Tensor
+        if is_image:
+            image_as_tensor = self._to_tensor(img)
+        else:
+            image_as_tensor = img
+
+        image_as_tensor = image_as_tensor.view(-1)[self.permutation].view(
+            *image_as_tensor.shape)
 
         if is_image:
-            img = self._to_tensor(img)
-
-        img = img.view(-1)[self.permutation].view(*img.shape)
-
-        if is_image:
-            img = self._to_image(img)
+            img = self._to_image(image_as_tensor)
+        else:
+            img = image_as_tensor
 
         return img
 
@@ -77,9 +86,10 @@ def SplitMNIST(
     fixed_class_order: Optional[Sequence[int]] = None,
     shuffle: bool = True,
     class_ids_from_zero_in_each_exp: bool = False,
+    class_ids_from_zero_from_first_exp: bool = False,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark using the MNIST dataset.
@@ -153,6 +163,7 @@ def SplitMNIST(
         fixed_class_order=fixed_class_order,
         shuffle=shuffle,
         class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
+        class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
@@ -165,7 +176,7 @@ def PermutedMNIST(
     seed: Optional[int] = None,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ) -> NCScenario:
     """
     Creates a Permuted MNIST benchmark.
@@ -265,7 +276,7 @@ def RotatedMNIST(
     rotations_list: Optional[Sequence[int]] = None,
     train_transform: Optional[Any] = _default_mnist_train_transform,
     eval_transform: Optional[Any] = _default_mnist_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ) -> NCScenario:
     """Creates a Rotated MNIST benchmark.
 

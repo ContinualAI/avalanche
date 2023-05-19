@@ -29,7 +29,7 @@ UPDATE_METRICS = False
 if "UPDATE_METRICS" in os.environ:
     UPDATE_METRICS = os.environ["UPDATE_METRICS"].lower() == "true"
 
-print(f"UPDATE_METRICS: {UPDATE_METRICS}")
+# print(f"UPDATE_METRICS: {UPDATE_METRICS}")
 
 
 def is_github_action():
@@ -156,7 +156,8 @@ class DummyImageDataset(Dataset):
         super().__init__()
         self.targets = list(range(n_classes))
         self.targets += [
-            random.randint(0, 99) for _ in range(n_elements - n_classes)
+            random.randint(0, n_classes-1) for _ 
+            in range(n_elements - n_classes)
         ]
 
     def __getitem__(self, index):

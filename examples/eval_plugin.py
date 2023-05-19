@@ -13,12 +13,6 @@
 This is a simple example on how to use the Evaluation Plugin.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from os.path import expanduser
-
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
@@ -28,9 +22,11 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_benchmark
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
+    labels_repartition_metrics,
     loss_metrics,
     cpu_usage_metrics,
     timing_metrics,
@@ -76,26 +72,26 @@ def main(args):
     )
     # ---------
 
-    # --- SCENARIO CREATION
+    # --- BENCHMARK CREATION
     mnist_train = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=True,
         download=True,
         transform=train_transform,
     )
     mnist_test = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=False,
         download=True,
         transform=test_transform,
     )
-    scenario = nc_benchmark(
+    benchmark = nc_benchmark(
         mnist_train, mnist_test, 5, task_labels=False, seed=1234
     )
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=scenario.n_classes)
+    model = SimpleMLP(num_classes=benchmark.n_classes)
 
     # DEFINE THE EVALUATION PLUGIN AND LOGGER
     # The evaluation plugin manages the metrics computation.
@@ -129,7 +125,7 @@ def main(args):
             stream=True,
         ),
         class_accuracy_metrics(
-            epoch=True, stream=True, classes=list(range(scenario.n_classes))
+            epoch=True, stream=True, classes=list(range(benchmark.n_classes))
         ),
         amca_metrics(),
         forgetting_metrics(experience=True, stream=True),
@@ -164,6 +160,7 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True
         ),
         MAC_metrics(minibatch=True, epoch=True, experience=True),
+        labels_repartition_metrics(on_train=True, on_eval=True),
         loggers=[interactive_logger, text_logger, csv_logger, tb_logger],
         collect_all=True,
     )  # collect all metrics (set to True by default)
@@ -184,19 +181,20 @@ def main(args):
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for i, experience in enumerate(scenario.train_stream):
+    for i, experience in enumerate(benchmark.train_stream):
         print("Start of experience: ", experience.current_experience)
         print("Current Classes: ", experience.classes_in_this_experience)
 
         # train returns a dictionary containing last recorded value
         # for each metric.
-        res = cl_strategy.train(experience, eval_streams=[scenario.test_stream])
+        res = cl_strategy.train(experience, 
+                                eval_streams=[benchmark.test_stream])
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
         # test returns a dictionary with the last metric collected during
         # evaluation on that stream
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
     print(f"Test metrics:\n{results}")
 

@@ -1,6 +1,10 @@
 import torch
 from os.path import expanduser
 
+"""
+A simple example on how to use the Naive strategy.
+"""
+
 from avalanche.models import SimpleMLP
 from avalanche.evaluation.metrics import (
     accuracy_metrics,
@@ -18,7 +22,8 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    scenario = SplitMNIST(
+    # create the benchmark
+    benchmark = SplitMNIST(
         n_experiences=5,
         dataset_root=expanduser("~") + "/.avalanche/data/mnist/"
     )
@@ -48,11 +53,11 @@ def main():
         evaluator=eval_plugin,
     )
 
-    # train on the selected scenario with the chosen strategy
-    for experience in scenario.train_stream:
+    # train on the selected benchmark with the chosen strategy
+    for experience in benchmark.train_stream:
         print("Start training on experience ", experience.current_experience)
         strategy.train(experience)
-        strategy.eval(scenario.test_stream[:])
+        strategy.eval(benchmark.test_stream[:])
 
 
 if __name__ == "__main__":

@@ -43,4 +43,6 @@ def _exp_structure_from_assignment(
     return exp_structure
 
 
-__all__ = ["_exp_structure_from_assignment"]
+__all__ = [
+    "_exp_structure_from_assignment"
+]

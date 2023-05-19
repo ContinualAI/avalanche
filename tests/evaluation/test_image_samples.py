@@ -37,7 +37,8 @@ class ImageSamplesTests(unittest.TestCase):
         for mb in DataLoader(curr_exp.dataset, batch_size=32):
             break
         curr_dataset = make_tensor_classification_dataset(
-            *mb[:2], targets=mb[1])
+            *mb[:2], targets=mb[1]
+        )
 
         strategy_mock = MagicMock(
             eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset
@@ -52,15 +53,12 @@ class ImageSamplesTests(unittest.TestCase):
         scenario = SplitMNIST(5)
         curr_exp = scenario.train_stream[0]
 
-        # we use a ReSize transform because it's easy to detect if it's been
-        # applied without looking at the image.
-        curr_dataset = curr_exp.dataset.replace_current_transform_group(
-            Compose([Resize(8), ToTensor()])
-        )
-
         ##########################################
         # WITH AUGMENTATIONS
         ##########################################
+        curr_dataset = curr_exp.dataset.replace_current_transform_group(
+            Compose([Resize(8)])
+        )
         p_metric = ImagesSamplePlugin(
             n_cols=5,
             n_rows=5,
@@ -81,6 +79,11 @@ class ImageSamplesTests(unittest.TestCase):
         ##########################################
         # WITHOUT AUGMENTATIONS
         ##########################################
+        # we use a ReSize transform because it's easy to detect if it's been
+        # applied without looking at the image.
+        curr_dataset = curr_exp.dataset.replace_current_transform_group(
+            Compose([Resize(8), ToTensor()])
+        )
         p_metric = ImagesSamplePlugin(
             n_cols=5,
             n_rows=5,
@@ -97,3 +100,7 @@ class ImageSamplesTests(unittest.TestCase):
         img_grid = mval[0].value.image
         assert img_grid.shape == (3, 152, 152)
         # save_image(img_grid, './logs/test_image_with_aug.png')
+
+
+if __name__ == "__main__":
+    unittest.main()

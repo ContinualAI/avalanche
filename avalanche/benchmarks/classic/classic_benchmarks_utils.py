@@ -1,24 +1,33 @@
 from torchvision.transforms import ToPILImage, ToTensor
+from avalanche.benchmarks.scenarios.dataset_scenario import (
+    DatasetScenario,
+    DatasetStream,
+)
 
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils.classification_dataset import \
+    ClassificationDataset
+from avalanche.benchmarks.utils.data import AvalancheDataset
 
 
-def check_vision_benchmark(benchmark_instance, show_without_transforms=True):
+def check_vision_benchmark(
+        benchmark_instance: DatasetScenario,
+        show_without_transforms=True):
     from matplotlib import pyplot as plt
     from torch.utils.data.dataloader import DataLoader
 
-    dataset: make_classification_dataset
+    dataset: ClassificationDataset
+    train_stream: DatasetStream = benchmark_instance.train_stream
 
     print(
         "The benchmark instance contains",
-        len(benchmark_instance.train_stream),
+        len(train_stream),
         "training experiences.",
     )
 
-    for i, exp in enumerate(benchmark_instance.train_stream):
+    for exp in train_stream:
         dataset, t = exp.dataset, exp.task_label
         if show_without_transforms:
-            dataset = dataset.replace_current_transform_group(ToTensor(), None)
+            dataset = dataset.replace_current_transform_group(ToTensor())
 
         dl = DataLoader(dataset, batch_size=300)
 

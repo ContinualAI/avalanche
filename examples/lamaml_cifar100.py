@@ -1,18 +1,11 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-
 import argparse
 import torch
 import wandb
 from torch.nn import CrossEntropyLoss
 import torch.optim.lr_scheduler
-from avalanche.benchmarks.classic import SplitCIFAR100, SplitTinyImageNet
+from avalanche.benchmarks.classic import SplitCIFAR100
 from avalanche.models import MTSimpleCNN
 from avalanche.training.supervised.lamaml import LaMAML
-from avalanche.training.plugins import ReplayPlugin
-from avalanche.training.storage_policy import ReservoirSamplingBuffer
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -30,10 +23,13 @@ def main(args):
         else "cpu"
     )
 
-    # --- SCENARIO CREATION
-    scenario = SplitTinyImageNet(n_experiences=20, return_task_id=True,
-                                 class_ids_from_zero_in_each_exp=True)
-    config = {"scenario": "SplitCIFAR100"}
+    # --- BENCHMARK CREATION
+    benchmark = SplitCIFAR100(
+        n_experiences=20,
+        return_task_id=True,
+        class_ids_from_zero_in_each_exp=True,
+    )
+    config = {"scenario": "SplitTinyImageNet"}
 
     # MODEL CREATION
     model = MTSimpleCNN()
@@ -58,15 +54,6 @@ def main(args):
     )
 
     # LAMAML STRATEGY
-    rs_buffer = ReservoirSamplingBuffer(max_size=200)
-    replay_plugin = ReplayPlugin(
-        mem_size=200,
-        batch_size=10,
-        batch_size_mem=10,
-        task_balanced_dataloader=False,
-        storage_policy=rs_buffer,
-    )
-
     cl_strategy = LaMAML(
         model,
         torch.optim.SGD(model.parameters(), lr=0.1),
@@ -77,24 +64,25 @@ def main(args):
         learn_lr=True,
         lr_alpha=0.25,
         sync_update=False,
+        max_buffer_size=200,
+        buffer_mb_size=10,
         train_mb_size=10,
         train_epochs=10,
         eval_mb_size=100,
         device=device,
-        plugins=[replay_plugin],
         evaluator=eval_plugin,
     )
 
     # TRAINING LOOP
     print("Starting experiment...")
     results = []
-    for experience in scenario.train_stream:
+    for experience in benchmark.train_stream:
         print("Start of experience ", experience.current_experience)
         cl_strategy.train(experience)
         print("Training completed")
 
         print("Computing accuracy on the whole test set")
-        results.append(cl_strategy.eval(scenario.test_stream))
+        results.append(cl_strategy.eval(benchmark.test_stream))
 
     if args.wandb_project != "":
         wandb.finish()

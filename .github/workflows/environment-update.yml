@@ -50,13 +50,22 @@ jobs:
       - name: install conda environment
         run: |
           mamba create -n avalanche-env -y -v python=${{ matrix.python-version }} -c conda-forge &&
-          conda run -n avalanche-env --no-capture-output mamba install -y -v pytorch torchvision cpuonly -c pytorch &&
+          conda run -n avalanche-env --no-capture-output mamba install -y -v pytorch==1.12.1 torchvision cpuonly -c pytorch &&
           conda run -n avalanche-env --no-capture-output mamba env update --file environment.yml -v
       - name: python unit test
         id: unittest
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
-          python -m unittest discover tests
+          python -m unittest discover tests &&
+          echo "Running checkpointing tests..." &&
+          bash ./tests/checkpointing/test_checkpointing.sh &&
+          echo "Running distributed training tests..." &&
+          cd tests &&
+          PYTHONPATH=.. python run_dist_tests.py &&
+          cd ..
       - name: checkout avalanche-docker repo
         if: always()
         uses: actions/checkout@v3

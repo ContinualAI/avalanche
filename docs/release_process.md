@@ -5,7 +5,7 @@ Place yourself in the Avalanche project directory.
 
 1. Create the release statement with the new candidate tag version
 
-2. Change the version in avalanche/__init__.py
+2. Change the version in avalanche/__init__.py and in the notebooks.
 
 3. Execute the following commands via bash:
     ```bash 
@@ -29,4 +29,7 @@ Place yourself in the Avalanche project directory.
 6. Update default ReadTheDocs and GitBook version.   
 For ReadTheDocs, activate the new tag and make it default.  
 For GitBook, create a copy of the current space. The copy will not be synced with Github, while the original one will
-still be synced. Make it the default collection. 
+still be synced. To make the copied collection the default one:
+   1. rename the copied collection with a new name in the main Avalanche project and move it accordingly to preserve the order
+   2. publish the copied collection as `in collection` by entering the collection, the option is the button on top of the page
+   3. in the main Avalanche project on Gitbook click on the option in the top right and customize the collection. The copied collection should appear in a dropdown menu to make it default

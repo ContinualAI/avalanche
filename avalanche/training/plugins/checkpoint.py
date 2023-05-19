@@ -1,18 +1,16 @@
 from abc import ABC, abstractmethod
-from functools import partial
-from pathlib import Path
 from typing import Union, Callable, IO, Any, Dict, Optional, Iterable, \
-    List, BinaryIO
+    BinaryIO
 
-import dill
 import torch
 
+from avalanche._annotations import deprecated
 from avalanche.core import BaseSGDPlugin
-from avalanche.training.determinism.rng_manager import RNGManager
-from avalanche.training.plugins.checkpoint_common_recipes import *
-from avalanche.training.templates import BaseSGDTemplate, BaseTemplate
+from avalanche.training.templates import BaseSGDTemplate
 
 
+@deprecated(0.5, "Please use `save_checkpoint` and `maybe_load_checkpoint` "
+                 "instead.")
 class CheckpointStorage(ABC):
     """
     Abstract class for the checkpoint storage component.
@@ -95,6 +93,8 @@ class CheckpointStorage(ABC):
         pass
 
 
+@deprecated(0.5, "Please use `save_checkpoint` and `maybe_load_checkpoint` "
+                 "instead.")
 class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
     """
     A checkpointing facility that can be used to persist the entire state of the
@@ -156,207 +156,12 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
             but it is needed to properly manage things in Avalanche).
             Defaults to None, which means that no mapping will take place.
         """
-        super(CheckpointPlugin, self).__init__()
-        self.map_location = CheckpointPlugin._make_map(map_location)
-        self.storage = storage
-        self._training = False
-
-    def load_checkpoint_if_exists(
-            self, update_checkpoint_plugin=True):
-        """
-        Loads the latest checkpoint if it exists.
-
-        This will load the strategy (including the model weights, all the
-        plugins, metrics, and loggers), load and set the state of the
-        global random number generators (torch, torch cuda, numpy, and Python's
-        random), and the number of training experiences so far.
-
-        The loaded checkpoint refers to the last successful evaluation.
-
-        :param update_checkpoint_plugin: Defaults to True, which means that the
-            CheckpointPlugin in the un-pickled strategy will be replaced with
-            self (this plugin instance).
-        :return: The loaded strategy and the number experiences so far (this
-            number can also be interpreted as the index of the next training
-            experience).
-        """
-        existing_checkpoints = list(self.storage.list_checkpoints())
-        if len(existing_checkpoints) == 0:
-            # No checkpoints exist
-            return None, 0
-
-        last_exp = max(
-            [int(checkpoint_name) for checkpoint_name in existing_checkpoints]
-        )
-
-        loaded_checkpoint = self.storage.load_checkpoint(
-            str(last_exp), self.load_checkpoint)
-
-        strategy: BaseTemplate = loaded_checkpoint['strategy']
-        exp_counter = loaded_checkpoint['exp_counter']
-
-        if update_checkpoint_plugin:
-            # Replace the previous CheckpointPlugin with "self" in strategy.
-            # Useful if the save/load path (or even the storage object class)
-            # has changed.
-            checkpoint_plugin_indices = set(
-                idx for idx, plugin in enumerate(strategy.plugins)
-                if isinstance(plugin, CheckpointPlugin)
-            )
-
-            if len(checkpoint_plugin_indices) > 1:
-                raise RuntimeError(
-                    'Cannot update the strategy CheckpointPlugin: more than '
-                    'one found.')
-            elif len(checkpoint_plugin_indices) == 1:
-                to_replace_idx = list(checkpoint_plugin_indices)[0]
-                strategy.plugins[to_replace_idx] = self
-
-        return strategy, exp_counter
-
-    def after_eval(self, strategy: BaseSGDTemplate, *args, **kwargs):
-        if self._training:
-            # Do not checkpoint on periodic evaluation
-            return
-
-        ended_experience_counter = strategy.clock.train_exp_counter
-
-        checkpoint_data = {
-            'strategy': strategy,
-            'rng_manager': RNGManager,
-            'exp_counter': ended_experience_counter
-        }
-
-        self.storage.store_checkpoint(
-            str(ended_experience_counter),
-            partial(CheckpointPlugin.save_checkpoint,
-                    checkpoint_data))
-        print('Checkpoint', ended_experience_counter, 'saved!')
-
-    def before_training(self, strategy, *args, **kwargs):
-        # Used to track periodic evaluation
-        self._training = True
-
-    def after_training(self, strategy, *args, **kwargs):
-        # Used to track periodic evaluation
-        self._training = False
-
-    @staticmethod
-    def save_checkpoint(checkpoint_data, fobj: Union[BinaryIO, IO[bytes]]):
-        # import dill.detect
-        # dill.detect.trace(True)
-        torch.save(checkpoint_data, fobj, pickle_module=dill)
-
-    def load_checkpoint(self, fobj: Union[BinaryIO, IO[bytes]]):
-        """
-        Loads the checkpoint given the file-like object coming from the storage.
-
-        This function is mostly an internal mechanism. Do not use it if you are
-        not 100% sure of what it does (and does not).
-
-        :param fobj: A file-like object, usually provided by the
-            :class:`CheckpointStorage` object.
-        :return: The loaded checkpoint.
-        """
-        try:
-            _set_checkpoint_device_map(self.map_location)
-
-            return torch.load(fobj, pickle_module=dill,
-                              map_location=self.map_location)
-        finally:
-            _set_checkpoint_device_map(None)
-
-    @staticmethod
-    def _make_map(device_or_map) -> Optional[Dict[str, str]]:
-        if not isinstance(device_or_map, (torch.device, str)):
-            return device_or_map
-
-        device = torch.device(device_or_map)
-        map_location = dict()
-
-        map_location['cpu'] = 'cpu'
-        for cuda_idx in range(100):
-            map_location[f'cuda:{cuda_idx}'] = str(device)
-        return map_location
-
-
-class FileSystemCheckpointStorage(CheckpointStorage):
-    """
-    A checkpoint storage that stores the checkpoint of an experiments in the
-    given directory.
-    """
-    def __init__(
-            self,
-            directory: Union[str, Path]):
-        """
-        Creates an instance of the filesystem checkpoint storage.
-
-        :param directory: The directory in which to save the checkpoints.
-            This should be an experiment/run specific directory. Do not use
-            the same directory for more than one experiment.
-        """
-        super(FileSystemCheckpointStorage, self).__init__()
-        self.directory = Path(directory)
-
-    def store_checkpoint(
-            self,
-            checkpoint_name: str,
-            checkpoint_writer: Callable[[IO[bytes]], None]):
-        checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
-        if checkpoint_file.exists():
-            raise RuntimeError(
-                f'Checkpoint file {str(checkpoint_file)} already exists.')
-
-        checkpoint_file.parent.mkdir(exist_ok=True, parents=True)
-
-        try:
-            with open(checkpoint_file, 'wb') as f:
-                checkpoint_writer(f)
-        except BaseException:
-            try:
-                checkpoint_file.unlink()
-            except OSError:
-                pass
-            raise
-
-    def list_checkpoints(self) -> List[str]:
-        if not self.directory.exists():
-            return []
-
-        return [
-            x.name
-            for x in self.directory.iterdir()
-            if self.checkpoint_exists(x.name)
-        ]
-
-    def checkpoint_exists(self, checkpoint_name: str) -> bool:
-        return (self.directory / checkpoint_name / 'checkpoint.pth').exists()
-
-    def load_checkpoint(
-            self,
-            checkpoint_name: str,
-            checkpoint_loader: Callable[[IO[bytes]], Any]) -> Any:
-        checkpoint_file = self._make_checkpoint_file_path(checkpoint_name)
-
-        with open(checkpoint_file, 'rb') as f:
-            return checkpoint_loader(f)
-
-    def _make_checkpoint_dir(self, checkpoint_name: str) -> Path:
-        return self.directory / checkpoint_name
-
-    def _make_checkpoint_file_path(self, checkpoint_name: str) -> Path:
-        return self._make_checkpoint_dir(checkpoint_name) / 'checkpoint.pth'
-
-    def __str__(self):
-        available_checkpoints = ','.join(self.list_checkpoints())
-        return f'FileSystemCheckpointStorage[\n' \
-               f'   path={str(self.directory)}\n' \
-               f'   checkpoints={available_checkpoints}\n' \
-               f']'
+        raise ValueError("Please use `save_checkpoint` and "
+                         "`maybe_load_checkpoint` "
+                         "instead.")
 
 
 __all__ = [
     'CheckpointStorage',
     'CheckpointPlugin',
-    'FileSystemCheckpointStorage'
 ]

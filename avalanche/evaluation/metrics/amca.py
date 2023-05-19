@@ -8,11 +8,26 @@
 # E-mail: contact@continualai.org                                              #
 # Website: www.continualai.org                                                 #
 ################################################################################
+
+
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Union,
+    TYPE_CHECKING,
+    Optional,
+    Sequence,
+    Set,
+)
+
+fmean: Callable[[Iterable[float]], float]
 try:
     from statistics import fmean
 except ImportError:
     from statistics import mean as fmean
-from typing import Dict, List, Union, TYPE_CHECKING, Optional, Sequence, Set
+
 from collections import defaultdict, OrderedDict
 
 import torch
@@ -374,12 +389,13 @@ class AMCAPluginMetric(_ExtendedGenericPluginMetric):
         return super().before_eval(strategy)
 
     def before_eval_exp(self, strategy: "SupervisedTemplate"):
+        assert strategy.experience is not None
         if not (self._is_training and self._ignore_validation):
             # If not running a validation
             self._ms_amca.set_stream(strategy.experience.origin_stream.name)
         return super().before_eval_exp(strategy)
 
-    def result(self, strategy) -> List[_ExtendedPluginMetricValue]:
+    def result(self) -> List[_ExtendedPluginMetricValue]:
         if self._is_training and self._ignore_validation:
             # Running a validation, ignore it
             return []

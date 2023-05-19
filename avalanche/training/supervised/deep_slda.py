@@ -1,12 +1,15 @@
 import warnings
-from typing import Optional, Sequence
+from typing import Callable, Optional, Sequence, Union
 
 import os
 import torch
 
 from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.templates import SupervisedTemplate
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import (
+    EvaluationPlugin,
+    default_evaluator,
+)
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
 
@@ -35,9 +38,12 @@ class StreamingLDA(SupervisedTemplate):
         train_epochs: int = 1,
         train_mb_size: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
     ):
         """Init function for the SLDA model.
@@ -74,7 +80,7 @@ class StreamingLDA(SupervisedTemplate):
 
         super(StreamingLDA, self).__init__(
             slda_model,
-            None,
+            None,  # type: ignore
             criterion,
             train_mb_size,
             train_epochs,
@@ -121,7 +127,7 @@ class StreamingLDA(SupervisedTemplate):
             self._unpack_minibatch()
             self._before_training_iteration(**kwargs)
 
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Forward
             self._before_forward(**kwargs)

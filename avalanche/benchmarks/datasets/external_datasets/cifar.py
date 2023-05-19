@@ -8,8 +8,8 @@ def get_cifar10_dataset(dataset_root):
     if dataset_root is None:
         dataset_root = default_dataset_location("cifar10")
 
-    train_set = CIFAR10(dataset_root, train=True, download=True)
-    test_set = CIFAR10(dataset_root, train=False, download=True)
+    train_set = CIFAR10(str(dataset_root), train=True, download=True)
+    test_set = CIFAR10(str(dataset_root), train=False, download=True)
 
     return train_set, test_set
 
@@ -18,8 +18,8 @@ def get_cifar100_dataset(dataset_root):
     if dataset_root is None:
         dataset_root = default_dataset_location("cifar100")
 
-    train_set = CIFAR100(dataset_root, train=True, download=True)
-    test_set = CIFAR100(dataset_root, train=False, download=True)
+    train_set = CIFAR100(str(dataset_root), train=True, download=True)
+    test_set = CIFAR100(str(dataset_root), train=False, download=True)
 
     return train_set, test_set
 

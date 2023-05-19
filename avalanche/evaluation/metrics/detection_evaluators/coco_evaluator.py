@@ -51,7 +51,7 @@ import copy
 import io
 from collections import OrderedDict
 from contextlib import redirect_stdout
-from typing import List
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pycocotools.mask as mask_util
@@ -59,6 +59,11 @@ import torch
 import torch.distributed as dist
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
+
+from avalanche.evaluation.metrics.detection import (
+    DetectionEvaluator,
+    TCommonDetectionOutput,
+)
 
 
 COCO_STATS_DET_ORDER = (
@@ -90,7 +95,10 @@ COCO_STATS_KPS_ORDER = (
 )
 
 
-class CocoEvaluator:
+class CocoEvaluator(
+        DetectionEvaluator[
+            Dict[str, COCOeval],
+            TCommonDetectionOutput]):
     """
     Defines an evaluator for the COCO dataset.
 
@@ -107,14 +115,14 @@ class CocoEvaluator:
         self.coco_gt = coco_gt
 
         self.iou_types = iou_types
-        self.coco_eval = {}
+        self.coco_eval: Dict[str, COCOeval] = {}
         for iou_type in iou_types:
             self.coco_eval[iou_type] = COCOeval(coco_gt, iouType=iou_type)
 
-        self.img_ids = []
-        self.eval_imgs = {k: [] for k in iou_types}
+        self.img_ids: List[int] = []
+        self.eval_imgs: Dict[str, List[np.ndarray]] = {k: [] for k in iou_types}
 
-    def update(self, predictions):
+    def update(self, predictions: TCommonDetectionOutput):
         img_ids = list(np.unique(list(predictions.keys())))
         self.img_ids.extend(img_ids)
 
@@ -146,15 +154,16 @@ class CocoEvaluator:
             return dist.get_rank() == 0
         return True
 
-    def evaluate(self):
+    def evaluate(self) -> Optional[
+        Union[Dict[str, Any], Tuple[Dict[str, Any], Dict[str, COCOeval]]]
+    ]:
         main_process = self.synchronize_between_processes()
 
         for coco_eval in self.coco_eval.values():
             coco_eval.accumulate()
 
-        result_dict = None
+        result_dict: Dict[str, Dict[str, Union[int, float]]] = OrderedDict()
         if main_process:
-            result_dict = OrderedDict()
             for iou, eval_data in self.coco_eval.items():
                 result_dict[iou] = OrderedDict()
                 with redirect_stdout(io.StringIO()):
@@ -174,7 +183,10 @@ class CocoEvaluator:
         if dist.is_initialized():
             dist.barrier()
 
-        return result_dict
+        if main_process:
+            return result_dict, self.coco_eval
+        else:
+            return None
 
     def summarize(self):
         for iou_type, coco_eval in self.coco_eval.items():
@@ -315,7 +327,8 @@ def all_gather(data):
     return data_list
 
 
-def merge(img_ids, eval_imgs):
+def merge(img_ids: List[int], eval_imgs: List[np.ndarray]) -> \
+        Tuple[np.ndarray, np.ndarray]:
     all_img_ids = all_gather(img_ids)
     all_eval_imgs = all_gather(eval_imgs)
 
@@ -327,23 +340,26 @@ def merge(img_ids, eval_imgs):
     for p in all_eval_imgs:
         merged_eval_imgs.append(p)
 
-    merged_img_ids = np.array(merged_img_ids)
-    merged_eval_imgs = np.concatenate(merged_eval_imgs, 2)
+    merged_img_ids_np = np.array(merged_img_ids)
+    merged_eval_imgs_np = np.concatenate(merged_eval_imgs, 2)
 
     # keep only unique (and in sorted order) images
-    merged_img_ids, idx = np.unique(merged_img_ids, return_index=True)
-    merged_eval_imgs = merged_eval_imgs[..., idx]
+    merged_img_ids_np, idx = np.unique(merged_img_ids_np, return_index=True)
+    merged_eval_imgs_np = merged_eval_imgs_np[..., idx]
 
-    return merged_img_ids, merged_eval_imgs
+    return merged_img_ids_np, merged_eval_imgs_np
 
 
-def create_common_coco_eval(coco_eval, img_ids, eval_imgs):
-    img_ids, eval_imgs = merge(img_ids, eval_imgs)
-    img_ids = list(img_ids)
-    eval_imgs = list(eval_imgs.flatten())
+def create_common_coco_eval(
+        coco_eval: COCOeval,
+        img_ids: List[int],
+        eval_imgs: List[np.ndarray]):
+    img_ids_np, eval_imgs_np = merge(img_ids, eval_imgs)
+    img_ids_lst = list(img_ids_np)
+    eval_imgs_list = list(eval_imgs_np.flatten())
 
-    coco_eval.evalImgs = eval_imgs
-    coco_eval.params.imgIds = img_ids
+    coco_eval.evalImgs = eval_imgs_list
+    coco_eval.params.imgIds = img_ids_lst
     coco_eval._paramsEval = copy.deepcopy(coco_eval.params)
 
 

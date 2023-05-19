@@ -164,7 +164,8 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
 
         if not isinstance(
             value,
-            (Image, Tensor, Figure, float, int, self.wandb.viz.CustomChart),
+            (Image, TensorImage, Tensor, Figure, float, int,
+             self.wandb.viz.CustomChart),
         ):
             # Unsupported type
             return

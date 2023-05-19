@@ -9,3 +9,4 @@ torchaudio:           extra
 gym:                  rl
 pycocotools:          detection
 lvis:                 detection
+timm:                 l2p

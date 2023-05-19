@@ -252,15 +252,18 @@ import pkgutil
 undocumented_classes_to_ignore = [
     # benchmarks
     'IDataset',
-
+    'TensorMNIST',
+    'SpeechCommandsData',
+    'ClassAccuracyPluginMetric',
+    'MeanScoresTrainPluginMetric',
+    'MeanScoresEvalPluginMetric',
+    'AMCAPluginMetric',
     'DictLVIS',
     'LvisEvaluator',
     'CocoEvaluator',
     'DetectionEvaluator',
 
     'ClassificationDataset',
-    'LazyClassMapping',
-    'TupleTLabel',
     'YTransformDef',
     'StreamDef',
     'Flatten',
@@ -268,11 +271,9 @@ undocumented_classes_to_ignore = [
     'SubSequence',
     'SimpleDownloadableDataset',
     'LazyDatasetSequence',
-    'AbstractClassificationExperience',
     'INATURALIST_DATA',
     'FilelistDataset',
     'ClassificationScenarioStream',
-    'LazySubsequence',
 
     'MaskedAttributeError',
     'MultiParamTransform',
@@ -284,12 +285,9 @@ undocumented_classes_to_ignore = [
     'ConstantSequence',
     'SequenceDataset',
     'DownloadableDataset',
-    'LazyConcatIntTargets',
-    'ClassificationSubset',
     'PathsDataset',
     'Compose',
     'VideoSubSequence',
-    'LazyConcatTargets',
     'PennFudanDataset',
     'IDatasetWithTargets',
     'ISupportedClassificationDataset',
@@ -297,7 +295,7 @@ undocumented_classes_to_ignore = [
     'ITensorDataset',
     'XTransformDef',
     'LazyClassesInExps',
-    'LazyStreamClassesInExps',
+    '_LazyStreamClassesInExps',
 
 
     # evaluation
@@ -342,7 +340,7 @@ undocumented_classes_to_ignore = [
     'PPPloss',
 
     'COCO',
-    'GenericClassificationExperience',
+    'ClassificationExperience',
     'LVISAnnotationEntry',
     'ExperienceMode',
     'LVISImgEntry',

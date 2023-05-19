@@ -16,13 +16,16 @@ concatenation and subsampling operations and are automatically managed by
 AvalancheDatasets.
 """
 
+from typing import Dict, List, Optional, Sequence, Set, TypeVar, Union, overload
 import torch
 
 from .dataset_definitions import IDataset
 from .flat_data import ConstantSequence, FlatData
 
+T_co = TypeVar('T_co', covariant=True)
 
-class DataAttribute:
+
+class DataAttribute(IDataset[T_co], Sequence[T_co]):
     """Data attributes manage sample-wise information such as task or
     class labels.
 
@@ -32,7 +35,11 @@ class DataAttribute:
     Data attributes can be efficiently concatenated and subsampled.
     """
 
-    def __init__(self, data: IDataset, name: str = None, use_in_getitem=False):
+    def __init__(
+            self,
+            data: IDataset[T_co],
+            name: str,
+            use_in_getitem: bool = False):
         """Data Attribute.
 
         :param data: a sequence of values, one for each sample.
@@ -42,16 +49,32 @@ class DataAttribute:
         :param use_in_getitem: If True, `AvalancheDataset` will add
             the value at the end of each sample.
         """
-        self.name = name
-        self.use_in_getitem = use_in_getitem
+        assert name is not None
+        assert data is not None
+        
+        self.name: str = name
+        self.use_in_getitem: bool = use_in_getitem
 
-        self._data = self._normalize_sequence(data)
+        self._data: FlatData[T_co] = self._normalize_sequence(data)
 
-        self._uniques = None  # set()
-        self._val_to_idx = None  # dict()
-        self._count = None  # dict()
+        self._uniques: Optional[Set[T_co]] = None  # set()
+        self._val_to_idx: Optional[Dict[T_co, Sequence[int]]] = None  # dict()
+        self._count: Optional[Dict[T_co, int]] = None  # dict()
 
-    def __getitem__(self, item):
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
+    @overload
+    def __getitem__(self, item: int) -> T_co:
+        ...
+
+    @overload
+    def __getitem__(self, item: slice) -> Sequence[T_co]:
+        ...
+
+    def __getitem__(self, item: Union[int, slice]) -> \
+            Union[T_co, Sequence[T_co]]:
         return self.data[item]
 
     def __len__(self):
@@ -101,11 +124,11 @@ class DataAttribute:
             self._val_to_idx = dict()
             if isinstance(self.data, ConstantSequence):
                 self._val_to_idx = {self.data[0]: range(len(self.data))}
-            else:
+            else: 
                 for i, x in enumerate(self.data):
                     if x not in self.val_to_idx:
                         self._val_to_idx[x] = []
-                    self._val_to_idx[x].append(i)
+                    self._val_to_idx[x].append(i)  # type: ignore
         return self._val_to_idx
 
     def subset(self, indices):
@@ -129,7 +152,7 @@ class DataAttribute:
         :return: the new concatenated `DataAttribute`
         """
         assert self.name == other.name, (
-            "Cannot concatenate DataAttributes" + "with different names."
+            'Cannot concatenate DataAttributes with different names.'
         )
         return DataAttribute(
             self.data.concat(other.data),
@@ -137,14 +160,16 @@ class DataAttribute:
             use_in_getitem=self.use_in_getitem,
         )
 
-    @staticmethod
-    def _normalize_sequence(seq):
+    def _normalize_sequence(self, seq: IDataset[T_co]) -> FlatData[T_co]:
         if isinstance(seq, torch.Tensor):
             # equality doesn't work for tensors
             seq = seq.tolist()
         if not isinstance(seq, FlatData):
             return FlatData([seq])
         return seq
+
+
+TensorDataAttribute = DataAttribute[T_co]
 
 
 class TaskLabels(DataAttribute):
@@ -155,4 +180,8 @@ class TaskLabels(DataAttribute):
         super().__init__(task_labels, "task_labels", use_in_getitem=True)
 
 
-__all__ = ["DataAttribute", "TaskLabels"]
+__all__ = [
+    "DataAttribute",
+    "TensorDataAttribute",
+    "TaskLabels"
+]

@@ -82,9 +82,9 @@ class PytorchcvWrapperTests(unittest.TestCase):
 
     def test_get_model(self):
         # Check general wrapper and whether downloading pretrained model works
-        model = get_model("simplepose_resnet18_coco", pretrained=True)
+        model = get_model("resnet10", pretrained=True)
         self.assertIsInstance(
-            model, pytorchcv.models.simplepose_coco.SimplePose
+            model, pytorchcv.models.resnet.ResNet
         )
 
 
@@ -490,3 +490,7 @@ class PNNTest(unittest.TestCase):
         avalanche_model_adaptation(model, benchmark.train_stream[1])
         model(mb0[0], task_labels=mb0[-1])
         model(mb1[0], task_labels=mb1[-1])
+
+
+if __name__ == "__main__":
+    unittest.main()

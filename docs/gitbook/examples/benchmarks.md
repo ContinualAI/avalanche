@@ -16,3 +16,4 @@ You can find **examples** related to the benchmarks here:&#x20;
 * [Endless CL Simulator](../../../examples/endless\_cl\_sim.py)_: this example makes use of the Endless-Continual-Learning-Simulator's derived dataset scenario._
 * [Simple CTRL benchmark](../../../examples/simple\_ctrl.py): _In this example we show a simple way to use the ctrl benchmark_.&#x20;
 * [Task-Incremental Learning](../../../examples/task\_incremental.py): _this example trains on Split CIFAR10 with Naive strategy. In this example each experience has a different task label._
+* [Hugging Face integration](../../../examples/nlp.py)_: how to use Hugging Face models and datasets within Avalanche for Natural Language Processing._
