@@ -31,7 +31,6 @@ from avalanche.benchmarks.utils.flat_data import (
 )
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
-    SupervisedClassificationDataset,
 )
 from tests.unit_tests_utils import (
     load_image_benchmark,
@@ -400,13 +399,13 @@ class AvalancheDatasetTests(unittest.TestCase):
     def test_avalanche_dataset_update_data_attribute(self):
         dataset_orig = load_image_benchmark()
 
-        dataset: SupervisedClassificationDataset = make_classification_dataset(
+        dataset: ClassificationDataset = make_classification_dataset(
             dataset_orig,
             transform=ToTensor(),
             task_labels=0
         )
 
-        self.assertIsInstance(dataset, SupervisedClassificationDataset)
+        self.assertIsInstance(dataset, ClassificationDataset)
         dataset_element = dataset[101]
         self.assertEqual(3, len(dataset_element))  # x, y, t
 

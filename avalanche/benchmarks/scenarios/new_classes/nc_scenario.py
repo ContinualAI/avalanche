@@ -20,7 +20,7 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 )
 from avalanche.benchmarks.utils import classification_subset
 from avalanche.benchmarks.utils.classification_dataset import \
-    ClassificationDataset, SupervisedClassificationDataset
+    ClassificationDataset
 
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
@@ -29,7 +29,7 @@ class NCScenario(
     ClassificationScenario[
         'NCStream',
         'NCExperience',
-        SupervisedClassificationDataset]):
+        ClassificationDataset]):
 
     """
     This class defines a "New Classes" scenario. Once created, an instance
@@ -124,8 +124,8 @@ class NCScenario(
             test datasets must be used. Defaults to None.
         """
 
-        train_dataset = SupervisedClassificationDataset(train_dataset)
-        test_dataset = SupervisedClassificationDataset(test_dataset)
+        train_dataset = ClassificationDataset(train_dataset)
+        test_dataset = ClassificationDataset(test_dataset)
         
         if (
             class_ids_from_zero_from_first_exp
@@ -557,7 +557,7 @@ class NCStream(ClassificationStream['NCExperience']):
             set_stream_info=set_stream_info)
 
 
-class NCExperience(ClassificationExperience[SupervisedClassificationDataset]):
+class NCExperience(ClassificationExperience[ClassificationDataset]):
     """
     Defines a "New Classes" experience. It defines fields to obtain the current
     dataset and the associated task label. It also keeps a reference to the
