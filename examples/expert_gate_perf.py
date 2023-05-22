@@ -227,8 +227,7 @@ def benchmark_setup():
     global AlexTransform 
     AlexTransform = transforms.Compose([
             transforms.Resize((227, 227)),
-            transforms.ToTensor(), 
-        ])
+            transforms.ToTensor()])
 
     # Initialize empty list of tasks
     # Each task is a separate dataset 
@@ -303,7 +302,8 @@ def build_flowers_benchmark(task_label):
         train_transform=AlexTransform,
         eval_transform=AlexTransform,
     )
-    print("Generated the 'Oxford Flowers 102' with the label", scenario.task_labels[0][0])
+    print("Generated the 'Oxford Flowers 102' with the label",
+          scenario.task_labels[0][0])
 
     return scenario
 
@@ -365,7 +365,8 @@ def build_scenes_benchmark(task_label):
         train_transform=AlexTransform,
         eval_transform=AlexTransform,
     )
-    print("Generated the 'MIT Scenes' benchmark with the label", scenario.task_labels[0][0])
+    print("Generated the 'MIT Scenes' benchmark with the label",
+          scenario.task_labels[0][0])
 
     return scenario
 
@@ -441,7 +442,8 @@ def build_birds_benchmark(task_label):
         train_transform=AlexTransform,
         eval_transform=AlexTransform,
     )
-    print("Generated the 'Caltech Birds 200' benchmark with the label", scenario.task_labels[0][0])
+    print("Generated the 'Caltech Birds 200' benchmark with the label",
+          scenario.task_labels[0][0])
 
     return scenario
 

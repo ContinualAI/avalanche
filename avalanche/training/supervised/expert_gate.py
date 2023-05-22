@@ -211,11 +211,12 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
         # Preferably we could use `strategy.experience.benchmark.n_classes`
         # but this attribute is not enforced for all benchmarks
-        n_classes = len(strategy.experience.classes_seen_so_far) + len(strategy.experience.future_classes)
+        n_classes = len(strategy.experience.classes_seen_so_far) + \
+            len(strategy.experience.future_classes)
 
         if (len(strategy.model.expert_dict) == 0):
             expert = ExpertModel(
-                num_classes = n_classes,
+                num_classes=n_classes,
                 arch=strategy.model.arch,
                 device=strategy.device,
                 pretrained_flag=strategy.model.pretrained_flag)
@@ -246,7 +247,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
             # Build expert with feature template
             expert = ExpertModel(
-                num_classes = n_classes,
+                num_classes=n_classes,
                 arch=strategy.model.arch,
                 device=strategy.device,
                 pretrained_flag=strategy.model.pretrained_flag,

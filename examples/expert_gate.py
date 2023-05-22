@@ -71,7 +71,7 @@ def main(args):
         print(f'Task {t} batch {exp_id}')
         print(f'This batch contains {len(training_dataset)} patterns')
         print(f'Current Classes: {experience.classes_in_this_experience}')
-        
+
         strategy.train(experience)
 
     # Evaluation loop
