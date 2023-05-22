@@ -443,7 +443,6 @@ class AETraining(SupervisedTemplate):
         loss_metrics(minibatch=False, epoch=True,
                      experience=False, stream=True),
         loggers=[InteractiveLogger()],
-        suppress_warnings=True,
         )
 
     def __init__(
