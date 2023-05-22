@@ -31,9 +31,7 @@ from avalanche.benchmarks.generators.benchmark_generators import (
     ni_benchmark,
 )
 
-from avalanche.benchmarks.scenarios.classification_scenario import (
-    GenericCLScenario,
-)
+from avalanche.benchmarks.scenarios.dataset_scenario import DatasetScenario
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
@@ -253,7 +251,7 @@ def dataset_scenario(
     task_labels: Sequence[int],
     *,
     complete_test_set_only: bool = False
-) -> GenericCLScenario:
+) -> DatasetScenario:
     """
     This helper function is DEPRECATED in favor of `dataset_benchmark`.
 
@@ -290,7 +288,7 @@ def dataset_scenario(
         Defaults to False, which means that ``train_dataset_list`` and
         ``test_dataset_list`` must contain the same amount of datasets.
 
-    :returns: A properly initialized :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`DatasetScenario` instance.
     """
 
     warnings.warn(
@@ -317,7 +315,7 @@ def filelist_scenario(
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None
-) -> GenericCLScenario:
+) -> DatasetScenario:
     """
     This helper function is DEPRECATED in favor of `filelist_benchmark`.
 
@@ -368,7 +366,7 @@ def filelist_scenario(
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
-    :returns: A properly initialized :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`DatasetScenario` instance.
     """
 
     warnings.warn(
@@ -404,7 +402,7 @@ def paths_scenario(
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None
-) -> GenericCLScenario:
+) -> DatasetScenario:
     """
     This helper function is DEPRECATED in favor of `paths_benchmark`.
 
@@ -466,7 +464,7 @@ def paths_scenario(
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
-    :returns: A properly initialized :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`DatasetScenario` instance.
     """
 
     warnings.warn(
@@ -496,7 +494,7 @@ def tensors_scenario(
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None
-) -> GenericCLScenario:
+) -> DatasetScenario:
     """
     This helper function is DEPRECATED in favor of `tensors_benchmark`.
 
@@ -553,7 +551,7 @@ def tensors_scenario(
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
-    :returns: A properly initialized :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`DatasetScenario` instance.
     """
 
     warnings.warn(
@@ -585,7 +583,7 @@ def tensor_scenario(
     train_target_transform=None,
     eval_transform=None,
     eval_target_transform=None
-) -> GenericCLScenario:
+) -> DatasetScenario:
     """
     This helper function is DEPRECATED in favor of `tensors_benchmark`.
 
@@ -646,7 +644,7 @@ def tensor_scenario(
     :param eval_target_transform: The transformation to apply to test
         patterns targets. Defaults to None.
 
-    :returns: A properly initialized :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`DatasetScenario` instance.
     """
 
     warnings.warn(

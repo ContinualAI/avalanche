@@ -42,7 +42,7 @@ def create_multi_dataset_generic_scenario(
 ) -> GenericCLScenario:
     """
     This helper function is DEPRECATED in favor of
-    `create_multi_dataset_generic_benchmark`.
+    `create_multi_dataset_[generic/classification/detection]_benchmark`.
 
     Creates a generic scenario given a list of datasets and the respective task
     labels. Each training dataset will be considered as a separate training
@@ -92,8 +92,8 @@ def create_multi_dataset_generic_scenario(
     """
 
     warnings.warn(
-        "create_multi_dataset_generic_scenario is deprecated in favor"
-        " of create_multi_dataset_generic_benchmark.",
+        "create_multi_dataset_generic_scenario is deprecated in favor of "
+        "create_multi_dataset_[generic/classification/detection]_benchmark.",
         DeprecationWarning,
     )
 

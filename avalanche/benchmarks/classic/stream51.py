@@ -9,17 +9,25 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Union
 
 from typing_extensions import Literal
 
+
 from avalanche.benchmarks.datasets import Stream51
+from avalanche.benchmarks.scenarios.classification_benchmark_creation import (
+    create_classification_benchmark_from_paths,
+)
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    CommonClassificationScenarioType,
+)
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_generic_benchmark_from_paths, FileAndLabel
+    FileAndLabel,
 )
 from torchvision import transforms
 import math
 import os
+
 
 _mu = [0.485, 0.456, 0.406]
 _std = [0.229, 0.224, 0.225]
@@ -71,7 +79,7 @@ def CLStream51(
     train_transform=_default_stream51_transform,
     eval_transform=_default_stream51_transform,
     dataset_root: Optional[Union[str, Path]] = None
-):
+) -> CommonClassificationScenarioType:
     """
     Creates a CL benchmark for Stream-51.
 
@@ -125,7 +133,7 @@ def CLStream51(
         Defaults to None, which means that the default location for
         'stream51' will be used.
 
-    :returns: A properly initialized :class:`GenericCLScenario` instance.
+    :returns: A properly initialized :class:`ClassificationScenario` instance.
     """
 
     # get train and test sets and order them by benchmark
@@ -283,14 +291,15 @@ def CLStream51(
                 [(j[0], j[1]) for j in i] for i in test_ood_filelists_paths
             ]
 
-    benchmark_obj = create_generic_benchmark_from_paths(
-        train_lists_of_files=train_filelists_paths,
-        test_lists_of_files=test_filelists_paths,
-        task_labels=[0 for _ in range(num_tasks)],
-        complete_test_set_only=scenario == "instance",
-        train_transform=train_transform,
-        eval_transform=eval_transform,
-    )
+    benchmark_obj: CommonClassificationScenarioType = \
+        create_classification_benchmark_from_paths(
+            train_lists_of_files=train_filelists_paths,
+            test_lists_of_files=test_filelists_paths,
+            task_labels=[0 for _ in range(num_tasks)],
+            complete_test_set_only=scenario == "instance",
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
 
     return benchmark_obj
 

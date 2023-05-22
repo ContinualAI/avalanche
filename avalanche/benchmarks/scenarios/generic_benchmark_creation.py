@@ -16,10 +16,12 @@ them fit your needs, then the helper functions here listed may help.
 
 from pathlib import Path
 from typing import (
+    Callable,
     Generator,
     List,
     Mapping,
     Sequence,
+    TypeVar,
     Union,
     Any,
     Tuple,
@@ -28,11 +30,18 @@ from typing import (
     Iterable,
     NamedTuple,
 )
+from typing_extensions import Protocol
+import warnings
+from avalanche.benchmarks.scenarios.dataset_scenario import (
+    DatasetScenario,
+    DatasetStream,
+    FactoryBasedStream,
+    TStreamsUserDict,
+)
+from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
 
 from avalanche.benchmarks.utils import (
-    make_tensor_classification_dataset,
     SupportedDataset,
-    make_classification_dataset,
     FilelistDataset,
     PathsDataset,
     common_paths_root,
@@ -40,7 +49,91 @@ from avalanche.benchmarks.utils import (
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
 )
-from .classification_scenario import GenericCLScenario
+from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.transform_groups import (
+    TransformGroupDef,
+    XTransform,
+    YTransform,
+)
+from avalanche.benchmarks.utils.utils import (
+    make_generic_dataset,
+    make_generic_tensor_dataset,
+)
+
+
+TDatasetScenario = TypeVar(
+    'TDatasetScenario',
+    bound='DatasetScenario')
+
+TTargetType = TypeVar(
+    'TTargetType',
+    contravariant=True)
+TSupportedDataset = TypeVar(
+    'TSupportedDataset',
+    contravariant=True)
+TAvalancheDataset = TypeVar(
+    'TAvalancheDataset',
+    bound='AvalancheDataset',
+    covariant=True)
+
+
+class DatasetFactory(
+        Protocol[
+            TSupportedDataset,
+            TTargetType,
+            TAvalancheDataset]):
+    def __call__(
+        self,
+        dataset: TSupportedDataset,
+        *,
+        transform: Optional[XTransform] = None,
+        target_transform: Optional[YTransform] = None,
+        transform_groups: Optional[Mapping[str, TransformGroupDef]] = None,
+        initial_transform_group: Optional[str] = None,
+        task_labels: Optional[Union[int, Sequence[int]]] = None,
+        targets: Optional[Sequence[TTargetType]] = None,
+        collate_fn: Optional[Callable[[List], Any]] = None
+    ) -> TAvalancheDataset:
+        ...
+
+
+class TensorDatasetFactory(
+        Protocol[
+            TAvalancheDataset]):
+    def __call__(
+        self,
+        dataset_tensors: Sequence,
+        *,
+        task_labels: Optional[Union[int, Sequence[int]]] = None,
+    ) -> TAvalancheDataset:
+        ...
+
+
+def _make_plain_experience(
+    stream: DatasetStream[DatasetExperience[TAvalancheDataset]],
+    experience_idx: int
+) -> DatasetExperience[TAvalancheDataset]:
+    dataset = stream.benchmark.stream_definitions[
+        stream.name
+    ].exps_data[experience_idx]
+
+    return DatasetExperience(
+        current_experience=experience_idx,
+        origin_stream=stream,
+        benchmark=stream.benchmark,
+        dataset=dataset
+    )
+
+
+def _make_generic_scenario(
+        stream_definitions: TStreamsUserDict,
+        complete_test_set_only: bool):
+    return DatasetScenario(
+        stream_definitions=stream_definitions,
+        complete_test_set_only=complete_test_set_only,
+        stream_factory=FactoryBasedStream,
+        experience_factory=_make_plain_experience
+    )
 
 
 def create_multi_dataset_generic_benchmark(
@@ -50,13 +143,20 @@ def create_multi_dataset_generic_benchmark(
     other_streams_datasets: Optional[
         Mapping[str, Sequence[SupportedDataset]]] = None,
     complete_test_set_only: bool = False,
-    train_transform=None,
-    train_target_transform=None,
-    eval_transform=None,
-    eval_target_transform=None,
+    train_transform: XTransform = None,
+    train_target_transform: YTransform = None,
+    eval_transform: XTransform = None,
+    eval_target_transform: YTransform = None,
     other_streams_transforms: Optional[
-        Mapping[str, Tuple[Any, Any]]] = None
-) -> GenericCLScenario:
+        Mapping[str, Tuple[XTransform, YTransform]]] = None,
+    dataset_factory: DatasetFactory = make_generic_dataset,
+    benchmark_factory: Callable[
+        [
+            TStreamsUserDict,
+            bool
+        ], TDatasetScenario
+    ] = _make_generic_scenario
+) -> TDatasetScenario:
     """
     Creates a benchmark instance given a list of datasets. Each dataset will be
     considered as a separate experience.
@@ -107,8 +207,17 @@ def create_multi_dataset_generic_benchmark(
         transformations will override the `train_transform`,
         `train_target_transform`, `eval_transform` and
         `eval_target_transform` parameters.
+    :param dataset_factory: The factory for the dataset. Should return
+        an :class:`AvalancheDataset` (or any subclass) given the input
+        dataset, the transform groups definition and the name of the
+        initial group (equal to the name of the stream). Defaults
+        to :func:`make_generic_dataset`.
+    :param benchmark_factory: The factory for the benchmark.
+        Should return the benchmark instance given the stream definitions
+        and a flag stating if the test stream contains a single dataset.
+        By default, returns a :class:`DatasetScenario`.
 
-    :returns: A :class:`GenericCLScenario` instance.
+    :returns: A benchmark instance.
     """
 
     transform_groups = dict(
@@ -121,9 +230,20 @@ def create_multi_dataset_generic_benchmark(
             if isinstance(stream_transforms, Sequence):
                 if len(stream_transforms) == 1:
                     # Suppose we got only the transformation for X values
-                    stream_transforms = (stream_transforms[0], None)
+                    warnings.warn(
+                        'Transformations for other streams should be passed '
+                        'as a 2 elements tuple `(Xtransform, YTransform)`. '
+                        'You can pass None for the Y transformation.'
+                    )
+                    stream_transforms = (
+                        stream_transforms[0],  # type: ignore
+                        None)
             else:
                 # Suppose it's the transformation for X values
+                warnings.warn(
+                    'Transformations for other streams should be passed '
+                    'as a 2 elements tuple (Xtransform, YTransform).'
+                )
                 stream_transforms = (stream_transforms, None)
 
             transform_groups[stream_name] = stream_transforms
@@ -151,22 +271,27 @@ def create_multi_dataset_generic_benchmark(
         stream_datasets = []
         for dataset_idx in range(len(dataset_list)):
             dataset = dataset_list[dataset_idx]
+
             stream_datasets.append(
-                make_classification_dataset(
-                    dataset,
+                dataset_factory(
+                    dataset=dataset,
                     transform_groups=transform_groups,
-                    initial_transform_group=initial_transform_group,
+                    initial_transform_group=initial_transform_group
                 )
             )
         stream_definitions[stream_name] = (stream_datasets,)
 
-    return GenericCLScenario(
-        stream_definitions=stream_definitions,
-        complete_test_set_only=complete_test_set_only,
+    return benchmark_factory(
+        stream_definitions,
+        complete_test_set_only,
     )
 
 
-def _adapt_lazy_stream(generator, transform_groups, initial_transform_group):
+def _adapt_lazy_stream(
+        generator,
+        transform_groups,
+        initial_transform_group,
+        dataset_factory):
     """
     A simple internal utility to apply transforms and dataset type to all lazily
     generated datasets. Used in the :func:`create_lazy_generic_benchmark`
@@ -177,7 +302,7 @@ def _adapt_lazy_stream(generator, transform_groups, initial_transform_group):
     """
 
     for dataset in generator:
-        dataset = make_classification_dataset(
+        dataset = dataset_factory(
             dataset,
             transform_groups=transform_groups,
             initial_transform_group=initial_transform_group,
@@ -203,7 +328,7 @@ class LazyStreamDefinition(NamedTuple):
       can be used.
     """
 
-    exps_generator: Iterable[ClassificationDataset]
+    exps_generator: Iterable[AvalancheDataset]
     """
     The experiences generator. Can be a "yield"-based generator, a custom
     sequence, a standard list or any kind of iterable returning
@@ -232,12 +357,20 @@ def create_lazy_generic_benchmark(
     *,
     other_streams_generators: Optional[Dict[str, LazyStreamDefinition]] = None,
     complete_test_set_only: bool = False,
-    train_transform=None,
-    train_target_transform=None,
-    eval_transform=None,
-    eval_target_transform=None,
-    other_streams_transforms: Optional[Dict[str, Tuple[Any, Any]]] = None
-) -> GenericCLScenario:
+    train_transform: XTransform = None,
+    train_target_transform: YTransform = None,
+    eval_transform: XTransform = None,
+    eval_target_transform: YTransform = None,
+    other_streams_transforms: Optional[
+        Mapping[str, Tuple[XTransform, YTransform]]] = None,
+    dataset_factory: DatasetFactory = make_generic_dataset,
+    benchmark_factory: Callable[
+        [
+            TStreamsUserDict,
+            bool
+        ], TDatasetScenario
+    ] = _make_generic_scenario
+) -> TDatasetScenario:
     """
     Creates a lazily-defined benchmark instance given a dataset generator for
     each stream.
@@ -296,8 +429,17 @@ def create_lazy_generic_benchmark(
         transformations for "train" or "test" streams then those transformations
         will override the `train_transform`, `train_target_transform`,
         `eval_transform` and `eval_target_transform` parameters.
-
-    :returns: A lazily-initialized :class:`GenericCLScenario` instance.
+    :param dataset_factory: The factory for the dataset. Should return
+        an :class:`AvalancheDataset` (or any subclass) given the input
+        dataset, the transform groups definition and the name of the
+        initial group (equal to the name of the stream). Defaults
+        to :func:`make_generic_dataset`.
+    :param benchmark_factory: The factory for the benchmark.
+        Should return the benchmark instance given the stream definitions
+        and a flag stating if the test stream contains a single dataset.
+        By default, returns a :class:`DatasetScenario`.
+    
+    :returns: A lazily-initialized benchmark instance.
     """
 
     transform_groups = dict(
@@ -310,9 +452,20 @@ def create_lazy_generic_benchmark(
             if isinstance(stream_transforms, Sequence):
                 if len(stream_transforms) == 1:
                     # Suppose we got only the transformation for X values
-                    stream_transforms = (stream_transforms[0], None)
+                    warnings.warn(
+                        'Transformations for other streams should be passed '
+                        'as a 2 elements tuple `(Xtransform, YTransform)`. '
+                        'You can pass None for the Y transformation.'
+                    )
+                    stream_transforms = (
+                        stream_transforms[0],  # type: ignore
+                        None)
             else:
                 # Suppose it's the transformation for X values
+                warnings.warn(
+                    'Transformations for other streams should be passed '
+                    'as a 2 elements tuple (Xtransform, YTransform).'
+                )
                 stream_transforms = (stream_transforms, None)
 
             transform_groups[stream_name] = stream_transforms
@@ -351,6 +504,7 @@ def create_lazy_generic_benchmark(
             generator,
             transform_groups,
             initial_transform_group=initial_transform_group,
+            dataset_factory=dataset_factory
         )
 
         stream_definitions[stream_name] = (
@@ -358,9 +512,9 @@ def create_lazy_generic_benchmark(
             task_labels,
         )
 
-    return GenericCLScenario(
-        stream_definitions=stream_definitions,
-        complete_test_set_only=complete_test_set_only,
+    return benchmark_factory(
+        stream_definitions,
+        complete_test_set_only
     )
 
 
@@ -373,13 +527,20 @@ def create_generic_benchmark_from_filelists(
         Dict[str, Sequence[Union[str, Path]]]] = None,
     task_labels: Sequence[int],
     complete_test_set_only: bool = False,
-    train_transform=None,
-    train_target_transform=None,
-    eval_transform=None,
-    eval_target_transform=None,
+    train_transform: XTransform = None,
+    train_target_transform: YTransform = None,
+    eval_transform: XTransform = None,
+    eval_target_transform: YTransform = None,
     other_streams_transforms: Optional[
-        Dict[str, Tuple[Any, Any]]] = None
-) -> GenericCLScenario:
+        Mapping[str, Tuple[XTransform, YTransform]]] = None,
+    dataset_factory: DatasetFactory = make_generic_dataset,
+    benchmark_factory: Callable[
+        [
+            TStreamsUserDict,
+            bool
+        ], TDatasetScenario
+    ] = _make_generic_scenario
+) -> TDatasetScenario:
     """
     Creates a benchmark instance given a list of filelists and the respective
     task labels. A separate dataset will be created for each filelist and each
@@ -452,8 +613,17 @@ def create_generic_benchmark_from_filelists(
         transformations for "train" or "test" streams then those transformations
         will override the `train_transform`, `train_target_transform`,
         `eval_transform` and `eval_target_transform` parameters.
+    :param dataset_factory: The factory for the dataset. Should return
+        an :class:`AvalancheDataset` (or any subclass) given the input
+        dataset, the transform groups definition and the name of the
+        initial group (equal to the name of the stream). Defaults
+        to :func:`make_generic_dataset`.
+    :param benchmark_factory: The factory for the benchmark.
+        Should return the benchmark instance given the stream definitions
+        and a flag stating if the test stream contains a single dataset.
+        By default, returns a :class:`DatasetScenario`.
 
-    :returns: A :class:`GenericCLScenario` instance.
+    :returns: A benchmark instance.
     """
 
     input_streams = dict(train=train_file_lists, test=test_file_lists)
@@ -469,7 +639,7 @@ def create_generic_benchmark_from_filelists(
 
             f_list_dataset = FilelistDataset(root, f_list)
             stream_datasets.append(
-                make_classification_dataset(
+                dataset_factory(
                     f_list_dataset, task_labels=task_labels[exp_id]
                 )
             )
@@ -486,6 +656,8 @@ def create_generic_benchmark_from_filelists(
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
         other_streams_transforms=other_streams_transforms,
+        dataset_factory=dataset_factory,
+        benchmark_factory=benchmark_factory
     )
 
 
@@ -503,12 +675,20 @@ def create_generic_benchmark_from_paths(
     ]] = None,
     task_labels: Sequence[int],
     complete_test_set_only: bool = False,
-    train_transform=None,
-    train_target_transform=None,
-    eval_transform=None,
-    eval_target_transform=None,
-    other_streams_transforms: Optional[Dict[str, Tuple[Any, Any]]] = None
-) -> GenericCLScenario:
+    train_transform: XTransform = None,
+    train_target_transform: YTransform = None,
+    eval_transform: XTransform = None,
+    eval_target_transform: YTransform = None,
+    other_streams_transforms: Optional[
+        Mapping[str, Tuple[XTransform, YTransform]]] = None,
+    dataset_factory: DatasetFactory = make_generic_dataset,
+    benchmark_factory: Callable[
+        [
+            TStreamsUserDict,
+            bool
+        ], TDatasetScenario
+    ] = _make_generic_scenario
+) -> TDatasetScenario:
     """
     Creates a benchmark instance given a sequence of lists of files. A separate
     dataset will be created for each list. Each of those datasets
@@ -579,8 +759,17 @@ def create_generic_benchmark_from_paths(
         transformations for "train" or "test" streams then those transformations
         will override the `train_transform`, `train_target_transform`,
         `eval_transform` and `eval_target_transform` parameters.
+    :param dataset_factory: The factory for the dataset. Should return
+        an :class:`AvalancheDataset` (or any subclass) given the input
+        dataset, the transform groups definition and the name of the
+        initial group (equal to the name of the stream). Defaults
+        to :func:`make_generic_dataset`.
+    :param benchmark_factory: The factory for the benchmark.
+        Should return the benchmark instance given the stream definitions
+        and a flag stating if the test stream contains a single dataset.
+        By default, returns a :class:`DatasetScenario`.
 
-    :returns: A :class:`GenericCLScenario` instance.
+    :returns: A benchmark instance.
     """
 
     input_streams = dict(train=train_lists_of_files, test=test_lists_of_files)
@@ -597,7 +786,7 @@ def create_generic_benchmark_from_paths(
             paths_dataset: PathsDataset[Any, int] = \
                 PathsDataset(common_root, exp_paths_list)
             stream_datasets.append(
-                make_classification_dataset(
+                dataset_factory(
                     paths_dataset, task_labels=task_labels[exp_id]
                 )
             )
@@ -614,6 +803,8 @@ def create_generic_benchmark_from_paths(
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
         other_streams_transforms=other_streams_transforms,
+        dataset_factory=dataset_factory,
+        benchmark_factory=benchmark_factory
     )
 
 
@@ -624,12 +815,21 @@ def create_generic_benchmark_from_tensor_lists(
     other_streams_tensors: Optional[Dict[str, Sequence[Sequence[Any]]]] = None,
     task_labels: Sequence[int],
     complete_test_set_only: bool = False,
-    train_transform=None,
-    train_target_transform=None,
-    eval_transform=None,
-    eval_target_transform=None,
-    other_streams_transforms: Optional[Dict[str, Tuple[Any, Any]]] = None
-) -> GenericCLScenario:
+    train_transform: XTransform = None,
+    train_target_transform: YTransform = None,
+    eval_transform: XTransform = None,
+    eval_target_transform: YTransform = None,
+    other_streams_transforms: Optional[
+        Mapping[str, Tuple[XTransform, YTransform]]] = None,
+    dataset_factory: DatasetFactory = make_generic_dataset,
+    tensor_dataset_factory: TensorDatasetFactory = make_generic_tensor_dataset,
+    benchmark_factory: Callable[
+        [
+            TStreamsUserDict,
+            bool
+        ], TDatasetScenario
+    ] = _make_generic_scenario
+) -> TDatasetScenario:
     """
     Creates a benchmark instance given lists of Tensors. A separate dataset will
     be created from each Tensor tuple (x, y, z, ...) and each of those training
@@ -701,8 +901,21 @@ def create_generic_benchmark_from_tensor_lists(
         transformations for "train" or "test" streams then those transformations
         will override the `train_transform`, `train_target_transform`,
         `eval_transform` and `eval_target_transform` parameters.
+    :param dataset_factory: The factory for the dataset. Should return
+        an :class:`AvalancheDataset` (or any subclass) given the input
+        dataset, the transform groups definition and the name of the
+        initial group (equal to the name of the stream). Defaults
+        to :func:`make_generic_dataset`.
+    :param tensor_dataset_factory: The factory for the intermediate
+        tensor dataset. This is used to convert the tensors list to a
+        PyTorch dataset. The returned dataset will be then processed
+        again using `dataset_factory`
+    :param benchmark_factory: The factory for the benchmark.
+        Should return the benchmark instance given the stream definitions
+        and a flag stating if the test stream contains a single dataset.
+        By default, returns a :class:`DatasetScenario`.
 
-    :returns: A :class:`GenericCLScenario` instance.
+    :returns: A benchmark instance.
     """
 
     input_streams = dict(train=train_tensors, test=test_tensors)
@@ -716,7 +929,7 @@ def create_generic_benchmark_from_tensor_lists(
         stream_datasets: List[ClassificationDataset] = []
         for exp_id, exp_tensors in enumerate(list_of_exps_tensors):
             stream_datasets.append(
-                make_tensor_classification_dataset(
+                tensor_dataset_factory(
                     *exp_tensors, task_labels=task_labels[exp_id]
                 )
             )
@@ -733,6 +946,8 @@ def create_generic_benchmark_from_tensor_lists(
         eval_target_transform=eval_target_transform,
         complete_test_set_only=complete_test_set_only,
         other_streams_transforms=other_streams_transforms,
+        dataset_factory=dataset_factory,
+        benchmark_factory=benchmark_factory
     )
 
 

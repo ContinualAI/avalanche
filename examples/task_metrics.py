@@ -19,9 +19,8 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.generators.benchmark_generators import (
-    create_multi_dataset_generic_benchmark,
-)
+from avalanche.benchmarks.scenarios.classification_benchmark_creation import \
+    create_multi_dataset_classification_benchmark
 from avalanche.benchmarks.utils import make_tensor_classification_dataset
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
@@ -56,6 +55,7 @@ def main(args):
             torch.randn(10, 3),
             torch.randint(0, 3, (10,)),
             task_labels=torch.randint(0, 5, (10,)).tolist(),
+            targets=1
         )
         for _ in range(3)
     ]
@@ -64,10 +64,11 @@ def main(args):
             torch.randn(10, 3),
             torch.randint(0, 3, (10,)),
             task_labels=torch.randint(0, 5, (10,)).tolist(),
+            targets=1
         )
         for _ in range(3)
     ]
-    benchmark = create_multi_dataset_generic_benchmark(
+    benchmark = create_multi_dataset_classification_benchmark(
         train_datasets=tr_ds, test_datasets=ts_ds
     )
     # ---------

@@ -8,6 +8,10 @@ from numpy.testing import assert_almost_equal
 from torchvision.datasets import MNIST
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    ClassificationScenario,
+)
+from avalanche.benchmarks.scenarios.dataset_scenario import DatasetScenario
 from tests.unit_tests_utils import DummyImageDataset
 
 
@@ -22,6 +26,10 @@ from avalanche.benchmarks import (
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators.benchmark_generators import (
     class_balanced_split_strategy,
+    dataset_classification_benchmark,
+    filelist_classification_benchmark,
+    paths_classification_benchmark,
+    tensors_classification_benchmark,
 )
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
     create_lazy_generic_benchmark,
@@ -53,6 +61,17 @@ class HighLevelGeneratorTests(unittest.TestCase):
         generic_benchmark = dataset_benchmark(
             [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
         )
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+
+        classification_benchmark = dataset_classification_benchmark(
+            [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
+        )
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
+
+        # Check dataset_benchmark classification retrocompatibility
+        # This check should be removed once we decide to transition to 
+        # dataset_classification/detection/..._benchmark
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
 
     def test_dataset_benchmark_avalanche_dataset(self):
         train_MNIST = make_classification_dataset(
@@ -137,8 +156,25 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 eval_transform=ToTensor(),
             )
 
+            classification_benchmark = filelist_classification_benchmark(
+                dirpath,
+                list_paths,
+                [list_paths[0]],
+                task_labels=[0, 0],
+                complete_test_set_only=True,
+                train_transform=ToTensor(),
+                eval_transform=ToTensor(),
+            )
+
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
+
+        # Check dataset_benchmark classification retrocompatibility
+        # This check should be removed once we decide to transition to 
+        # dataset_classification/detection/..._benchmark
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
 
     def test_paths_benchmark(self):
         download_url(
@@ -177,8 +213,24 @@ class HighLevelGeneratorTests(unittest.TestCase):
             eval_transform=ToTensor(),
         )
 
+        classification_benchmark = paths_classification_benchmark(
+            train_experiences,
+            [train_experiences[0]],  # Single test set
+            task_labels=[0, 0],
+            complete_test_set_only=True,
+            train_transform=ToTensor(),
+            eval_transform=ToTensor(),
+        )
+
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
+
+        # Check dataset_benchmark classification retrocompatibility
+        # This check should be removed once we decide to transition to 
+        # dataset_classification/detection/..._benchmark
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
 
     def test_tensors_benchmark(self):
         pattern_shape = (3, 32, 32)
@@ -206,8 +258,25 @@ class HighLevelGeneratorTests(unittest.TestCase):
             complete_test_set_only=True,
         )
 
+        classification_benchmark = tensors_classification_benchmark(
+            train_tensors=[
+                (experience_1_x, experience_1_y),
+                (experience_2_x, experience_2_y),
+            ],
+            test_tensors=[(test_x, test_y)],
+            task_labels=[0, 0],  # Task label of each train exp
+            complete_test_set_only=True,
+        )
+
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
+
+        # Check dataset_benchmark classification retrocompatibility
+        # This check should be removed once we decide to transition to 
+        # dataset_classification/detection/..._benchmark
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
 
     def test_data_incremental_benchmark(self):
         pattern_shape = (3, 32, 32)
@@ -441,7 +510,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
 
-        initial_benchmark_instance = tensors_benchmark(
+        initial_benchmark_instance = tensors_classification_benchmark(
             train_tensors=[
                 (experience_1_x, experience_1_y),
                 (experience_2_x, experience_2_y),

@@ -32,6 +32,13 @@ from typing import (
 )
 
 import torch
+from avalanche.benchmarks.scenarios.classification_benchmark_creation import (
+    create_classification_benchmark_from_filelists,
+    create_classification_benchmark_from_paths,
+    create_classification_benchmark_from_tensor_lists,
+    create_lazy_classification_benchmark,
+    create_multi_dataset_classification_benchmark,
+)
 from avalanche.benchmarks.scenarios.classification_scenario import \
     ClassificationScenario
 
@@ -437,6 +444,17 @@ filelist_benchmark = create_generic_benchmark_from_filelists
 paths_benchmark = create_generic_benchmark_from_paths
 tensors_benchmark = create_generic_benchmark_from_tensor_lists
 lazy_benchmark = create_lazy_generic_benchmark
+
+
+# Classification-specific
+dataset_classification_benchmark = \
+    create_multi_dataset_classification_benchmark
+filelist_classification_benchmark = \
+    create_classification_benchmark_from_filelists
+paths_classification_benchmark = create_classification_benchmark_from_paths
+tensors_classification_benchmark = \
+    create_classification_benchmark_from_tensor_lists
+lazy_classification_benchmark = create_lazy_classification_benchmark
 
 
 def _one_dataset_per_exp_class_order(
@@ -1132,6 +1150,12 @@ __all__ = [
     "filelist_benchmark",
     "paths_benchmark",
     "tensors_benchmark",
+    "lazy_benchmark",
+    "dataset_classification_benchmark",
+    "filelist_classification_benchmark",
+    "paths_classification_benchmark",
+    "tensors_classification_benchmark",
+    "lazy_classification_benchmark",
     "data_incremental_benchmark",
     "benchmark_with_validation_stream",
     "random_validation_split_strategy",

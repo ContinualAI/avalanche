@@ -18,6 +18,9 @@ from PIL.Image import Image
 import torchvision.transforms.functional as F
 from torchvision import transforms
 from tqdm import tqdm
+from avalanche.benchmarks.generators.benchmark_generators import (
+    dataset_classification_benchmark,
+)
 
 from avalanche.benchmarks.utils.classification_dataset import (
     SupervisedClassificationDataset,
@@ -126,7 +129,7 @@ def CTrL(
             if t_id == n_tasks - 1:
                 break
 
-    return dataset_benchmark(
+    return dataset_classification_benchmark(
         train_datasets=exps[0],
         test_datasets=exps[2],
         other_streams_datasets=dict(val=exps[1]),

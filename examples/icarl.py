@@ -1,5 +1,3 @@
-from os.path import expanduser
-
 import torch
 
 from avalanche.benchmarks.datasets import CIFAR100

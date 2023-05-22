@@ -64,7 +64,8 @@ extensions = [
     'sphinx.ext.githubpages',
     'sphinx.ext.coverage',
     'sphinx_rtd_theme',
-    'sphinx_copybutton'
+    'sphinx_copybutton',
+    'sphinx_autodoc_typehints'
 ]
 
 autosummary_generate = True

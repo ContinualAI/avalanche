@@ -5,10 +5,11 @@ import gc
 import torch
 
 from avalanche.benchmarks import (
-    dataset_benchmark,
     ClassificationExperience,
     ClassificationScenario,
 )
+from avalanche.benchmarks.generators.benchmark_generators import \
+    dataset_classification_benchmark
 from avalanche.benchmarks.utils import make_tensor_classification_dataset
 
 
@@ -54,7 +55,7 @@ class ClassificationScenarioTests(unittest.TestCase):
             )
         )
 
-        benchmark_instance = dataset_benchmark(
+        benchmark_instance = dataset_classification_benchmark(
             train_datasets=train_exps,
             test_datasets=test_exps,
             other_streams_datasets={"other": other_stream_exps},
@@ -137,7 +138,7 @@ class ClassificationScenarioTests(unittest.TestCase):
             )
         )
 
-        benchmark_instance = dataset_benchmark(
+        benchmark_instance = dataset_classification_benchmark(
             train_datasets=train_exps,
             test_datasets=test_exps,
             other_streams_datasets={"other": other_stream_exps},

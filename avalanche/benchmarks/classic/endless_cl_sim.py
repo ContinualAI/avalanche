@@ -12,9 +12,15 @@
 """
 This module contains the high-level EndlessCLSim scenario 
 generator. It returns an iterable scenario object 
-``GenericCLScenario`` given a number of configuration parameters.
+:class:`ClassificationScenario` given a number of configuration parameters.
 """
 
+from avalanche.benchmarks.generators.benchmark_generators import (
+    dataset_classification_benchmark,
+)
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    CommonClassificationScenarioType,
+)
 from avalanche.benchmarks.utils.classification_dataset import (
     make_classification_dataset,
 )
@@ -27,11 +33,7 @@ from typing import List, Union, Optional, Any
 from torchvision.transforms import ToTensor
 from torchvision.transforms.transforms import Compose
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import (
-    check_vision_benchmark,
-)
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.generators import dataset_benchmark
 from avalanche.benchmarks.utils import make_classification_dataset
 
 _default_transform = Compose([ToTensor()])
@@ -146,7 +148,11 @@ def EndlessCLSim(
             )
         )
 
-    scenario_obj = dataset_benchmark(train_datasets, eval_datasets)
+    scenario_obj: CommonClassificationScenarioType = \
+        dataset_classification_benchmark(
+            train_datasets,
+            eval_datasets
+        )
 
     return scenario_obj
 

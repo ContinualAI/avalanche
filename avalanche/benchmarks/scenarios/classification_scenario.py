@@ -14,6 +14,8 @@ from typing import (
 
 import warnings
 
+from torch import Tensor
+
 from avalanche.benchmarks.scenarios.generic_scenario import (
     AbstractClassTimelineExperience,
 )
@@ -169,12 +171,12 @@ class ClassificationExperience(
     ]
 ):
     """
-    Definition of a learning experience based on a :class:`GenericCLScenario`
-    instance.
+    Definition of a learning experience based on a
+    :class:`ClassificationScenario` instance.
 
     This experience implementation uses the generic experience-patterns
-    assignment defined in the :class:`GenericCLScenario` instance. Instances of
-    this class are usually obtained from a benchmark stream.
+    assignment defined in the :class:`ClassificationScenario` instance.
+    Instances of this class are usually obtained from a benchmark stream.
     """
 
     def __init__(
@@ -248,7 +250,7 @@ GenericClassificationExperience = ClassificationExperience
 class _LazyStreamClassesInClassificationExps(
         Mapping[str, 
                 Sequence[Set[int]]]):
-    def __init__(self, benchmark: GenericCLScenario):
+    def __init__(self, benchmark: ClassificationScenario):
         self._benchmark = benchmark
         self._default_lcie = _LazyClassesInClassificationExps(
             benchmark, stream="train")
@@ -278,7 +280,10 @@ LazyClassesInExpsRet = Union[Tuple[Optional[Set[int]], ...], Optional[Set[int]]]
 
 
 class _LazyClassesInClassificationExps(Sequence[Optional[Set[int]]]):
-    def __init__(self, benchmark: GenericCLScenario, stream: str = "train"):
+    def __init__(
+            self,
+            benchmark: ClassificationScenario,
+            stream: str = "train"):
         self._benchmark = benchmark
         self._stream = stream
 
@@ -328,6 +333,17 @@ class _LazyClassesInClassificationExps(Sequence[Optional[Set[int]]]):
             result.append(set(x))
 
         return tuple(result)
+    
+
+CommonClassificationItem = Tuple[Tensor, int, int]  # x, y, t
+CommonClassificationDataset = ClassificationDataset[CommonClassificationItem]
+CommonClassificationExperience = ClassificationExperience[
+    CommonClassificationDataset]
+
+CommonClassificationScenarioType = ClassificationScenario[
+        ClassificationStream[CommonClassificationExperience],
+        CommonClassificationExperience,
+        CommonClassificationDataset]
 
 
 __all__ = [
@@ -336,4 +352,5 @@ __all__ = [
     "ClassificationStream",
     "ClassificationExperience",
     "GenericClassificationExperience",
+    "CommonClassificationScenarioType"
 ]

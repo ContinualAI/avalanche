@@ -15,8 +15,10 @@ from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks import (
     nc_benchmark,
-    GenericCLScenario,
     benchmark_with_validation_stream,
+)
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    ClassificationScenario,
 )
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
 from avalanche.evaluation.metric_results import MetricValue
@@ -345,7 +347,9 @@ class PluginTests(unittest.TestCase):
             self.assertTrue(torch.equal(v, dict2[k]))
 
     def assert_benchmark_equals(
-        self, bench1: GenericCLScenario, bench2: GenericCLScenario
+        self,
+        bench1: ClassificationScenario,
+        bench2: ClassificationScenario
     ):
         self.assertSetEqual(
             set(bench1.streams.keys()), set(bench2.streams.keys())
