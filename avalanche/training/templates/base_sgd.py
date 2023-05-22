@@ -345,11 +345,50 @@ class BaseSGDTemplate(
 
         super()._before_eval_exp(**kwargs)
 
+    def _obtain_common_dataloader_parameters(self, **kwargs):
+        """
+        Utility function that returns the dictionary of parameters to be passed
+        to the train and eval dataloaders.
+
+        This function can be useful when in need to customize the data loading
+        parameters but no radical changes are needed. When overriding to 
+        add/customize parameters, it is recommended to first call this 
+        implementation (super) to obtain a base dictionary of parameters.
+
+        However, if a more deep change is needed in the data loading procedure,
+        it is better to overrride :meth:`make_train_dataloader` and/or
+        :meth:`make_eval_dataloader` directly.
+
+        Note: the resulting dictionary does not include the collate function
+        unless explicitly passed.
+
+        :param kwargs: The dataloader arguments as passed to the `train`
+            or `eval` method.
+        :return: A dictionary of parameters to be passed to the DataLoader class
+            or to one of the Avalanche dataloaders.
+        """
+        other_dataloader_args = {}
+
+        if 'persistent_workers' in kwargs:
+            if parse_version(torch.__version__) >= parse_version("1.7.0"):
+                other_dataloader_args["persistent_workers"] = \
+                    kwargs['persistent_workers']
+            else:
+                del kwargs['persistent_workers']
+
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
+
+        if other_dataloader_args.get('pin_memory', None) is None:
+            other_dataloader_args['pin_memory'] = self.device.type == 'cuda'
+
+        return other_dataloader_args
+
     def make_train_dataloader(
         self,
         num_workers=0,
         shuffle=True,
-        pin_memory=True,
+        pin_memory=None,
         persistent_workers=False,
         **kwargs
     ):
@@ -364,27 +403,31 @@ class BaseSGDTemplate(
             pinned memory before returning them. Defaults to True.
         """
 
-        other_dataloader_args = {}
-
-        if parse_version(torch.__version__) >= parse_version("1.7.0"):
-            other_dataloader_args["persistent_workers"] = persistent_workers
-        for k, v in kwargs.items():
-            other_dataloader_args[k] = v
-
         assert self.adapted_dataset is not None
+
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=self.train_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            **kwargs
+        )
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
-            num_workers=num_workers,
-            batch_size=self.train_mb_size,
-            shuffle=shuffle,
-            pin_memory=pin_memory,
             **other_dataloader_args
         )
 
     def make_eval_dataloader(
-        self, num_workers=0, pin_memory=True, persistent_workers=False, **kwargs
+        self,
+        num_workers=0,
+        shuffle=False,
+        pin_memory=None,
+        persistent_workers=False,
+        drop_last=False,
+        **kwargs
     ):
         """
         Initializes the eval data loader.
@@ -396,20 +439,25 @@ class BaseSGDTemplate(
         :param kwargs:
         :return:
         """
-        other_dataloader_args = {}
 
-        if parse_version(torch.__version__) >= parse_version("1.7.0"):
-            other_dataloader_args["persistent_workers"] = persistent_workers
-        for k, v in kwargs.items():
-            other_dataloader_args[k] = v
+        assert self.adapted_dataset is not None
 
-        collate_from_data_or_kwargs(self.adapted_dataset,
-                                    other_dataloader_args)
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=self.eval_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            drop_last=drop_last,
+            **kwargs
+        )
+
+        collate_from_data_or_kwargs(
+            self.adapted_dataset,
+            other_dataloader_args)
+        
         self.dataloader = DataLoader(
             self.adapted_dataset,
-            num_workers=num_workers,
-            batch_size=self.eval_mb_size,
-            pin_memory=pin_memory,
             **other_dataloader_args
         )
 
@@ -487,13 +535,17 @@ class BaseSGDTemplate(
         trigger_plugins(self, "after_eval_dataset_adaptation", **kwargs)
 
 
-class PeriodicEval(BaseSGDPlugin):
+class PeriodicEval(BaseSGDPlugin, supports_distributed=True):
     """Schedules periodic evaluation during training.
 
     This plugin is automatically configured and added by the BaseTemplate.
     """
 
-    def __init__(self, eval_every=-1, peval_mode="epoch", do_initial=True):
+    def __init__(
+            self,
+            eval_every=-1,
+            peval_mode="epoch",
+            do_initial=True):
         """Init.
 
         :param eval_every: the frequency of the calls to `eval` inside the
@@ -513,7 +565,7 @@ class PeriodicEval(BaseSGDPlugin):
         self.eval_every = eval_every
         self.peval_mode = peval_mode
         self.do_initial = do_initial and eval_every > -1
-        self.do_final = None
+        self.do_final: Optional[bool] = None
         self._is_eval_updated = False
 
     def before_training(self, strategy, **kwargs):

@@ -19,6 +19,8 @@ import logging
 from pathlib import Path
 from typing import Union
 
+from pkg_resources import parse_version
+
 from avalanche.benchmarks.datasets.lvis_dataset import LvisDataset
 from avalanche.evaluation.metrics.detection import make_lvis_metrics
 from avalanche.training.supervised.naive_object_detection import (
@@ -71,9 +73,7 @@ def main(args):
 
     # MODEL CREATION
     # load a model pre-trained on COCO
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
-        pretrained=True
-    )
+    model = obtain_base_model(segmentation=False)
 
     # Just tune the box predictor
     for p in model.parameters():
@@ -138,6 +138,35 @@ def main(args):
 
         cl_strategy.eval(benchmark.test_stream, num_workers=8)
         print("Evaluation completed")
+
+
+def obtain_base_model(segmentation: bool):
+    torchvision_is_old_version = \
+        parse_version(torch.__version__) < parse_version("0.13")
+
+    pretrain_argument = dict()
+
+    if torchvision_is_old_version:
+        pretrain_argument['pretrained'] = True
+    else:
+        if segmentation:
+            pretrain_argument['weights'] = \
+                torchvision.models.detection.mask_rcnn.\
+                MaskRCNN_ResNet50_FPN_Weights.DEFAULT
+        else:
+            pretrain_argument['weights'] = \
+                torchvision.models.detection.faster_rcnn.\
+                FasterRCNN_ResNet50_FPN_Weights.DEFAULT
+    
+    if segmentation:
+        model = torchvision.models.detection.maskrcnn_resnet50_fpn(
+            **pretrain_argument
+        )
+    else:
+        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
+            **pretrain_argument
+        )
+    return model
 
 
 def split_lvis(

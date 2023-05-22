@@ -61,7 +61,11 @@ jobs:
         run: |
           python -m unittest discover tests &&
           echo "Running checkpointing tests..." &&
-          bash ./tests/checkpointing/test_checkpointing.sh
+          bash ./tests/checkpointing/test_checkpointing.sh &&
+          echo "Running distributed training tests..." &&
+          cd tests &&
+          PYTHONPATH=.. python run_dist_tests.py &&
+          cd ..
       - name: checkout avalanche-docker repo
         if: always()
         uses: actions/checkout@v3

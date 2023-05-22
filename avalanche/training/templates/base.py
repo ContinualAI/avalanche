@@ -1,3 +1,4 @@
+import sys
 import warnings
 from collections import defaultdict
 from typing import Generic, Iterable, Sequence, Optional, TypeVar, Union, List
@@ -7,6 +8,7 @@ from torch.nn import Module
 
 from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BasePlugin
+from avalanche.distributed.distributed_helper import DistributedHelper
 from avalanche.training.templates.strategy_mixin_protocol import \
     BaseStrategyProtocol
 from avalanche.training.utils import trigger_plugins
@@ -49,6 +51,9 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
         """ PyTorch model. """
 
         if device is None:
+            warnings.warn(
+                'When instantiating a strategy, please pass a non-None device.'
+            )
             device = 'cpu'
 
         self.device = torch.device(device)
@@ -72,6 +77,12 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
 
         self.current_eval_stream: Iterable[TExperienceType] = []
         """ Current evaluation stream. """
+
+        self._distributed_check: bool = False
+        """
+        Internal flag used to verify the support for distributed
+        training only once.
+        """
 
         ###################################################################
         # Other variables #
@@ -106,6 +117,12 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
             when calling `eval`. If you use multiple streams, they must
             have different names.
         """
+        if not self._distributed_check:
+            # Checks if the strategy elements are compatible with 
+            # distributed training
+            self._check_distributed_training_compatibility()
+            self._distributed_check = True
+        
         self.is_training = True
         self._stop_training = False
 
@@ -154,6 +171,12 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
         :return: dictionary containing last recorded value for
             each metric name
         """
+        if not self._distributed_check:
+            # Checks if the strategy elements are compatible with 
+            # distributed training
+            self._check_distributed_training_compatibility()
+            self._distributed_check = True
+        
         # eval can be called inside the train method.
         # Save the shared state here to restore before returning.
         prev_train_state = self._save_train_state()
@@ -245,6 +268,28 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
                     f"callbacks: {cb_p - cb_supported}",
                 )
                 return
+            
+    def _check_distributed_training_compatibility(self):
+        """
+        Check if strategy elements (plugins, ...) are compatible with
+        distributed training.
+        This check does nothing if not training in distributed mode.
+        """
+        if not DistributedHelper.is_distributed:
+            return True
+
+        unsupported_plugins = []
+        for plugin in self.plugins:
+            if not getattr(plugin, "supports_distributed", False):
+                unsupported_plugins.append(plugin)
+
+        if len(unsupported_plugins) > 0:
+            warnings.warn('You are using plugins that are not compatible'
+                          'with distributed training:')
+            for plugin in unsupported_plugins:
+                print(type(plugin), file=sys.stderr)
+
+        return len(unsupported_plugins) == 0
 
     #########################################################
     # Plugin Triggers                                       #

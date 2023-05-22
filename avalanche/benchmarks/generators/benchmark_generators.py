@@ -32,13 +32,17 @@ from typing import (
 )
 
 import torch
+from avalanche.benchmarks.scenarios.classification_scenario import \
+    ClassificationScenario
 
 from avalanche.benchmarks.scenarios.dataset_scenario import (
     DatasetScenario,
     DatasetStream,
     FactoryBasedStream,
     StreamDef,
+    TStreamsUserDict,
 )
+from avalanche.benchmarks.scenarios.detection_scenario import DetectionScenario
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
 from avalanche.benchmarks.scenarios import (
     StreamUserDef,
@@ -550,6 +554,32 @@ def _make_plain_experience(
     )
 
 
+def _smart_benchmark_factory(
+    original_benchmark: DatasetScenario,
+    new_streams_definitions: TStreamsUserDict,
+    complete_test_set_only: bool
+) -> DatasetScenario:
+    
+    if isinstance(original_benchmark, ClassificationScenario):
+        return ClassificationScenario(
+            stream_definitions=new_streams_definitions,
+            complete_test_set_only=complete_test_set_only
+        )
+    elif isinstance(original_benchmark, DetectionScenario):
+        return DetectionScenario(
+            stream_definitions=new_streams_definitions,
+            complete_test_set_only=complete_test_set_only
+        )
+    else:
+        # Generic scenario
+        return DatasetScenario(
+            stream_definitions=new_streams_definitions,
+            complete_test_set_only=complete_test_set_only,
+            stream_factory=FactoryBasedStream,
+            experience_factory=_make_plain_experience,
+        )
+
+
 def data_incremental_benchmark(
     benchmark_instance: DatasetScenario[TDatasetStream,
                                         TDatasetExperience,
@@ -562,6 +592,20 @@ def data_incremental_benchmark(
         [DatasetExperience[TCLDataset]],
         Sequence[TCLDataset]
     ]] = None,
+    *,
+    benchmark_factory: Optional[Callable[
+        [
+            DatasetScenario[TDatasetStream,
+                            TDatasetExperience,
+                            TCLDataset],
+            TStreamsUserDict,
+            bool
+        ], DatasetScenario[
+            DatasetStream[DatasetExperience[TCLDataset]],
+            DatasetExperience[TCLDataset],
+            TCLDataset]
+        ]
+    ] = _smart_benchmark_factory,
     experience_factory: Optional[Callable[
         [DatasetStream[DatasetExperience[TCLDataset]], int], 
         DatasetExperience[TCLDataset]
@@ -616,8 +660,14 @@ def data_incremental_benchmark(
         A good starting to understand the mechanism is to look at the
         implementation of the standard splitting function
         :func:`fixed_size_experience_split_strategy`.
-    :param experience_factory: The experience factory.
-        Defaults to :class:`DatasetExperience`.
+    :param benchmark_factory: The scenario factory. Defaults to 
+        `_smart_experience_factory`, which will try to create a benchmark of the
+        same class of the originating one. Can be None, in which case a generic
+        :class:`DatasetScenario` will be used coupled with the factory defined
+        by the `experience_factory` parameter.
+    :param experience_factory: The experience factory. Ignored if
+        `scenario_factory` is not None. Otherwise, defaults to
+        :class:`DatasetExperience`.
     :return: The Data Incremental benchmark instance.
     """
 
@@ -678,8 +728,18 @@ def data_incremental_benchmark(
     complete_test_set_only = (
         benchmark_instance.complete_test_set_only
         and len(stream_definitions["test"].exps_data) == 1
-    ) 
+    )
 
+    if benchmark_factory is not None:
+        # Try to create a benchmark of the same class of the
+        # initial benchmark.
+        return benchmark_factory(
+            benchmark_instance,
+            stream_definitions,
+            complete_test_set_only
+        )
+
+    # Generic benchmark class
     if experience_factory is None:
         experience_factory = _make_plain_experience
 
@@ -852,7 +912,7 @@ def _lazy_train_val_split(
 
 
 def benchmark_with_validation_stream(
-    benchmark_instance: DatasetScenario[TSizedCLStream,
+    benchmark_instance: DatasetScenario[TDatasetStream,
                                         TDatasetExperience,
                                         TCLDataset],
     validation_size: Union[int, float] = 0.5,
@@ -864,6 +924,18 @@ def benchmark_with_validation_stream(
         Tuple[TCLDataset, TCLDataset],
     ]] = None,
     *,
+    benchmark_factory: Optional[Callable[
+        [
+            DatasetScenario[TDatasetStream,
+                            TDatasetExperience,
+                            TCLDataset],
+            TStreamsUserDict,
+            bool
+        ], DatasetScenario[
+                DatasetStream[DatasetExperience[TCLDataset]],
+                DatasetExperience[TCLDataset],
+                TCLDataset]]
+    ] = _smart_benchmark_factory,
     experience_factory: Optional[Callable[
         [DatasetStream[DatasetExperience[TCLDataset]], int],
         DatasetExperience[TCLDataset]
@@ -928,8 +1000,14 @@ def benchmark_with_validation_stream(
         A good starting to understand the mechanism is to look at the
         implementation of the standard splitting function
         :func:`random_validation_split_strategy`.
-    :param experience_factory: The experience factory. Defaults to
-        :class:`GenericExperience`.
+    :param benchmark_factory: The scenario factory. Defaults to 
+        `_smart_experience_factory`, which will try to create a benchmark of the
+        same class of the originating one. Can be None, in which case a generic
+        :class:`DatasetScenario` will be used coupled with the factory defined
+        by the `experience_factory` parameter.
+    :param experience_factory: The experience factory. Ignored if
+        `scenario_factory` is not None. Otherwise, defaults to
+        :class:`DatasetExperience`.
     :param lazy_splitting: If True, the stream will be split in a lazy way.
         If False, the stream will be split immediately. Defaults to None, which
         means that the stream will be split in a lazy or non-lazy way depending
@@ -971,7 +1049,7 @@ def benchmark_with_validation_stream(
             f"benchmark instance"
         )
 
-    stream: TSizedCLStream = streams[input_stream]
+    stream: TDatasetStream = streams[input_stream]
 
     if lazy_splitting is None:
         split_lazily = original_stream_definitions[input_stream].is_lazy
@@ -1026,6 +1104,16 @@ def benchmark_with_validation_stream(
 
     complete_test_set_only = benchmark_instance.complete_test_set_only
 
+    if benchmark_factory is not None:
+        # Try to create a benchmark of the same class of the
+        # initial benchmark.
+        return benchmark_factory(
+            benchmark_instance,
+            stream_definitions,
+            complete_test_set_only
+        )
+
+    # Generic benchmark class
     if experience_factory is None:
         experience_factory = _make_plain_experience
 

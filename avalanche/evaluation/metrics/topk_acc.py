@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, List, Union, Dict
 
 import torch
 from torch import Tensor
+import torchmetrics
 from torchmetrics.functional import accuracy
 
 from avalanche.evaluation import Metric, GenericPluginMetric
@@ -20,6 +21,7 @@ from avalanche.evaluation.metrics.mean import Mean
 from avalanche.evaluation.metric_utils import phase_and_task
 
 from collections import defaultdict
+from packaging import version
 
 if TYPE_CHECKING:
     from avalanche.training.templates.common_templates import SupervisedTemplate
@@ -31,7 +33,7 @@ class TopkAccuracy(Metric[Dict[int, float]]):
     It is defined using torchmetrics.functional accuracy with top_k
     """
 
-    def __init__(self, top_k):
+    def __init__(self, top_k: int):
         """
         Creates an instance of the standalone Top-k Accuracy metric.
 
@@ -41,8 +43,11 @@ class TopkAccuracy(Metric[Dict[int, float]]):
 
         :param top_k: integer number to define the value of k.
         """
-        self._topk_acc_dict = defaultdict(Mean)
-        self.top_k = top_k
+        self._topk_acc_dict: Dict[int, Mean] = defaultdict(Mean)
+        self.top_k: int = top_k
+
+        self.__torchmetrics_requires_task = \
+            version.parse(torchmetrics.__version__) >= version.parse('0.11.0')
 
     @torch.no_grad()
     def update(
@@ -80,18 +85,40 @@ class TopkAccuracy(Metric[Dict[int, float]]):
         if isinstance(task_labels, int):
             total_patterns = len(true_y)
             self._topk_acc_dict[task_labels].update(
-                accuracy(predicted_y, true_y, top_k=self.top_k), total_patterns
+                self._compute_topk_acc(predicted_y, true_y, top_k=self.top_k), 
+                total_patterns
             )
         elif isinstance(task_labels, Tensor):
             for pred, true, t in zip(predicted_y, true_y, task_labels):
-                self._topk_acc_dict[t.item()].update(
-                    accuracy(pred, true, top_k=self.top_k), 1
+                self._topk_acc_dict[int(t)].update(
+                    self._compute_topk_acc(pred, true, top_k=self.top_k),
+                    1
                 )
         else:
             raise ValueError(
                 f"Task label type: {type(task_labels)}, "
                 f"expected int/float or Tensor"
             )
+        
+    def _compute_topk_acc(self, pred, gt, top_k):
+        if self.__torchmetrics_requires_task:
+            num_classes = int(torch.max(torch.as_tensor(gt))) + 1
+            pred_t = torch.as_tensor(pred)
+            if len(pred_t.shape) > 1:
+                num_classes = max(num_classes, pred_t.shape[1])
+            
+            return accuracy(
+                pred,
+                gt,
+                task="multiclass",
+                num_classes=num_classes,
+                top_k=self.top_k
+            )
+        else:
+            return accuracy(
+                pred,
+                gt,
+                top_k=self.top_k)
         
     def result_task_label(self, task_label: int) -> Dict[int, float]:
         """

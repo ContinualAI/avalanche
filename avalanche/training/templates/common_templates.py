@@ -36,7 +36,7 @@ class SupervisedTemplate(
             TDatasetExperience,
             TMBInput,
             TMBOutput
-        ],):
+        ]):
     
     """Base class for continual learning strategies.
 
@@ -94,7 +94,10 @@ class SupervisedTemplate(
             eval_mb_size: Optional[int] = 1,
             device: Union[str, torch.device] = "cpu",
             plugins: Optional[Sequence[BasePlugin]] = None,
-            evaluator=default_evaluator,
+            evaluator: Union[
+                EvaluationPlugin,
+                Callable[[], EvaluationPlugin]
+            ] = default_evaluator,
             eval_every=-1,
             peval_mode="epoch",
     ):
@@ -208,18 +211,21 @@ class SupervisedMetaLearningTemplate(
     PLUGIN_CLASS = SupervisedPlugin
 
     def __init__(
-            self,
-            model: Module,
-            optimizer: Optimizer,
-            criterion=CrossEntropyLoss(),
-            train_mb_size: int = 1,
-            train_epochs: int = 1,
-            eval_mb_size: Optional[int] = 1,
-            device: Union[str, torch.device] = "cpu",
-            plugins: Optional[Sequence[BasePlugin]] = None,
-            evaluator=default_evaluator,
-            eval_every=-1,
-            peval_mode="epoch",
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        criterion=CrossEntropyLoss(),
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: Optional[int] = 1,
+        device: Union[str, torch.device] = "cpu",
+        plugins: Optional[Sequence[BasePlugin]] = None,
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
+        eval_every=-1,
+        peval_mode="epoch",
     ):
         """Init.
 
@@ -274,7 +280,7 @@ class SupervisedMetaLearningTemplate(
         #    want the original data for the current experience
         #    use :attr:`.BaseTemplate.experience`.
 
-
+        
 __all__ = [
     'SupervisedTemplate',
     'SupervisedMetaLearningTemplate',
