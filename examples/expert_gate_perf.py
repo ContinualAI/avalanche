@@ -42,7 +42,7 @@ def train_and_eval_expertgate():
     '''
     # Set up experiment
     model_type = "expertgate"
-    experiment_setup(model_type)
+    experiment_setup(run_name=model_type)
 
     # Set up pretrained AlexNet
     model = ExpertGate(shape=(3, 227, 227), device=device)
@@ -52,6 +52,7 @@ def train_and_eval_expertgate():
                     momentum=0.9, weight_decay=0.0005)
     scheduler = lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
     scheduler_plugin = LRSchedulerPlugin(scheduler=scheduler)
+
     # Set up strategy
     strategy = ExpertGateStrategy(
         model,
@@ -67,7 +68,7 @@ def train_and_eval_expertgate():
         evaluator=eval_plugin,
     )
 
-    # Train on scenes
+    # Train on scenarios
     train_on_scenario(strategy, model_type)
 
 
@@ -116,6 +117,7 @@ def train_and_eval_single_alexnet():
 
 
 def train_on_scenario(strategy, model_type):
+    # Train on scenes
     train_on_benchmark(strategy, scenes_loc, model_type)
     eval_on_benchmark(strategy, scenes_loc, model_type)
 
@@ -140,15 +142,15 @@ def train_on_benchmark(strategy, task_id, model_type):
     if (model_type == "single_alexnet"):
         strategy.model._modules['classifier'][-1] = layer_dict[task_id]
 
-    # Train loop for birds benchmark
+    # Train loop for benchmark
     for experience in (scenario.train_stream):
         t = experience.task_label
         exp_id = experience.current_experience
         training_dataset = experience.dataset
         print()
-        print('Task {} batch {} -> train'.format(t, exp_id))
-        print('This batch contains', len(training_dataset), 'patterns')
-        print("Current Classes: ", experience.classes_in_this_experience)
+        print(f'Task {t} batch {exp_id}')
+        print(f'This batch contains {len(training_dataset)} patterns')
+        print(f'Current Classes: {experience.classes_in_this_experience}')
         strategy.train(experience)
 
     # Update dictionary of final layers for single_alexnet

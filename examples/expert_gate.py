@@ -55,8 +55,8 @@ def main(args):
         train_epochs=args.epochs,
         eval_every=-1,
         ae_train_mb_size=args.minibatch_size,
-        ae_train_epochs=int(args.epochs/2),
-        ae_lr=1e-4,
+        ae_train_epochs=int(args.epochs*2),
+        ae_lr=1e-3,
     )
 
     # Build scenario (fast or MNIST)
@@ -68,30 +68,15 @@ def main(args):
         exp_id = experience.current_experience
         training_dataset = experience.dataset
         print()
-        print('Task {} batch {} -> train'.format(t, exp_id))
-        print('This batch contains', len(training_dataset), 'patterns')
-
-        # Transform targets to index by 0, if needed
-        num_classes = len(experience.classes_in_this_experience)
-        max_target_id = max(experience.classes_in_this_experience)
-        index_diff = max_target_id + 1 - num_classes
-        if (index_diff != 0):
-            experience.dataset = experience.dataset.add_transforms(
-                target_transform=transforms.Lambda(lambda y: y-index_diff)
-            )
+        print(f'Task {t} batch {exp_id}')
+        print(f'This batch contains {len(training_dataset)} patterns')
+        print(f'Current Classes: {experience.classes_in_this_experience}')
+        
         strategy.train(experience)
 
     # Evaluation loop
     print("\nEVALUATION")
     for experience in (scenario.test_stream):
-        # Transform targets to index by 0, if needed
-        num_classes = len(experience.classes_in_this_experience)
-        max_target_id = max(experience.classes_in_this_experience)
-        index_diff = max_target_id + 1 - num_classes
-        if (index_diff != 0):
-            experience.dataset = experience.dataset.add_transforms(
-                target_transform=transforms.Lambda(lambda y: y-index_diff)
-            )
         strategy.eval(experience)
 
 
@@ -114,7 +99,6 @@ def build_scenario(mnist=False):
         # More resource intensive example
         MNISTAlexTransform = transforms.Compose([
             transforms.Resize((227, 227)),
-            transforms.ToTensor(),
             transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
         ])
 
@@ -168,10 +152,10 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-3,
                         help="Learning rate.")
     parser.add_argument(
-        "--epochs", type=int, default=5, help="Number of training epochs."
+        "--epochs", type=int, default=10, help="Number of training epochs."
     )
     parser.add_argument(
-        "--minibatch_size", type=int, default=32, help="Minibatch size."
+        "--minibatch_size", type=int, default=256, help="Minibatch size."
     )
     parser.add_argument(
         "--mnist", action="store_true",
