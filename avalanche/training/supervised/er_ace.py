@@ -15,6 +15,12 @@ from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
 
 
+def cycle(loader):
+    while True:
+        for batch in loader:
+            yield batch
+
+
 class ER_ACE(SupervisedTemplate):
     """
     ER ACE, as proposed in
