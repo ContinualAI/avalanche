@@ -87,7 +87,7 @@ class NCScenario(
         :param fixed_class_order: If not None, the class order to use (overrides
             the shuffle argument). Very useful for enhancing
             reproducibility. Defaults to None.
-        :param per_experience_classes: Is not None, a dictionary whose keys are
+        :param per_experience_classes: If not None, a dictionary whose keys are
             (0-indexed) experience IDs and their values are the number of
             classes to include in the respective experiences. The dictionary
             doesn't have to contain a key for each experience! All the remaining
