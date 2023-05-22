@@ -24,7 +24,7 @@ from avalanche.models.expert_gate import (ExpertAutoencoder,
                                           ExpertGate)
 from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.training.supervised import AETraining
-from avalanche.training.templates.supervised import SupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import (SupervisedPlugin,
                                         EvaluationPlugin,
                                         LwFPlugin)
@@ -208,9 +208,14 @@ class _ExpertGatePlugin(SupervisedPlugin):
         print("\nSELECTING EXPERT")
         # If the expert dictionary is empty,
         # build the first expert
+
+        # Preferably we could use `strategy.experience.benchmark.n_classes`
+        # but this attribute is not enforced for all benchmarks
+        n_classes = len(strategy.experience.classes_seen_so_far) + len(strategy.experience.future_classes)
+
         if (len(strategy.model.expert_dict) == 0):
             expert = ExpertModel(
-                num_classes=len(strategy.experience.classes_in_this_experience),
+                num_classes = n_classes,
                 arch=strategy.model.arch,
                 device=strategy.device,
                 pretrained_flag=strategy.model.pretrained_flag)
@@ -241,7 +246,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
             # Build expert with feature template
             expert = ExpertModel(
-                num_classes=len(strategy.experience.classes_in_this_experience),
+                num_classes = n_classes,
                 arch=strategy.model.arch,
                 device=strategy.device,
                 pretrained_flag=strategy.model.pretrained_flag,
