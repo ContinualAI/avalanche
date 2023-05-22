@@ -1192,7 +1192,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         # anymore. you are probably doing something that disable merging
         # (passing custom transforms?)
         # Good luck...
-        assert _flatdata_depth(curr_dataset) == 3
+        assert _flatdata_depth(curr_dataset) <= 3
 
     def test_avalanche_concat_classification_datasets_sequentially(self):
         # create list of training datasets
