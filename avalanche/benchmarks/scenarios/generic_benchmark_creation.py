@@ -930,7 +930,7 @@ def create_generic_benchmark_from_tensor_lists(
         for exp_id, exp_tensors in enumerate(list_of_exps_tensors):
             stream_datasets.append(
                 tensor_dataset_factory(
-                    *exp_tensors, task_labels=task_labels[exp_id]
+                    exp_tensors, task_labels=task_labels[exp_id]
                 )
             )
 
