@@ -89,7 +89,7 @@ class ClassificationDataset(AvalancheDataset[T_co]):
 
     def __init__(
             self,
-            datasets: List[IDataset[T_co]],
+            datasets: Sequence[IDataset[T_co]],
             *,
             indices: Optional[List[int]] = None,
             data_attributes: Optional[List[DataAttribute]] = None,

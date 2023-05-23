@@ -41,11 +41,11 @@ from avalanche.benchmarks.scenarios.dataset_scenario import (
 from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
 
 from avalanche.benchmarks.utils import (
-    SupportedDataset,
     FilelistDataset,
     PathsDataset,
     common_paths_root,
 )
+from torch.utils.data.dataset import Subset, ConcatDataset
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
 )
@@ -58,6 +58,10 @@ from avalanche.benchmarks.utils.transform_groups import (
 from avalanche.benchmarks.utils.utils import (
     make_generic_dataset,
     make_generic_tensor_dataset,
+)
+from avalanche.benchmarks.utils.dataset_definitions import (
+    IDatasetWithTargets, 
+    ITensorDataset,
 )
 
 
@@ -75,6 +79,15 @@ TAvalancheDataset = TypeVar(
     'TAvalancheDataset',
     bound='AvalancheDataset',
     covariant=True)
+
+
+GenericSupportedDataset = Union[
+    IDatasetWithTargets,
+    ITensorDataset,
+    Subset,
+    ConcatDataset,
+    AvalancheDataset
+]
 
 
 class DatasetFactory(
@@ -137,11 +150,11 @@ def _make_generic_scenario(
 
 
 def create_multi_dataset_generic_benchmark(
-    train_datasets: Sequence[SupportedDataset],
-    test_datasets: Sequence[SupportedDataset],
+    train_datasets: Sequence[GenericSupportedDataset],
+    test_datasets: Sequence[GenericSupportedDataset],
     *,
     other_streams_datasets: Optional[
-        Mapping[str, Sequence[SupportedDataset]]] = None,
+        Mapping[str, Sequence[GenericSupportedDataset]]] = None,
     complete_test_set_only: bool = False,
     train_transform: XTransform = None,
     train_target_transform: YTransform = None,

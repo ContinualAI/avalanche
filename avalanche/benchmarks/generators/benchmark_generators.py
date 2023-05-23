@@ -71,6 +71,9 @@ from avalanche.benchmarks.utils.classification_dataset import (
     concat_classification_datasets_sequentially
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.scenarios.detection_benchmark_creation import (
+    create_multi_dataset_detection_benchmark,
+)
 
 
 TDatasetScenario = TypeVar(
@@ -454,6 +457,10 @@ paths_classification_benchmark = create_classification_benchmark_from_paths
 tensors_classification_benchmark = \
     create_classification_benchmark_from_tensor_lists
 lazy_classification_benchmark = create_lazy_classification_benchmark
+
+# Detection-specific
+dataset_detection_benchmark = \
+    create_multi_dataset_detection_benchmark
 
 
 def _one_dataset_per_exp_class_order(
@@ -1151,6 +1158,7 @@ __all__ = [
     "tensors_benchmark",
     "lazy_benchmark",
     "dataset_classification_benchmark",
+    "dataset_detection_benchmark",
     "filelist_classification_benchmark",
     "paths_classification_benchmark",
     "tensors_classification_benchmark",

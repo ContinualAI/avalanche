@@ -76,7 +76,7 @@ class DetectionDataset(AvalancheDataset[T_co]):
 
     def __init__(
             self,
-            datasets: List[IDataset[T_co]],
+            datasets: Sequence[IDataset[T_co]],
             *,
             indices: Optional[List[int]] = None,
             data_attributes: Optional[List[DataAttribute]] = None,
@@ -249,7 +249,6 @@ def make_detection_dataset(
     if collate_fn is None:
         collate_fn = getattr(dataset, 'collate_fn', detection_collate_fn)
 
-   
     data: DetectionDataset = DetectionDataset(
         [dataset],
         data_attributes=das if len(das) > 0 else None,

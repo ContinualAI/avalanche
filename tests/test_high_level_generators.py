@@ -12,7 +12,11 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
     ClassificationScenario,
 )
 from avalanche.benchmarks.scenarios.dataset_scenario import DatasetScenario
-from tests.unit_tests_utils import DummyImageDataset
+from avalanche.benchmarks.scenarios.detection_scenario import DetectionScenario
+from tests.unit_tests_utils import (
+    DummyImageDataset,
+    get_fast_detection_datasets,
+)
 
 
 from avalanche.benchmarks import (
@@ -27,6 +31,7 @@ from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators.benchmark_generators import (
     class_balanced_split_strategy,
     dataset_classification_benchmark,
+    dataset_detection_benchmark,
     filelist_classification_benchmark,
     paths_classification_benchmark,
     tensors_classification_benchmark,
@@ -72,6 +77,19 @@ class HighLevelGeneratorTests(unittest.TestCase):
         # This check should be removed once we decide to transition to 
         # dataset_classification/detection/..._benchmark
         self.assertIsInstance(generic_benchmark, ClassificationScenario)
+
+    def test_dataset_detection_benchmark(self):
+        train_det, test_det = get_fast_detection_datasets()
+
+        generic_benchmark = dataset_benchmark(
+            [train_det], [test_det]
+        )
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+
+        classification_benchmark = dataset_detection_benchmark(
+            [train_det], [test_det]
+        )
+        self.assertIsInstance(classification_benchmark, DetectionScenario)
 
     def test_dataset_benchmark_avalanche_dataset(self):
         train_MNIST = make_classification_dataset(
