@@ -864,15 +864,6 @@ class StrategyTest(unittest.TestCase):
             shuffle=False)
 
         for experience in benchmark.train_stream:
-            # Transform targets to index by 0, if needed
-            num_classes = len(experience.classes_in_this_experience)
-            max_target_id = max(experience.classes_in_this_experience)
-            index_diff = max_target_id + 1 - num_classes
-            if (index_diff != 0):
-                experience.dataset = experience.dataset.add_transforms(
-                    target_transform=transforms.Lambda(
-                        lambda y: y-index_diff)
-                )
             strategy.train(experience)
 
     def test_icarl(self):
