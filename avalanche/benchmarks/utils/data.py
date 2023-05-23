@@ -167,7 +167,6 @@ class AvalancheDataset(IDataset[T_co]):
                         "has length {}".format(da.name, len(da), ld)
                     )
 
-        datasets = list(filter(lambda d: len(d) > 0, datasets))
         self._data_attributes: Dict[str, DataAttribute] = OrderedDict()
         first_dataset = datasets[0] if len(datasets) > 0 else None
         if isinstance(
@@ -185,7 +184,7 @@ class AvalancheDataset(IDataset[T_co]):
                 for d2 in datasets[1:]:
                     if hasattr(d2, attr.name):
                         acat = acat.concat(getattr(d2, attr.name))
-                    else:
+                    elif len(d2) > 0:  # if empty we allow missing attributes
                         found_all = False
                         break
                 if found_all:
@@ -263,7 +262,7 @@ class AvalancheDataset(IDataset[T_co]):
         :param indices: The indices to keep.
         :return: A new dataset.
         """
-        return self.__class__(self, indices=indices)
+        return self.__class__([self], indices=indices)
 
     @property
     def transform(self):
