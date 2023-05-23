@@ -5,7 +5,6 @@ from typing import List, TypeVar
 from torch import Tensor
 
 from avalanche.benchmarks import OnlineCLExperience
-from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.templates.strategy_mixin_protocol import \
     SGDStrategyProtocol
@@ -18,12 +17,39 @@ def compare_keys(old_dict, new_dict):
     return not_in_new, in_both, not_in_old
 
 
+def reset_optimizer(optimizer, model):
+    """Reset the optimizer to update the list of learnable parameters.
+
+    .. warning::
+        This function fails if the optimizer uses multiple parameter groups.
+
+    :param optimizer:
+    :param model:
+    :return:
+    """
+    assert len(optimizer.param_groups) == 1
+    optimizer.state = defaultdict(dict)
+
+    parameters = []
+    optimized_param_id = {}
+    for n, p in model.named_parameters():
+        if p.requires_grad:
+            optimized_param_id[n] = id(p)
+            parameters.append(p)
+
+    optimizer.param_groups[0]["params"] = parameters
+
+    return optimized_param_id
+
+
 def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
     """
     Detects param change and updates only the modified parameter
     """
 
     not_in_new, in_both, not_in_old = compare_keys(old_param_hash, new_params)
+
+    keys_to_remove = []
 
     # Change reference to already existing parameters
     # i.e growing IncrementalClassifier
@@ -37,14 +63,33 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
             for i, curr_p in enumerate(group["params"]):
                 if id(curr_p) == old_p_hash:
                     found = True
+
                     # Parameter id has changed, 
                     # most probably parameter 
                     # dimension has changed, we need
                     # to update reference and reset state
+
+                    # Here two things could happen, 
+                    # dimension change in which case we
+                    # reset state, or id change due to 
+                    # checkpointing in which case we match
+                    # the state (change the key of the state)
+
                     if id(curr_p) != id(new_p):
                         group["params"][i] = new_p
-                        optimizer.state.pop(curr_p)
-                        optimizer.state[new_p] = {}
+                        old_param_hash[key] = id(new_p)
+
+                        if not new_p.requires_grad:
+                            keys_to_remove.append(key)
+
+                        if curr_p in optimizer.state:
+                            if curr_p.numel() != new_p.numel():
+                                optimizer.state.pop(curr_p)
+                                optimizer.state[new_p] = {}
+                            else:
+                                optimizer.state[new_p] = \
+                                    optimizer.state.pop(curr_p)
+
                     break
 
         if not found:
@@ -55,7 +100,6 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
 
     # Remove parameters that are not here anymore
     # This should not happend in most use case
-    keys_to_remove = []
     for key in not_in_new:
         old_p_hash = old_param_hash[key] 
         found = False
@@ -65,6 +109,7 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
                 if id(curr_p) == old_p_hash:
                     found = True
                     keys_to_remove[i].append((j, curr_p))
+                    old_param_hash.pop(key)
                     break
         if not found:
             raise Exception(
@@ -74,17 +119,22 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
     for i, idx_list in enumerate(keys_to_remove):
         for (j, p) in sorted(idx_list, key=lambda x: x[0], reverse=True):
             del optimizer.param_groups[i]["params"][j]
-            optimizer.state.pop(p)
+            if p in optimizer.state:
+                optimizer.state.pop(p)
 
     # Add newly added parameters (i.e Multitask, PNN)
     # by default, add to param groups 0
     for key in not_in_old:
         new_p = new_params[key]
-        optimizer.param_groups[0]["params"].append(new_p)
-        optimizer.state[new_p] = {}
+        if new_p.requires_grad:
+            optimizer.param_groups[0]["params"].append(new_p)
+            old_param_hash[key] = id(new_p)
+            optimizer.state[new_p] = {}
 
     if reset_state:
         optimizer.state = defaultdict(dict)
+
+    return old_param_hash
 
 
 class BatchObservation(SGDStrategyProtocol):
@@ -122,30 +172,37 @@ class BatchObservation(SGDStrategyProtocol):
         Called before each training experience to configure the optimizer.
         """
         if self.optimized_param_id is None:
-            reset_optimizer(self.optimizer, self.model)
-            self.optimized_param_id = {n: id(p) for (n, p) in 
-                                       self.model.named_parameters()}
+            optimized_param_id = reset_optimizer(self.optimizer, self.model) 
         else:
-            update_optimizer(self.optimizer, 
-                             dict(self.model.named_parameters()),
-                             self.optimized_param_id, 
-                             reset_state=reset_optimizer_state)
-            self.optimized_param_id = {n: id(p) for (n, p) in 
-                                       self.model.named_parameters()}
+            optimized_param_id = \
+                update_optimizer(
+                    self.optimizer, 
+                    dict(self.model.named_parameters()),
+                    self.optimized_param_id, 
+                    reset_state=reset_optimizer_state
+                    )
+        return optimized_param_id
 
     def check_model_and_optimizer(self):
         # If strategy has access to the task boundaries, and the current
         # sub-experience is the first sub-experience in the online stream,
         # then adapt the model with the full origin experience:
         assert self.experience is not None
+
+        if self.optimized_param_id is None:
+            self.optimized_param_id = \
+                self.make_optimizer(reset_optimizer_state=True)
+
         if isinstance(self.experience, OnlineCLExperience):
             if self.experience.access_task_boundaries:
                 if self.experience.is_first_subexp:
                     self.model = self.model_adaptation()
-                    self.make_optimizer(reset_optimizer_state=False)
+                    self.optimized_param_id = \
+                        self.make_optimizer(reset_optimizer_state=False)
         else:
             self.model = self.model_adaptation()
-            self.make_optimizer(reset_optimizer_state=False)
+            self.optimized_param_id = \
+                self.make_optimizer(reset_optimizer_state=False)
 
 
 __all__ = ["BatchObservation"]
