@@ -21,10 +21,6 @@ from avalanche.benchmarks import nc_benchmark
 This example tests ExpertGate on on Split MNIST or the fast generated 
 benchmark. Given all the operations and internal evaluation this algorithm
 requires, it runs a little slower than other examples.
-
-NOTE: Do not shuffle the data such that target labels are out of order.
- ExpertGate treats each experience as a new task, and as such requires that 
- each label is indexed starting from 0.
 """
 
 
