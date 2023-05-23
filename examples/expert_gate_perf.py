@@ -21,6 +21,20 @@ from avalanche.evaluation.metrics import (
 )
 from avalanche.training.supervised import ExpertGateStrategy, Naive
 
+"""
+This example tests ExpertGate on the benchmarks from the original paper. 
+Please note (for now) that you will have to manually ensure that these 
+benchmarks exist at the appropriate locations. It is meant to demonstrate
+how one would set up this strategy.
+
+Locations:
+~/datasets/flowers102
+~/datasets/cub2002011
+~/datasets/scenes
+
+For an example with no manual set up, please take a look at `expert_gate.py`
+which trains with the SplitMNIST dataset.
+"""
 
 def main():
 

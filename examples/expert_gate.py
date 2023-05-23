@@ -18,7 +18,7 @@ from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.benchmarks import nc_benchmark
 
 """
-This example tests ExpertGate on on Split MNIST or the fast generated 
+This example tests ExpertGate on Split MNIST or the fast generated 
 benchmark. Given all the operations and internal evaluation this algorithm
 requires, it runs a little slower than other examples.
 """
