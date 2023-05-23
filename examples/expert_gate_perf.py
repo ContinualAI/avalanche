@@ -36,8 +36,8 @@ For an example with no manual set up, please take a look at `expert_gate.py`
 which trains with the SplitMNIST dataset.
 """
 
-def main():
 
+def main():
     # Set up benchmarks
     benchmark_setup()
 
