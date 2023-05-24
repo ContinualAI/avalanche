@@ -32,7 +32,15 @@ from avalanche.training.plugins.evaluation import default_evaluator
 
 
 class ExpertGateStrategy(SupervisedTemplate):
-    """Expert Gate strategy.
+    """Expert Gate strategy. New experts are trained and added
+    to the model as tasks are learned sequentially.
+
+    Technique introduced in: 
+    'Aljundi, Rahaf, Punarjay Chakravarty, and Tinne Tuytelaars. 
+    "Expert gate: Lifelong learning with a network of experts." 
+    Proceedings of the IEEE Conference on 
+    Computer Vision and Pattern Recognition. 2017.'
+    https://arxiv.org/abs/1611.06194
 
     To use this strategy you need to instantiate an ExpertGate model. 
     See the ExpertGate plugin for more details.

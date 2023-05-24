@@ -19,7 +19,11 @@ from avalanche.benchmarks.scenarios.generic_scenario import CLExperience
 
 def AE_loss(target, reconstruction):
     """Calculates the MSE loss for the autoencoder by comparing the 
-    reconstruction to the pre-processed input. 
+    reconstruction to the pre-processed input.
+
+    :param target: the target for the autoencoder
+    :param reconstruction: output of the autoencoder
+    :return: mean squared error loss between the target and reconstruction
     """
     reconstruction_loss = mse_loss(
         input=reconstruction, target=target, reduction="sum")
@@ -92,8 +96,10 @@ class ExpertAutoencoder(nn.Module):
 
 
 class ExpertModel(nn.Module):
-    """The expert classifier behind the autoencoder that is trained for a
-    specific task.
+    """The expert classifier which sits behind the autoencoder. 
+    Each expert classifieris usually a pre-trained AlexNet fine-tuned 
+    on a specific task. The final classification layer is replaced and 
+    sized based on the number of classes for a task.
     """
 
     def __init__(self, 
@@ -102,6 +108,14 @@ class ExpertModel(nn.Module):
                  device, 
                  pretrained_flag, 
                  provided_template=None):
+        """
+        :param num_classes: number of classes this expert model will classify
+        :param arch: the architecture to use from torchvision.models
+        :param device: gpu or cpu
+        :param pretrained_flag: determines if torchvision model is pre-trained 
+        :param provided_template: the expert model to copy the backbone from, 
+        defaults to None
+        """
         super().__init__()
 
         self.device = device

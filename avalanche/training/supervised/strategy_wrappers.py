@@ -438,6 +438,16 @@ class GenerativeReplay(SupervisedTemplate):
 
 
 class AETraining(SupervisedTemplate):
+    """AETraining class
+
+    This is the training strategy for the AE model.    
+    We make use of the SupervisedTemplate, even though technically this is not a
+    supervised training. However, this reduces the modification to a minimum.
+
+    We only need to overwrite the criterion function in order to pass all
+    necessary variables to the VAE loss function.
+    Furthermore we remove all metrics from the evaluator.
+    """
 
     ae_evaluator = EvaluationPlugin(
         loss_metrics(minibatch=False, epoch=True,
