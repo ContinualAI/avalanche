@@ -42,6 +42,17 @@ class ExpertAutoencoder(nn.Module):
                  arch="alexnet",
                  pretrained_flag=True,
                  output_layer_name="features"):
+        """
+        :param shape: shape of the input layer
+        :param latent_dim: size of the autoencoder's latent dimension
+        :param device: gpu or cpu
+        :param arch: the architecture to use from torchvision.models, 
+        defaults to "alexnet"
+        :param pretrained_flag: determines if torchvision model is pre-trained, 
+        defaults to True
+        :param output_layer_name: output layer of the feature backbone, 
+        defaults to "features"
+        """
 
         super().__init__()
 
@@ -174,6 +185,16 @@ class ExpertGate(nn.Module):
         pretrained_flag=True,
         output_layer_name="features"
     ):
+        """
+        :param shape: shape of the input layer
+        :param device: gpu or cpu
+        :param arch: the architecture to use from torchvision.models, 
+        defaults to "alexnet"
+        :param pretrained_flag: determines if torchvision model is pre-trained, 
+        defaults to True
+        :param output_layer_name: output layer of the feature backbone, 
+        defaults to "features"
+        """
         super().__init__()
 
         # Store variables
