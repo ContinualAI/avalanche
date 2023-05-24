@@ -34,7 +34,7 @@ def reset_optimizer(optimizer, model):
     optimized_param_id = {}
     for n, p in model.named_parameters():
         if p.requires_grad:
-            optimized_param_id[n] = id(p)
+            optimized_param_id[n] = p
             parameters.append(p)
 
     optimizer.param_groups[0]["params"] = parameters
@@ -61,7 +61,7 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
         found = False
         for group in optimizer.param_groups:
             for i, curr_p in enumerate(group["params"]):
-                if id(curr_p) == old_p_hash:
+                if id(curr_p) == id(old_p_hash):
                     found = True
 
                     # Parameter id has changed, 
@@ -77,7 +77,7 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
 
                     if id(curr_p) != id(new_p):
                         group["params"][i] = new_p
-                        old_param_hash[key] = id(new_p)
+                        old_param_hash[key] = new_p
 
                         if not new_p.requires_grad:
                             keys_to_remove.append(key)
@@ -106,7 +106,7 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
         for i, group in enumerate(optimizer.param_groups):
             keys_to_remove.append([])
             for j, curr_p in enumerate(group["params"]):
-                if id(curr_p) == old_p_hash:
+                if id(curr_p) == id(old_p_hash):
                     found = True
                     keys_to_remove[i].append((j, curr_p))
                     old_param_hash.pop(key)
@@ -128,7 +128,7 @@ def update_optimizer(optimizer, new_params, old_param_hash, reset_state=False):
         new_p = new_params[key]
         if new_p.requires_grad:
             optimizer.param_groups[0]["params"].append(new_p)
-            old_param_hash[key] = id(new_p)
+            old_param_hash[key] = new_p
             optimizer.state[new_p] = {}
 
     if reset_state:

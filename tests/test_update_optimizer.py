@@ -6,26 +6,18 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.evaluation.metrics import StreamAccuracy, loss_metrics
-from avalanche.logging import TextLogger, InteractiveLogger
-from avalanche.models import SimpleMLP, MTSimpleMLP, IncrementalClassifier, PNN
-from avalanche.training.plugins import EvaluationPlugin, SupervisedPlugin
+from avalanche.models import SimpleMLP, MTSimpleMLP, IncrementalClassifier
 from avalanche.training.supervised import Naive
-from avalanche.training.supervised.cumulative import Cumulative
-from avalanche.training.supervised.icarl import ICaRL
-from avalanche.training.supervised.joint_training import AlreadyTrainedError
-from avalanche.training.supervised.strategy_wrappers import PNNStrategy
-from avalanche.training.templates import SupervisedTemplate
-from avalanche.training.templates.base import _group_experiences_by_stream
-from avalanche.training.utils import get_last_fc_layer
-from tests.training.test_strategy_utils import run_strategy
+from avalanche.training.checkpoint import save_checkpoint, maybe_load_checkpoint
 from tests.unit_tests_utils import get_fast_benchmark, get_device
 
 
 def iterate_optimizers(model, *optimizers):
     for opt_class in optimizers:
-        if opt_class == "SGD":
+        if opt_class == "SGDmom":
             yield torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+        if opt_class == "SGD":
+            yield torch.optim.SGD(model.parameters(), lr=0.1)
         if opt_class == "Adam":
             yield torch.optim.Adam(model.parameters(), lr=0.001)
         if opt_class == "AdamW":
@@ -52,15 +44,26 @@ class TestOptimizerUpdate(unittest.TestCase):
     else:
         device = "cpu"
 
-    def init_model(self, multi_task=False):
+    def load_benchmark(self, use_task_labels=False):
+        """
+        Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,
+        2 classes per experience.
+
+        :param fast_test: if True loads fake data, MNIST otherwise.
+        """
+        return get_fast_benchmark(use_task_labels=use_task_labels)
+
+    def init_scenario(self, multi_task=False):
         model = self.get_model(multi_task=multi_task)
         criterion = CrossEntropyLoss()
-        return model, criterion
+        benchmark = self.load_benchmark(use_task_labels=multi_task)
+        return model, criterion, benchmark
 
-    def test_optimizer(self):
+    def test_optimizers(self):
         # SIT scenario
-        model, criterion = self.init_model(multi_task=True)
-        for optimizer in iterate_optimizers(model, "Adam", "SGD", "AdamW"):
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+        for optimizer in iterate_optimizers(
+                model, "SGDmom", "Adam", "SGD", "AdamW"):
             strategy = Naive(
                 model,
                 optimizer,
@@ -71,6 +74,56 @@ class TestOptimizerUpdate(unittest.TestCase):
                 train_epochs=2,
             )
             self._test_optimizer(strategy)
+
+    # Needs torch 2.0 ?
+    def test_checkpointing(self):
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+        optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        experience_0 = benchmark.train_stream[0]
+        strategy.train(experience_0)
+        save_checkpoint(strategy, "./checkpoint.pt")
+
+        del strategy
+
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+        optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        strategy, exp_counter = maybe_load_checkpoint(
+            strategy, "./checkpoint.pt", strategy.device
+        )
+        experience_1 = benchmark.train_stream[1]
+        strategy.train(experience_1)
+
+    def test_mh_classifier(self):
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+        optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        strategy.train(benchmark.train_stream)
 
     def _test_optimizer(self, strategy):
         # Add a parameter

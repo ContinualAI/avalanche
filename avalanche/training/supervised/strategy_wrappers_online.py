@@ -20,8 +20,13 @@ from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.templates import (
     SupervisedTemplate,
 )
+from avalanche._annotations import deprecated
 
 
+@deprecated(0.5, 
+            "Online strategies are not differentiated"
+            " from normal strategies anymore."
+            "Please use Naive strategy instead")
 class OnlineNaive(SupervisedTemplate):
     """Online naive finetuning.
 
