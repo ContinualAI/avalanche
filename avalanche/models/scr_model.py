@@ -28,9 +28,8 @@ class SCRModel(nn.Module):
 
     def forward(self, x):
         x = self.feature_extractor(x)
+        x = torch.nn.functional.normalize(x, p=2, dim=1)
         if self.training:
-            x = self.train_classifier(x)
-            return torch.nn.functional.normalize(x, p=2, dim=1)
+            return self.train_classifier(x)
         else:
-            x = torch.nn.functional.normalize(x, p=2, dim=1)
             return self.eval_classifier(x)

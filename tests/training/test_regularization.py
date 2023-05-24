@@ -7,10 +7,17 @@ from avalanche.models import SimpleMLP, MTSimpleMLP
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.regularization import LearningWithoutForgetting
 from tests.test_dataloaders import get_fast_benchmark
+import numpy as np
+import random
 
 
 class TestLwF(unittest.TestCase):
     def test_lwf(self):
+        seed = 0
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        torch.use_deterministic_algorithms(True)
         lwf = LearningWithoutForgetting()
         bm = get_fast_benchmark()
 
