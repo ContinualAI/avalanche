@@ -40,9 +40,8 @@ def reset_optimizer(optimizer, model):
     parameters = []
     optimized_param_id = {}
     for n, p in model.named_parameters():
-        if p.requires_grad:
-            optimized_param_id[n] = p
-            parameters.append(p)
+        optimized_param_id[n] = p
+        parameters.append(p)
 
     optimizer.param_groups[0]["params"] = parameters
 
@@ -71,7 +70,6 @@ def update_optimizer(
     :return: Dict (name, param) of optimized parameters
     """
     not_in_new, in_both, not_in_old = compare_keys(optimized_params, new_params)
-    keys_to_remove = []
     # Change reference to already existing parameters
     # i.e growing IncrementalClassifier
     for key in in_both:
@@ -83,14 +81,10 @@ def update_optimizer(
             for i, curr_p in enumerate(group["params"]):
                 if id(curr_p) == id(old_p_hash):
                     found = True
-
                     if id(curr_p) != id(new_p):
                         group["params"][i] = new_p
                         optimized_params[key] = new_p
-                        if not new_p.requires_grad:
-                            keys_to_remove.append(key)
-                        if curr_p in optimizer.state:
-                            optimizer.state[new_p] = optimizer.state.pop(curr_p)
+                        optimizer.state[new_p] = {}
                     break
         if not found:
             raise Exception(f"Parameter {key} expected but "
@@ -98,6 +92,7 @@ def update_optimizer(
 
     # Remove parameters that are not here anymore
     # This should not happend in most use case
+    keys_to_remove = []
     for key in not_in_new:
         old_p_hash = optimized_params[key]
         found = False
@@ -123,10 +118,9 @@ def update_optimizer(
     # by default, add to param groups 0
     for key in not_in_old:
         new_p = new_params[key]
-        if new_p.requires_grad:
-            optimizer.param_groups[0]["params"].append(new_p)
-            optimized_params[key] = new_p
-            optimizer.state[new_p] = {}
+        optimizer.param_groups[0]["params"].append(new_p)
+        optimized_params[key] = new_p
+        optimizer.state[new_p] = {}
 
     if reset_state:
         optimizer.state = defaultdict(dict)

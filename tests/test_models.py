@@ -144,7 +144,7 @@ class DynamicOptimizersTests(unittest.TestCase):
     def test_optimizer_update(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
-        strategy = Naive(model, optimizer, None)
+        strategy = Naive(model, optimizer)
 
         # check add_param_group
         p = torch.nn.Parameter(torch.zeros(10, 10))

@@ -50,11 +50,6 @@ class BatchObservation(SGDStrategyProtocol):
             state of the optimizer, defaults to False
 
         Warnings: 
-            - every parameter in the model 
-              for which requires_grad=True will be added 
-              to the optimizer. If you want some parameters to
-              be frozen, set their requires_grad 
-              attribute to False
             - The first time this function is called 
               for a given strategy it will reset the
               optimizer to gather the (name, param) 
