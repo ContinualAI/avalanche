@@ -54,7 +54,9 @@ class BatchObservation(SGDStrategyProtocol):
               for a given strategy it will reset the
               optimizer to gather the (name, param) 
               correspondance of the optimized parameters
-
+              all the model parameters will be put in the
+              optimizer, regardless of what parameters are 
+              initially put in the optimizer.
         """
         if self.optimized_param_id is None:
             optimized_param_id = reset_optimizer(self.optimizer, self.model) 
