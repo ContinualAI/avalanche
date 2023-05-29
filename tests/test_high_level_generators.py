@@ -1,3 +1,4 @@
+from functools import partial
 import os
 import tempfile
 import unittest
@@ -592,6 +593,73 @@ class HighLevelGeneratorTests(unittest.TestCase):
             [0],
             valid_benchmark.train_stream[0].classes_in_this_experience
         )
+
+    def test_benchmark_with_validation_stream_class_balanced(self):
+        pattern_shape = (3, 32, 32)
+
+        # Definition of training experiences
+        # Experience 1
+        experience_1_x = torch.zeros(100, *pattern_shape)
+        experience_1_y = torch.randint(0, 10, (100,), dtype=torch.long)
+
+        # Experience 2
+        experience_2_x = torch.zeros(80, *pattern_shape)
+        experience_2_y = torch.randint(0, 10, (80,), dtype=torch.long)
+
+        # Test experience
+        test_x = torch.zeros(50, *pattern_shape)
+        test_y = torch.zeros(50, dtype=torch.long)
+
+        initial_benchmark_instance = tensors_classification_benchmark(
+            train_tensors=[
+                (experience_1_x, experience_1_y),
+                (experience_2_x, experience_2_y),
+            ],
+            test_tensors=[(test_x, test_y)],
+            task_labels=[0, 0],  # Task label of each train exp
+            complete_test_set_only=True,
+        )
+
+        validation_size = 0.2
+        class_balanced_strat = partial(
+            class_balanced_split_strategy,
+            validation_size
+        )
+        valid_benchmark = benchmark_with_validation_stream(
+            initial_benchmark_instance,
+            custom_split_strategy=class_balanced_strat
+        )
+
+        _, count_1 = torch.unique(experience_1_y, return_counts=True)
+        expected_class_sizes_1 = [int(validation_size * x) for x in count_1]
+        expected_size_1 = sum(expected_class_sizes_1)
+        
+        _, count_2 = torch.unique(experience_2_y, return_counts=True)
+        expected_class_sizes_2 = [int(validation_size * x) for x in count_2]
+        expected_size_2 = sum(expected_class_sizes_2)
+
+        self.assertEqual(2, len(valid_benchmark.train_stream))
+        self.assertEqual(2, len(valid_benchmark.valid_stream))
+        self.assertEqual(1, len(valid_benchmark.test_stream))
+        self.assertTrue(valid_benchmark.complete_test_set_only)
+
+        self.assertEqual(
+            100 - expected_size_1,
+            len(valid_benchmark.train_stream[0].dataset))
+        self.assertEqual(
+            80 - expected_size_2,
+            len(valid_benchmark.train_stream[1].dataset))
+        self.assertEqual(
+            expected_size_1,
+            len(valid_benchmark.valid_stream[0].dataset))
+        self.assertEqual(
+            expected_size_2,
+            len(valid_benchmark.valid_stream[1].dataset))
+
+        vd = valid_benchmark.test_stream[0].dataset
+        mb = get_mbatch(vd, len(vd))
+        self.assertTrue(torch.equal(test_x, mb[0]))
+        self.assertTrue(torch.equal(test_y, mb[1]))
 
     def test_lazy_benchmark_with_validation_stream_fixed_size(self):
         lazy_options = [None, True, False]
