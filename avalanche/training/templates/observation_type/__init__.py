@@ -3,4 +3,3 @@
 
 """
 from .batch_observation import BatchObservation
-from .online_observation import OnlineObservation

@@ -147,7 +147,7 @@ class StreamingLDA(SupervisedTemplate):
 
             self._after_training_iteration(**kwargs)
 
-    def make_optimizer(self):
+    def make_optimizer(self, **kwargs):
         """Empty function.
         Deep SLDA does not need a Pytorch optimizer."""
         pass

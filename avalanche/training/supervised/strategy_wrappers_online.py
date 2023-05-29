@@ -18,11 +18,16 @@ from avalanche.core import BasePlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.templates import (
-    OnlineSupervisedTemplate,
+    SupervisedTemplate,
 )
+from avalanche._annotations import deprecated
 
 
-class OnlineNaive(OnlineSupervisedTemplate):
+@deprecated(0.5, 
+            "Online strategies are not differentiated"
+            " from normal strategies anymore."
+            "Please use Naive strategy instead")
+class OnlineNaive(SupervisedTemplate):
     """Online naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just
@@ -75,7 +80,7 @@ class OnlineNaive(OnlineSupervisedTemplate):
             model=model,
             optimizer=optimizer,
             criterion=criterion,
-            train_passes=train_passes,
+            train_epochs=train_passes,
             train_mb_size=train_mb_size,
             eval_mb_size=eval_mb_size,
             device=device,
