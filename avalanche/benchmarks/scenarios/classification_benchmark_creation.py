@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -8,18 +7,13 @@ from typing import (
     Sequence,
     Tuple,
     TypeVar,
-    Union,
-)
-from avalanche.benchmarks.scenarios.classification_scenario import (
-    ClassificationExperience,
-    ClassificationStream,
-    ClassificationScenario,
 )
 from avalanche.benchmarks.scenarios.dataset_scenario import (
     DatasetScenario,
     TStreamsUserDict,
 )
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+    _make_classification_scenario,
     FileAndLabel,
     DatasetFactory,
     LazyStreamDefinition,
@@ -31,7 +25,6 @@ from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
 )
 
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
     SupportedDataset,
     make_classification_dataset,
 )
@@ -41,22 +34,6 @@ from avalanche.benchmarks.utils.transform_groups import XTransform, YTransform
 TDatasetScenario = TypeVar(
     'TDatasetScenario',
     bound='DatasetScenario')
-
-
-def _make_classification_scenario(
-    stream_definitions: TStreamsUserDict,
-    complete_test_set_only: bool
-) -> ClassificationScenario[
-        ClassificationStream[
-            ClassificationExperience[
-                ClassificationDataset]],
-        ClassificationExperience[
-            ClassificationDataset],
-        ClassificationDataset]:
-    return ClassificationScenario(
-        stream_definitions=stream_definitions,
-        complete_test_set_only=complete_test_set_only
-    )
 
 
 def create_multi_dataset_classification_benchmark(
@@ -149,55 +126,8 @@ def create_lazy_classification_benchmark(
     )
 
 
-def create_classification_benchmark_from_filelists(
-    root: Optional[Union[str, Path]],
-    train_file_lists: Sequence[Union[str, Path]],
-    test_file_lists: Sequence[Union[str, Path]],
-    *,
-    other_streams_file_lists: Optional[
-        Dict[str, Sequence[Union[str, Path]]]] = None,
-    task_labels: Sequence[int],
-    complete_test_set_only: bool = False,
-    train_transform: XTransform = None,
-    train_target_transform: YTransform = None,
-    eval_transform: XTransform = None,
-    eval_target_transform: YTransform = None,
-    other_streams_transforms: Optional[
-        Mapping[str, Tuple[XTransform, YTransform]]] = None,
-    dataset_factory: DatasetFactory = make_classification_dataset,
-    benchmark_factory: Callable[
-        [
-            TStreamsUserDict,
-            bool
-        ], TDatasetScenario
-    ] = _make_classification_scenario  # type: ignore
-) -> TDatasetScenario:
-    """
-    Creates a benchmark instance given a list of filelists and the respective
-    task labels. A separate dataset will be created for each filelist and each
-    of those datasets will be considered a separate experience.
-
-    This helper functions is the best shot when loading Caffe-style dataset
-    based on filelists.
-
-    For additional info, please refer to
-    :func:`create_generic_benchmark_from_filelists`.
-    """
-    return create_generic_benchmark_from_filelists(
-        root=root,
-        train_file_lists=train_file_lists,
-        test_file_lists=test_file_lists,
-        other_streams_file_lists=other_streams_file_lists,
-        task_labels=task_labels,
-        complete_test_set_only=complete_test_set_only,
-        train_transform=train_transform,
-        train_target_transform=train_target_transform,
-        eval_transform=eval_transform,
-        eval_target_transform=eval_target_transform,
-        other_streams_transforms=other_streams_transforms,
-        dataset_factory=dataset_factory,
-        benchmark_factory=benchmark_factory
-    )
+create_classification_benchmark_from_filelists = \
+    create_generic_benchmark_from_filelists
 
 
 def create_classification_benchmark_from_paths(

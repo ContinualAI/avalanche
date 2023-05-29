@@ -673,6 +673,82 @@ class TaskSet(Mapping[int, TAvalancheDataset], Generic[TAvalancheDataset]):
         return self.data.targets_task_labels  # type: ignore
 
 
+def numpy_is_sequence_int(numpy_tensor: np.ndarray) -> bool:
+    return issubclass(numpy_tensor.dtype.type, np.integer)
+
+
+def numpy_is_single_int(numpy_tensor: np.ndarray) -> bool:
+    try:
+        single_value = numpy_tensor.item()
+        return isinstance(single_value, int)
+    except ValueError:
+        return False
+
+
+def torch_is_sequence_int(torch_tensor: Tensor) -> bool:
+    return not torch.is_floating_point(torch_tensor) and \
+        not torch.is_complex(torch_tensor)
+
+
+def torch_is_single_int(torch_tensor: Tensor) -> bool:
+    try:
+        single_value = torch_tensor.item()
+        return isinstance(single_value, int)
+    except ValueError:
+        return False
+    
+
+def element_is_single_int(element: Any):
+    if isinstance(element, (int, np.integer)):
+        return True
+    if isinstance(element, Tensor):
+        return torch_is_single_int(element)
+    else:
+        return False
+
+
+def is_int_iterable(iterable: Iterable[Any]):
+    if isinstance(iterable, torch.Tensor):
+        return torch_is_sequence_int(iterable)
+    elif isinstance(iterable, np.ndarray):
+        return numpy_is_sequence_int(iterable)
+    else:
+        for t in iterable:
+            if not element_is_single_int(t):
+                return False
+        return True
+    
+
+AnyT = TypeVar('AnyT', bound=Iterable)
+
+
+def to_int_list(iterable: AnyT, force: bool = True) -> Union[AnyT, List[int]]:
+    if isinstance(iterable, torch.Tensor):
+        if torch_is_sequence_int(iterable):
+            return iterable.tolist()
+        elif force:
+            raise ValueError('Cannot convert PyTorch Tenspr to int list')
+        else:
+            return iterable
+    elif isinstance(iterable, np.ndarray):
+        if numpy_is_sequence_int(iterable):
+            return iterable.tolist()
+        elif force:
+            raise ValueError('Cannot convert NumPy array to int list')
+        else:
+            return iterable  # type: ignore
+    else:
+        int_list = []
+        for t in iterable:
+            if element_is_single_int(t):
+                int_list.append(t)
+            elif force:
+                raise ValueError('Cannot convert sequence to int list')
+            else:
+                return iterable
+        return int_list
+
+
 def _smart_init_targets(
     dataset,
     targets,
@@ -724,14 +800,8 @@ def _smart_init_targets(
         dataset, _smart_select_targets_opt)
     
     if targets is not None:
-        if isinstance(targets, torch.Tensor):
-            if not torch.is_floating_point(targets) and \
-                    not torch.is_complex(targets):
-                # Classification targets
-                targets = targets.tolist()
-        elif isinstance(targets, np.ndarray):
-            if issubclass(targets.dtype.type, np.integer):
-                targets = targets.tolist()
+        # Classification targets
+        targets = to_int_list(targets, force=False)
 
     if targets is None:
         return None

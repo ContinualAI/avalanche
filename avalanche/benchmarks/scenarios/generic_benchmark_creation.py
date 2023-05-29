@@ -14,11 +14,13 @@ Consider using the higher-level ones found in benchmark_generators. If none of
 them fit your needs, then the helper functions here listed may help.
 """
 
+import itertools
 from pathlib import Path
 from typing import (
     Callable,
     Generator,
     List,
+    Literal,
     Mapping,
     Sequence,
     TypeVar,
@@ -32,6 +34,11 @@ from typing import (
 )
 from typing_extensions import Protocol
 import warnings
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    ClassificationExperience,
+    ClassificationScenario,
+    ClassificationStream,
+)
 from avalanche.benchmarks.scenarios.dataset_scenario import (
     DatasetScenario,
     DatasetStream,
@@ -48,6 +55,7 @@ from avalanche.benchmarks.utils import (
 from torch.utils.data.dataset import Subset, ConcatDataset
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
+    make_classification_dataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.transform_groups import (
@@ -56,6 +64,7 @@ from avalanche.benchmarks.utils.transform_groups import (
     YTransform,
 )
 from avalanche.benchmarks.utils.utils import (
+    is_int_iterable,
     make_generic_dataset,
     make_generic_tensor_dataset,
 )
@@ -149,6 +158,131 @@ def _make_generic_scenario(
     )
 
 
+def _make_classification_scenario(
+    stream_definitions: TStreamsUserDict,
+    complete_test_set_only: bool
+) -> ClassificationScenario[
+        ClassificationStream[
+            ClassificationExperience[
+                ClassificationDataset]],
+        ClassificationExperience[
+            ClassificationDataset],
+        ClassificationDataset]:
+    return ClassificationScenario(
+        stream_definitions=stream_definitions,
+        complete_test_set_only=complete_test_set_only
+    )
+
+
+def _detect_legacy_classification_usage(
+    all_datasets: Iterable[Any]
+) -> bool:
+    """
+    Used by :func:`create_multi_dataset_generic_benchmark` to check
+    if the user is trying to create a classification benchmark.
+
+    While using :func:`create_multi_dataset_generic_benchmark` to create a
+    classification benchmark is acceptable, it would be better to use
+    :func:`create_multi_dataset_classification_benchmark`, which returns
+    a :class:`ClassificationScenario`
+    
+    Fields defined in :class:`ClassificationScenario` are not to be found
+    in the generic :class:`DatasetScenario` instance returned by
+    func:`create_multi_dataset_generic_benchmark` and may be needed
+    by some continual learning strategies.
+
+    This function works by checking if input datasets contain all
+    int (including NumPy/PyTorch int types) targets.
+    """
+
+    for dataset in all_datasets:
+        try:
+            as_classification_dataset = make_classification_dataset(
+                dataset
+            )
+            if not is_int_iterable(as_classification_dataset.targets):
+                return False
+        except Exception:
+            return False
+        
+    return True
+
+
+def _manage_legacy_classification_usage(
+    train_datasets: Sequence[GenericSupportedDataset],
+    test_datasets: Sequence[GenericSupportedDataset],
+    other_streams_datasets: Optional[
+        Mapping[str, Sequence[GenericSupportedDataset]]],
+    dataset_factory: Union[
+        DatasetFactory,
+        Literal['check_if_classification']
+    ],
+    benchmark_factory: Union[Callable[
+        [
+            TStreamsUserDict,
+            bool
+        ], TDatasetScenario
+    ], Literal['check_if_classification']]) -> Tuple[
+        DatasetFactory, 
+        Callable[[
+            TStreamsUserDict,
+            bool
+        ], TDatasetScenario]]:
+
+    check_implicit_classification = \
+        dataset_factory == 'check_if_classification' or \
+        benchmark_factory == 'check_if_classification'
+    
+    is_implicit_classification = False
+    if check_implicit_classification:
+        all_datasets_iterables = [
+            train_datasets,
+            test_datasets,
+        ]
+
+        if other_streams_datasets is not None:
+            all_datasets_iterables.extend(other_streams_datasets.values())
+
+        is_implicit_classification = _detect_legacy_classification_usage(
+            itertools.chain(*all_datasets_iterables)
+        )
+
+    if is_implicit_classification:
+        warnings.warn(
+            '`dataset_benchmark` is being called by passing classification '
+            'datasets. It is recommended to switch to '
+            '`dataset_classification_benchmark` to make sure a '
+            '`ClassificationScenario` is returned',
+            DeprecationWarning
+        )
+    
+    dataset_factory_compat: DatasetFactory
+    if dataset_factory == 'check_if_classification':
+        if is_implicit_classification:
+            dataset_factory_compat = make_classification_dataset
+        else:
+            dataset_factory_compat = make_generic_dataset
+    else:
+        dataset_factory_compat = dataset_factory
+    
+    benchmark_factory_compat: Callable[
+        [
+            TStreamsUserDict,
+            bool
+        ], TDatasetScenario
+    ]
+    if benchmark_factory == 'check_if_classification':       
+        if is_implicit_classification:
+            benchmark_factory_compat = \
+                _make_classification_scenario  # type: ignore
+        else:
+            benchmark_factory_compat = _make_generic_scenario
+    else:
+        benchmark_factory_compat = benchmark_factory
+
+    return dataset_factory_compat, benchmark_factory_compat
+
+
 def create_multi_dataset_generic_benchmark(
     train_datasets: Sequence[GenericSupportedDataset],
     test_datasets: Sequence[GenericSupportedDataset],
@@ -162,13 +296,16 @@ def create_multi_dataset_generic_benchmark(
     eval_target_transform: YTransform = None,
     other_streams_transforms: Optional[
         Mapping[str, Tuple[XTransform, YTransform]]] = None,
-    dataset_factory: DatasetFactory = make_generic_dataset,
-    benchmark_factory: Callable[
+    dataset_factory: Union[
+        DatasetFactory,
+        Literal['check_if_classification']
+    ] = 'check_if_classification',
+    benchmark_factory: Union[Callable[
         [
             TStreamsUserDict,
             bool
         ], TDatasetScenario
-    ] = _make_generic_scenario
+    ], Literal['check_if_classification']] = 'check_if_classification'
 ) -> TDatasetScenario:
     """
     Creates a benchmark instance given a list of datasets. Each dataset will be
@@ -233,6 +370,15 @@ def create_multi_dataset_generic_benchmark(
     :returns: A benchmark instance.
     """
 
+    dataset_factory_compat, benchmark_factory_compat = \
+        _manage_legacy_classification_usage(
+            train_datasets=train_datasets,
+            test_datasets=test_datasets,
+            other_streams_datasets=other_streams_datasets,
+            dataset_factory=dataset_factory,
+            benchmark_factory=benchmark_factory
+        )
+
     transform_groups = dict(
         train=(train_transform, train_target_transform),
         eval=(eval_transform, eval_target_transform),
@@ -273,7 +419,7 @@ def create_multi_dataset_generic_benchmark(
                 "complete_test_set_only is True"
             )
 
-    stream_definitions: Dict[str, Tuple[Iterable[ClassificationDataset]]] = \
+    stream_definitions: Dict[str, Tuple[Iterable[AvalancheDataset]]] = \
         dict()
 
     for stream_name, dataset_list in input_streams.items():
@@ -286,7 +432,7 @@ def create_multi_dataset_generic_benchmark(
             dataset = dataset_list[dataset_idx]
 
             stream_datasets.append(
-                dataset_factory(
+                dataset_factory_compat(
                     dataset=dataset,
                     transform_groups=transform_groups,
                     initial_transform_group=initial_transform_group
@@ -294,7 +440,7 @@ def create_multi_dataset_generic_benchmark(
             )
         stream_definitions[stream_name] = (stream_datasets,)
 
-    return benchmark_factory(
+    return benchmark_factory_compat(
         stream_definitions,
         complete_test_set_only,
     )
@@ -498,7 +644,7 @@ def create_lazy_generic_benchmark(
     stream_definitions: Dict[
         str, Tuple[
             # Dataset generator + stream length
-            Tuple[Generator[ClassificationDataset, None, None], int],
+            Tuple[Generator[AvalancheDataset, None, None], int],
             # Task label(s) for each experience
             Iterable[Union[int, Iterable[int]]]
             ]
@@ -546,13 +692,13 @@ def create_generic_benchmark_from_filelists(
     eval_target_transform: YTransform = None,
     other_streams_transforms: Optional[
         Mapping[str, Tuple[XTransform, YTransform]]] = None,
-    dataset_factory: DatasetFactory = make_generic_dataset,
+    dataset_factory: DatasetFactory = make_classification_dataset,
     benchmark_factory: Callable[
         [
             TStreamsUserDict,
             bool
         ], TDatasetScenario
-    ] = _make_generic_scenario
+    ] = _make_classification_scenario  # type: ignore
 ) -> TDatasetScenario:
     """
     Creates a benchmark instance given a list of filelists and the respective
@@ -565,8 +711,7 @@ def create_generic_benchmark_from_filelists(
     Beware that this helper function is limited is the following two aspects:
 
     - The resulting benchmark instance and the intermediate datasets used to
-      populate it will be of type CLASSIFICATION. There is no way to change
-      this.
+      populate it will be of type CLASSIFICATION.
     - Task labels can only be defined by choosing a single task label for
       each experience (the same task label is applied to all patterns of
       experiences sharing the same position in different streams).
@@ -630,11 +775,11 @@ def create_generic_benchmark_from_filelists(
         an :class:`AvalancheDataset` (or any subclass) given the input
         dataset, the transform groups definition and the name of the
         initial group (equal to the name of the stream). Defaults
-        to :func:`make_generic_dataset`.
+        to :func:`make_classification_dataset`.
     :param benchmark_factory: The factory for the benchmark.
         Should return the benchmark instance given the stream definitions
         and a flag stating if the test stream contains a single dataset.
-        By default, returns a :class:`DatasetScenario`.
+        By default, returns a :class:`ClassificationScenario`.
 
     :returns: A benchmark instance.
     """
@@ -644,10 +789,10 @@ def create_generic_benchmark_from_filelists(
     if other_streams_file_lists is not None:
         input_streams = {**input_streams, **other_streams_file_lists}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[AvalancheDataset]] = dict()
 
     for stream_name, file_lists in input_streams.items():
-        stream_datasets: List[ClassificationDataset] = []
+        stream_datasets: List[AvalancheDataset] = []
         for exp_id, f_list in enumerate(file_lists):
 
             f_list_dataset = FilelistDataset(root, f_list)
@@ -694,13 +839,16 @@ def create_generic_benchmark_from_paths(
     eval_target_transform: YTransform = None,
     other_streams_transforms: Optional[
         Mapping[str, Tuple[XTransform, YTransform]]] = None,
-    dataset_factory: DatasetFactory = make_generic_dataset,
-    benchmark_factory: Callable[
+    dataset_factory: Union[
+        DatasetFactory,
+        Literal['check_if_classification']
+    ] = 'check_if_classification',
+    benchmark_factory: Union[Callable[
         [
             TStreamsUserDict,
             bool
         ], TDatasetScenario
-    ] = _make_generic_scenario
+    ], Literal['check_if_classification']] = 'check_if_classification'
 ) -> TDatasetScenario:
     """
     Creates a benchmark instance given a sequence of lists of files. A separate
@@ -790,17 +938,18 @@ def create_generic_benchmark_from_paths(
     if other_streams_lists_of_files is not None:
         input_streams = {**input_streams, **other_streams_lists_of_files}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[AvalancheDataset]] = dict()
 
     for stream_name, lists_of_files in input_streams.items():
-        stream_datasets: List[ClassificationDataset] = []
+        stream_datasets: List[AvalancheDataset] = []
         for exp_id, list_of_files in enumerate(lists_of_files):
             common_root, exp_paths_list = common_paths_root(list_of_files)
-            paths_dataset: PathsDataset[Any, int] = \
+            paths_dataset: PathsDataset[Any, Any] = \
                 PathsDataset(common_root, exp_paths_list)
             stream_datasets.append(
-                dataset_factory(
-                    paths_dataset, task_labels=task_labels[exp_id]
+                make_generic_dataset(
+                    paths_dataset,
+                    task_labels=task_labels[exp_id]
                 )
             )
 
@@ -834,14 +983,16 @@ def create_generic_benchmark_from_tensor_lists(
     eval_target_transform: YTransform = None,
     other_streams_transforms: Optional[
         Mapping[str, Tuple[XTransform, YTransform]]] = None,
-    dataset_factory: DatasetFactory = make_generic_dataset,
-    tensor_dataset_factory: TensorDatasetFactory = make_generic_tensor_dataset,
-    benchmark_factory: Callable[
+    dataset_factory: Union[
+        DatasetFactory,
+        Literal['check_if_classification']
+    ] = 'check_if_classification',
+    benchmark_factory: Union[Callable[
         [
             TStreamsUserDict,
             bool
         ], TDatasetScenario
-    ] = _make_generic_scenario
+    ], Literal['check_if_classification']] = 'check_if_classification'
 ) -> TDatasetScenario:
     """
     Creates a benchmark instance given lists of Tensors. A separate dataset will
@@ -936,13 +1087,13 @@ def create_generic_benchmark_from_tensor_lists(
     if other_streams_tensors is not None:
         input_streams = {**input_streams, **other_streams_tensors}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[AvalancheDataset]] = dict()
 
     for stream_name, list_of_exps_tensors in input_streams.items():
-        stream_datasets: List[ClassificationDataset] = []
+        stream_datasets: List[AvalancheDataset] = []
         for exp_id, exp_tensors in enumerate(list_of_exps_tensors):
             stream_datasets.append(
-                tensor_dataset_factory(
+                make_generic_tensor_dataset(
                     exp_tensors, task_labels=task_labels[exp_id]
                 )
             )
