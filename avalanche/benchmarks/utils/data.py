@@ -320,7 +320,6 @@ class AvalancheDataset(IDataset[T_co]):
 
     def __eq__(self, other: object):
         for required_attr in ['_flat_data',
-                              '_transform_groups',
                               '_data_attributes',
                               'collate_fn']:
             if not hasattr(other, required_attr):
@@ -492,7 +491,7 @@ class _FlatDataWithTransform(FlatData[T_co]):
         self._transform_groups.current_group = cgroup
 
     def __eq__(self, other):
-        for required_attr in ['datasets',
+        for required_attr in ['_datasets',
                               '_transform_groups',
                               '_frozen_transform_groups']:
             if not hasattr(other, required_attr):
