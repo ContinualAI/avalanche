@@ -12,3 +12,4 @@ from .icarl import ICaRL
 from .er_ace import ER_ACE
 from .der import DER
 from .l2p import LearningToPrompt
+from .expert_gate import ExpertGateStrategy
