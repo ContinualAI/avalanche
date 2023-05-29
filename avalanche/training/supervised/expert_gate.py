@@ -179,7 +179,12 @@ class _ExpertGatePlugin(SupervisedPlugin):
         strategy.model.expert = new_expert
 
         # Reset the optimizer for the new expert model
-        reset_optimizer(strategy.optimizer, strategy.model.expert)
+        # reset_optimizer(strategy.optimizer, strategy.model.expert)
+        # make_optimizer should be called instead of reset_optimizer
+        # It puts all parameters from strategy.model in the optimizer
+        # To freeze parameters use param.requires_grad = False 
+        # and param.grad = None
+        strategy.make_optimizer()
 
         # Remove LwF plugin in case it is not needed
         if (self.lwf_plugin in strategy.plugins):

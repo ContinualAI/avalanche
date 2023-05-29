@@ -59,16 +59,16 @@ class BatchObservation(SGDStrategyProtocol):
               initially put in the optimizer.
         """
         if self.optimized_param_id is None:
-            optimized_param_id = reset_optimizer(self.optimizer, self.model) 
+            self.optimized_param_id = \
+                    reset_optimizer(self.optimizer, self.model) 
         else:
-            optimized_param_id = \
+            self.optimized_param_id = \
                 update_optimizer(
                     self.optimizer, 
                     dict(self.model.named_parameters()),
                     self.optimized_param_id, 
                     reset_state=reset_optimizer_state
                     )
-        return optimized_param_id
 
     def check_model_and_optimizer(self):
         # If strategy has access to the task boundaries, and the current
@@ -77,19 +77,16 @@ class BatchObservation(SGDStrategyProtocol):
         assert self.experience is not None
 
         if self.optimized_param_id is None:
-            self.optimized_param_id = \
-                self.make_optimizer(reset_optimizer_state=True)
+            self.make_optimizer(reset_optimizer_state=True)
 
         if isinstance(self.experience, OnlineCLExperience):
             if self.experience.access_task_boundaries:
                 if self.experience.is_first_subexp:
                     self.model = self.model_adaptation()
-                    self.optimized_param_id = \
-                        self.make_optimizer(reset_optimizer_state=False)
+                    self.make_optimizer(reset_optimizer_state=False)
         else:
             self.model = self.model_adaptation()
-            self.optimized_param_id = \
-                self.make_optimizer(reset_optimizer_state=False)
+            self.make_optimizer(reset_optimizer_state=False)
 
 
 __all__ = ["BatchObservation"]
