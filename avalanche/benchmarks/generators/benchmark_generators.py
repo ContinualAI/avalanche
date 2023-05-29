@@ -833,7 +833,7 @@ def random_validation_split_strategy(
 
 
 def class_balanced_split_strategy(
-    validation_size: Union[int, float],
+    validation_size: float,
     experience: DatasetExperience[ClassificationDataset],
 ) -> Tuple[ClassificationDataset, ClassificationDataset]:
     """Class-balanced train/validation splits.
@@ -855,18 +855,11 @@ def class_balanced_split_strategy(
         datasets.
     """
     if not isinstance(validation_size, float):
-        raise ValueError("validation_size must be an integer")
+        raise ValueError("validation_size must be a float")
     if not 0.0 <= validation_size <= 1.0:
         raise ValueError("validation_size must be a float in [0, 1].")
 
     exp_dataset = experience.dataset
-    if validation_size > len(exp_dataset):
-        raise ValueError(
-            f"Can't create the validation experience: not enough "
-            f"instances. Required {validation_size}, got only"
-            f"{len(exp_dataset)}"
-        )
-
     exp_indices = list(range(len(exp_dataset)))
     targets_as_tensor = torch.as_tensor(experience.dataset.targets)
     exp_classes: List[int] = targets_as_tensor.unique().tolist()
