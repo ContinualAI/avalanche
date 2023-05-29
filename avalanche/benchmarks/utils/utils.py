@@ -484,7 +484,8 @@ def _init_transform_groups(
             isinstance(dataset, AvalancheDataset)
             and dataset._flat_data._transform_groups is not None
         ):
-            initial_transform_group = dataset._flat_data._transform_groups.current_group
+            tgs = dataset._flat_data._transform_groups
+            initial_transform_group = tgs.current_group
         else:
             initial_transform_group = "train"
 

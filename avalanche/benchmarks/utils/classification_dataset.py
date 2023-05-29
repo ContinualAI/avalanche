@@ -100,11 +100,13 @@ class ClassificationDataset(AvalancheDataset[T_co]):
     
     def subset(self, indices):
         data = super().subset(indices)
-        return data.with_transforms(self._flat_data._transform_groups.current_group)
+        return data.with_transforms(
+            self._flat_data._transform_groups.current_group)
 
     def concat(self, other):
         data = super().concat(other)
-        return data.with_transforms(self._flat_data._transform_groups.current_group)
+        return data.with_transforms(
+            self._flat_data._transform_groups.current_group)
 
     def __hash__(self):
         return id(self)

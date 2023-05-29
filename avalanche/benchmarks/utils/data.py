@@ -235,10 +235,12 @@ class AvalancheDataset(IDataset[T_co]):
     def __len__(self) -> int:
         return len(self._flat_data)
 
-    def __add__(self: TAvalancheDataset, other: TAvalancheDataset) -> TAvalancheDataset:
+    def __add__(self: TAvalancheDataset, other: TAvalancheDataset) -> \
+            TAvalancheDataset:
         return self.concat(other)
 
-    def __radd__(self: TAvalancheDataset, other: TAvalancheDataset) -> TAvalancheDataset:
+    def __radd__(self: TAvalancheDataset, other: TAvalancheDataset) -> \
+            TAvalancheDataset:
         return other.concat(self)
 
     @property
@@ -406,14 +408,16 @@ class AvalancheDataset(IDataset[T_co]):
     def remove_current_transform_group(self):
         """Recursively remove transformation groups from dataset tree."""
         datacopy = self._shallow_clone_dataset()
-        datacopy._flat_data = datacopy._flat_data.remove_current_transform_group()
+        fdata = datacopy._flat_data
+        datacopy._flat_data = fdata.remove_current_transform_group()
         return datacopy
 
     def replace_current_transform_group(self, transform):
         """Recursively remove the current transformation group from the
         dataset tree and replaces it."""
         datacopy = self._shallow_clone_dataset()
-        datacopy._flat_data = datacopy._flat_data.replace_current_transform_group(transform)
+        fdata = datacopy._flat_data
+        datacopy._flat_data = fdata.replace_current_transform_group(transform)
         return datacopy
 
     def _shallow_clone_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
@@ -503,12 +507,13 @@ class _FlatDataWithTransform(FlatData[T_co]):
             d1 == d2 for d1, d2 in
             zip(self._datasets, other._datasets)  # type: ignore
         )
+        ftg = other._frozen_transform_groups  # type: ignore
         return (
             eq_datasets
             and
             self._transform_groups == other._transform_groups  # type: ignore
             and
-            self._frozen_transform_groups == other._frozen_transform_groups  # type: ignore
+            self._frozen_transform_groups == ftg  # type: ignore
         )
 
     def _getitem_recursive_call(self, idx, group_name) -> T_co:
