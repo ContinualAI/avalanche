@@ -20,7 +20,6 @@ from typing import (
     Callable,
     Generator,
     List,
-    Literal,
     Mapping,
     Sequence,
     TypeVar,
@@ -32,7 +31,10 @@ from typing import (
     Iterable,
     NamedTuple,
 )
-from typing_extensions import Protocol
+from typing_extensions import (
+    Protocol,
+    Literal,
+)
 import warnings
 from avalanche.benchmarks.scenarios.classification_scenario import (
     ClassificationExperience,
