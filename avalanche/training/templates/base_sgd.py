@@ -114,6 +114,9 @@ class BaseSGDTemplate(
         )
         """ Eval mini-batch size. """
 
+        self.retain_graph: bool = False
+        """ Retain graph when calling loss.backward(). """
+
         if evaluator is None:
             evaluator = EvaluationPlugin()
         elif callable(evaluator):
@@ -193,7 +196,7 @@ class BaseSGDTemplate(
     def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
-    def make_optimizer(self):
+    def make_optimizer(self, **kwargs):
         """Optimizer initialization."""
         # Should be implemented in Observation Type
         raise NotImplementedError()
@@ -220,7 +223,7 @@ class BaseSGDTemplate(
 
     def backward(self):
         """Run the backward pass."""
-        self.loss.backward()
+        self.loss.backward(retain_graph=self.retain_graph)
 
     def optimizer_step(self):
         """Execute the optimizer step (weights update)."""

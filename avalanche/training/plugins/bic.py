@@ -151,9 +151,7 @@ class BiCPlugin(SupervisedPlugin):
         train_data = []
         for class_id in cl_idxs.keys():
             ll = class_to_len[class_id]
-            new_data_c = classification_subset(
-                                            new_data,
-                                            cl_idxs[class_id][:ll])
+            new_data_c = new_data.subset(cl_idxs[class_id][:ll])
             if class_id in self.val_buffer:
                 old_buffer_c = self.val_buffer[class_id]
                 old_buffer_c.update_from_dataset(new_data_c)
@@ -163,9 +161,7 @@ class BiCPlugin(SupervisedPlugin):
                 new_buffer.update_from_dataset(new_data_c)
                 self.val_buffer[class_id] = new_buffer
 
-            train_data.append(classification_subset(
-                                            new_data,
-                                            cl_idxs[class_id][ll:]))
+            train_data.append(new_data.subset(cl_idxs[class_id][ll:]))
 
         # resize buffers
         for class_id, class_buf in self.val_buffer.items():

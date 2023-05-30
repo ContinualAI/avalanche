@@ -9,7 +9,8 @@ from .strategy_wrappers import *
 from .strategy_wrappers_online import *
 from .deep_slda import *
 from .icarl import ICaRL
-from .er_ace import ER_ACE, OnlineER_ACE
+from .er_ace import ER_ACE
 from .der import DER
 from .l2p import LearningToPrompt
 from .supervised_contrastive_replay import SCR
+from .expert_gate import ExpertGateStrategy
