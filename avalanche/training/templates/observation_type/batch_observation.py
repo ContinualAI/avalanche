@@ -84,6 +84,9 @@ class BatchObservation(SGDStrategyProtocol):
                 if self.experience.is_first_subexp:
                     self.model = self.model_adaptation()
                     self.make_optimizer(reset_optimizer_state=False)
+            else:
+                self.model = self.model_adaptation()
+                self.make_optimizer(reset_optimizer_state=False)
         else:
             self.model = self.model_adaptation()
             self.make_optimizer(reset_optimizer_state=False)
