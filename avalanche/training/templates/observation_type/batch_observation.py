@@ -41,7 +41,7 @@ class BatchObservation(SGDStrategyProtocol):
 
         return model.to(self.device)
 
-    def make_optimizer(self, reset_optimizer_state=False):
+    def make_optimizer(self, reset_optimizer_state=False, **kwargs):
         """Optimizer initialization.
 
         Called before each training experience to configure the optimizer.
@@ -70,7 +70,7 @@ class BatchObservation(SGDStrategyProtocol):
                     reset_state=reset_optimizer_state
                     )
 
-    def check_model_and_optimizer(self):
+    def check_model_and_optimizer(self, reset_optimizer_state=False, **kwargs):
         # If strategy has access to the task boundaries, and the current
         # sub-experience is the first sub-experience in the online stream,
         # then adapt the model with the full origin experience:
@@ -83,13 +83,15 @@ class BatchObservation(SGDStrategyProtocol):
             if self.experience.access_task_boundaries:
                 if self.experience.is_first_subexp:
                     self.model = self.model_adaptation()
-                    self.make_optimizer(reset_optimizer_state=False)
+                    self.make_optimizer(
+                        reset_optimizer_state=reset_optimizer_state
+                    )
             else:
                 self.model = self.model_adaptation()
-                self.make_optimizer(reset_optimizer_state=False)
+                self.make_optimizer(reset_optimizer_state=reset_optimizer_state)
         else:
             self.model = self.model_adaptation()
-            self.make_optimizer(reset_optimizer_state=False)
+            self.make_optimizer(reset_optimizer_state=reset_optimizer_state)
 
 
 __all__ = ["BatchObservation"]
