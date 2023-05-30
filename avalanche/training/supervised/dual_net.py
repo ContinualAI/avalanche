@@ -197,7 +197,7 @@ class DualNet(SupervisedTemplate):
                     x_, y_, l_ = self.sample_from_buffer()
                     pred = self.model(self.transforms_0(x_))
                     loss += self.bce(pred, y_)
-                    # loss += self.reg * self.kl(pred , l_ , self.temp)
+                    loss += self.reg * self.kl(pred , l_ , self.temp)
             else:
                 raise NotImplementedError()
 
