@@ -119,7 +119,8 @@ def load_tensor_benchmark():
 
 def get_fast_benchmark(
     use_task_labels=False, shuffle=True, n_samples_per_class=100,
-    n_classes=10, n_features=6, seed=None
+    n_classes=10, n_features=6, seed=None,
+    train_transform=None, eval_transform=None,
 ):
     dataset = make_classification(
         n_samples=n_classes * n_samples_per_class,
@@ -145,6 +146,8 @@ def get_fast_benchmark(
         5,
         task_labels=use_task_labels,
         shuffle=shuffle,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
         seed=seed
     )
     return my_nc_benchmark

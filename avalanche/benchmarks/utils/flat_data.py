@@ -358,6 +358,17 @@ def _flatten_dataset_list(
             new_data_list.pop()
             merged_ds = _maybe_merge_subsets(last_dataset, dataset)
             new_data_list.extend(merged_ds)
+        elif (
+            (dataset is not None)
+            and len(new_data_list) > 0
+            and (last_dataset is not None)
+            and last_dataset is dataset
+        ):
+            new_data_list.pop()
+            # the same dataset is repeated, using indices to avoid repeating it
+            idxs = list(list(range(len(last_dataset))) * 2)
+            merged_ds = [FlatData([last_dataset], indices=idxs)]
+            new_data_list.extend(merged_ds)
         else:
             new_data_list.append(dataset)
     return new_data_list
