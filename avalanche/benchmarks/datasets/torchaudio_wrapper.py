@@ -41,7 +41,7 @@ def speech_commands_collate(batch):
         tensors_padded = tensors_padded.unsqueeze(-1)
     targets = torch.stack(targets)
     t_labels = torch.stack(t_labels)
-    return tensors_padded, targets, t_labels
+    return [tensors_padded, targets, t_labels]
 
 
 class SpeechCommandsData(SPEECHCOMMANDS):
