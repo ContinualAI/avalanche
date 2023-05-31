@@ -594,26 +594,31 @@ class GeneralMetricTests(unittest.TestCase):
 
         # Test reset = 0
         metric.reset()
-        self.assertDictEqual(
-            metric.result(), {c: 0.0 for c in classes_splits}
-        )
+        expected_results = {c: 0.0 for c in classes_splits}
+        result = metric.result()
+        for id in expected_results:
+            self.assertEqual(result[id], expected_results[id])
+        metric.reset()
 
         # Test all wrong = 0
         out_wrong = torch.ones(self.batch_size, self.input_size)
         out_wrong[torch.arange(self.batch_size), self.y] = 0
         metric.update(classes_splits, out_wrong, self.y)
-        self.assertDictEqual(
-            metric.result(), {c: 0.0 for c in classes_splits}
-        )
+
+        expected_results = {c: 0.0 for c in classes_splits}
+        result = metric.result()
+        for id in expected_results:
+            self.assertEqual(result[id], expected_results[id])
         metric.reset()
 
         # Test all right = 1
         out_right = torch.zeros(self.batch_size, self.input_size)
         out_right[torch.arange(self.batch_size), self.y] = 1
         metric.update(classes_splits, out_right, self.y)
-        self.assertDictEqual(
-            metric.result(), {c: 1.0 for c in classes_splits}
-        )
+        expected_results = {c: 1.0 for c in classes_splits}
+        result = metric.result()
+        for id in expected_results:
+            self.assertEqual(result[id], expected_results[id])
         metric.reset()
         
     def test_labels_repartition(self):

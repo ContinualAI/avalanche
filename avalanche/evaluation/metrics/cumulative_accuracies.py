@@ -58,6 +58,10 @@ class CumulativeAccuracy(Metric[Dict[int, float]]):
             raise ValueError("Size mismatch for true_y " 
                              "and predicted_y tensors")
         for t, classes in classes_splits.items():
+            # This is to fix a weird bug 
+            # that was happening in some workflows
+            if t not in self._mean_accuracy:
+                self._mean_accuracy[t]
 
             # Only compute Accuracy for classes that are in classes set
             if len(set(true_y.cpu().numpy()).intersection(classes)) == 0:
