@@ -184,7 +184,7 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # It puts all parameters from strategy.model in the optimizer
         # To freeze parameters use param.requires_grad = False 
         # and param.grad = None
-        strategy.make_optimizer()
+        strategy.make_optimizer(**kwargs)
 
         # Remove LwF plugin in case it is not needed
         if (self.lwf_plugin in strategy.plugins):
