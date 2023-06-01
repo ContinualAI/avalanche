@@ -13,9 +13,9 @@ import os
 from pathlib import Path
 from typing import Union, Sequence, List, Optional
 
-from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
+from avalanche.evaluation import Metric, GenericPluginMetric
 
-PathAlike = Union[Union[str, Path]]
+PathAlike = Union[str, Path]
 
 
 class DiskUsage(Metric[float]):
@@ -27,7 +27,10 @@ class DiskUsage(Metric[float]):
     """
 
     def __init__(
-        self, paths_to_monitor: Union[PathAlike, Sequence[PathAlike]] = None
+        self,
+        paths_to_monitor: Optional[
+            Union[PathAlike, Sequence[PathAlike]]
+        ] = None
     ):
         """
         Creates an instance of the standalone disk usage metric.
@@ -46,7 +49,7 @@ class DiskUsage(Metric[float]):
 
         self._paths_to_monitor: List[str] = [str(p) for p in paths_to_monitor]
 
-        self.total_usage = 0
+        self.total_usage: float = 0.0
 
     def update(self):
         """
@@ -55,7 +58,7 @@ class DiskUsage(Metric[float]):
         :return None.
         """
 
-        dirs_size = 0
+        dirs_size = 0.0
         for directory in self._paths_to_monitor:
             dirs_size += DiskUsage.get_dir_size(directory)
 
@@ -82,8 +85,15 @@ class DiskUsage(Metric[float]):
         self.total_usage = 0
 
     @staticmethod
-    def get_dir_size(path: str):
-        total_size = 0
+    def get_dir_size(path: str) -> float:
+        """
+        Obtains the size of the given directory, in KiB.
+
+        :param path: The path of an existing directory.
+        :return: A float value describing the size (in KiB)
+            of the directory as the sum of all its elements.
+        """
+        total_size = 0.0
         for dirpath, dirnames, filenames in os.walk(path):
             for f in filenames:
                 fp = os.path.join(dirpath, f)
@@ -96,16 +106,16 @@ class DiskUsage(Metric[float]):
         return total_size
 
 
-class DiskPluginMetric(GenericPluginMetric[float]):
+class DiskPluginMetric(GenericPluginMetric[float, DiskUsage]):
     def __init__(self, paths, reset_at, emit_at, mode):
-        self._disk = DiskUsage(paths_to_monitor=paths)
+        disk = DiskUsage(paths_to_monitor=paths)
 
         super(DiskPluginMetric, self).__init__(
-            self._disk, reset_at=reset_at, emit_at=emit_at, mode=mode
+            disk, reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
     def update(self, strategy):
-        self._disk.update()
+        self._metric.update()
 
 
 class MinibatchDiskUsage(DiskPluginMetric):
@@ -208,7 +218,7 @@ def disk_usage_metrics(
     epoch=False,
     experience=False,
     stream=False
-) -> List[PluginMetric]:
+) -> List[DiskPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     standalone metrics.
@@ -225,7 +235,7 @@ def disk_usage_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[DiskPluginMetric] = []
     if minibatch:
         metrics.append(MinibatchDiskUsage(paths_to_monitor=paths_to_monitor))
 

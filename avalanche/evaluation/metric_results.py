@@ -59,7 +59,7 @@ class AlternativeValues:
     """
 
     def __init__(self, *alternatives: MetricType):
-        self.alternatives: Tuple[MetricType] = alternatives
+        self.alternatives: Tuple[MetricType, ...] = alternatives
 
     def best_supported_value(
         self, *supported_types: type

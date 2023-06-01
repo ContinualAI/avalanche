@@ -42,7 +42,7 @@ run_and_check() {
   # Without checkpoints
   python -u task_incremental_with_checkpointing.py $GPU_PARAM --checkpoint_at -1 \
     --plugins "$@" --benchmark $BENCHMARK --log_metrics_to './metrics_no_checkpoint'
-  rm -r checkpoints
+  rm -r ./checkpoint.pkl
 
   # Stop after experience 1
   python -u task_incremental_with_checkpointing.py $GPU_PARAM --checkpoint_at 1 \
@@ -50,7 +50,7 @@ run_and_check() {
   echo "Running from checkpoint 1..."
   python -u task_incremental_with_checkpointing.py $GPU_PARAM --checkpoint_at 1  \
     --plugins "$@" --benchmark $BENCHMARK --log_metrics_to './metrics_checkpoint'
-  rm -r checkpoints
+  rm -r ./checkpoint.pkl
 
   python -u check_metrics_aligned.py \
     "./metrics_no_checkpoint" "./metrics_checkpoint"

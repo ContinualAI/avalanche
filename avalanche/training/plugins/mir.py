@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import copy
 from typing import TYPE_CHECKING
 import torch
@@ -39,9 +38,9 @@ class MIRPlugin(SupervisedPlugin):
 
     def __init__(
         self,
+        batch_size_mem: int,
         mem_size: int = 200,
         subsample: int = 200,
-        batch_size_mem: int = None,
     ):
         """
         mem_size: int       : Fixed memory size
@@ -59,9 +58,10 @@ class MIRPlugin(SupervisedPlugin):
         )
         self.replay_loader = None
 
-    @property
-    def ext_mem(self):
-        return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
+    # TODO: remove ext_mem
+    # @property
+    # def ext_mem(self):
+    #     return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
 
     def before_backward(self, strategy, **kwargs):
         if self.replay_loader is None:
@@ -128,10 +128,14 @@ class MIRPlugin(SupervisedPlugin):
             self.replay_loader = cycle(
                 torch.utils.data.DataLoader(
                     buffer,
-                    batch_size=self.batch_size_mem,
+                    batch_size=self.subsample,
                     shuffle=True,
-                    drop_last=True,
                 )
             )
         else:
             self.replay_loader = None
+
+
+__all__ = [
+    'MIRPlugin'
+]

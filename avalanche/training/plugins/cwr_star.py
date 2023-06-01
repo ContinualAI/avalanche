@@ -44,7 +44,7 @@ class CWRStarPlugin(SupervisedPlugin):
         self.model.cur_j = defaultdict(int)
 
         # to be updated
-        self.cur_class = None
+        self.cur_class = []
 
     def after_training_exp(self, strategy, **kwargs):
         self.consolidate_weights()
@@ -70,6 +70,8 @@ class CWRStarPlugin(SupervisedPlugin):
 
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
+            assert cwr_layer is not None, \
+                'Could not find the CWR layer.'
             # calculate the average of the current classes
             globavg = np.average(
                 cwr_layer.weight.detach().cpu().numpy()[self.cur_class]
@@ -99,6 +101,9 @@ class CWRStarPlugin(SupervisedPlugin):
 
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
+            assert cwr_layer is not None, \
+                'Could not find the CWR layer.'
+            
             for c, w in self.model.saved_weights.items():
                 cwr_layer.weight[c].copy_(
                     torch.from_numpy(self.model.saved_weights[c])
@@ -108,6 +113,9 @@ class CWRStarPlugin(SupervisedPlugin):
         """reset weights"""
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
+            assert cwr_layer is not None, \
+                'Could not find the CWR layer.'
+
             cwr_layer.weight.fill_(0.0)
             for c, w in self.model.saved_weights.items():
                 if c in cur_clas:

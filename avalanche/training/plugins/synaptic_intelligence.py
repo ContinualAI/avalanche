@@ -1,6 +1,15 @@
-import warnings
 from fnmatch import fnmatch
-from typing import Sequence, Any, Set, List, Tuple, Dict, Union, TYPE_CHECKING
+from typing import (
+    Optional,
+    Sequence,
+    Any,
+    Set,
+    List,
+    Tuple,
+    Dict,
+    Union,
+    TYPE_CHECKING,
+)
 
 import numpy as np
 import torch
@@ -42,7 +51,7 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
         self,
         si_lambda: Union[float, Sequence[float]],
         eps: float = 0.0000001,
-        excluded_parameters: Sequence["str"] = None,
+        excluded_parameters: Optional[Sequence[str]] = None,
         device: Any = "as_strategy",
     ):
         """Creates an instance of the Synaptic Intelligence plugin.

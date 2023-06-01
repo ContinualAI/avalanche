@@ -52,7 +52,7 @@ def OpenLORIS(
     ] = "clutter",
     train_transform: Optional[Any] = None,
     eval_transform: Optional[Any] = None,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark for OpenLORIS.
@@ -104,6 +104,9 @@ def OpenLORIS(
 
     # Dataset created just to download it
     dataset = OpenLORISDataset(dataset_root, download=True)
+
+    # Use the root produced by the dataset implementation
+    dataset_root = dataset.root
 
     filelists_bp = fac2dirs[factor] + "/"
     train_failists_paths = []

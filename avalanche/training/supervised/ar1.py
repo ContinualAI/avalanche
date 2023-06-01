@@ -1,5 +1,5 @@
 import warnings
-from typing import Optional, Sequence, List
+from typing import Callable, Optional, List, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -59,9 +59,12 @@ class AR1(SupervisedTemplate):
         ewc_lambda: float = 0,
         train_mb_size: int = 128,
         eval_mb_size: int = 128,
-        device=None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
     ):
         """
@@ -103,6 +106,10 @@ class AR1(SupervisedTemplate):
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
         """
+
+        assert train_epochs > 0, \
+            'train_epochs must be greater than zero so that latent ' + \
+            'activations can be stored in the replay buffer'
 
         warnings.warn(
             "The AR1 strategy implementation is in an alpha stage "
@@ -156,8 +163,10 @@ class AR1(SupervisedTemplate):
         self.inc_lr = inc_lr
         self.momentum = momentum
         self.l2 = l2
-        self.rm = None
-        self.cur_acts: Optional[Tensor] = None
+        # replay memory (x, y)
+        self.rm: Tuple[Tensor, Tensor] = (torch.empty(0), torch.empty(0))
+        # Placeholder Tensor to avoid typing issues
+        self.cur_acts: Tensor = torch.empty(0)
         self.replay_mb_size = 0
 
         super().__init__(
@@ -247,6 +256,7 @@ class AR1(SupervisedTemplate):
         :param num_workers: number of thread workers for the data loading.
         :param shuffle: True if the data should be shuffled, False otherwise.
         """
+        assert self.adapted_dataset is not None
 
         current_batch_mb_size = self.train_mb_size
 
@@ -264,13 +274,19 @@ class AR1(SupervisedTemplate):
             if hasattr(self.adapted_dataset, "collate_fn")
             else None
         )
+
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=current_batch_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            **kwargs
+        )
+
         # AR1 only supports SIT scenarios (no task labels).
         self.dataloader = DataLoader(
             self.adapted_dataset,
-            num_workers=num_workers,
-            batch_size=current_batch_mb_size,
-            shuffle=shuffle,
             collate_fn=collate_fn,
+            **other_dataloader_args
         )
 
     def training_epoch(self, **kwargs):
@@ -332,6 +348,7 @@ class AR1(SupervisedTemplate):
             self._after_training_iteration(**kwargs)
 
     def _after_training_exp(self, **kwargs):
+        assert self.experience is not None
         h = min(
             self.rm_sz // (self.clock.train_exp_counter + 1),
             self.cur_acts.size(0),
@@ -341,9 +358,9 @@ class AR1(SupervisedTemplate):
         idxs_cur = torch.randperm(self.cur_acts.size(0))[:h]
         rm_add_y = torch.tensor(
             [curr_data.targets[idx_cur] for idx_cur in idxs_cur]
-        )
+        ).flatten()
 
-        rm_add = [self.cur_acts[idxs_cur], rm_add_y]
+        rm_add = (self.cur_acts[idxs_cur], rm_add_y)
 
         # replace patterns in random memory
         if self.clock.train_exp_counter == 0:
@@ -355,7 +372,8 @@ class AR1(SupervisedTemplate):
                 self.rm[0][idx] = rm_add[0][j]
                 self.rm[1][idx] = rm_add[1][j]
 
-        self.cur_acts = None
+        # Placeholder Tensor to avoid typing issues
+        self.cur_acts = torch.empty(0)
 
         # Runs S.I. and CWR* plugin callbacks
         super()._after_training_exp(**kwargs)
@@ -363,3 +381,8 @@ class AR1(SupervisedTemplate):
     @staticmethod
     def filter_bn_and_brn(param_def: LayerAndParameter):
         return not isinstance(param_def.layer, (_NormBase, BatchRenorm2D))
+
+
+__all__ = [
+    'AR1'
+]

@@ -191,3 +191,7 @@ class FixedSelectionStrategy(ExemplarsSelectionStrategy):
         self, strategy: "SupervisedTemplate", data: AvalancheDataset
     ) -> List[int]:
         return self.indices
+
+
+if __name__ == "__main__":
+    unittest.main()

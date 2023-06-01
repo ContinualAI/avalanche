@@ -24,7 +24,7 @@ Streaming Protocol: Use the data of next task as the test set for current task,
 We support both evaluation protocols for benchmark construction."""
 
 from pathlib import Path
-from typing import Union, Any, Optional
+from typing import List, Sequence, Union, Any, Optional
 from typing_extensions import Literal
 
 from avalanche.benchmarks.datasets.clear import (
@@ -46,11 +46,11 @@ def CLEAR(
     *,
     data_name: str = "clear10",
     evaluation_protocol: str = "streaming",
-    feature_type: str = None,
-    seed: int = None,
+    feature_type: Optional[str] = None,
+    seed: Optional[int] = None,
     train_transform: Optional[Any] = None,
     eval_transform: Optional[Any] = None,
-    dataset_root: Union[str, Path] = None,
+    dataset_root: Optional[Union[str, Path]] = None,
 ):
     """
     Creates a Domain-Incremental benchmark for CLEAR 10 & 100
@@ -147,13 +147,20 @@ def CLEAR(
             seed=seed,
             transform=eval_transform,
         )
-        train_samples = clear_dataset_train.get_paths_and_targets(
+        train_samples_paths = clear_dataset_train.get_paths_and_targets(
             root_appended=True
         )
-        test_samples = clear_dataset_test.get_paths_and_targets(
+        test_samples_paths = clear_dataset_test.get_paths_and_targets(
             root_appended=True
         )
-        benchmark_generator = create_generic_benchmark_from_paths
+        benchmark_obj = create_generic_benchmark_from_paths(
+            train_samples_paths,
+            test_samples_paths,
+            task_labels=list(range(len(train_samples_paths))),
+            complete_test_set_only=False,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
     else:
         clear_dataset_train = _CLEARFeature(
             root=dataset_root,
@@ -173,16 +180,15 @@ def CLEAR(
         )
         train_samples = clear_dataset_train.tensors_and_targets
         test_samples = clear_dataset_test.tensors_and_targets
-        benchmark_generator = create_generic_benchmark_from_tensor_lists
 
-    benchmark_obj = benchmark_generator(
-        train_samples,
-        test_samples,
-        task_labels=list(range(len(train_samples))),
-        complete_test_set_only=False,
-        train_transform=train_transform,
-        eval_transform=eval_transform,
-    )
+        benchmark_obj = create_generic_benchmark_from_tensor_lists(
+            train_samples,
+            test_samples,
+            task_labels=list(range(len(train_samples))),
+            complete_test_set_only=False,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
 
     return benchmark_obj
 
@@ -289,7 +295,12 @@ if __name__ == "__main__":
     root = f"../avalanche_datasets/{data_name}"
 
     for p in EVALUATION_PROTOCOLS:
-        seed_list = [None] if p == "streaming" else SEED_LIST
+        seed_list: Sequence[Optional[int]]
+        if p == "streaming":
+            seed_list = [None]
+        else:
+            seed_list = SEED_LIST
+        
         for f in [None] + CLEAR_FEATURE_TYPES[data_name]:
             t = transform if f is None else None
             for seed in seed_list:

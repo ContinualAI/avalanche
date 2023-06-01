@@ -8,13 +8,19 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-from typing import Optional, Sequence, List, Union
+from typing import Callable, Optional, Sequence, List, Union
+import torch
+from torch.nn.parameter import Parameter
 
+from torch import sigmoid
 from torch.nn import Module, CrossEntropyLoss
-from torch.optim import Optimizer, SGD
+from torch.optim import Optimizer
 
 from avalanche.models.pnn import PNN
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import (
+    default_evaluator,
+    default_loggers,
+)
 from avalanche.training.plugins import (
     SupervisedPlugin,
     CWRStarPlugin,
@@ -38,7 +44,9 @@ from avalanche.training.plugins import (
 )
 from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
 from avalanche.models.generator import MlpVAE, VAE_loss
+from avalanche.models.expert_gate import AE_loss
 from avalanche.logging import InteractiveLogger
 
 
@@ -62,9 +70,12 @@ class Naive(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        device=None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -118,9 +129,12 @@ class PNNStrategy(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -172,10 +186,13 @@ class CWRStar(SupervisedTemplate):
         cwr_layer_name: str,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -236,10 +253,13 @@ class Replay(SupervisedTemplate):
         mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -311,13 +331,16 @@ class GenerativeReplay(SupervisedTemplate):
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
-        generator_strategy: BaseTemplate = None,
-        replay_size: int = None,
+        generator_strategy: Optional[BaseTemplate] = None,
+        replay_size: Optional[int] = None,
         increasing_replay_size: bool = False,
         **base_kwargs
     ):
@@ -360,8 +383,11 @@ class GenerativeReplay(SupervisedTemplate):
             lr = 0.01
             from torch.optim import Adam
 
+            to_optimize: List[Parameter] = list(
+                filter(lambda p: p.requires_grad, generator.parameters())
+            )
             optimizer_generator = Adam(
-                filter(lambda p: p.requires_grad, generator.parameters()),
+                to_optimize,
                 lr=lr,
                 weight_decay=0.0001,
             )
@@ -411,8 +437,82 @@ class GenerativeReplay(SupervisedTemplate):
         )
 
 
+class AETraining(SupervisedTemplate):
+    """AETraining class
+
+    This is the training strategy for the AE model.    
+    We make use of the SupervisedTemplate, even though technically this is not a
+    supervised training. However, this reduces the modification to a minimum.
+
+    We only need to overwrite the criterion function in order to pass all
+    necessary variables to the VAE loss function.
+    Furthermore we remove all metrics from the evaluator.
+    """
+
+    ae_evaluator = EvaluationPlugin(
+        loss_metrics(minibatch=False, epoch=True,
+                     experience=False, stream=True),
+        loggers=[InteractiveLogger()],
+        )
+
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        device,
+        criterion=AE_loss,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: int = 1,
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: EvaluationPlugin = ae_evaluator,
+        eval_every=0,
+        **base_kwargs
+    ):
+        """
+        Creates an instance of the Naive strategy.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
+        :param \*\*base_kwargs: any additional
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
+        """
+
+        super().__init__(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            **base_kwargs
+        )
+
+    def criterion(self):
+        modified_mb_x = sigmoid(
+            self.model.feature_module(self.mb_x).to(self.device))
+        return self._criterion(modified_mb_x, self.mb_output)
+
+
 def get_default_vae_logger():
-    return EvaluationPlugin(loggers=[InteractiveLogger()])
+    return EvaluationPlugin(loggers=default_loggers)
 
 
 class VAETraining(SupervisedTemplate):
@@ -435,10 +535,13 @@ class VAETraining(SupervisedTemplate):
         criterion=VAE_loss,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = get_default_vae_logger(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = get_default_vae_logger,
         eval_every=-1,
         **base_kwargs
     ):
@@ -501,10 +604,13 @@ class GSS_greedy(SupervisedTemplate):
         input_size=[],
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -567,10 +673,13 @@ class GDumb(SupervisedTemplate):
         mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -632,10 +741,13 @@ class LwF(SupervisedTemplate):
         temperature: float,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -700,10 +812,13 @@ class AGEM(SupervisedTemplate):
         sample_size: int = 64,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -768,10 +883,13 @@ class GEM(SupervisedTemplate):
         memory_strength: float = 0.5,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -838,10 +956,13 @@ class EWC(SupervisedTemplate):
         keep_importance_data: bool = False,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -925,9 +1046,12 @@ class SynapticIntelligence(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device="cpu",
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -960,6 +1084,8 @@ class SynapticIntelligence(SupervisedTemplate):
         """
         if plugins is None:
             plugins = []
+        
+        plugins = list(plugins)
 
         # This implementation relies on the S.I. Plugin, which contains the
         # entire implementation of the strategy!
@@ -999,10 +1125,13 @@ class CoPE(SupervisedTemplate):
         T: float = 0.1,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1072,10 +1201,13 @@ class LFL(SupervisedTemplate):
         lambda_e: Union[float, Sequence[float]],
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1140,9 +1272,12 @@ class MAS(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device=None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1217,10 +1352,13 @@ class BiC(SupervisedTemplate):
         lr: float = 0.1,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1302,9 +1440,12 @@ class MIR(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
-        device=None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1378,10 +1519,13 @@ class FromScratchTraining(SupervisedTemplate):
         reset_optimizer: bool = True,
         train_mb_size: int = 1,
         train_epochs: int = 1,
-        eval_mb_size: int = None,
-        device=None,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
         **base_kwargs
     ):
@@ -1434,6 +1578,7 @@ __all__ = [
     "CWRStar",
     "Replay",
     "GenerativeReplay",
+    "AETraining",
     "VAETraining",
     "GDumb",
     "LwF",

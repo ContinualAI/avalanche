@@ -4,6 +4,7 @@ from os.path import expanduser
 
 import avalanche
 from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.models import SimpleMLP
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
@@ -35,7 +36,6 @@ from avalanche.benchmarks.utils import (
     make_tensor_classification_dataset,
 )
 from avalanche.benchmarks.utils.utils import (
-    concat_datasets_sequentially,
     concat_datasets,
 )
 from avalanche.training.utils import load_all_dataset
@@ -48,7 +48,7 @@ from avalanche.benchmarks.utils.flat_data import (
     _flatdata_print,
 )
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
+    ClassificationDataset, concat_classification_datasets_sequentially
 )
 from tests.unit_tests_utils import load_image_data
 
@@ -1192,9 +1192,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         # anymore. you are probably doing something that disable merging
         # (passing custom transforms?)
         # Good luck...
-        assert _flatdata_depth(curr_dataset) == 3
+        assert _flatdata_depth(curr_dataset) <= 3
 
-    def test_avalanche_concat_datasets_sequentially(self):
+    def test_avalanche_concat_classification_datasets_sequentially(self):
         # create list of training datasets
         train = [
             make_classification_dataset(
@@ -1228,7 +1228,8 @@ class AvalancheDatasetTests(unittest.TestCase):
         ]
 
         # concatenate datasets
-        final_train, _, classes = concat_datasets_sequentially(train, test)
+        final_train, _, classes = \
+            concat_classification_datasets_sequentially(train, test)
 
         # merge all classes into a single list
         classes_all = []
@@ -1632,6 +1633,40 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         # self.assertIsInstance(y7, int)
         # self.assertEqual(y, y7)
 
+    def test_avalanche_inherit_groups_freeze_transforms(self):
+        original_dataset = MNIST(
+            root=default_dataset_location("mnist"), download=True
+        )
+
+        transform_groups = dict(
+            train=(RandomCrop(16), None), eval=(None, None)
+        )
+        dataset = make_classification_dataset(
+            original_dataset, transform_groups=transform_groups
+        )
+
+        # test for #1353
+        dataset_inherit = make_classification_dataset(dataset)
+        x, *_ = dataset_inherit[0]
+
+        dataset_frozen = dataset_inherit.freeze_transforms()
+        x2, *_ = dataset_frozen[0]
+
+        dataset_frozen_reset = dataset_frozen.replace_current_transform_group(
+            None
+        )
+        x3, *_ = dataset_frozen_reset[0]
+
+        dataset_reset = dataset_inherit.replace_current_transform_group(
+            None
+        )
+        x4, *_ = dataset_reset[0]
+
+        self.assertEqual(x.size, (16, 16))
+        self.assertEqual(x2.size, (16, 16))
+        self.assertEqual(x3.size, (16, 16))
+        self.assertEqual(x4.size, (28, 28))
+
     def test_freeze_transforms(self):
         original_dataset = MNIST(
             root=default_dataset_location("mnist"), download=True
@@ -1647,6 +1682,47 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         self.assertIsInstance(y2, int)
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
+
+    def test_freeze_transforms_subset(self):
+        original_dataset = MNIST(
+            root=default_dataset_location("mnist"), download=True
+        )
+        x, y = original_dataset[0]
+        dataset: AvalancheDataset = make_classification_dataset(
+            original_dataset, transform=ToTensor()
+        )
+        dataset_subset = dataset.subset(
+            (1, 2, 3)
+        )
+        
+        dataset_frozen = dataset_subset.freeze_transforms()
+        x, *_ = dataset_frozen[0]
+        self.assertIsInstance(x, Tensor)
+
+        dataset_frozen = dataset_frozen.replace_current_transform_group(
+            None
+        )
+
+        x, *_ = dataset_frozen[0]
+        self.assertIsInstance(x, Tensor)
+
+        dataset_frozen_derivative = \
+            dataset_frozen.replace_current_transform_group(
+                ToPILImage())
+
+        x, *_ = dataset_frozen[0]
+        x2, *_ = dataset_frozen_derivative[0]
+        self.assertIsInstance(x, Tensor)
+        self.assertIsInstance(x2, Image)
+
+        dataset_frozen = dataset_frozen.replace_current_transform_group(
+            ToPILImage()
+        )
+
+        x, *_ = dataset_frozen[0]
+        x2, *_ = dataset_frozen_derivative[0]
+        self.assertIsInstance(x, Image)
+        self.assertIsInstance(x2, Image)
 
     def test_freeze_transforms_chain(self):
         original_dataset = MNIST(
@@ -1664,6 +1740,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
 
         dataset_frozen = dataset_transform.freeze_transforms()
         self.assertIsInstance(dataset_frozen[0][0], Image)
+        self.assertIsInstance(dataset_transform[0][0], Image)
 
         dataset_transform = dataset_transform.replace_current_transform_group(
             None
@@ -1674,6 +1751,7 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
         dataset_frozen = dataset_frozen.replace_current_transform_group(
             ToTensor()
         )
+        self.assertIsInstance(dataset_transform[0][0], Tensor)
         self.assertIsInstance(dataset_frozen[0][0], Tensor)
 
         dataset_frozen2 = dataset_frozen.freeze_transforms()

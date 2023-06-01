@@ -12,5 +12,6 @@ doc_html/*
 tb_data/
 csvlogs/
 docs/generated/
-pip-wheel-metadata
 .fleet
+pip-wheel-metadata
+**/.DS_Store

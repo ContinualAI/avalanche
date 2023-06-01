@@ -88,7 +88,7 @@ class ElapsedTime(Metric[float]):
         self._init_time = None
 
 
-class TimePluginMetric(GenericPluginMetric[float]):
+class TimePluginMetric(GenericPluginMetric[float, ElapsedTime]):
     def __init__(self, reset_at, emit_at, mode):
         self._time = ElapsedTime()
 
@@ -122,6 +122,7 @@ class MinibatchTime(TimePluginMetric):
     def before_training_iteration(self, strategy) -> MetricResult:
         super().before_training_iteration(strategy)
         self._time.update()
+        return None
 
     def __str__(self):
         return "Time_MB"
@@ -185,7 +186,7 @@ class RunningEpochTime(TimePluginMetric):
         self._time.reset()
         return self._package_result(strategy)
 
-    def result(self, strategy) -> float:
+    def result(self) -> float:
         return self._time_mean.result()
 
     def __str__(self):
@@ -249,7 +250,7 @@ def timing_metrics(
     epoch_running=False,
     experience=False,
     stream=False
-) -> List[PluginMetric]:
+) -> List[TimePluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -268,7 +269,7 @@ def timing_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[TimePluginMetric] = []
     if minibatch:
         metrics.append(MinibatchTime())
 

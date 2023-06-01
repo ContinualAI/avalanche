@@ -12,6 +12,26 @@
 """ CLEAR data """
 clear10 = [
     (
+        "clear10-train.zip",  # name
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+    ),
+    (
+        "clear10-test.zip",  # name
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+    )
+]
+clear100 = [
+    (
+        "clear100-train.zip",  # name
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+    ),
+    (
+        "clear100-test.zip",  # name
+        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+    )
+]
+clear10_neurips2021 = [
+    (
         "clear10-public.zip",  # name
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
     )
@@ -23,4 +43,5 @@ clear100_cvpr2022 = [
     )
 ]
 
-__all__ = ["clear10", "clear100_cvpr2022"]
+
+__all__ = ["clear10", "clear100", "clear10_neurips2021", "clear100_cvpr2022"]

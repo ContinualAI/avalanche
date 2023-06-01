@@ -1,5 +1,10 @@
 
-class SGDUpdate:
+from avalanche.training.templates.strategy_mixin_protocol \
+    import SGDStrategyProtocol
+
+
+class SGDUpdate(SGDStrategyProtocol):
+    
     def training_epoch(self, **kwargs):
         """Training epoch.
 
@@ -14,7 +19,7 @@ class SGDUpdate:
             self._before_training_iteration(**kwargs)
 
             self.optimizer.zero_grad()
-            self.loss = 0
+            self.loss = self._make_empty_loss()
 
             # Forward
             self._before_forward(**kwargs)
@@ -34,3 +39,8 @@ class SGDUpdate:
             self._after_update(**kwargs)
 
             self._after_training_iteration(**kwargs)
+
+
+__all__ = [
+    'SGDUpdate'
+]
