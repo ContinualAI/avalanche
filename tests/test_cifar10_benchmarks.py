@@ -30,7 +30,6 @@ class CIFAR10BenchmarksTests(unittest.TestCase):
         cifar_benchmark.get_cifar10_dataset = count_downloads
 
     def tearDown(self):
-
         global CIFAR10_DOWNLOAD_METHOD
         if CIFAR10_DOWNLOAD_METHOD is not None:
             cifar_download.get_cifar10_dataset = CIFAR10_DOWNLOAD_METHOD

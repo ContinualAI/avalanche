@@ -9,7 +9,7 @@ def load_pickles(directory):
     files.sort()
     data = []
     for f in files:
-        with open(os.path.join(directory, f), 'rb') as fh:
+        with open(os.path.join(directory, f), "rb") as fh:
             data.append(pickle.load(fh))
 
     return data
@@ -23,11 +23,11 @@ def check_metrics_aligned(directory1, directory2):
     # Check that the metrics are aligned.
     for i in range(len(data1)):
         if data1[i] != data2[i]:
-            print('Metrics are not aligned for experience {}'.format(i))
+            print("Metrics are not aligned for experience {}".format(i))
             sys.exit(1)
 
-    print('Metrics are aligned')
+    print("Metrics are aligned")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     check_metrics_aligned(sys.argv[1], sys.argv[2])

@@ -95,10 +95,7 @@ COCO_STATS_KPS_ORDER = (
 )
 
 
-class CocoEvaluator(
-        DetectionEvaluator[
-            Dict[str, COCOeval],
-            TCommonDetectionOutput]):
+class CocoEvaluator(DetectionEvaluator[Dict[str, COCOeval], TCommonDetectionOutput]):
     """
     Defines an evaluator for the COCO dataset.
 
@@ -129,9 +126,7 @@ class CocoEvaluator(
         for iou_type in self.iou_types:
             results = self.prepare(predictions, iou_type)
             with redirect_stdout(io.StringIO()):
-                coco_dt = (
-                    COCO.loadRes(self.coco_gt, results) if results else COCO()
-                )
+                coco_dt = COCO.loadRes(self.coco_gt, results) if results else COCO()
             coco_eval = self.coco_eval[iou_type]
 
             coco_eval.cocoDt = coco_dt
@@ -142,9 +137,7 @@ class CocoEvaluator(
 
     def synchronize_between_processes(self):
         for iou_type in self.iou_types:
-            self.eval_imgs[iou_type] = np.concatenate(
-                self.eval_imgs[iou_type], 2
-            )
+            self.eval_imgs[iou_type] = np.concatenate(self.eval_imgs[iou_type], 2)
 
             create_common_coco_eval(
                 self.coco_eval[iou_type], self.img_ids, self.eval_imgs[iou_type]
@@ -154,9 +147,9 @@ class CocoEvaluator(
             return dist.get_rank() == 0
         return True
 
-    def evaluate(self) -> Optional[
-        Union[Dict[str, Any], Tuple[Dict[str, Any], Dict[str, COCOeval]]]
-    ]:
+    def evaluate(
+        self,
+    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, Any], Dict[str, COCOeval]]]]:
         main_process = self.synchronize_between_processes()
 
         for coco_eval in self.coco_eval.values():
@@ -243,9 +236,7 @@ class CocoEvaluator(
 
             rles = [
                 mask_util.encode(
-                    np.array(
-                        mask[0, :, :, np.newaxis], dtype=np.uint8, order="F"
-                    )
+                    np.array(mask[0, :, :, np.newaxis], dtype=np.uint8, order="F")
                 )[0]
                 for mask in masks
             ]
@@ -327,8 +318,9 @@ def all_gather(data):
     return data_list
 
 
-def merge(img_ids: List[int], eval_imgs: List[np.ndarray]) -> \
-        Tuple[np.ndarray, np.ndarray]:
+def merge(
+    img_ids: List[int], eval_imgs: List[np.ndarray]
+) -> Tuple[np.ndarray, np.ndarray]:
     all_img_ids = all_gather(img_ids)
     all_eval_imgs = all_gather(eval_imgs)
 
@@ -351,9 +343,8 @@ def merge(img_ids: List[int], eval_imgs: List[np.ndarray]) -> \
 
 
 def create_common_coco_eval(
-        coco_eval: COCOeval,
-        img_ids: List[int],
-        eval_imgs: List[np.ndarray]):
+    coco_eval: COCOeval, img_ids: List[int], eval_imgs: List[np.ndarray]
+):
     img_ids_np, eval_imgs_np = merge(img_ids, eval_imgs)
     img_ids_lst = list(img_ids_np)
     eval_imgs_list = list(eval_imgs_np.flatten())

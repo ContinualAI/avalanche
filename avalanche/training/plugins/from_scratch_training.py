@@ -9,7 +9,7 @@ from avalanche.models.dynamic_optimizers import reset_optimizer
 
 
 class FromScratchTrainingPlugin(BaseSGDPlugin):
-    """ From Scratch Training Plugin.
+    """From Scratch Training Plugin.
 
     This plugin resets the strategy's model weights and optimizer state after
     each experience. It expects the strategy to have a single model and
@@ -17,10 +17,7 @@ class FromScratchTrainingPlugin(BaseSGDPlugin):
     "from-scratch training" baselines.
     """
 
-    def __init__(
-            self,
-            reset_optimizer: bool = True
-    ):
+    def __init__(self, reset_optimizer: bool = True):
         """
         Creates a `FromScratchTrainingPlugin` instance.
 
@@ -46,7 +43,7 @@ class FromScratchTrainingPlugin(BaseSGDPlugin):
         init_weights = self.initial_weights
         assert init_weights is not None
 
-        for (n, p) in strategy.model.named_parameters():
+        for n, p in strategy.model.named_parameters():
             if n in init_weights.keys():
                 if p.data.shape == init_weights[n].data.shape:
                     p.data.copy_(init_weights[n].data)
@@ -59,6 +56,4 @@ class FromScratchTrainingPlugin(BaseSGDPlugin):
             reset_optimizer(strategy.optimizer, strategy.model)
 
 
-__all__ = [
-    'FromScratchTrainingPlugin'
-]
+__all__ = ["FromScratchTrainingPlugin"]

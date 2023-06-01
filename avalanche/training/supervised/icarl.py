@@ -41,8 +41,7 @@ class ICaRL(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
     ):
@@ -141,15 +140,11 @@ class _ICaRLPlugin(SupervisedPlugin):
         self.output_size = None
         self.input_size = None
 
-    def after_train_dataset_adaptation(
-        self, strategy: "SupervisedTemplate", **kwargs
-    ):
+    def after_train_dataset_adaptation(self, strategy: "SupervisedTemplate", **kwargs):
         if strategy.clock.train_exp_counter != 0:
             memory = make_tensor_classification_dataset(
                 torch.cat(self.x_memory).cpu(),
-                torch.tensor(
-                    list(itertools.chain.from_iterable(self.y_memory))
-                ),
+                torch.tensor(list(itertools.chain.from_iterable(self.y_memory))),
                 transform=self.buffer_transform,
                 target_transform=None,
             )
@@ -234,9 +229,7 @@ class _ICaRLPlugin(SupervisedPlugin):
         previous_seen_classes = sum(benchmark.n_classes_per_exp[:tid])
 
         if self.fixed_memory:
-            nb_protos_cl = int(
-                ceil(self.memory_size / len(self.observed_classes))
-            )
+            nb_protos_cl = int(ceil(self.memory_size / len(self.observed_classes)))
         else:
             nb_protos_cl = self.memory_size
         new_classes = self.observed_classes[
@@ -252,8 +245,7 @@ class _ICaRLPlugin(SupervisedPlugin):
             collate_fn = cd.collate_fn if hasattr(cd, "collate_fn") else None
 
             eval_dataloader = DataLoader(
-                cd.eval(), collate_fn=collate_fn,
-                batch_size=strategy.eval_mb_size
+                cd.eval(), collate_fn=collate_fn, batch_size=strategy.eval_mb_size
             )
 
             class_patterns = []
@@ -262,10 +254,7 @@ class _ICaRLPlugin(SupervisedPlugin):
                 class_pt = class_pt.to(strategy.device)
                 class_patterns.append(class_pt)
                 with torch.no_grad():
-                    mapped_pttp = (
-                        strategy.model.feature_extractor(class_pt)
-                        .detach()
-                    )
+                    mapped_pttp = strategy.model.feature_extractor(class_pt).detach()
                 mapped_prototypes.append(mapped_pttp)
 
             class_patterns_tensor = torch.cat(class_patterns, dim=0)
@@ -292,9 +281,7 @@ class _ICaRLPlugin(SupervisedPlugin):
                 i += 1
 
             pick = (order > 0) * (order < nb_protos_cl + 1) * 1.0
-            self.x_memory.append(
-                class_patterns_tensor[torch.where(pick == 1)[0]]
-            )
+            self.x_memory.append(class_patterns_tensor[torch.where(pick == 1)[0]])
             self.y_memory.append(
                 [new_classes[iter_dico]] * len(torch.where(pick == 1)[0])
             )
@@ -306,16 +293,12 @@ class _ICaRLPlugin(SupervisedPlugin):
         nb_cl = strategy.experience.benchmark.n_classes_per_exp
 
         if self.fixed_memory:
-            nb_protos_cl = int(
-                ceil(self.memory_size / len(self.observed_classes))
-            )
+            nb_protos_cl = int(ceil(self.memory_size / len(self.observed_classes)))
         else:
             nb_protos_cl = self.memory_size
 
         for i in range(len(self.x_memory) - nb_cl[tid]):
             pick = (self.order[i] < nb_protos_cl + 1) * 1.0
             self.x_memory[i] = self.x_memory[i][torch.where(pick == 1)[0]]
-            self.y_memory[i] = self.y_memory[i][
-                : len(torch.where(pick == 1)[0])
-            ]
+            self.y_memory[i] = self.y_memory[i][: len(torch.where(pick == 1)[0])]
             self.order[i] = self.order[i][torch.where(pick == 1)[0]]

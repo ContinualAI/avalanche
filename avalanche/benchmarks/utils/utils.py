@@ -48,13 +48,11 @@ from avalanche.benchmarks.utils.transform_groups import (
     TransformGroupDef,
     TransformGroups,
     XTransform,
-    YTransform
+    YTransform,
 )
 
 if TYPE_CHECKING:
-    from avalanche.benchmarks.utils.classification_dataset import (
-        ClassificationDataset
-    )
+    from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
@@ -97,9 +95,7 @@ def _indexes_grouped_by_classes(
     # This means that, if sort_classes is True, the next for statement
     # will initialize "result_per_class" in sorted order which in turn means
     # that patterns will be ordered by ascending class ID.
-    classes = torch.unique(
-        torch.as_tensor(targets), sorted=sort_classes
-    ).tolist()
+    classes = torch.unique(torch.as_tensor(targets), sorted=sort_classes).tolist()
 
     for class_id in classes:
         result_per_class[class_id] = []
@@ -188,10 +184,8 @@ def as_avalanche_dataset(
 
 def as_classification_dataset(
     dataset: ISupportedClassificationDataset[T_co],
-) -> 'ClassificationDataset':
-    from avalanche.benchmarks.utils.classification_dataset import (
-        ClassificationDataset
-    )
+) -> "ClassificationDataset":
+    from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 
     if isinstance(dataset, ClassificationDataset):
         return dataset
@@ -224,8 +218,8 @@ def concat_datasets(datasets):
 
 
 def find_common_transforms_group(
-        datasets: Iterable[Any], 
-        default_group: str = "train") -> str:
+    datasets: Iterable[Any], default_group: str = "train"
+) -> str:
     """
     Utility used to find the common transformations group across multiple
     datasets.
@@ -245,10 +239,7 @@ def find_common_transforms_group(
             if uniform_group is None:
                 uniform_group = d_set._flat_data._transform_groups.current_group
             else:
-                if (
-                    uniform_group
-                    != d_set._flat_data._transform_groups.current_group
-                ):
+                if uniform_group != d_set._flat_data._transform_groups.current_group:
                     uniform_group = None
                     break
 
@@ -260,14 +251,14 @@ def find_common_transforms_group(
     return initial_transform_group
 
 
-Y = TypeVar('Y')
-T = TypeVar('T')
+Y = TypeVar("Y")
+T = TypeVar("T")
 
 
 def _traverse_supported_dataset(
     dataset: Y,
     values_selector: Callable[[Y, Optional[List[int]]], Optional[Sequence[T]]],
-    indices: Optional[List[int]] = None
+    indices: Optional[List[int]] = None,
 ) -> Sequence[T]:
     """
     Traverse the given dataset by gathering required info.
@@ -275,7 +266,7 @@ def _traverse_supported_dataset(
     The given dataset is traversed by covering all sub-datasets
     contained PyTorch :class:`Subset` and :class`ConcatDataset`.
     Beware that instances of :class:`AvalancheDataset` will not
-    be traversed as those objects already have the proper data 
+    be traversed as those objects already have the proper data
     attribute fields populated with data from leaf datasets.
 
     For each dataset, the `values_selector` will be called to gather
@@ -284,7 +275,7 @@ def _traverse_supported_dataset(
 
     :param dataset: The dataset to traverse.
     :param values_selector: A function that, given the dataset
-        and the indices to consider (which may be None if the entire 
+        and the indices to consider (which may be None if the entire
         dataset must be considered), returns a list of selected values.
     :returns: The list of selected values.
     """
@@ -301,11 +292,9 @@ def _traverse_supported_dataset(
             indices = [dataset.indices[x] for x in range(len(dataset))]
         else:
             indices = [dataset.indices[x] for x in indices]
-        
+
         return list(
-            _traverse_supported_dataset(
-                dataset.dataset, values_selector, indices
-            )
+            _traverse_supported_dataset(dataset.dataset, values_selector, indices)
         )
 
     if isinstance(dataset, ConcatDataset):
@@ -313,9 +302,7 @@ def _traverse_supported_dataset(
         if indices is None:
             for c_dataset in dataset.datasets:
                 result += list(
-                    _traverse_supported_dataset(
-                        c_dataset, values_selector, indices
-                    )
+                    _traverse_supported_dataset(c_dataset, values_selector, indices)
                 )
             return result
 
@@ -361,8 +348,9 @@ def _traverse_supported_dataset(
     raise ValueError("Error: can't find the needed data in the given dataset")
 
 
-def _init_task_labels(dataset, task_labels, check_shape=True) -> \
-        Optional[DataAttribute[int]]:
+def _init_task_labels(
+    dataset, task_labels, check_shape=True
+) -> Optional[DataAttribute[int]]:
     """
     Initializes the task label list (one for each pattern in the dataset).
 
@@ -370,13 +358,13 @@ def _init_task_labels(dataset, task_labels, check_shape=True) -> \
     Otherwisem the elements will be retrieved from the dataset itself by
     traversing it and looking at the `targets_task_labels` field.
 
-    :param dataset: The dataset for which the task labels list must be 
+    :param dataset: The dataset for which the task labels list must be
         initialized. Ignored if `task_labels` is passed, but it may still be
         used if `check_shape` is true.
     :param task_labels: The task labels to use. May be None, in which case
         the labels will be retrieved from the dataset.
     :param check_shape: If True, will check if the length of the task labels
-        list matches the dataset size. Ignored if the labels are retrieved 
+        list matches the dataset size. Ignored if the labels are retrieved
         from the dataset.
     :returns: A data attribute containing the task labels. May be None to
         signal that the dataset's `targets_task_labels` field should be used
@@ -394,9 +382,7 @@ def _init_task_labels(dataset, task_labels, check_shape=True) -> \
             )
         tls = SubSequence(task_labels, converter=int)
     else:
-        task_labels = _traverse_supported_dataset(
-            dataset, _select_task_labels
-        )
+        task_labels = _traverse_supported_dataset(dataset, _select_task_labels)
 
         if task_labels is None:
             tls = None
@@ -408,8 +394,9 @@ def _init_task_labels(dataset, task_labels, check_shape=True) -> \
     return DataAttribute(tls, "targets_task_labels", use_in_getitem=True)
 
 
-def _select_task_labels(dataset: Any, indices: Optional[List[int]]) -> \
-        Optional[Sequence[SupportsInt]]:
+def _select_task_labels(
+    dataset: Any, indices: Optional[List[int]]
+) -> Optional[Sequence[SupportsInt]]:
     """
     Selector function to be passed to :func:`_traverse_supported_dataset`
     to obtain the `targets_task_labels` for the given dataset.
@@ -454,14 +441,14 @@ def _init_transform_groups(
     passing a dictionary of groups (`transform_groups`).
 
     :param transform_groups: The transform groups to use as a dictionary
-        (group_name -> group). Can be None. Mutually exclusive with 
+        (group_name -> group). Can be None. Mutually exclusive with
         `targets` and `target_transform`
     :param transform: The transformation for the X value. Can be None.
     :param target_transform: The transformation for the Y value. Can be None.
     :param initial_transform_group: The name of the initial group.
         If None, 'train' will be used.
     :param dataset: The avalanche dataset, used only to obtain the name of
-        the initial transformations groups if `initial_transform_group` is 
+        the initial transformations groups if `initial_transform_group` is
         None.
     :returns: a :class:`TransformGroups` instance if any transformation
         was passed, else None.
@@ -501,9 +488,7 @@ def _init_transform_groups(
                 current_group=initial_transform_group,
             )
     else:
-        tgs = TransformGroups(
-            transform_groups, current_group=initial_transform_group
-        )
+        tgs = TransformGroups(transform_groups, current_group=initial_transform_group)
     return tgs
 
 
@@ -528,11 +513,8 @@ def _check_groups_dict_format(groups_dict):
 
 
 def _split_user_def_task_label(
-    datasets,
-    task_labels: Optional[Union[int, 
-                                Sequence[int],
-                                Sequence[Sequence[int]]]]) -> \
-        List[Optional[Union[int, Sequence[int]]]]:
+    datasets, task_labels: Optional[Union[int, Sequence[int], Sequence[Sequence[int]]]]
+) -> List[Optional[Union[int, Sequence[int]]]]:
     """
     Given a datasets list and the user-defined list of task labels,
     returns the task labels list of each dataset.
@@ -541,15 +523,15 @@ def _split_user_def_task_label(
     in which the user can define the task labels:
     - As a single task label for all exemplars of all datasets
     - A single list of length equal to the sum of the lengths of all datasets
-    - A list containing, for each dataset, one element between: 
+    - A list containing, for each dataset, one element between:
         - a list, defining the task labels of each exemplar of a that dataset
         - an int, defining the task label of all exemplars of a that dataset
-    
+
     :param datasets: The list of datasets.
     :param task_labels: The user-defined task labels. Can be None, in which
         case a list of None will be returned.
-    :returns: A list containing as many elements as the input `datasets`. 
-        Each element is either a list of task labels or None. If None 
+    :returns: A list containing as many elements as the input `datasets`.
+        Each element is either a list of task labels or None. If None
         (because `task_labels` is None), this means that the task labels
         should be retrieved by traversing each dataset.
     """
@@ -572,9 +554,7 @@ def _split_user_def_task_label(
             # One sequence per dataset
             dataset_t_label = task_labels[dd_idx]
         else:
-            raise ValueError(
-                'The task_labels parameter has an invalid format.'
-            )
+            raise ValueError("The task_labels parameter has an invalid format.")
         t_labels.append(dataset_t_label)
 
         idx_start = end_idx
@@ -582,10 +562,10 @@ def _split_user_def_task_label(
 
 
 def _split_user_def_targets(
-        datasets,
-        targets: Optional[Union[Sequence[T], Sequence[Sequence[T]]]],
-        single_element_checker: Callable[[Any], bool]) -> \
-            List[Optional[Sequence[T]]]:
+    datasets,
+    targets: Optional[Union[Sequence[T], Sequence[Sequence[T]]]],
+    single_element_checker: Callable[[Any], bool],
+) -> List[Optional[Sequence[T]]]:
     """
     Given a datasets list and the user-defined list of targets,
     returns the targets list of each dataset.
@@ -593,14 +573,14 @@ def _split_user_def_targets(
     This internal utility is mainly used to manage the different ways
     in which the user can define the targets:
     - A single list of length equal to the sum of the lengths of all datasets
-    - A list containing, for each dataset, a list, defining the targets 
+    - A list containing, for each dataset, a list, defining the targets
         of each exemplar of a that dataset
-    
+
     :param datasets: The list of datasets.
     :param targets: The user-defined targets. Can be None, in which
         case a list of None will be returned.
-    :returns: A list containing as many elements as the input `datasets`. 
-        Each element is either a list of targets or None. If None 
+    :returns: A list containing as many elements as the input `datasets`.
+        Each element is either a list of targets or None. If None
         (because `targets` is None), this means that the targets
         should be retrieved by traversing each dataset.
     """
@@ -620,9 +600,7 @@ def _split_user_def_targets(
             # One sequence per dataset
             dataset_t_label = targets[dd_idx]  # type: ignore
         else:
-            raise ValueError(
-                'The targets parameter has an invalid format.'
-            )
+            raise ValueError("The targets parameter has an invalid format.")
         t_labels.append(dataset_t_label)
 
         idx_start = end_idx
@@ -661,9 +639,7 @@ class TaskSet(Mapping[int, TAvalancheDataset], Generic[TAvalancheDataset]):
     def __getitem__(self, task_label: int):
         t_labels = self._get_task_labels_field()
         tl_idx = t_labels.val_to_idx[task_label]
-        return self.data.subset(
-            tl_idx
-        )
+        return self.data.subset(tl_idx)
 
     def __len__(self) -> int:
         t_labels = self._get_task_labels_field()
@@ -680,5 +656,5 @@ __all__ = [
     "as_classification_dataset",
     "concat_datasets",
     "find_common_transforms_group",
-    "TaskSet"
+    "TaskSet",
 ]

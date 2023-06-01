@@ -37,9 +37,7 @@ from avalanche.training.supervised import Naive
 def main(args):
     # Device config
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
 
     # Intialize the model, stream and training strategy
@@ -60,9 +58,7 @@ def main(args):
     criterion = CrossEntropyLoss()
 
     logger = EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=False, epoch=False, experience=True, stream=True
-        ),
+        accuracy_metrics(minibatch=False, epoch=False, experience=True, stream=True),
         loggers=[InteractiveLogger()],
     )
 
@@ -124,9 +120,7 @@ def main(args):
         res = cl_strategy.eval([v_stream])
 
         acc_last_stream = transfer_mat[-1][-1]
-        acc_last_only = res[
-            "Top1_Acc_Exp/eval_phase/test_stream/" "Task005/Exp005"
-        ]
+        acc_last_only = res["Top1_Acc_Exp/eval_phase/test_stream/" "Task005/Exp005"]
         transfer_value = acc_last_stream - acc_last_only
 
         print(
@@ -134,8 +128,7 @@ def main(args):
             f"stream: {acc_last_stream}"
         )
         print(
-            f"Accuracy on probe task after trained "
-            f"independently: {acc_last_only}"
+            f"Accuracy on probe task after trained " f"independently: {acc_last_only}"
         )
         print(f"T({args.stream})={transfer_value}")
 
@@ -164,8 +157,7 @@ if __name__ == "__main__":
         "--max-epochs",
         type=int,
         default=200,
-        help="The maximum number of training epochs for each "
-        "task. Default to 200.",
+        help="The maximum number of training epochs for each " "task. Default to 200.",
     )
     parser.add_argument(
         "--cuda",

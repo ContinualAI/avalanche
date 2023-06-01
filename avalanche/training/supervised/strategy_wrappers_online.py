@@ -23,10 +23,12 @@ from avalanche.training.templates import (
 from avalanche._annotations import deprecated
 
 
-@deprecated(0.5, 
-            "Online strategies are not differentiated"
-            " from normal strategies anymore."
-            "Please use Naive strategy instead")
+@deprecated(
+    0.5,
+    "Online strategies are not differentiated"
+    " from normal strategies anymore."
+    "Please use Naive strategy instead",
+)
 class OnlineNaive(SupervisedTemplate):
     """Online naive finetuning.
 
@@ -50,8 +52,7 @@ class OnlineNaive(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[BasePlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         **kwargs

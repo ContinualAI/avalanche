@@ -103,20 +103,19 @@ class AvalancheDataset(IDataset[T_co]):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
-        if isinstance(datasets, TorchDataset) or isinstance(
-            datasets, AvalancheDataset
-        ):
+        if isinstance(datasets, TorchDataset) or isinstance(datasets, AvalancheDataset):
             warnings.warn(
                 "AvalancheDataset constructor has been changed. "
                 "Please check the documentation for the correct usage. You can"
                 " use `avalanche.benchmarks.utils.make_classification_dataset "
                 "if you need the old behavior.",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
 
-        if issubclass(type(datasets), TorchDataset) or  \
-                issubclass(type(datasets), AvalancheDataset):
+        if issubclass(type(datasets), TorchDataset) or issubclass(
+            type(datasets), AvalancheDataset
+        ):
             datasets = [datasets]  # type: ignore
 
         # NOTES on implementation:
@@ -135,9 +134,11 @@ class AvalancheDataset(IDataset[T_co]):
                 else:
                     flat_datas.append(d)
         self._flat_data: _FlatDataWithTransform[T_co] = _FlatDataWithTransform(
-            flat_datas, indices=indices,
+            flat_datas,
+            indices=indices,
             transform_groups=transform_groups,
-            frozen_transform_groups=frozen_transform_groups)
+            frozen_transform_groups=frozen_transform_groups,
+        )
         self.collate_fn = collate_fn
 
         ####################################
@@ -169,14 +170,13 @@ class AvalancheDataset(IDataset[T_co]):
 
         self._data_attributes: Dict[str, DataAttribute] = OrderedDict()
         first_dataset = datasets[0] if len(datasets) > 0 else None
-        if isinstance(
-            first_dataset, AvalancheDataset
-        ):
+        if isinstance(first_dataset, AvalancheDataset):
             for attr in first_dataset._data_attributes.values():
                 if attr.name in new_data_attributes:
                     # Keep overridden attributes in their previous position
-                    self._data_attributes[attr.name] = \
-                        new_data_attributes.pop(attr.name)
+                    self._data_attributes[attr.name] = new_data_attributes.pop(
+                        attr.name
+                    )
                     continue
 
                 acat = attr
@@ -212,9 +212,7 @@ class AvalancheDataset(IDataset[T_co]):
 
         # set attributes dynamically
         for el in self._data_attributes.values():
-            assert len(el) == len(
-                self
-            ), f"BUG: Wrong size for attribute {el.name}"
+            assert len(el) == len(self), f"BUG: Wrong size for attribute {el.name}"
 
             is_property = False
             if hasattr(self, el.name):
@@ -222,8 +220,7 @@ class AvalancheDataset(IDataset[T_co]):
                 # Do not raise an error if a property.
                 # Any check related to the property will be done
                 # in the property setter method.
-                if not isinstance(getattr(type(self), el.name, None), 
-                                  property):
+                if not isinstance(getattr(type(self), el.name, None), property):
                     raise ValueError(
                         f"Trying to add DataAttribute `{el.name}` to "
                         f"AvalancheDataset but the attribute name is "
@@ -235,12 +232,12 @@ class AvalancheDataset(IDataset[T_co]):
     def __len__(self) -> int:
         return len(self._flat_data)
 
-    def __add__(self: TAvalancheDataset, other: TAvalancheDataset) -> \
-            TAvalancheDataset:
+    def __add__(self: TAvalancheDataset, other: TAvalancheDataset) -> TAvalancheDataset:
         return self.concat(other)
 
-    def __radd__(self: TAvalancheDataset, other: TAvalancheDataset) -> \
-            TAvalancheDataset:
+    def __radd__(
+        self: TAvalancheDataset, other: TAvalancheDataset
+    ) -> TAvalancheDataset:
         return other.concat(self)
 
     @property
@@ -248,8 +245,7 @@ class AvalancheDataset(IDataset[T_co]):
         """Only for backward compatibility of old unit tests. Do not use."""
         return self._flat_data._datasets
 
-    def concat(self: TAvalancheDataset, other: TAvalancheDataset) \
-            -> TAvalancheDataset:
+    def concat(self: TAvalancheDataset, other: TAvalancheDataset) -> TAvalancheDataset:
         """Concatenate this dataset with other.
 
         :param other: Other dataset to concatenate.
@@ -257,8 +253,7 @@ class AvalancheDataset(IDataset[T_co]):
         """
         return self.__class__([self, other])
 
-    def subset(self: TAvalancheDataset, indices: Sequence[int]) \
-            -> TAvalancheDataset:
+    def subset(self: TAvalancheDataset, indices: Sequence[int]) -> TAvalancheDataset:
         """Subset this dataset.
 
         :param indices: The indices to keep.
@@ -273,11 +268,10 @@ class AvalancheDataset(IDataset[T_co]):
             "methods such as `replace_current_transform_group`. "
             "See the documentation for more info."
         )
-    
+
     def update_data_attribute(
-            self: TAvalancheDataset,
-            name: str,
-            new_value) -> TAvalancheDataset:
+        self: TAvalancheDataset, name: str, new_value
+    ) -> TAvalancheDataset:
         """
         Return a new dataset with the added or replaced data attribute.
 
@@ -293,12 +287,12 @@ class AvalancheDataset(IDataset[T_co]):
             containing as many elements as the datasets.
         :returns: A copy of this dataset with the given data attribute set.
         """
-        assert len(new_value) == len(self), \
-            f'Size mismatch when updating data attribute {name}'
+        assert len(new_value) == len(
+            self
+        ), f"Size mismatch when updating data attribute {name}"
 
         datacopy = self._shallow_clone_dataset()
-        datacopy._data_attributes = copy.copy(
-            datacopy._data_attributes)
+        datacopy._data_attributes = copy.copy(datacopy._data_attributes)
 
         if isinstance(new_value, DataAttribute):
             assert name == new_value.name
@@ -308,44 +302,39 @@ class AvalancheDataset(IDataset[T_co]):
             prev_attr = datacopy._data_attributes.get(name, None)
             if prev_attr is not None:
                 use_in_getitem = prev_attr.use_in_getitem
-            
+
             datacopy._data_attributes[name] = DataAttribute(
-                new_value,
-                name=name,
-                use_in_getitem=use_in_getitem)
-        
+                new_value, name=name, use_in_getitem=use_in_getitem
+            )
+
         if not hasattr(datacopy, name):
             # Creates the field if it does not exist
             setattr(datacopy, name, datacopy._data_attributes[name])
-        
+
         return datacopy
 
     def __eq__(self, other: object):
-        for required_attr in ['_flat_data',
-                              '_data_attributes',
-                              'collate_fn']:
+        for required_attr in ["_flat_data", "_data_attributes", "collate_fn"]:
             if not hasattr(other, required_attr):
                 return False
 
         return (
             other._flat_data == self._flat_data
-            and
-            self._data_attributes == other._data_attributes  # type: ignore
-            and
-            self.collate_fn == other.collate_fn  # type: ignore
+            and self._data_attributes == other._data_attributes  # type: ignore
+            and self.collate_fn == other.collate_fn  # type: ignore
         )
-    
+
     @overload
     def __getitem__(self, exp_id: int) -> T_co:
         ...
-    
+
     @overload
-    def __getitem__(self: TAvalancheDataset, exp_id: slice) -> \
-            TAvalancheDataset:
+    def __getitem__(self: TAvalancheDataset, exp_id: slice) -> TAvalancheDataset:
         ...
 
-    def __getitem__(self: TAvalancheDataset, idx: Union[int, slice]) -> \
-            Union[T_co, TAvalancheDataset]:
+    def __getitem__(
+        self: TAvalancheDataset, idx: Union[int, slice]
+    ) -> Union[T_co, TAvalancheDataset]:
         elem = self._flat_data[idx]
         for da in self._data_attributes.values():
             if da.use_in_getitem:
@@ -383,9 +372,7 @@ class AvalancheDataset(IDataset[T_co]):
         """
         return self.with_transforms("eval")
 
-    def with_transforms(
-        self: TAvalancheDataset, group_name: str
-    ) -> TAvalancheDataset:
+    def with_transforms(self: TAvalancheDataset, group_name: str) -> TAvalancheDataset:
         """
         Returns a new dataset with the transformations of a different group
         loaded.
@@ -443,6 +430,7 @@ class _FlatDataWithTransform(FlatData[T_co]):
 
     Do not use outside of this file.
     """
+
     def __init__(
         self,
         datasets: Sequence[IDataset[T_co]],
@@ -451,10 +439,7 @@ class _FlatDataWithTransform(FlatData[T_co]):
         transform_groups: Optional[TransformGroups] = None,
         frozen_transform_groups: Optional[TransformGroups] = None,
     ):
-        can_flatten = (
-            (transform_groups is None)
-            and (frozen_transform_groups is None)
-        )
+        can_flatten = (transform_groups is None) and (frozen_transform_groups is None)
         super().__init__(datasets, indices=indices, can_flatten=can_flatten)
         if isinstance(transform_groups, dict):
             transform_groups = TransformGroups(transform_groups)
@@ -495,25 +480,23 @@ class _FlatDataWithTransform(FlatData[T_co]):
         self._transform_groups.current_group = cgroup
 
     def __eq__(self, other):
-        for required_attr in ['_datasets',
-                              '_transform_groups',
-                              '_frozen_transform_groups']:
+        for required_attr in [
+            "_datasets",
+            "_transform_groups",
+            "_frozen_transform_groups",
+        ]:
             if not hasattr(other, required_attr):
                 return False
 
-        eq_datasets = \
-            len(self._datasets) == len(other._datasets)  # type: ignore
+        eq_datasets = len(self._datasets) == len(other._datasets)  # type: ignore
         eq_datasets = eq_datasets and all(
-            d1 == d2 for d1, d2 in
-            zip(self._datasets, other._datasets)  # type: ignore
+            d1 == d2 for d1, d2 in zip(self._datasets, other._datasets)  # type: ignore
         )
         ftg = other._frozen_transform_groups  # type: ignore
         return (
             eq_datasets
-            and
-            self._transform_groups == other._transform_groups  # type: ignore
-            and
-            self._frozen_transform_groups == ftg  # type: ignore
+            and self._transform_groups == other._transform_groups  # type: ignore
+            and self._frozen_transform_groups == ftg  # type: ignore
         )
 
     def _getitem_recursive_call(self, idx, group_name) -> T_co:
@@ -531,15 +514,14 @@ class _FlatDataWithTransform(FlatData[T_co]):
             element = dd[idx]
 
         if self._frozen_transform_groups is not None:
-            element = self._frozen_transform_groups(
-                element, group_name=group_name
-            )
+            element = self._frozen_transform_groups(element, group_name=group_name)
         if self._transform_groups is not None:
             element = self._transform_groups(element, group_name=group_name)
         return element
 
-    def __getitem__(self: TDataWTransform, idx: Union[int, slice]) -> \
-            Union[T_co, TDataWTransform]:
+    def __getitem__(
+        self: TDataWTransform, idx: Union[int, slice]
+    ) -> Union[T_co, TDataWTransform]:
         if isinstance(idx, (int, np.integer)):
             elem = self._getitem_recursive_call(
                 idx, self._transform_groups.current_group
@@ -548,9 +530,7 @@ class _FlatDataWithTransform(FlatData[T_co]):
         else:
             return super().__getitem__(idx)
 
-    def with_transforms(
-        self: TDataWTransform, group_name: str
-    ) -> TDataWTransform:
+    def with_transforms(self: TDataWTransform, group_name: str) -> TDataWTransform:
         """
         Returns a new dataset with the transformations of a different group
         loaded.
@@ -615,9 +595,7 @@ class _FlatDataWithTransform(FlatData[T_co]):
         This is a shallow copy, i.e. the data attributes are not copied.
         """
         dataset_copy = copy.copy(self)
-        dataset_copy._transform_groups = copy.copy(
-            dataset_copy._transform_groups
-        )
+        dataset_copy._transform_groups = copy.copy(dataset_copy._transform_groups)
         dataset_copy._frozen_transform_groups = copy.copy(
             dataset_copy._frozen_transform_groups
         )

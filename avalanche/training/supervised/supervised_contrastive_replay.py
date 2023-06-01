@@ -31,21 +31,24 @@ class SCR(SupervisedTemplate):
     at the end of each experience (called review trick, but not mentioned
     in the paper). This implementation does not implement the review trick.
     """
-    def __init__(self,
-                 model: SCRModel,
-                 optimizer: Optimizer,
-                 augmentations=Compose([Lambda(lambda el: el)]),
-                 mem_size: int = 100,
-                 temperature: int = 0.1,
-                 train_mb_size: int = 1,
-                 batch_size_mem: int = 100,
-                 train_epochs: int = 1,
-                 eval_mb_size: Optional[int] = 1,
-                 device="cpu",
-                 plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
-                 evaluator=default_evaluator,
-                 eval_every=-1,
-                 peval_mode="epoch"):
+
+    def __init__(
+        self,
+        model: SCRModel,
+        optimizer: Optimizer,
+        augmentations=Compose([Lambda(lambda el: el)]),
+        mem_size: int = 100,
+        temperature: int = 0.1,
+        train_mb_size: int = 1,
+        batch_size_mem: int = 100,
+        train_epochs: int = 1,
+        eval_mb_size: Optional[int] = 1,
+        device="cpu",
+        plugins: Optional[Sequence["BaseSGDPlugin"]] = None,
+        evaluator=default_evaluator,
+        eval_every=-1,
+        peval_mode="epoch",
+    ):
         """
         :param model: an Avalanche model like the avalanche.models.SCRModel,
             where the train classifier uses a projection network (e.g., MLP)
@@ -85,13 +88,15 @@ class SCR(SupervisedTemplate):
         if not isinstance(model, SCRModel):
             raise ValueError(
                 "Supervised Contrastive Replay model "
-                "needs to be an instance of avalanche.models.SCRModel.")
+                "needs to be an instance of avalanche.models.SCRModel."
+            )
 
         self.replay_plugin = ReplayPlugin(
             mem_size,
             batch_size=train_mb_size,
             batch_size_mem=batch_size_mem,
-            storage_policy=ClassBalancedBuffer(max_size=mem_size))
+            storage_policy=ClassBalancedBuffer(max_size=mem_size),
+        )
 
         self.augmentations = augmentations
         self.temperature = temperature
@@ -116,7 +121,8 @@ class SCR(SupervisedTemplate):
             plugins,
             evaluator,
             eval_every,
-            peval_mode)
+            peval_mode,
+        )
 
     def criterion(self):
         if self.is_training:
@@ -146,9 +152,7 @@ class SCR(SupervisedTemplate):
         original_examples = self.mb_output[:original_batch_size]
         augmented_examples = self.mb_output[original_batch_size:]
         # (original_batch_size, 2, output_size)
-        self.mb_output = torch.stack(
-            [original_examples, augmented_examples],
-            dim=1)
+        self.mb_output = torch.stack([original_examples, augmented_examples], dim=1)
 
     def _after_training_exp(self, **kwargs):
         """Update NCM means"""
@@ -161,8 +165,9 @@ class SCR(SupervisedTemplate):
 
         # for each class
         for dataset in self.replay_plugin.storage_policy.buffer_datasets:
-            dl = DataLoader(dataset, shuffle=False,
-                            batch_size=self.eval_mb_size, drop_last=False)
+            dl = DataLoader(
+                dataset, shuffle=False, batch_size=self.eval_mb_size, drop_last=False
+            )
             num_els = 0
             # for each mini-batch in each class
             for x, y, _ in dl:
@@ -181,15 +186,16 @@ class SCR(SupervisedTemplate):
         # add new means to the eval classifier
         # in case there are new classes, extend the eval classifier means
         num_classes = max(class_means.keys()) + 1
-        hidden_size = class_means[num_classes-1].size(0)
+        hidden_size = class_means[num_classes - 1].size(0)
         if self.model.eval_classifier.class_means is None:
             # first time adding means
             means = torch.zeros(num_classes, hidden_size)
         elif num_classes > self.model.eval_classifier.class_means.size(1):
             # new classes discovered
             means = torch.zeros(num_classes, hidden_size)
-            means[:self.model.eval_classifier.class_means.size(1), :] = \
+            means[: self.model.eval_classifier.class_means.size(1), :] = (
                 self.model.eval_classifier.class_means.clone().cpu().T
+            )
         else:
             # no new classes
             means = self.model.eval_classifier.class_means.cpu().T
@@ -198,7 +204,7 @@ class SCR(SupervisedTemplate):
             if (means[k] == 0).all():
                 means[k] = v.clone()
             else:
-                means[k] = (means[k] + v) / 2.
+                means[k] = (means[k] + v) / 2.0
 
         # (H, n classes)
         self.model.eval_classifier.class_means = means.to(self.device).T

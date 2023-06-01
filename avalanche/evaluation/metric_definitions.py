@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from ..training.templates import SupervisedTemplate
 
 TResult_co = TypeVar("TResult_co", covariant=True)
-TMetric = TypeVar('TMetric', bound='Metric')
+TMetric = TypeVar("TMetric", bound="Metric")
 
 
 class Metric(Protocol[TResult_co]):
@@ -110,9 +110,7 @@ class PluginMetric(Metric[TResult_co], ABC):
     def before_training(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_training_exp(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def before_training_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
     def before_train_dataset_adaptation(
@@ -125,9 +123,7 @@ class PluginMetric(Metric[TResult_co], ABC):
     ) -> "MetricResult":
         pass
 
-    def before_training_epoch(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def before_training_epoch(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
     def before_training_iteration(
@@ -158,14 +154,10 @@ class PluginMetric(Metric[TResult_co], ABC):
     def after_update(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_training_epoch(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def after_training_epoch(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_training_exp(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def after_training_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
     def after_training(self, strategy: "SupervisedTemplate") -> "MetricResult":
@@ -193,30 +185,20 @@ class PluginMetric(Metric[TResult_co], ABC):
     def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_eval_iteration(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def before_eval_iteration(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def before_eval_forward(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def before_eval_forward(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_eval_forward(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def after_eval_forward(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
-    def after_eval_iteration(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def after_eval_iteration(self, strategy: "SupervisedTemplate") -> "MetricResult":
         pass
 
 
-class GenericPluginMetric(
-        PluginMetric[TResult_co],
-        Generic[TResult_co, TMetric]):
+class GenericPluginMetric(PluginMetric[TResult_co], Generic[TResult_co, TMetric]):
     """
     This class provides a generic implementation of a Plugin Metric.
     The user can subclass this class to easily implement custom plugin
@@ -225,46 +207,28 @@ class GenericPluginMetric(
 
     @overload
     def __init__(
-        self, 
-        metric: TMetric, 
+        self,
+        metric: TMetric,
         reset_at: Literal[
-            "iteration",
-            "epoch",
-            "experience",
-            "stream",
-            "never"] = "experience",
-        emit_at: Literal[
-            "iteration",
-            "epoch",
-            "experience", 
-            "stream"] = "experience",
-        mode: Literal["train"] = "train"
+            "iteration", "epoch", "experience", "stream", "never"
+        ] = "experience",
+        emit_at: Literal["iteration", "epoch", "experience", "stream"] = "experience",
+        mode: Literal["train"] = "train",
     ):
         ...
 
     @overload
     def __init__(
-        self, 
-        metric: TMetric, 
-        reset_at: Literal[
-            "iteration",
-            "experience",
-            "stream",
-            "never"] = "experience",
-        emit_at: Literal[
-            "iteration",
-            "experience",
-            "stream"] = "experience",
-        mode: Literal["eval"] = "eval"
+        self,
+        metric: TMetric,
+        reset_at: Literal["iteration", "experience", "stream", "never"] = "experience",
+        emit_at: Literal["iteration", "experience", "stream"] = "experience",
+        mode: Literal["eval"] = "eval",
     ):
         ...
 
     def __init__(
-        self, 
-        metric: TMetric, 
-        reset_at="experience",
-        emit_at="experience",
-        mode="eval"
+        self, metric: TMetric, reset_at="experience", emit_at="experience", mode="eval"
     ):
         super(GenericPluginMetric, self).__init__()
         assert mode in {"train", "eval"}
@@ -305,17 +269,13 @@ class GenericPluginMetric(
                 metric_name = get_metric_name(
                     self, strategy, add_experience=add_exp, add_task=k
                 )
-                metrics.append(
-                    MetricValue(self, metric_name, v, plot_x_position)
-                )
+                metrics.append(MetricValue(self, metric_name, v, plot_x_position))
             return metrics
         else:
             metric_name = get_metric_name(
                 self, strategy, add_experience=add_exp, add_task=True
             )
-            return [
-                MetricValue(self, metric_name, metric_value, plot_x_position)
-            ]
+            return [MetricValue(self, metric_name, metric_value, plot_x_position)]
 
     def before_training(self, strategy: "SupervisedTemplate"):
         super().before_training(strategy)
@@ -493,24 +453,19 @@ class _ExtendedGenericPluginMetric(
         for m_value in emitted_values:
             if not isinstance(m_value, _ExtendedPluginMetricValue):
                 raise RuntimeError(
-                    "Emitted a value that is not of type "
-                    "ExtendedPluginMetricValue"
+                    "Emitted a value that is not of type " "ExtendedPluginMetricValue"
                 )
 
             m_name = self.metric_value_name(m_value)
             x_pos = m_value.plot_position
             if x_pos is None:
                 x_pos = default_plot_x_position
-            metrics.append(
-                MetricValue(self, m_name, m_value.metric_value, x_pos)
-            )
+            metrics.append(MetricValue(self, m_name, m_value.metric_value, x_pos))
 
         return metrics
 
     def metric_value_name(self, m_value: _ExtendedPluginMetricValue) -> str:
-        return generic_get_metric_name(
-            default_metric_name_template, vars(m_value)
-        )
+        return generic_get_metric_name(default_metric_name_template, vars(m_value))
 
 
 __all__ = [

@@ -19,17 +19,17 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
     ClassificationExperience,
 )
 from avalanche.benchmarks.utils import classification_subset
-from avalanche.benchmarks.utils.classification_dataset import \
-    ClassificationDataset, SupervisedClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+    SupervisedClassificationDataset,
+)
 
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
 class NCScenario(
-    ClassificationScenario[
-        'NCStream',
-        'NCExperience',
-        SupervisedClassificationDataset]):
+    ClassificationScenario["NCStream", "NCExperience", SupervisedClassificationDataset]
+):
 
     """
     This class defines a "New Classes" scenario. Once created, an instance
@@ -126,11 +126,8 @@ class NCScenario(
 
         train_dataset = SupervisedClassificationDataset(train_dataset)
         test_dataset = SupervisedClassificationDataset(test_dataset)
-        
-        if (
-            class_ids_from_zero_from_first_exp
-            and class_ids_from_zero_in_each_exp
-        ):
+
+        if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
             raise ValueError(
                 "Invalid mutually exclusive options "
                 "class_ids_from_zero_from_first_exp and "
@@ -185,9 +182,7 @@ class NCScenario(
         )
         """ If True the class IDs have been remapped to start from zero. """
 
-        self.class_ids_from_zero_in_each_exp: bool = (
-            class_ids_from_zero_in_each_exp
-        )
+        self.class_ids_from_zero_in_each_exp: bool = class_ids_from_zero_in_each_exp
         """ If True the class IDs have been remapped to start from zero in 
         each experience """
 
@@ -207,9 +202,7 @@ class NCScenario(
         elif fixed_class_order is not None:
             # User defined class order -> just use it
             if len(
-                set(self.classes_order_original_ids).union(
-                    set(fixed_class_order)
-                )
+                set(self.classes_order_original_ids).union(set(fixed_class_order))
             ) != len(self.classes_order_original_ids):
                 raise ValueError("Invalid classes defined in fixed_class_order")
 
@@ -311,9 +304,7 @@ class NCScenario(
                     f"dataset ({self.n_classes}) cannot be divided by "
                     f"n_experiences ({n_experiences})"
                 )
-            self.n_classes_per_exp = [
-                self.n_classes // n_experiences
-            ] * n_experiences
+            self.n_classes_per_exp = [self.n_classes // n_experiences] * n_experiences
 
         # Before populating the classes_in_experience list,
         # define the remapped class IDs.
@@ -371,11 +362,7 @@ class NCScenario(
                 set(self.classes_order[classes_start_idx:classes_end_idx])
             )
             self.original_classes_in_exp.append(
-                set(
-                    self.classes_order_original_ids[
-                        classes_start_idx:classes_end_idx
-                    ]
-                )
+                set(self.classes_order_original_ids[classes_start_idx:classes_end_idx])
             )
 
         # Finally, create the experience -> patterns assignment.
@@ -386,9 +373,7 @@ class NCScenario(
 
         self._has_task_labels = task_labels
         if reproducibility_data is not None:
-            self._has_task_labels = bool(
-                reproducibility_data["has_task_labels"]
-            )
+            self._has_task_labels = bool(reproducibility_data["has_task_labels"])
 
         pattern_train_task_labels: Sequence[int]
         pattern_test_task_labels: Sequence[int]
@@ -475,10 +460,8 @@ class NCScenario(
                 test_task_labels.append(t_id)
             else:
                 test_task_labels.append(0)
-            
-            exp_task_labels = ConstantSequence(
-                test_task_labels[-1], len(test_dataset)
-            )
+
+            exp_task_labels = ConstantSequence(test_task_labels[-1], len(test_dataset))
             test_experiences.append(
                 classification_subset(
                     test_dataset, indices=exp_def, task_labels=exp_task_labels
@@ -491,7 +474,7 @@ class NCScenario(
                 "test": (test_experiences, test_task_labels, test_dataset),
             },
             stream_factory=NCStream,
-            experience_factory=NCExperience
+            experience_factory=NCExperience,
         )
 
     def get_reproducibility_data(self):
@@ -535,28 +518,27 @@ class NCScenario(
 
         return [
             item
-            for sublist in self.classes_in_experience["train"][
-                exp_start:exp_end
-            ]
+            for sublist in self.classes_in_experience["train"][exp_start:exp_end]
             for item in sublist
         ]
 
 
-class NCStream(ClassificationStream['NCExperience']):
+class NCStream(ClassificationStream["NCExperience"]):
     def __init__(
         self,
         name: str,
         benchmark: NCScenario,
         *,
         slice_ids: Optional[List[int]] = None,
-        set_stream_info: bool = True
+        set_stream_info: bool = True,
     ):
         self.benchmark: NCScenario = benchmark
         super().__init__(
             name=name,
             benchmark=benchmark,
             slice_ids=slice_ids,
-            set_stream_info=set_stream_info)
+            set_stream_info=set_stream_info,
+        )
 
 
 class NCExperience(ClassificationExperience[SupervisedClassificationDataset]):
@@ -566,11 +548,7 @@ class NCExperience(ClassificationExperience[SupervisedClassificationDataset]):
     stream from which this experience was taken.
     """
 
-    def __init__(
-        self,
-        origin_stream: NCStream,
-        current_experience: int
-    ):
+    def __init__(self, origin_stream: NCStream, current_experience: int):
         """
         Creates a ``NCExperience`` instance given the stream from this
         experience was taken and and the current experience ID.
@@ -579,7 +557,7 @@ class NCExperience(ClassificationExperience[SupervisedClassificationDataset]):
             obtained.
         :param current_experience: The current experience ID, as an integer.
         """
-        
+
         self._benchmark: NCScenario = origin_stream.benchmark
 
         super().__init__(origin_stream, current_experience)
@@ -587,9 +565,7 @@ class NCExperience(ClassificationExperience[SupervisedClassificationDataset]):
     @property  # type: ignore[override]
     def benchmark(self) -> NCScenario:
         bench = self._benchmark
-        NCExperience._check_unset_attribute(
-            'benchmark', bench
-        )   
+        NCExperience._check_unset_attribute("benchmark", bench)
         return bench
 
     @benchmark.setter
@@ -597,8 +573,4 @@ class NCExperience(ClassificationExperience[SupervisedClassificationDataset]):
         self._benchmark = bench
 
 
-__all__ = [
-    "NCScenario",
-    "NCStream",
-    "NCExperience"
-]
+__all__ = ["NCScenario", "NCStream", "NCExperience"]

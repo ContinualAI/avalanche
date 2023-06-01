@@ -10,8 +10,8 @@ from avalanche.models import MultiTaskModule, avalanche_forward
 
 
 def cross_entropy_with_oh_targets(outputs, targets, eps=1e-5):
-    """ Calculates cross-entropy with temperature scaling, 
-    targets can also be soft targets but they must sum to 1 """
+    """Calculates cross-entropy with temperature scaling,
+    targets can also be soft targets but they must sum to 1"""
     outputs = torch.nn.functional.softmax(outputs, dim=1)
     ce = -(targets * outputs.log()).sum(1)
     ce = ce.mean()
@@ -66,10 +66,10 @@ class LearningWithoutForgetting(RegularizationMethod):
         au = list(active_units)
 
         # some people use the crossentropy instead of the KL
-        # They are equivalent. We compute 
-        # kl_div(log_p_curr, p_prev) = p_prev * (log (p_prev / p_curr)) = 
+        # They are equivalent. We compute
+        # kl_div(log_p_curr, p_prev) = p_prev * (log (p_prev / p_curr)) =
         #   p_prev * log(p_prev) - p_prev * log(p_curr).
-        # Now, the first term is constant (we don't optimize the teacher), 
+        # Now, the first term is constant (we don't optimize the teacher),
         # so optimizing the crossentropy and kl-div are equivalent.
         log_p = torch.log_softmax(out[:, au] / self.temperature, dim=1)
         q = torch.softmax(prev_out[:, au] / self.temperature, dim=1)
@@ -146,7 +146,7 @@ class LearningWithoutForgetting(RegularizationMethod):
 class ACECriterion(RegularizationMethod):
     """
     Asymetric cross-entropy (ACE) Criterion used in
-    "New Insights on Reducing Abrupt Representation 
+    "New Insights on Reducing Abrupt Representation
     Change in Online Continual Learning"
     by Lucas Caccia et. al.
     https://openreview.net/forum?id=N8MaByOzUfb
@@ -161,7 +161,7 @@ class ACECriterion(RegularizationMethod):
         oh_target_in = F.one_hot(target_in, num_classes=out_in.shape[1])
         oh_target_in = oh_target_in[:, current_classes]
         loss_current = cross_entropy_with_oh_targets(
-                out_in[:, current_classes], oh_target_in
+            out_in[:, current_classes], oh_target_in
         )
         return (loss_buffer + loss_current) / 2
 

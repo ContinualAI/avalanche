@@ -39,9 +39,7 @@ from torch.optim import Adam
 def main(args):
     # --- CONFIG
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     n_batches = 5
     # ---------
@@ -84,9 +82,7 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
+        accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         forgetting_metrics(experience=True),
         loggers=[interactive_logger],
@@ -113,10 +109,12 @@ def main(args):
     # ocl_benchmark = OnlineCLScenario(batch_streams)
     for i, exp in enumerate(benchmark.train_stream):
         # Create online scenario from experience exp
-        ocl_benchmark = OnlineCLScenario(original_streams=batch_streams,
-                                         experiences=exp,
-                                         experience_size=10,
-                                         access_task_boundaries=True)
+        ocl_benchmark = OnlineCLScenario(
+            original_streams=batch_streams,
+            experiences=exp,
+            experience_size=10,
+            access_task_boundaries=True,
+        )
 
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.train_stream)

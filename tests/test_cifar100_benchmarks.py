@@ -36,7 +36,6 @@ def count_downloads_c100(*args, **kwargs):
 
 class CIFAR100BenchmarksTests(unittest.TestCase):
     def setUp(self):
-
         global CIFAR10_DOWNLOAD_METHOD, CIFAR100_DOWNLOAD_METHOD
         CIFAR10_DOWNLOAD_METHOD = cifar_download.get_cifar10_dataset
         CIFAR100_DOWNLOAD_METHOD = cifar_download.get_cifar100_dataset

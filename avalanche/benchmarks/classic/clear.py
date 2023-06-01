@@ -118,8 +118,7 @@ def CLEAR(
 
     if evaluation_protocol == "streaming":
         assert seed is None, (
-            "Seed for train/test split is not required "
-            "under streaming protocol"
+            "Seed for train/test split is not required " "under streaming protocol"
         )
         train_split = "all"
         test_split = "all"
@@ -300,7 +299,7 @@ if __name__ == "__main__":
             seed_list = [None]
         else:
             seed_list = SEED_LIST
-        
+
         for f in [None] + CLEAR_FEATURE_TYPES[data_name]:
             t = transform if f is None else None
             for seed in seed_list:

@@ -27,9 +27,7 @@ class IdentityShortcut(Module):
         return self.transform_function(x)
 
 
-def conv3x3(
-    in_planes: int, out_planes: int, stride: Union[int, Sequence[int]] = 1
-):
+def conv3x3(in_planes: int, out_planes: int, stride: Union[int, Sequence[int]] = 1):
     return Conv2d(
         in_planes,
         out_planes,

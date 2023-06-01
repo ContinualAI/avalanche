@@ -78,9 +78,7 @@ class CPUUsage(Metric[float]):
 
         last_time = getattr(self._process_handle, "_last_sys_cpu_times", None)
         utilization = self._process_handle.cpu_percent()
-        current_time = getattr(
-            self._process_handle, "_last_sys_cpu_times", None
-        )
+        current_time = getattr(self._process_handle, "_last_sys_cpu_times", None)
 
         if self._first_update:
             self._first_update = False
@@ -119,7 +117,6 @@ class CPUUsage(Metric[float]):
 
 class CPUPluginMetric(GenericPluginMetric[float, CPUUsage]):
     def __init__(self, reset_at, emit_at, mode):
-
         super(CPUPluginMetric, self).__init__(
             CPUUsage(), reset_at=reset_at, emit_at=emit_at, mode=mode
         )
@@ -270,12 +267,7 @@ class StreamCPUUsage(CPUPluginMetric):
 
 
 def cpu_usage_metrics(
-    *,
-    minibatch=False,
-    epoch=False,
-    epoch_running=False,
-    experience=False,
-    stream=False
+    *, minibatch=False, epoch=False, epoch_running=False, experience=False, stream=False
 ) -> List[CPUPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of

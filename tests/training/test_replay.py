@@ -41,9 +41,7 @@ class ReplayTest(unittest.TestCase):
     def _test_replay_balanced_memory(self, storage_policy, mem_size):
         benchmark = get_fast_benchmark(use_task_labels=True)
         model = SimpleMLP(input_size=6, hidden_size=10)
-        replayPlugin = ReplayPlugin(
-            mem_size=mem_size, storage_policy=storage_policy
-        )
+        replayPlugin = ReplayPlugin(mem_size=mem_size, storage_policy=storage_policy)
         cl_strategy = Naive(
             model,
             SGD(model.parameters(), lr=0.001, momentum=0.9, weight_decay=0.001),

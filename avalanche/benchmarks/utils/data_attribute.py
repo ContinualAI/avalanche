@@ -22,7 +22,7 @@ import torch
 from .dataset_definitions import IDataset
 from .flat_data import ConstantSequence, FlatData
 
-T_co = TypeVar('T_co', covariant=True)
+T_co = TypeVar("T_co", covariant=True)
 
 
 class DataAttribute(IDataset[T_co], Sequence[T_co]):
@@ -35,11 +35,7 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
     Data attributes can be efficiently concatenated and subsampled.
     """
 
-    def __init__(
-            self,
-            data: IDataset[T_co],
-            name: str,
-            use_in_getitem: bool = False):
+    def __init__(self, data: IDataset[T_co], name: str, use_in_getitem: bool = False):
         """Data Attribute.
 
         :param data: a sequence of values, one for each sample.
@@ -51,7 +47,7 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
         """
         assert name is not None
         assert data is not None
-        
+
         self.name: str = name
         self.use_in_getitem: bool = use_in_getitem
 
@@ -73,8 +69,7 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
     def __getitem__(self, item: slice) -> Sequence[T_co]:
         ...
 
-    def __getitem__(self, item: Union[int, slice]) -> \
-            Union[T_co, Sequence[T_co]]:
+    def __getitem__(self, item: Union[int, slice]) -> Union[T_co, Sequence[T_co]]:
         return self.data[item]
 
     def __len__(self):
@@ -124,7 +119,7 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
             self._val_to_idx = dict()
             if isinstance(self.data, ConstantSequence):
                 self._val_to_idx = {self.data[0]: range(len(self.data))}
-            else: 
+            else:
                 for i, x in enumerate(self.data):
                     if x not in self.val_to_idx:
                         self._val_to_idx[x] = []
@@ -151,9 +146,9 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
         :param other: the other `DataAttribute`
         :return: the new concatenated `DataAttribute`
         """
-        assert self.name == other.name, (
-            'Cannot concatenate DataAttributes with different names.'
-        )
+        assert (
+            self.name == other.name
+        ), "Cannot concatenate DataAttributes with different names."
         return DataAttribute(
             self.data.concat(other.data),
             self.name,
@@ -180,8 +175,4 @@ class TaskLabels(DataAttribute):
         super().__init__(task_labels, "task_labels", use_in_getitem=True)
 
 
-__all__ = [
-    "DataAttribute",
-    "TensorDataAttribute",
-    "TaskLabels"
-]
+__all__ = ["DataAttribute", "TensorDataAttribute", "TaskLabels"]

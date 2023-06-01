@@ -58,7 +58,8 @@ class PixelsPermutation(object):
             image_as_tensor = img
 
         image_as_tensor = image_as_tensor.view(-1)[self.permutation].view(
-            *image_as_tensor.shape)
+            *image_as_tensor.shape
+        )
 
         if is_image:
             img = self._to_image(image_as_tensor)
@@ -268,9 +269,7 @@ if __name__ == "__main__":
     import sys
 
     print("Split Omniglot")
-    benchmark_instance = SplitOmniglot(
-        4, train_transform=None, eval_transform=None
-    )
+    benchmark_instance = SplitOmniglot(4, train_transform=None, eval_transform=None)
     check_vision_benchmark(benchmark_instance)
 
     sys.exit(0)

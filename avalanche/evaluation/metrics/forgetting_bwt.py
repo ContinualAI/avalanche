@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 TResult_co = TypeVar("TResult_co", covariant=True)
 TResultKey_co = TypeVar("TResultKey_co", covariant=True)
-TMetric = TypeVar('TMetric', bound=Metric)
+TMetric = TypeVar("TMetric", bound=Metric)
 
 
 class Forgetting(Metric[Dict[int, float]]):
@@ -121,9 +121,8 @@ class Forgetting(Metric[Dict[int, float]]):
 
 
 class GenericExperienceForgetting(
-        PluginMetric[TResult_co],
-        Generic[TMetric, TResult_co, TResultKey_co],
-        ABC):
+    PluginMetric[TResult_co], Generic[TMetric, TResult_co, TResultKey_co], ABC
+):
     """
     The GenericExperienceForgetting metric, describing the change in
     a metric detected for a certain experience. The user should
@@ -208,7 +207,7 @@ class GenericExperienceForgetting(
     @abstractmethod
     def result_key(self, k: int) -> TResultKey_co:
         pass
-    
+
     @abstractmethod
     def result(self) -> TResult_co:
         pass
@@ -233,9 +232,7 @@ class GenericExperienceForgetting(
         # update experience on which training just ended
         self._check_eval_exp_id()
         if self.train_exp_id == self.eval_exp_id:
-            self.update(
-                self.eval_exp_id, self.metric_result(strategy), initial=True
-            )
+            self.update(self.eval_exp_id, self.metric_result(strategy), initial=True)
         else:
             # update other experiences
             # if experience has not been encountered in training
@@ -243,7 +240,7 @@ class GenericExperienceForgetting(
             self.update(self.eval_exp_id, self.metric_result(strategy))
 
         return self._package_result(strategy)
-    
+
     def after_eval(self, strategy: "SupervisedTemplate") -> MetricResult:
         self.eval_exp_id = -1  # reset the last experience ID
         return super().after_eval(strategy)
@@ -273,22 +270,21 @@ class GenericExperienceForgetting(
     @abstractmethod
     def metric_result(self, strategy):
         pass
-    
+
     @abstractmethod
     def __str__(self):
         pass
-    
+
     def _check_eval_exp_id(self):
         assert self.eval_exp_id >= 0, (
-            'The evaluation loop executed 0 iterations. '
-            'This is not suported while using this metric')
+            "The evaluation loop executed 0 iterations. "
+            "This is not suported while using this metric"
+        )
 
 
 class ExperienceForgetting(
-        GenericExperienceForgetting[
-            TaskAwareAccuracy,
-            Dict[int, float],
-            Optional[float]]):
+    GenericExperienceForgetting[TaskAwareAccuracy, Dict[int, float], Optional[float]]
+):
     """
     The ExperienceForgetting metric, describing the accuracy loss
     detected for a certain experience.
@@ -343,10 +339,8 @@ class ExperienceForgetting(
 
 
 class GenericStreamForgetting(
-        GenericExperienceForgetting[
-            TMetric, 
-            float,
-            Optional[float]]):
+    GenericExperienceForgetting[TMetric, float, Optional[float]]
+):
     """
     The GenericStreamForgetting metric, describing the average evaluation
     change in the desired metric detected over all experiences observed
@@ -411,7 +405,7 @@ class GenericStreamForgetting(
         k: optional key from which compute forgetting.
         """
         return self.result_key(k=k)
-    
+
     def result_key(self, k: int) -> Optional[float]:
         """
         Result for experience defined by a key.
@@ -461,9 +455,7 @@ class GenericStreamForgetting(
 
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = "{}/{}_phase/{}_stream".format(
-            str(self), phase_name, stream
-        )
+        metric_name = "{}/{}_phase/{}_stream".format(str(self), phase_name, stream)
         plot_x_position = strategy.clock.train_iterations
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -508,10 +500,7 @@ class StreamForgetting(GenericStreamForgetting[TaskAwareAccuracy]):
         return "StreamForgetting"
 
 
-def forgetting_metrics(
-        *,
-        experience=False,
-        stream=False) -> List[PluginMetric]:
+def forgetting_metrics(*, experience=False, stream=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -608,7 +597,7 @@ class BWT(Forgetting):
         Backward transfer will be returned for all keys encountered at
         least twice.
 
-        :return: A dictionary containing keys whose value has been 
+        :return: A dictionary containing keys whose value has been
             updated at least twice. The associated value is the difference
             between the last and first value recorded for that key.
         """

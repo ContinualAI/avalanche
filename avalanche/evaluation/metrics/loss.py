@@ -128,7 +128,7 @@ class TaskAwareLoss(Metric[Dict[int, float]]):
         :return: A dictionary `{task_label: mean_loss}`.
         """
         return {k: v.result() for k, v in self._mean_loss.items()}
-    
+
     def result_task_label(self, task_label: int):
         """
         Retrieves the running average loss per pattern for a specific task.
@@ -158,9 +158,7 @@ class TaskAwareLoss(Metric[Dict[int, float]]):
 class LossPluginMetric(GenericPluginMetric[float, LossMetric]):
     def __init__(self, reset_at, emit_at, mode):
         self._loss = LossMetric()
-        super(LossPluginMetric, self).__init__(
-            self._loss, reset_at, emit_at, mode
-        )
+        super(LossPluginMetric, self).__init__(self._loss, reset_at, emit_at, mode)
 
     def reset(self) -> None:
         self._metric.reset()
@@ -172,15 +170,10 @@ class LossPluginMetric(GenericPluginMetric[float, LossMetric]):
         self._loss.update(strategy.loss, patterns=len(strategy.mb_y))
 
 
-class LossPerTaskPluginMetric(
-        GenericPluginMetric[
-            Dict[int, float],
-            TaskAwareLoss]):
+class LossPerTaskPluginMetric(GenericPluginMetric[Dict[int, float], TaskAwareLoss]):
     def __init__(self, reset_at, emit_at, mode):
         self._loss = TaskAwareLoss()
-        super().__init__(
-            self._loss, reset_at, emit_at, mode
-        )
+        super().__init__(self._loss, reset_at, emit_at, mode)
 
     def reset(self) -> None:
         self._metric.reset()
@@ -236,9 +229,7 @@ class EpochLoss(LossPluginMetric):
         Creates an instance of the EpochLoss metric.
         """
 
-        super(EpochLoss, self).__init__(
-            reset_at="epoch", emit_at="epoch", mode="train"
-        )
+        super(EpochLoss, self).__init__(reset_at="epoch", emit_at="epoch", mode="train")
 
     def __str__(self):
         return "Loss_Epoch"
@@ -307,12 +298,7 @@ class StreamLoss(LossPluginMetric):
 
 
 def loss_metrics(
-    *,
-    minibatch=False,
-    epoch=False,
-    epoch_running=False,
-    experience=False,
-    stream=False
+    *, minibatch=False, epoch=False, epoch_running=False, experience=False, stream=False
 ) -> List[LossPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of

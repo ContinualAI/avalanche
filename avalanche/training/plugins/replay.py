@@ -50,7 +50,7 @@ class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
         batch_size: Optional[int] = None,
         batch_size_mem: Optional[int] = None,
         task_balanced_dataloader: bool = False,
-        storage_policy: Optional["ExemplarsBuffer"] = None
+        storage_policy: Optional["ExemplarsBuffer"] = None,
     ):
         super().__init__()
         self.mem_size = mem_size

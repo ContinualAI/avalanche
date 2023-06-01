@@ -26,7 +26,7 @@ from torchvision.datasets.utils import (
 
 from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 
-T_co = TypeVar('T_co', covariant=True)
+T_co = TypeVar("T_co", covariant=True)
 
 
 class DownloadableDataset(Dataset[T_co], ABC):
@@ -215,9 +215,7 @@ class DownloadableDataset(Dataset[T_co], ABC):
         shutil.rmtree(self.root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def _download_file(
-        self, url: str, file_name: str, checksum: Optional[str]
-    ) -> Path:
+    def _download_file(self, url: str, file_name: str, checksum: Optional[str]) -> Path:
         """
         Utility method that can be used to download and verify a file.
 
@@ -310,8 +308,10 @@ class DownloadableDataset(Dataset[T_co], ABC):
                 remove_finished=remove_archive,
             )
         except BaseException:
-            print('Error while downloading the dataset archive. '
-                  'The partially downloaded archive will be removed.')
+            print(
+                "Error while downloading the dataset archive. "
+                "The partially downloaded archive will be removed."
+            )
             attempt_fpath = self.root / file_name
             attempt_fpath.unlink(missing_ok=True)
             raise

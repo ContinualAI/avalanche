@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 TResult_co = TypeVar("TResult_co", covariant=True)
 TResultKey_co = TypeVar("TResultKey_co", covariant=True)
-TMetric = TypeVar('TMetric', bound=Metric)
+TMetric = TypeVar("TMetric", bound=Metric)
 
 
 class ForwardTransfer(Metric[Dict[int, float]]):
@@ -78,7 +78,7 @@ class ForwardTransfer(Metric[Dict[int, float]]):
         :param k: the key for which returning forward transfer.
 
         :return: the difference between the key value after training on the
-            previous experience, and the key at random initialization. 
+            previous experience, and the key at random initialization.
             It returns None if k has not been updated at least twice.
         """
         assert k is not None
@@ -92,7 +92,7 @@ class ForwardTransfer(Metric[Dict[int, float]]):
         """
         Compute the forward transfer for all keys.
 
-        :return: a dictionary containing, for each key, 
+        :return: a dictionary containing, for each key,
             the difference between the key value after training on the
             previous experience, and the key at random initialization.
         """
@@ -110,9 +110,8 @@ class ForwardTransfer(Metric[Dict[int, float]]):
 
 
 class GenericExperienceForwardTransfer(
-        PluginMetric[TResult_co],
-        Generic[TMetric, TResult_co, TResultKey_co],
-        ABC):
+    PluginMetric[TResult_co], Generic[TMetric, TResult_co, TResultKey_co], ABC
+):
     """
     The GenericExperienceForwardMetric metric, describing the forward transfer
     detected after a certain experience. The user should
@@ -179,11 +178,11 @@ class GenericExperienceForwardTransfer(
             previous value.
         """
         self.forward_transfer.update(k, v, initial=initial)
-    
+
     @abstractmethod
     def result_key(self, k: int) -> TResultKey_co:
         pass
-    
+
     @abstractmethod
     def result(self) -> TResult_co:
         pass
@@ -231,9 +230,7 @@ class GenericExperienceForwardTransfer(
     def after_eval_exp(self, strategy: "SupervisedTemplate") -> MetricResult:
         self._check_eval_exp_id()
         if self.at_init:
-            self.update(
-                self.eval_exp_id, self.metric_result(strategy), initial=True
-            )
+            self.update(self.eval_exp_id, self.metric_result(strategy), initial=True)
         else:
             if self.train_exp_id == self.eval_exp_id - 1:
                 self.update(self.eval_exp_id, self.metric_result(strategy))
@@ -251,9 +248,7 @@ class GenericExperienceForwardTransfer(
             metric_name = get_metric_name(self, strategy, add_experience=True)
             plot_x_position = strategy.clock.train_iterations
 
-            metric_values = [
-                MetricValue(self, metric_name, result, plot_x_position)
-            ]
+            metric_values = [MetricValue(self, metric_name, result, plot_x_position)]
             return metric_values
 
     @abstractmethod
@@ -270,8 +265,9 @@ class GenericExperienceForwardTransfer(
 
     def _check_eval_exp_id(self):
         assert self.eval_exp_id >= 0, (
-            'The evaluation loop executed 0 iterations. '
-            'This is not suported while using this metric')
+            "The evaluation loop executed 0 iterations. "
+            "This is not suported while using this metric"
+        )
 
 
 class ExperienceForwardTransfer(GenericExperienceForwardTransfer):
@@ -306,7 +302,7 @@ class ExperienceForwardTransfer(GenericExperienceForwardTransfer):
         See :class `ForwardTransfer` documentation for more detailed
         information.
 
-        :return: a dictionary containing, for each key, 
+        :return: a dictionary containing, for each key,
             the difference between the key value after training on the
             previous experience, and the key at random initialization.
         """
@@ -323,10 +319,8 @@ class ExperienceForwardTransfer(GenericExperienceForwardTransfer):
 
 
 class GenericStreamForwardTransfer(
-        GenericExperienceForwardTransfer[
-            TMetric, 
-            float,
-            Optional[float]]):
+    GenericExperienceForwardTransfer[TMetric, float, Optional[float]]
+):
     """
     The GenericStreamForwardTransfer metric, describing the average evaluation
     forward transfer detected over all experiences observed during training.
@@ -408,17 +402,13 @@ class GenericStreamForwardTransfer(
     def after_eval_exp(self, strategy: "SupervisedTemplate") -> None:
         self._check_eval_exp_id()
         if self.at_init:
-            self.update(
-                self.eval_exp_id, self.metric_result(strategy), initial=True
-            )
+            self.update(self.eval_exp_id, self.metric_result(strategy), initial=True)
         else:
             if self.train_exp_id == self.eval_exp_id - 1:
                 self.update(self.eval_exp_id, self.metric_result(strategy))
             exp_forward_transfer = self.exp_result(k=self.eval_exp_id)
             if exp_forward_transfer is not None:
-                self.stream_forward_transfer.update(
-                    exp_forward_transfer, weight=1
-                )
+                self.stream_forward_transfer.update(exp_forward_transfer, weight=1)
 
     def after_eval(self, strategy: "SupervisedTemplate") -> "MetricResult":
         super().after_eval(strategy)
@@ -430,9 +420,7 @@ class GenericStreamForwardTransfer(
 
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = "{}/{}_phase/{}_stream".format(
-            str(self), phase_name, stream
-        )
+        metric_name = "{}/{}_phase/{}_stream".format(str(self), phase_name, stream)
         plot_x_position = strategy.clock.train_iterations
 
         return [MetricValue(self, metric_name, metric_value, plot_x_position)]
@@ -474,10 +462,7 @@ class StreamForwardTransfer(GenericStreamForwardTransfer):
         return "StreamForwardTransfer"
 
 
-def forward_transfer_metrics(
-        *,
-        experience=False,
-        stream=False) -> List[PluginMetric]:
+def forward_transfer_metrics(*, experience=False, stream=False) -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.

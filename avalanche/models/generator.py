@@ -88,9 +88,7 @@ class VAEMLPDecoder(nn.Module):
             MLP([nhid, 64, 128, 256, flattened_size], last_activation=False),
             nn.Sigmoid(),
         )
-        self.invTrans = transforms.Compose(
-            [transforms.Normalize((0.1307,), (0.3081,))]
-        )
+        self.invTrans = transforms.Compose([transforms.Normalize((0.1307,), (0.3081,))])
 
     def forward(self, z, y=None):
         if y is None:
@@ -115,11 +113,8 @@ class MlpVAE(Generator, nn.Module):
     """
 
     def __init__(
-            self,
-            shape,
-            nhid=16,
-            n_classes=10,
-            device: Union[str, torch.device] = "cpu"):
+        self, shape, nhid=16, n_classes=10, device: Union[str, torch.device] = "cpu"
+    ):
         """
         :param shape: Shape of each input sample
         :param nhid: Dimension of latent space of Encoder.
@@ -129,7 +124,7 @@ class MlpVAE(Generator, nn.Module):
         super(MlpVAE, self).__init__()
         self.dim = nhid
         if device is None:
-            device = 'cpu'
+            device = "cpu"
 
         self.device = torch.device(device)
         self.encoder = VAEMLPEncoder(shape, latent_dim=128)
@@ -173,9 +168,7 @@ class MlpVAE(Generator, nn.Module):
         Forward.
         """
         represntations = self.encoder(x)
-        mean, logvar = self.calc_mean(represntations), self.calc_logvar(
-            represntations
-        )
+        mean, logvar = self.calc_mean(represntations), self.calc_logvar(represntations)
         z = self.sampling(mean, logvar)
         return self.decoder(z), mean, logvar
 
@@ -200,7 +193,7 @@ def VAE_loss(X, forward_output):
     """
     X_hat, mean, logvar = forward_output
     reconstruction_loss = MSE_loss(X_hat, X)
-    KL_divergence = 0.5 * torch.sum(-1 - logvar + torch.exp(logvar) + mean ** 2)
+    KL_divergence = 0.5 * torch.sum(-1 - logvar + torch.exp(logvar) + mean**2)
     return reconstruction_loss + KL_divergence
 
 

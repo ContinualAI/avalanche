@@ -48,8 +48,7 @@ class ER_ACE(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -158,8 +157,10 @@ class ER_ACE(SupervisedTemplate):
         # Update buffer before training exp so that we have current data in
         self.storage_policy.update(self, **kwargs)
         buffer = self.storage_policy.buffer
-        if len(buffer) >= self.batch_size_mem and \
-                self.experience.current_experience > 0:
+        if (
+            len(buffer) >= self.batch_size_mem
+            and self.experience.current_experience > 0
+        ):
             self.replay_loader = cycle(
                 torch.utils.data.DataLoader(
                     buffer,

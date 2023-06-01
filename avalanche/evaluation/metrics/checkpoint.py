@@ -79,14 +79,10 @@ class WeightCheckpoint(PluginMetric[Tensor]):
             self, strategy, add_experience=True, add_task=False
         )
         return [
-            MetricValue(
-                self, metric_name, weights, strategy.clock.train_iterations
-            )
+            MetricValue(self, metric_name, weights, strategy.clock.train_iterations)
         ]
 
-    def after_training_exp(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def after_training_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
         model_params = copy.deepcopy(strategy.model.parameters())
         self.update(model_params)
         return None

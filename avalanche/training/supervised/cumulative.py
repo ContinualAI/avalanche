@@ -30,8 +30,7 @@ class Cumulative(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
     ):
@@ -78,7 +77,5 @@ class Cumulative(SupervisedTemplate):
         if self.dataset is None:
             self.dataset = exp.dataset
         else:
-            self.dataset = concat_datasets(
-                [self.dataset, exp.dataset]
-            )
+            self.dataset = concat_datasets([self.dataset, exp.dataset])
         self.adapted_dataset = self.dataset

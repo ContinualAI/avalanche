@@ -122,17 +122,11 @@ class RandomIoUCrop(nn.Module):
 
             for _ in range(self.trials):
                 # check the aspect ratio limitations
-                r = self.min_scale + (
-                    self.max_scale - self.min_scale
-                ) * torch.rand(2)
+                r = self.min_scale + (self.max_scale - self.min_scale) * torch.rand(2)
                 new_w = int(orig_w * r[0])
                 new_h = int(orig_h * r[1])
                 aspect_ratio = new_w / new_h
-                if not (
-                    self.min_aspect_ratio
-                    <= aspect_ratio
-                    <= self.max_aspect_ratio
-                ):
+                if not (self.min_aspect_ratio <= aspect_ratio <= self.max_aspect_ratio):
                     continue
 
                 # check for 0 area crops
@@ -191,9 +185,7 @@ class RandomZoomOut(nn.Module):
         self.fill = fill
         self.side_range = side_range
         if side_range[0] < 1.0 or side_range[0] > side_range[1]:
-            raise ValueError(
-                f"Invalid canvas side range provided {side_range}."
-            )
+            raise ValueError(f"Invalid canvas side range provided {side_range}.")
         self.p = p
 
     @torch.jit.unused
@@ -238,9 +230,9 @@ class RandomZoomOut(nn.Module):
         image = F.pad(image, [left, top, right, bottom], fill=fill)
         if isinstance(image, torch.Tensor):
             # PyTorch's pad supports only integers on fill. So we need to overwrite the colour
-            v = torch.tensor(
-                self.fill, device=image.device, dtype=image.dtype
-            ).view(-1, 1, 1)
+            v = torch.tensor(self.fill, device=image.device, dtype=image.dtype).view(
+                -1, 1, 1
+            )
             image[..., :top, :] = image[..., :, :left] = image[
                 ..., (top + orig_h) :, :
             ] = image[..., :, (left + orig_w) :] = v

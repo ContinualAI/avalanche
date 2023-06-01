@@ -33,9 +33,7 @@ class SLDAResNetModel(nn.Module):
         super(SLDAResNetModel, self).__init__()
 
         feat_extractor = (
-            models.__dict__[arch](pretrained=imagenet_pretrained)
-            .to(device)
-            .eval()
+            models.__dict__[arch](pretrained=imagenet_pretrained).to(device).eval()
         )
         self.feature_extraction_wrapper = FeatureExtractorBackbone(
             feat_extractor, output_layer_name

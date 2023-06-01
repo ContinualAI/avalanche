@@ -43,7 +43,6 @@ class CORe50Dataset(DownloadableDataset):
         mini=False,
         object_level=True,
     ):
-
         """Creates an instance of the CORe50 dataset.
 
         :param root: root for the datasets data. Defaults to None, which
@@ -65,9 +64,7 @@ class CORe50Dataset(DownloadableDataset):
         if root is None:
             root = default_dataset_location("core50")
 
-        super(CORe50Dataset, self).__init__(
-            root, download=download, verbose=True
-        )
+        super(CORe50Dataset, self).__init__(root, download=download, verbose=True)
 
         self.train = train  # training set or test set
         self.transform = transform
@@ -151,9 +148,7 @@ class CORe50Dataset(DownloadableDataset):
             self.all_targets = pkl.load(f)
             self.train_test_targets = []
             for i in range(self._nbatch + 1):
-                self.train_test_targets += self.all_targets[self._scen][
-                    self._run
-                ][i]
+                self.train_test_targets += self.all_targets[self._scen][self._run][i]
 
         if self.verbose:
             print("Loading LUP...")
@@ -237,9 +232,7 @@ class CORe50Dataset(DownloadableDataset):
         based on the scenario."""
 
         if scen == "nc":
-            return core50_data.name2cat[
-                self.labels2names["nc"][run][label][:-1]
-            ]
+            return core50_data.name2cat[self.labels2names["nc"][run][label][:-1]]
         else:
             return int(label) // 5
 
@@ -255,7 +248,6 @@ def CORe50(*args, **kwargs):
 
 
 if __name__ == "__main__":
-
     # this litte example script can be used to visualize the first image
     # leaded from the dataset.
     from torch.utils.data.dataloader import DataLoader

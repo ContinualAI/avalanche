@@ -23,10 +23,8 @@ class TestReplayDataLoader(unittest.TestCase):
             np.arange(len(dataset_for_current)), size=10000, replace=False
         )
 
-        self.big_task_set = \
-            AvalancheSubset(dataset_for_current, indices_big_set)
-        self.small_task_set = \
-            AvalancheSubset(dataset_for_current, indices_small_set)
+        self.big_task_set = AvalancheSubset(dataset_for_current, indices_big_set)
+        self.small_task_set = AvalancheSubset(dataset_for_current, indices_small_set)
 
         indices_memory = np.random.choice(
             np.arange(len(dataset_for_memory)), size=2000, replace=False

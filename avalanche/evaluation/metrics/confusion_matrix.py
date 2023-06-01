@@ -122,8 +122,7 @@ class ConfusionMatrix(Metric[Tensor]):
             )
         if len(predicted_y.shape) > 2:
             raise ValueError(
-                "Confusion matrix supports predictions with at "
-                "most 2 dimensions"
+                "Confusion matrix supports predictions with at " "most 2 dimensions"
             )
 
         max_label = -1 if self._num_classes is None else self._num_classes - 1
@@ -168,14 +167,11 @@ class ConfusionMatrix(Metric[Tensor]):
             if self._num_classes is None:
                 max_label = max(max_label, torch.max(true_y).item())
             elif torch.max(true_y).item() >= self._num_classes:
-                raise ValueError(
-                    "Encountered target label larger than" "num_classes"
-                )
+                raise ValueError("Encountered target label larger than" "num_classes")
 
         if max_label < 0:
             raise ValueError(
-                "The Confusion Matrix metric can only handle "
-                "positive label values"
+                "The Confusion Matrix metric can only handle " "positive label values"
             )
 
         if self._cm_tensor is None:
@@ -205,9 +201,7 @@ class ConfusionMatrix(Metric[Tensor]):
                 matrix_shape = (self._num_classes, self._num_classes)
             return torch.zeros(matrix_shape, dtype=torch.long)
         if self.normalize is not None:
-            return ConfusionMatrix._normalize_cm(
-                self._cm_tensor, self.normalize
-            )
+            return ConfusionMatrix._normalize_cm(self._cm_tensor, self.normalize)
         return self._cm_tensor
 
     def reset(self) -> None:
@@ -222,13 +216,10 @@ class ConfusionMatrix(Metric[Tensor]):
         self._cm_tensor = None
 
     @staticmethod
-    def _normalize_cm(
-        cm: Tensor, normalization: Literal["true", "pred", "all"]
-    ):
+    def _normalize_cm(cm: Tensor, normalization: Literal["true", "pred", "all"]):
         if normalization not in ("true", "pred", "all"):
             raise ValueError(
-                "Invalid normalization parameter. Can be 'true',"
-                " 'pred' or 'all'"
+                "Invalid normalization parameter. Can be 'true'," " 'pred' or 'all'"
             )
 
         if normalization == "true":
@@ -346,9 +337,7 @@ class StreamConfusionMatrix(PluginMetric[Tensor]):
         exp_cm = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = "{}/{}_phase/{}_stream".format(
-            str(self), phase_name, stream
-        )
+        metric_name = "{}/{}_phase/{}_stream".format(str(self), phase_name, stream)
         plot_x_position = strategy.clock.train_iterations
 
         if self._save_image:
@@ -437,9 +426,7 @@ class WandBStreamConfusionMatrix(PluginMetric):
         outputs, targets = self.result()
         phase_name, _ = phase_and_task(strategy)
         stream = stream_type(strategy.experience)
-        metric_name = "{}/{}_phase/{}_stream".format(
-            str(self), phase_name, stream
-        )
+        metric_name = "{}/{}_phase/{}_stream".format(str(self), phase_name, stream)
         plot_x_position = strategy.clock.train_iterations
 
         # compute predicted classes

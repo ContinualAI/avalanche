@@ -138,7 +138,6 @@ class INATURALIST2018(Dataset):
             supcat = cat["supercategory"]  # Is parent directory
 
             if self.supcats is None or supcat in self.supcats:  # Made selection
-
                 # Add category to supercategory
                 if supcat not in self.cats_per_supcat:
                     self.cats_per_supcat[supcat] = set()

@@ -46,9 +46,7 @@ class MultiTaskTests(unittest.TestCase):
         all_classes = set()
         all_original_classes = set()
         for task_id in range(5):
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][task_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][task_id])
             all_original_classes.update(
                 my_nc_benchmark.original_classes_in_exp[task_id]
             )
@@ -86,9 +84,7 @@ class MultiTaskTests(unittest.TestCase):
 
         all_classes = set()
         for task_id in range(my_nc_benchmark.n_experiences):
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][task_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][task_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -115,9 +111,7 @@ class MultiTaskTests(unittest.TestCase):
 
         all_classes = []
         for task_id in range(5):
-            all_classes.extend(
-                my_nc_benchmark.classes_in_experience["train"][task_id]
-            )
+            all_classes.extend(my_nc_benchmark.classes_in_experience["train"][task_id])
 
         self.assertEqual(order, all_classes)
 
@@ -153,9 +147,7 @@ class MultiTaskTests(unittest.TestCase):
                 set(order[task_id * 2 : (task_id + 1) * 2]),
                 my_nc_benchmark.original_classes_in_exp[task_id],
             )
-            all_classes.extend(
-                my_nc_benchmark.classes_in_experience["train"][task_id]
-            )
+            all_classes.extend(my_nc_benchmark.classes_in_experience["train"][task_id])
 
         self.assertEqual([0, 1] * 4, all_classes)
 
@@ -191,9 +183,7 @@ class MultiTaskTests(unittest.TestCase):
                 set(order[task_id * 4 : (task_id + 1) * 4]),
                 my_nc_benchmark.original_classes_in_exp[task_id],
             )
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][task_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][task_id])
 
         self.assertEqual(set(order), all_classes)
 
@@ -260,20 +250,12 @@ class MultiTaskTests(unittest.TestCase):
 
         all_classes = set()
         for task_id in range(3):
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][task_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][task_id])
         self.assertEqual(5, len(all_classes))
 
-        self.assertEqual(
-            5, len(my_nc_benchmark.classes_in_experience["train"][0])
-        )
-        self.assertEqual(
-            3, len(my_nc_benchmark.classes_in_experience["train"][1])
-        )
-        self.assertEqual(
-            2, len(my_nc_benchmark.classes_in_experience["train"][2])
-        )
+        self.assertEqual(5, len(my_nc_benchmark.classes_in_experience["train"][0]))
+        self.assertEqual(3, len(my_nc_benchmark.classes_in_experience["train"][1]))
+        self.assertEqual(2, len(my_nc_benchmark.classes_in_experience["train"][2]))
 
     def test_mt_multi_dataset_one_task_per_set(self):
         split_mapping = [0, 1, 2, 0, 1, 2, 3, 4, 5, 6]
@@ -288,25 +270,15 @@ class MultiTaskTests(unittest.TestCase):
             download=True,
         )
 
-        train_part1 = make_nc_transformation_subset(
-            mnist_train, None, None, range(3)
-        )
+        train_part1 = make_nc_transformation_subset(mnist_train, None, None, range(3))
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(3, 10)
         )
-        train_part2 = classification_subset(
-            train_part2, class_mapping=split_mapping
-        )
+        train_part2 = classification_subset(train_part2, class_mapping=split_mapping)
 
-        test_part1 = make_nc_transformation_subset(
-            mnist_test, None, None, range(3)
-        )
-        test_part2 = make_nc_transformation_subset(
-            mnist_test, None, None, range(3, 10)
-        )
-        test_part2 = classification_subset(
-            test_part2, class_mapping=split_mapping
-        )
+        test_part1 = make_nc_transformation_subset(mnist_test, None, None, range(3))
+        test_part2 = make_nc_transformation_subset(mnist_test, None, None, range(3, 10))
+        test_part2 = classification_subset(test_part2, class_mapping=split_mapping)
         my_nc_benchmark = nc_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
@@ -352,10 +324,8 @@ class MultiTaskTests(unittest.TestCase):
                 == set(range(0, 7))
             )
             or (
-                my_nc_benchmark.classes_in_experience["train"][0]
-                == set(range(0, 7))
-                and my_nc_benchmark.classes_in_experience["train"][1]
-                == {0, 1, 2}
+                my_nc_benchmark.classes_in_experience["train"][0] == set(range(0, 7))
+                and my_nc_benchmark.classes_in_experience["train"][1] == {0, 1, 2}
             )
         )
 
@@ -384,12 +354,11 @@ class MultiTaskTests(unittest.TestCase):
             download=True,
         )
 
-        unique_train_targets, train_targets_count = \
-            torch.as_tensor(mnist_train.targets).unique(return_counts=True)
+        unique_train_targets, train_targets_count = torch.as_tensor(
+            mnist_train.targets
+        ).unique(return_counts=True)
 
-        train_part1 = make_nc_transformation_subset(
-            mnist_train, None, None, None
-        )
+        train_part1 = make_nc_transformation_subset(mnist_train, None, None, None)
         test_part1 = make_nc_transformation_subset(
             mnist_test, None, None, None, bucket_classes=True
         )
@@ -416,25 +385,20 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual(len(mnist_test), len(test_exp.dataset))
 
         other_split = make_nc_transformation_subset(
-            mnist_train, None, None, None, 
-            bucket_classes=False, 
-            sort_indexes=True
+            mnist_train, None, None, None, bucket_classes=False, sort_indexes=True
         )
 
         for b, s in zip([False, True], [False, True]):
             other_split = make_nc_transformation_subset(
-                mnist_train, None, None, None, 
-                bucket_classes=b, 
-                sort_indexes=s
+                mnist_train, None, None, None, bucket_classes=b, sort_indexes=s
             )
 
             self.assertEqual(len(mnist_train), len(other_split))
-            unique_other_targets, other_targets_count = \
-                torch.as_tensor(other_split.targets).unique(return_counts=True)
-            self.assertTrue(torch.equal(unique_train_targets, 
-                                        unique_other_targets))
-            self.assertTrue(torch.equal(train_targets_count, 
-                                        other_targets_count))
+            unique_other_targets, other_targets_count = torch.as_tensor(
+                other_split.targets
+            ).unique(return_counts=True)
+            self.assertTrue(torch.equal(unique_train_targets, unique_other_targets))
+            self.assertTrue(torch.equal(train_targets_count, other_targets_count))
 
     def test_nc_mt_slicing(self):
         mnist_train = MNIST(
@@ -472,9 +436,7 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual("train", sliced_stream.name)
 
         for batch_id, experience in enumerate(sliced_stream):
-            self.assertEqual(
-                iterable_slice[batch_id], experience.current_experience
-            )
+            self.assertEqual(iterable_slice[batch_id], experience.current_experience)
             self.assertIsInstance(experience, NCExperience)
 
         sliced_stream = my_nc_benchmark.test_stream[iterable_slice]
@@ -483,9 +445,7 @@ class MultiTaskTests(unittest.TestCase):
         self.assertEqual("test", sliced_stream.name)
 
         for batch_id, experience in enumerate(sliced_stream):
-            self.assertEqual(
-                iterable_slice[batch_id], experience.current_experience
-            )
+            self.assertEqual(iterable_slice[batch_id], experience.current_experience)
             self.assertIsInstance(experience, NCExperience)
 
 

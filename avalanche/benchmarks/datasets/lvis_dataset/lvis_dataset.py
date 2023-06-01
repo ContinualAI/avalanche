@@ -125,9 +125,7 @@ class LvisDataset(DownloadableDataset):
             # Try loading an image
             if len(self.img_ids) > 0:
                 img_id = self.img_ids[0]
-                img_dict: LVISImgEntry = self.lvis_api.load_imgs(ids=[img_id])[
-                    0
-                ]
+                img_dict: LVISImgEntry = self.lvis_api.load_imgs(ids=[img_id])[0]
                 assert self._load_img(img_dict) is not None
         except BaseException:
             if must_load_api:
@@ -244,10 +242,7 @@ class LVISImgTargets(TypedDict):
 
 
 class LVISDetectionTargets(Sequence[List[LVISImgTargets]]):
-    def __init__(
-            self, 
-            lvis_api: LVIS,
-            img_ids: Optional[List[int]] = None):
+    def __init__(self, lvis_api: LVIS, img_ids: Optional[List[int]] = None):
         super(LVISDetectionTargets, self).__init__()
         self.lvis_api = lvis_api
         if img_ids is None:
@@ -269,21 +264,21 @@ class LVISDetectionTargets(Sequence[List[LVISImgTargets]]):
 
         category_tensor = torch.empty((n_annotations,), dtype=torch.long)
         target_dict: LVISImgTargets = {
-            'bbox': torch.empty((n_annotations, 4), dtype=torch.float32),
-            'category_id': category_tensor,
-            'id': torch.empty((n_annotations,), dtype=torch.long),
-            'area': torch.empty((n_annotations,), dtype=torch.float32),
-            'image_id': torch.full((1,), img_id, dtype=torch.long),
-            'segmentation': [],
-            'labels': category_tensor  # Alias of category_id
+            "bbox": torch.empty((n_annotations, 4), dtype=torch.float32),
+            "category_id": category_tensor,
+            "id": torch.empty((n_annotations,), dtype=torch.long),
+            "area": torch.empty((n_annotations,), dtype=torch.float32),
+            "image_id": torch.full((1,), img_id, dtype=torch.long),
+            "segmentation": [],
+            "labels": category_tensor,  # Alias of category_id
         }
 
         for ann_idx, annotation in enumerate(annotation_dicts):
-            target_dict['bbox'][ann_idx] = torch.as_tensor(annotation['bbox'])
-            target_dict['category_id'][ann_idx] = annotation['category_id']
-            target_dict['id'][ann_idx] = annotation['id']
-            target_dict['area'][ann_idx] = annotation['area']
-            target_dict['segmentation'].append(annotation['segmentation'])
+            target_dict["bbox"][ann_idx] = torch.as_tensor(annotation["bbox"])
+            target_dict["category_id"][ann_idx] = annotation["category_id"]
+            target_dict["id"][ann_idx] = annotation["id"]
+            target_dict["area"][ann_idx] = annotation["area"]
+            target_dict["segmentation"].append(annotation["segmentation"])
 
         return target_dict
 
@@ -327,9 +322,7 @@ if __name__ == "__main__":
     test_data = LvisDataset(transform=_test_to_tensor, train=False)
     print("train size: ", len(train_data))
     print("Test size: ", len(test_data))
-    dataloader = DataLoader(
-        train_data, batch_size=1, collate_fn=_detection_collate_fn
-    )
+    dataloader = DataLoader(train_data, batch_size=1, collate_fn=_detection_collate_fn)
 
     n_to_show = 5
     for instance_idx, batch_data in enumerate(dataloader):

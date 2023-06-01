@@ -60,10 +60,7 @@ class TaskBalancedDataLoader:
     """Task-balanced data loader for Avalanche's datasets."""
 
     def __init__(
-        self,
-        data: AvalancheDataset,
-        oversample_small_tasks: bool = False,
-        **kwargs
+        self, data: AvalancheDataset, oversample_small_tasks: bool = False, **kwargs
     ):
         """Task-balanced data loader for Avalanche's datasets.
 
@@ -95,10 +92,9 @@ class TaskBalancedDataLoader:
 
         # split data by task.
         task_datasets = []
-        task_labels_field = getattr(self.data, 'targets_task_labels')
+        task_labels_field = getattr(self.data, "targets_task_labels")
         assert isinstance(task_labels_field, DataAttribute)
         for task_label in task_labels_field.uniques:
-
             tidxs = task_labels_field.val_to_idx[task_label]
             tdata = self.data.subset(tidxs)
             task_datasets.append(tdata)
@@ -232,9 +228,7 @@ class GroupBalancedDataLoader:
                         # reinitialize data loader
                         if isinstance(t_loader_sampler, DistributedSampler):
                             # Manage shuffling in DistributedSampler
-                            t_loader_sampler.set_epoch(
-                                t_loader_sampler.epoch + 1
-                            )
+                            t_loader_sampler.set_epoch(t_loader_sampler.epoch + 1)
 
                         iter_dataloaders[tid] = iter(dataloaders[tid])
                         batch = next(iter_dataloaders[tid])
@@ -288,7 +282,7 @@ class GroupBalancedInfiniteDataLoader:
             if DistributedHelper.is_distributed and distributed_sampling:
                 seed = torch.randint(
                     0,
-                    2 ** 32 - 1 - DistributedHelper.world_size,
+                    2**32 - 1 - DistributedHelper.world_size,
                     (1,),
                     dtype=torch.int64,
                 )
@@ -300,13 +294,13 @@ class GroupBalancedInfiniteDataLoader:
             infinite_sampler = RandomSampler(
                 data,
                 replacement=True,
-                num_samples=10 ** 10,
+                num_samples=10**10,
                 generator=generator,
             )
             collate_from_data_or_kwargs(data, kwargs)
             dl = DataLoader(data, sampler=infinite_sampler, **kwargs)
             self.dataloaders.append(dl)
-        self.max_len = 10 ** 10
+        self.max_len = 10**10
 
     def __iter__(self):
         iter_dataloaders = []
@@ -346,8 +340,8 @@ class ReplayDataLoader:
         balanced using the task label (i.e. each mini-batch contains a balanced
         number of examples from all the tasks in the `data` and `memory`).
 
-        The length of the loader is determined only by the current 
-        task data and is the same than what it would be when creating a 
+        The length of the loader is determined only by the current
+        task data and is the same than what it would be when creating a
         data loader for this dataset.
 
         If `oversample_small_tasks == True` smaller tasks are oversampled to
@@ -394,7 +388,7 @@ class ReplayDataLoader:
         self.loader_kwargs["collate_fn"] = lambda x: x
 
         if task_balanced_dataloader:
-            memory_task_labels = getattr(self.memory, 'targets_task_labels')
+            memory_task_labels = getattr(self.memory, "targets_task_labels")
             assert isinstance(memory_task_labels, DataAttribute)
             num_keys = len(memory_task_labels.uniques)
             assert batch_size_mem >= num_keys, (
@@ -403,13 +397,11 @@ class ReplayDataLoader:
                 "and current data."
             )
 
-        self.data_batch_sizes, _ = self._get_batch_sizes(
-            data, batch_size, 0, False
-        )
+        self.data_batch_sizes, _ = self._get_batch_sizes(data, batch_size, 0, False)
 
         # Create dataloader for memory items
         if task_balanced_dataloader:
-            memory_task_labels = getattr(self.memory, 'targets_task_labels')
+            memory_task_labels = getattr(self.memory, "targets_task_labels")
             assert isinstance(memory_task_labels, DataAttribute)
             num_keys = len(memory_task_labels.uniques)
             single_group_batch_size = batch_size_mem // num_keys
@@ -439,8 +431,7 @@ class ReplayDataLoader:
             )
         else:
             # Task balanced
-            data_task_set: Mapping[int, AvalancheDataset] = \
-                getattr(data, 'task_set')
+            data_task_set: Mapping[int, AvalancheDataset] = getattr(data, "task_set")
             for task_id in data_task_set:
                 dataset = data_task_set[task_id]
                 mb_sz = self.data_batch_sizes[task_id]
@@ -596,11 +587,11 @@ def _make_data_loader(
     collate_from_data_or_kwargs(dataset, data_loader_args)
 
     if force_no_workers:
-        data_loader_args['num_workers'] = 0
-        if 'persistent_workers' in data_loader_args:
-            data_loader_args['persistent_workers'] = False
-        if 'prefetch_factor' in data_loader_args:
-            data_loader_args['prefetch_factor'] = 2
+        data_loader_args["num_workers"] = 0
+        if "persistent_workers" in data_loader_args:
+            data_loader_args["persistent_workers"] = False
+        if "prefetch_factor" in data_loader_args:
+            data_loader_args["prefetch_factor"] = 2
 
     if DistributedHelper.is_distributed and distributed_sampling:
         # Note: shuffle only goes in the sampler, while
@@ -621,9 +612,7 @@ def _make_data_loader(
         )
     else:
         sampler = None
-        data_loader = DataLoader(
-            dataset, batch_size=batch_size, **data_loader_args
-        )
+        data_loader = DataLoader(dataset, batch_size=batch_size, **data_loader_args)
 
     return data_loader, sampler
 

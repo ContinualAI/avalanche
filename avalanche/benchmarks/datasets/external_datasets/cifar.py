@@ -25,30 +25,33 @@ def get_cifar100_dataset(dataset_root):
 
 
 def load_CIFAR100(root, train, transform, target_transform):
-    return CIFAR100(root=root, train=train, transform=transform,
-                    target_transform=target_transform)
+    return CIFAR100(
+        root=root, train=train, transform=transform, target_transform=target_transform
+    )
 
 
 @dill.register(CIFAR100)
 def save_CIFAR100(pickler, obj: CIFAR100):
-    pickler.save_reduce(load_CIFAR100,
-                        (obj.root, obj.train, obj.transform,
-                         obj.target_transform), obj=obj)
+    pickler.save_reduce(
+        load_CIFAR100,
+        (obj.root, obj.train, obj.transform, obj.target_transform),
+        obj=obj,
+    )
 
 
 def load_CIFAR10(root, train, transform, target_transform):
-    return CIFAR10(root=root, train=train, transform=transform,
-                   target_transform=target_transform)
+    return CIFAR10(
+        root=root, train=train, transform=transform, target_transform=target_transform
+    )
 
 
 @dill.register(CIFAR10)
 def save_CIFAR10(pickler, obj: CIFAR10):
-    pickler.save_reduce(load_CIFAR10,
-                        (obj.root, obj.train, obj.transform,
-                         obj.target_transform), obj=obj)
+    pickler.save_reduce(
+        load_CIFAR10,
+        (obj.root, obj.train, obj.transform, obj.target_transform),
+        obj=obj,
+    )
 
 
-__all__ = [
-    'get_cifar10_dataset',
-    'get_cifar100_dataset'
-]
+__all__ = ["get_cifar10_dataset", "get_cifar100_dataset"]

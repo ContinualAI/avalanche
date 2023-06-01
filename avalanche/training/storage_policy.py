@@ -123,7 +123,7 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         self._buffer_weights = self._buffer_weights[: self.max_size]
 
 
-TGroupBuffer = TypeVar('TGroupBuffer', bound=ExemplarsBuffer)
+TGroupBuffer = TypeVar("TGroupBuffer", bound=ExemplarsBuffer)
 
 
 class BalancedExemplarsBuffer(ExemplarsBuffer, Generic[TGroupBuffer]):
@@ -153,13 +153,11 @@ class BalancedExemplarsBuffer(ExemplarsBuffer, Generic[TGroupBuffer]):
         self.total_num_groups = total_num_groups
         if not self.adaptive_size:
             assert self.total_num_groups > 0, (
-                "You need to specify `total_num_groups` if "
-                "`adaptive_size=True`."
+                "You need to specify `total_num_groups` if " "`adaptive_size=True`."
             )
         else:
             assert self.total_num_groups is None, (
-                "`total_num_groups` is not compatible with "
-                "`adaptive_size=False`."
+                "`total_num_groups` is not compatible with " "`adaptive_size=False`."
             )
 
         self.buffer_groups: Dict[int, TGroupBuffer] = {}
@@ -180,8 +178,7 @@ class BalancedExemplarsBuffer(ExemplarsBuffer, Generic[TGroupBuffer]):
                 lengths[i] += 1
         else:
             lengths = [
-                self.max_size // self.total_num_groups
-                for _ in range(num_groups)
+                self.max_size // self.total_num_groups for _ in range(num_groups)
             ]
         return lengths
 
@@ -214,9 +211,7 @@ class BalancedExemplarsBuffer(ExemplarsBuffer, Generic[TGroupBuffer]):
             buffer.resize(strategy, ll)
 
 
-class ExperienceBalancedBuffer(
-        BalancedExemplarsBuffer[
-            ReservoirSamplingBuffer]):
+class ExperienceBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
     """Rehearsal buffer with samples balanced over experiences.
 
     The number of experiences can be fixed up front or adaptive, based on
@@ -224,9 +219,7 @@ class ExperienceBalancedBuffer(
     divided over all the unique observed experiences so far.
     """
 
-    def __init__(
-        self, max_size: int, adaptive_size: bool = True, num_experiences=None
-    ):
+    def __init__(self, max_size: int, adaptive_size: bool = True, num_experiences=None):
         """
         :param max_size: max number of total input samples in the replay
             memory.
@@ -277,7 +270,6 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
                                   of classes to divide capacity over.
         """
         if not adaptive_size:
-            
             assert total_num_classes is not None and (
                 total_num_classes > 0
             ), """When fixed exp mem size, total_num_classes should be > 0."""
@@ -293,14 +285,12 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
         self.update_from_dataset(strategy.experience.dataset, strategy)
 
     def update_from_dataset(
-        self,
-        new_data: AvalancheDataset,
-        strategy: Optional["BaseSGDTemplate"] = None
+        self, new_data: AvalancheDataset, strategy: Optional["BaseSGDTemplate"] = None
     ):
         if len(new_data) == 0:
             return
-        
-        targets = getattr(new_data, 'targets', None)
+
+        targets = getattr(new_data, "targets", None)
         assert targets is not None
 
         # Get sample idxs per class
@@ -339,9 +329,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
 
         # resize buffers
         for class_id, class_buf in self.buffer_groups.items():
-            self.buffer_groups[class_id].resize(
-                strategy, class_to_len[class_id]
-            )
+            self.buffer_groups[class_id].resize(strategy, class_to_len[class_id])
 
 
 class ParametricBuffer(BalancedExemplarsBuffer):
@@ -393,20 +381,17 @@ class ParametricBuffer(BalancedExemplarsBuffer):
                 old_buffer_g.update_from_dataset(strategy, new_data_g)
                 old_buffer_g.resize(strategy, ll)
             else:
-                new_buffer = _ParametricSingleBuffer(
-                    ll, self.selection_strategy
-                )
+                new_buffer = _ParametricSingleBuffer(ll, self.selection_strategy)
                 new_buffer.update_from_dataset(strategy, new_data_g)
                 self.buffer_groups[group_id] = new_buffer
 
         # resize buffers
         for group_id, class_buf in self.buffer_groups.items():
-            self.buffer_groups[group_id].resize(
-                strategy, group_to_len[group_id]
-            )
+            self.buffer_groups[group_id].resize(strategy, group_to_len[group_id])
 
-    def _make_groups(self, strategy, data: AvalancheDataset) -> \
-            Dict[int, AvalancheDataset]:
+    def _make_groups(
+        self, strategy, data: AvalancheDataset
+    ) -> Dict[int, AvalancheDataset]:
         """Split the data by group according to `self.groupby`."""
         if self.groupby is None:
             return {0: data}
@@ -419,11 +404,10 @@ class ParametricBuffer(BalancedExemplarsBuffer):
         else:
             assert False, "Invalid groupby key. Should never get here."
 
-    def _split_by_class(self, data: AvalancheDataset) -> \
-            Dict[int, AvalancheDataset]:
+    def _split_by_class(self, data: AvalancheDataset) -> Dict[int, AvalancheDataset]:
         # Get sample idxs per class
         cl_idxs: Dict[int, List[int]] = defaultdict(list)
-        targets = getattr(data, 'targets')
+        targets = getattr(data, "targets")
         for idx, target in enumerate(targets):
             target = int(target)
             cl_idxs[target].append(idx)
@@ -434,15 +418,15 @@ class ParametricBuffer(BalancedExemplarsBuffer):
             new_groups[c] = classification_subset(data, indices=c_idxs)
         return new_groups
 
-    def _split_by_experience(self, strategy, data: AvalancheDataset) -> \
-            Dict[int, AvalancheDataset]:
+    def _split_by_experience(
+        self, strategy, data: AvalancheDataset
+    ) -> Dict[int, AvalancheDataset]:
         exp_id = strategy.clock.train_exp_counter + 1
         return {exp_id: data}
 
-    def _split_by_task(self, data: AvalancheDataset) -> \
-            Dict[int, AvalancheDataset]:
+    def _split_by_task(self, data: AvalancheDataset) -> Dict[int, AvalancheDataset]:
         new_groups = {}
-        task_set = getattr(data, 'task_set')
+        task_set = getattr(data, "task_set")
         for task_id in task_set:
             new_groups[task_id] = task_set[task_id]
         return new_groups
@@ -565,9 +549,7 @@ class HerdingSelectionStrategy(FeatureBasedExemplarsSelectionStrategy):
 
         for i in range(len(features)):
             # Compute distances with real center
-            candidate_centers = current_center * i / (i + 1) + features / (
-                i + 1
-            )
+            candidate_centers = current_center * i / (i + 1) + features / (i + 1)
             distances = pow(candidate_centers - center, 2).sum(dim=1)
             distances[selected_indices] = inf
 

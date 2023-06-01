@@ -26,14 +26,12 @@ from avalanche.benchmarks.datasets import (
 from avalanche.benchmarks.utils import default_flist_reader
 from avalanche.benchmarks.datasets.clear import clear_data
 
-_CLEAR_DATA_SPLITS = {"clear10", "clear100", 
-                      "clear10_neurips2021", "clear100_cvpr2022"}
+_CLEAR_DATA_SPLITS = {"clear10", "clear100", "clear10_neurips2021", "clear100_cvpr2022"}
 
 CLEAR_FEATURE_TYPES = {
     "clear10": ["moco_b0"],
     "clear100": ["moco_b0"],
-    "clear10_neurips2021": ["moco_b0", 
-                            "moco_imagenet", "byol_imagenet", "imagenet"],
+    "clear10_neurips2021": ["moco_b0", "moco_imagenet", "byol_imagenet", "imagenet"],
     "clear100_cvpr2022": ["moco_b0"],
 }
 
@@ -80,9 +78,7 @@ class CLEARDataset(DownloadableDataset):
         self.module = clear_data
         self._paths_and_targets: List[List[Tuple[str, int]]] = []
 
-        super(CLEARDataset, self).__init__(
-            root, download=download, verbose=True
-        )
+        super(CLEARDataset, self).__init__(root, download=download, verbose=True)
         self._load_dataset()
 
     def _download_dataset(self) -> None:
@@ -93,30 +89,25 @@ class CLEARDataset(DownloadableDataset):
                 print("Downloading " + name + "...")
             url = os.path.join(base_url, name)
             self._download_and_extract_archive(
-                url=url,
-                file_name=name,
-                checksum=None,
-                remove_archive=True
+                url=url, file_name=name, checksum=None, remove_archive=True
             )
 
     def _load_metadata(self) -> bool:
-        if '_' in self.data_name:
+        if "_" in self.data_name:
             return self._load_metadata_old()
         else:
             return self._load_metadata_new()
 
     def _load_metadata_old(self) -> bool:
         """
-            Load Metadata for clear10_neurips2021 and clear100_cvpr2022
+        Load Metadata for clear10_neurips2021 and clear100_cvpr2022
         """
         train_folder_path = self.root / "training_folder"
         if not train_folder_path.exists():
             print(f"{train_folder_path} does not exist. ")
             return False
 
-        self.bucket_indices = _load_json(
-            train_folder_path / "bucket_indices.json"
-        )
+        self.bucket_indices = _load_json(train_folder_path / "bucket_indices.json")
 
         class_names_file = self.root / "class_names.txt"
         self.class_names = class_names_file.read_text().split("\n")
@@ -153,7 +144,7 @@ class CLEARDataset(DownloadableDataset):
             if not train_folder_path.exists():
                 print(f"{train_folder_path} does not exist. ")
                 return False
-        
+
             self.labeled_metadata = _load_json(
                 train_folder_path / "labeled_metadata.json"
             )
@@ -275,7 +266,7 @@ class _CLEARImage(CLEARDataset):
         )
 
     def _load_metadata(self) -> bool:
-        if '_' in self.data_name:
+        if "_" in self.data_name:
             return self._load_metadata_old()
         else:
             return self._load_metadata_new()
@@ -319,7 +310,7 @@ class _CLEARImage(CLEARDataset):
         if not super(_CLEARImage, self)._load_metadata_new():
             print("CLEAR has not yet been downloaded")
             return False
-        
+
         self.paths = []
         self.targets = []
         self._paths_and_targets = []
@@ -329,7 +320,7 @@ class _CLEARImage(CLEARDataset):
             if not train_folder_path.exists():
                 print(f"{train_folder_path} does not exist. ")
                 return False
-        
+
             self.labeled_metadata = _load_json(
                 train_folder_path / "labeled_metadata.json"
             )
@@ -358,8 +349,9 @@ class _CLEARImage(CLEARDataset):
                 self.targets.append(target)
         return True
 
-    def get_paths_and_targets(self, root_appended=True) -> \
-            Sequence[Sequence[Tuple[Union[str, Path], int]]]:
+    def get_paths_and_targets(
+        self, root_appended=True
+    ) -> Sequence[Sequence[Tuple[Union[str, Path], int]]]:
         """Return self._paths_and_targets with root appended or not"""
         if not root_appended:
             return self._paths_and_targets
@@ -446,15 +438,14 @@ class _CLEARFeature(CLEARDataset):
         assert feature_type in CLEAR_FEATURE_TYPES[data_name]
         self.target_transform = target_transform
 
-        self.tensors_and_targets: List[Tuple[List[torch.Tensor],
-                                             List[int]]] = []
+        self.tensors_and_targets: List[Tuple[List[torch.Tensor], List[int]]] = []
 
         super(_CLEARFeature, self).__init__(
             root, data_name=data_name, download=download, verbose=True
         )
 
     def _load_metadata(self) -> bool:
-        if '_' in self.data_name:
+        if "_" in self.data_name:
             return self._load_metadata_old()
         else:
             return self._load_metadata_new()
@@ -483,9 +474,7 @@ class _CLEARFeature(CLEARDataset):
             try:
                 tensors, targets = torch.load(f_path)
                 if split_name:
-                    indices_json = (
-                        split_folder_path / str(bucket_index) / split_name
-                    )
+                    indices_json = split_folder_path / str(bucket_index) / split_name
                     chosen_indices = _load_json(indices_json)
                     tensors = [tensors[i] for i in chosen_indices]
                     targets = [targets[i] for i in chosen_indices]
@@ -507,7 +496,7 @@ class _CLEARFeature(CLEARDataset):
         if not super(_CLEARFeature, self)._load_metadata_new():
             print("CLEAR has not yet been downloaded")
             return False
-        
+
         self.tensors_and_targets = []
         splits = ["test", "train"] if self.split == "all" else [self.split]
         for split in splits:
@@ -558,7 +547,6 @@ class _CLEARFeature(CLEARDataset):
 
 
 if __name__ == "__main__":
-
     # this little example script can be used to visualize the first image
     # loaded from the dataset.
     from torch.utils.data.dataloader import DataLoader
@@ -577,8 +565,7 @@ if __name__ == "__main__":
             normalize,
         ]
     )
-    data_names = ["clear10_neurips2021", "clear100_cvpr2022", 
-                  "clear10", "clear100"]
+    data_names = ["clear10_neurips2021", "clear100_cvpr2022", "clear10", "clear100"]
     for data_name in data_names:
         root = f"../avalanche_datasets/{data_name}"
         print(root)
@@ -620,9 +607,8 @@ if __name__ == "__main__":
             split="train",
             seed=0,
         )
-        print("clear10 size (train features): ", 
-              len(clear_dataset_train_feature))
-        if '_' in data_name:
+        print("clear10 size (train features): ", len(clear_dataset_train_feature))
+        if "_" in data_name:
             clear_dataset_all_feature = _CLEARFeature(
                 root=root,
                 data_name=data_name,
@@ -639,10 +625,10 @@ if __name__ == "__main__":
                 split="test",
                 seed=0,
             )
-            print(f"{data_name} size (test features): ", 
-                  len(clear_dataset_test_feature))
-            print(f"{data_name} size (all features): ", 
-                  len(clear_dataset_all_feature))
+            print(
+                f"{data_name} size (test features): ", len(clear_dataset_test_feature)
+            )
+            print(f"{data_name} size (all features): ", len(clear_dataset_all_feature))
         print("Classes are: ")
         for i, name in enumerate(clear_dataset_test.class_names):
             print(f"{i} : {name}")

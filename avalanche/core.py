@@ -54,21 +54,15 @@ class BasePlugin(Generic[Template], ABC):
         """Called after `train` by the `BaseTemplate`."""
         pass
 
-    def before_eval(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def before_eval(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called before `eval` by the `BaseTemplate`."""
         pass
 
-    def before_eval_exp(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def before_eval_exp(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called before `eval_exp` by the `BaseTemplate`."""
         pass
 
-    def after_eval_exp(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def after_eval_exp(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called after `eval_exp` by the `BaseTemplate`."""
         pass
 
@@ -76,10 +70,7 @@ class BasePlugin(Generic[Template], ABC):
         """Called after `eval` by the `BaseTemplate`."""
         pass
 
-    def __init_subclass__(
-            cls,
-            supports_distributed: bool = False,
-            **kwargs) -> None:
+    def __init_subclass__(cls, supports_distributed: bool = False, **kwargs) -> None:
         cls.supports_distributed = supports_distributed
         return super().__init_subclass__(**kwargs)
 
@@ -109,27 +100,19 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         `BaseTemplate`."""
         pass
 
-    def before_forward(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def before_forward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called before `model.forward()` by the `BaseTemplate`."""
         pass
 
-    def after_forward(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def after_forward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called after `model.forward()` by the `BaseTemplate`."""
         pass
 
-    def before_backward(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def before_backward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called before `criterion.backward()` by the `BaseTemplate`."""
         pass
 
-    def after_backward(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def after_backward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called after `criterion.backward()` by the `BaseTemplate`."""
         pass
 
@@ -140,15 +123,11 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         `BaseTemplate`."""
         pass
 
-    def before_update(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def before_update(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called before `optimizer.update()` by the `BaseTemplate`."""
         pass
 
-    def after_update(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def after_update(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called after `optimizer.update()` by the `BaseTemplate`."""
         pass
 
@@ -171,9 +150,7 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         """Called before `model.forward()` by the `BaseTemplate`."""
         pass
 
-    def after_eval_forward(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def after_eval_forward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called after `model.forward()` by the `BaseTemplate`."""
         pass
 
@@ -214,6 +191,7 @@ class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
 
     See `BaseTemplate` for complete description of the train/eval loop.
     """
+
     def __init__(self):
         """
         Inizializes an instance of a supervised plugin.
@@ -224,8 +202,9 @@ class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
 class SupervisedMetaLearningPlugin(SupervisedPlugin[Template], ABC):
     """ABC for SupervisedMetaLearningTemplate plugins.
 
-        See `BaseTemplate` for complete description of the train/eval loop.
+    See `BaseTemplate` for complete description of the train/eval loop.
     """
+
     def before_inner_updates(
         self, strategy: Template, *args, **kwargs
     ) -> CallbackResult:
@@ -244,8 +223,6 @@ class SupervisedMetaLearningPlugin(SupervisedPlugin[Template], ABC):
         """Called before `_outer_updates` by the `BaseTemplate`."""
         pass
 
-    def after_outer_update(
-        self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    def after_outer_update(self, strategy: Template, *args, **kwargs) -> CallbackResult:
         """Called before `_outer_updates` by the `BaseTemplate`."""
         pass

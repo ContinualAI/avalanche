@@ -18,6 +18,7 @@ import numpy as np
 from avalanche.benchmarks.utils.dataset_utils import (
     slice_alike_object_to_indices,
 )
+
 try:
     from collections import Hashable
 except ImportError:
@@ -39,7 +40,7 @@ from torch.utils.data import ConcatDataset
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 
 
-TFlatData = TypeVar('TFlatData', bound='FlatData')
+TFlatData = TypeVar("TFlatData", bound="FlatData")
 DataT = TypeVar("DataT")
 T_co = TypeVar("T_co", covariant=True)
 
@@ -84,7 +85,8 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         if can_flatten:
             self._datasets = _flatten_dataset_list(self._datasets)
             self._datasets, self._indices = _flatten_datasets_and_reindex(
-                self._datasets, self._indices)
+                self._datasets, self._indices
+            )
         self._cumulative_sizes = ConcatDataset.cumsum(self._datasets)
 
         # NOTE: check disabled to avoid slowing down OCL scenarios
@@ -134,11 +136,9 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         # Case 1: one is a subset of the other
         if len(self._datasets) == 1 and len(other._datasets) == 1:
             if self._can_flatten and self._datasets[0] is other:
-                return other.subset(self._get_indices() + 
-                                    list(range(len(other))))
+                return other.subset(self._get_indices() + list(range(len(other))))
             elif other._can_flatten and other._datasets[0] is self:
-                return self.subset(list(range(len(self))) + 
-                                   other._get_indices())
+                return self.subset(list(range(len(self))) + other._get_indices())
             elif (
                 self._can_flatten
                 and other._can_flatten
@@ -211,7 +211,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
             else:
                 idx = idx - self._cumulative_sizes[dataset_idx - 1]
         return dataset_idx, int(idx)
-    
+
     @overload
     def __getitem__(self, item: int) -> T_co:
         ...
@@ -220,20 +220,16 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
     def __getitem__(self: TFlatData, item: slice) -> TFlatData:
         ...
 
-    def __getitem__(self: TFlatData, item: Union[int, slice]) -> \
-            Union[T_co, TFlatData]:
+    def __getitem__(self: TFlatData, item: Union[int, slice]) -> Union[T_co, TFlatData]:
         if isinstance(item, (int, np.integer)):
             dataset_idx, idx = self._get_idx(int(item))
             return self._datasets[dataset_idx][idx]
         else:
             slice_indices = slice_alike_object_to_indices(
-                slice_alike_object=item,
-                max_length=len(self)
+                slice_alike_object=item, max_length=len(self)
             )
 
-            return self.subset(
-                indices=slice_indices
-            )
+            return self.subset(indices=slice_indices)
 
     def __len__(self) -> int:
         if len(self._cumulative_sizes) == 0:
@@ -266,31 +262,30 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
 
     def __len__(self):
         return self._size
-    
+
     @overload
     def __getitem__(self, index: int) -> DataT:
         ...
-    
+
     @overload
-    def __getitem__(self, index: slice) -> 'ConstantSequence[DataT]':
+    def __getitem__(self, index: slice) -> "ConstantSequence[DataT]":
         ...
 
-    def __getitem__(self, index: Union[int, slice]) -> \
-            'Union[DataT, ConstantSequence[DataT]]':
+    def __getitem__(
+        self, index: Union[int, slice]
+    ) -> "Union[DataT, ConstantSequence[DataT]]":
         if isinstance(index, (int, np.integer)):
             index = int(index)
-        
+
             if index >= len(self):
                 raise IndexError()
             return self._constant_value
         else:
             slice_indices = slice_alike_object_to_indices(
-                slice_alike_object=index,
-                max_length=len(self)
+                slice_alike_object=index, max_length=len(self)
             )
             return ConstantSequence(
-                constant_value=self._constant_value,
-                size=sum(1 for _ in slice_indices)
+                constant_value=self._constant_value, size=sum(1 for _ in slice_indices)
             )
 
     def subset(self, indices: List[int]) -> "ConstantSequence[DataT]":
@@ -311,24 +306,20 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
             isinstance(other, ConstantSequence)
             and self._constant_value == other._constant_value
         ):
-            return ConstantSequence(
-                self._constant_value, len(self) + len(other)
-            )
+            return ConstantSequence(self._constant_value, len(self) + len(other))
         else:
             return FlatData([self, other])
 
     def __str__(self):
-        return (
-            f"ConstantSequence(value={self._constant_value}, len={self._size}"
-        )
+        return f"ConstantSequence(value={self._constant_value}, len={self._size}"
 
     def __hash__(self):
         return id(self)
 
 
 def _flatten_dataset_list(
-        datasets: List[Union[FlatData[T_co], IDataset[T_co]]]) -> \
-            List[IDataset[T_co]]:
+    datasets: List[Union[FlatData[T_co], IDataset[T_co]]]
+) -> List[IDataset[T_co]]:
     """Flatten the dataset tree if possible."""
     # Concat -> Concat branch
     # Flattens by borrowing the list of concatenated datasets
@@ -375,9 +366,8 @@ def _flatten_dataset_list(
 
 
 def _flatten_datasets_and_reindex(
-        datasets: List[IDataset],
-        indices: Optional[List[int]]) -> \
-            Tuple[List[IDataset], Optional[List[int]]]:
+    datasets: List[IDataset], indices: Optional[List[int]]
+) -> Tuple[List[IDataset], Optional[List[int]]]:
     """The same dataset may occurr multiple times in the list of datasets.
 
     Here, we flatten the list of datasets and fix the indices to account for
@@ -464,9 +454,7 @@ def _flatdata_print(dataset, indent=0):
         for dd in dataset._datasets:
             _flatdata_print(dd, indent + 1)
     else:
-        print(
-            "\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})"
-        )
+        print("\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})")
 
 
 __all__ = ["FlatData", "ConstantSequence"]

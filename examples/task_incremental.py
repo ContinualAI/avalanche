@@ -26,12 +26,9 @@ from avalanche.training.supervised import Naive
 
 
 def main(args):
-
     # Config
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     # model
     model = SimpleMLP(input_size=32 * 32 * 3, num_classes=10)

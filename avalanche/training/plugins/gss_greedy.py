@@ -94,9 +94,7 @@ class GSS_greedyPlugin(SupervisedPlugin):
             grad_dims: gradient dimensions
         Returns: gradient from memory subsets
         """
-        temp_gss_batch_size = min(
-            gss_batch_size, self.ext_mem_list_current_index
-        )
+        temp_gss_batch_size = min(gss_batch_size, self.ext_mem_list_current_index)
         num_mem_subs = min(
             self.mem_strength, self.ext_mem_list_current_index // gss_batch_size
         )
@@ -111,8 +109,7 @@ class GSS_greedyPlugin(SupervisedPlugin):
         )
         for i in range(num_mem_subs):
             random_batch_inds = shuffeled_inds[
-                i * temp_gss_batch_size : i * temp_gss_batch_size
-                + temp_gss_batch_size
+                i * temp_gss_batch_size : i * temp_gss_batch_size + temp_gss_batch_size
             ]
             batch_x = self.ext_mem_list_x[random_batch_inds].to(strategy.device)
             batch_y = self.ext_mem_list_y[random_batch_inds].to(strategy.device)
@@ -152,9 +149,7 @@ class GSS_greedyPlugin(SupervisedPlugin):
             cosine_sim[i] = max(self.cosine_similarity(mem_grads, this_grad))
         return cosine_sim
 
-    def before_training_exp(
-        self, strategy, num_workers=0, shuffle=True, **kwargs
-    ):
+    def before_training_exp(self, strategy, num_workers=0, shuffle=True, **kwargs):
         """
         Dataloader to build batches containing examples from both memories and
         the training dataset
@@ -169,8 +164,8 @@ class GSS_greedyPlugin(SupervisedPlugin):
 
         memory = list(zip(temp_x_tensors, temp_y_tensors))
         memory_dataset = make_classification_dataset(
-            memory,
-            targets=temp_y_tensors.tolist())
+            memory, targets=temp_y_tensors.tolist()
+        )
 
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
@@ -194,11 +189,8 @@ class GSS_greedyPlugin(SupervisedPlugin):
         for param in strategy.model.parameters():
             grad_dims.append(param.data.numel())
 
-        place_left = (
-            self.ext_mem_list_x.size(0) - self.ext_mem_list_current_index
-        )
+        place_left = self.ext_mem_list_x.size(0) - self.ext_mem_list_current_index
         if place_left <= 0:  # buffer full
-
             batch_sim, mem_grads = self.get_batch_sim(
                 strategy,
                 grad_dims,
@@ -228,14 +220,12 @@ class GSS_greedyPlugin(SupervisedPlugin):
 
                 # normalize to [0,1]
                 scaled_batch_item_sim = ((batch_item_sim + 1) / 2).unsqueeze(1)
-                buffer_repl_batch_sim = (
-                    (self.buffer_score[index] + 1) / 2
-                ).unsqueeze(1)
+                buffer_repl_batch_sim = ((self.buffer_score[index] + 1) / 2).unsqueeze(
+                    1
+                )
                 # draw an event to decide on replacement decision
                 outcome = torch.multinomial(
-                    torch.cat(
-                        (scaled_batch_item_sim, buffer_repl_batch_sim), dim=1
-                    ),
+                    torch.cat((scaled_batch_item_sim, buffer_repl_batch_sim), dim=1),
                     1,
                     replacement=False,
                 )
@@ -260,9 +250,7 @@ class GSS_greedyPlugin(SupervisedPlugin):
 
             # first buffer insertion
             if self.ext_mem_list_current_index == 0:
-                batch_sample_memory_cos = (
-                    torch.zeros(updated_mb_x.size(0)) + 0.1
-                )
+                batch_sample_memory_cos = torch.zeros(updated_mb_x.size(0)) + 0.1
             else:
                 # draw random samples from buffer
                 mem_grads = self.get_rand_mem_grads(
@@ -277,12 +265,8 @@ class GSS_greedyPlugin(SupervisedPlugin):
                 )
 
             curr_idx = self.ext_mem_list_current_index
-            self.ext_mem_list_x[curr_idx : curr_idx + offset].data.copy_(
-                updated_mb_x
-            )
-            self.ext_mem_list_y[curr_idx : curr_idx + offset].data.copy_(
-                updated_mb_y
-            )
+            self.ext_mem_list_x[curr_idx : curr_idx + offset].data.copy_(updated_mb_x)
+            self.ext_mem_list_y[curr_idx : curr_idx + offset].data.copy_(updated_mb_y)
             self.buffer_score[curr_idx : curr_idx + offset].data.copy_(
                 batch_sample_memory_cos
             )
