@@ -32,14 +32,8 @@ from avalanche.training.plugins import EvaluationPlugin
 
 def main(args):
     # --- CONFIG
-    # device = torch.device(
-    #     f"cuda:{args.cuda}"
-    #     if torch.cuda.is_available() and args.cuda >= 0
-    #     else "cpu"
-    # )
-    device = torch.device("mps")  # TODO: change default device to cpu/cuda
-    n_batches = 5
-    # ---------
+    device = torch.device(args.device) 
+    print("Compute device:", device)
 
     # --- Benchmark
     benchmark = SplitCIFAR100(n_experiences=10, return_task_id=True)
@@ -86,7 +80,8 @@ def main(args):
         # !!! For GSA, we need to have access to task boundaries
         ocl_benchmark = OnlineCLScenario(
             original_streams=batch_streams, experiences=exp, experience_size=10,
-            access_task_boundaries=True
+            access_task_boundaries=True,
+            shuffle=True
         )
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.train_stream)
@@ -96,10 +91,9 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--cuda",
-        type=int,
-        default=0,
-        help="Select zero-indexed cuda device. -1 to use CPU.",
+        "--device",
+        type=str,
+        default="mps",
     )
     args = parser.parse_args()
     main(args)

@@ -10,10 +10,10 @@ import torchvision.transforms as transforms
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
-from avalanche.training.templates import OnlineSupervisedTemplate
+from avalanche.training.templates import SupervisedTemplate
 
 
-class GSA(OnlineSupervisedTemplate):
+class GSA(SupervisedTemplate):
     """
     GSA, as originally proposed in
     "Dealing with Cross-Task Class Discrimination in Online Continual Learning"
