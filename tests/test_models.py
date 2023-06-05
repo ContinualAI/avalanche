@@ -608,21 +608,38 @@ class TrainEvalModelTests(unittest.TestCase):
 class NCMClassifierTest(unittest.TestCase):
     def test_ncm_classification(self):
         class_means = torch.tensor(
-            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
             dtype=torch.float,
         )
+        class_means_dict = {i: el for i, el in enumerate(class_means)}
 
         mb_x = torch.tensor(
-            [[4, 3, 2, 1], [3, 4, 2, 1], [3, 2, 4, 1], [3, 2, 1, 4]],
+            [[4, 3, 2, 1], [3, 2, 4, 1]],
             dtype=torch.float,
         )
 
-        mb_y = torch.tensor([0, 1, 2, 3], dtype=torch.float)
+        mb_y = torch.tensor([0, 2], dtype=torch.float)
 
-        classifier = NCMClassifier(class_means)
+        classifier = NCMClassifier(class_means_dict=class_means_dict,
+                                   normalize=False)
 
         pred = classifier(mb_x)
         assert torch.all(torch.max(pred, 1)[1] == mb_y)
+
+    def test_ncm_class_expansion(self):
+        class_means = torch.tensor(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
+            dtype=torch.float,
+        )
+        class_means_dict = {i: el for i, el in enumerate(class_means)}
+        classifier = NCMClassifier(class_means_dict=class_means_dict)
+        assert classifier.class_means.shape == (3, 4)
+        new_mean = torch.randn(4,)
+        classifier.update_class_means_dict({5: new_mean.clone()})
+        assert classifier.class_means.shape == (6, 4)
+        assert torch.all(classifier.class_means[3] == torch.zeros(4,))
+        assert torch.all(classifier.class_means[4] == torch.zeros(4,))
+        assert torch.all(classifier.class_means[5] == new_mean)
 
 
 class PNNTest(unittest.TestCase):

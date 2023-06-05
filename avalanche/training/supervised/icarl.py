@@ -76,7 +76,7 @@ class ICaRL(SupervisedTemplate):
         model = TrainEvalModel(
             feature_extractor,
             train_classifier=classifier,
-            eval_classifier=NCMClassifier(),
+            eval_classifier=NCMClassifier(normalize=True),
         )
 
         icarl = _ICaRLPlugin(memory_size, buffer_transform, fixed_memory)
@@ -136,7 +136,7 @@ class _ICaRLPlugin(SupervisedPlugin):
 
         self.old_model = None
         self.observed_classes = []
-        self.class_means = None
+        self.class_means = {}
         self.embedding_size = None
         self.output_size = None
         self.input_size = None
@@ -188,11 +188,11 @@ class _ICaRLPlugin(SupervisedPlugin):
         self.compute_class_means(strategy)
 
     def compute_class_means(self, strategy):
-        if self.class_means is None:
+        if self.class_means == {}:
             n_classes = sum(strategy.experience.benchmark.n_classes_per_exp)
-            self.class_means = torch.zeros((self.embedding_size, n_classes)).to(
-                strategy.device
-            )
+            self.class_means = {c_id: torch.zeros(self.embedding_size,
+                                                  device=strategy.device)
+                                for c_id in range(n_classes)}
 
         for i, class_samples in enumerate(self.x_memory):
             label = self.y_memory[i][0]
@@ -202,8 +202,7 @@ class _ICaRLPlugin(SupervisedPlugin):
                 mapped_prototypes = strategy.model.feature_extractor(
                     class_samples
                 ).detach()
-            D = mapped_prototypes.T
-            D = D / torch.norm(D, dim=0)
+            D = mapped_prototypes.T / torch.norm(mapped_prototypes, dim=1)
 
             if len(class_samples.shape) == 4:
                 class_samples = torch.flip(class_samples, [3])
@@ -213,18 +212,19 @@ class _ICaRLPlugin(SupervisedPlugin):
                     class_samples
                 ).detach()
 
-            D2 = mapped_prototypes2.T
-            D2 = D2 / torch.norm(D2, dim=0)
+            D2 = mapped_prototypes2.T / torch.norm(mapped_prototypes2, dim=1)
 
             div = torch.ones(class_samples.shape[0], device=strategy.device)
             div = div / class_samples.shape[0]
 
             m1 = torch.mm(D, div.unsqueeze(1)).squeeze(1)
             m2 = torch.mm(D2, div.unsqueeze(1)).squeeze(1)
-            self.class_means[:, label] = (m1 + m2) / 2
-            self.class_means[:, label] /= torch.norm(self.class_means[:, label])
 
-            strategy.model.eval_classifier.class_means = self.class_means
+            self.class_means[label] = (m1 + m2) / 2
+            self.class_means[label] /= torch.norm(self.class_means[label])
+
+            strategy.model.eval_classifier.update_class_means_dict(
+                self.class_means)
 
     def construct_exemplar_set(self, strategy: SupervisedTemplate):
         assert strategy.experience is not None

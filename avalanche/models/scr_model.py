@@ -21,7 +21,7 @@ class SCRModel(nn.Module):
             of the feature extractor
         """
         super().__init__()
-        self.ncm = NCMClassifier()
+        self.ncm = NCMClassifier(normalize=False)
         self.feature_extractor = feature_extractor
         self.train_classifier = projection
         self.eval_classifier = self.ncm

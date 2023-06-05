@@ -178,27 +178,4 @@ class SCR(SupervisedTemplate):
             class_means[label] /= float(num_els)
             class_means[label] /= class_means[label].norm()
 
-        # add new means to the eval classifier
-        # in case there are new classes, extend the eval classifier means
-        num_classes = max(class_means.keys()) + 1
-        hidden_size = class_means[num_classes-1].size(0)
-        if self.model.eval_classifier.class_means is None:
-            # first time adding means
-            means = torch.zeros(num_classes, hidden_size)
-        elif num_classes > self.model.eval_classifier.class_means.size(1):
-            # new classes discovered
-            means = torch.zeros(num_classes, hidden_size)
-            means[:self.model.eval_classifier.class_means.size(1), :] = \
-                self.model.eval_classifier.class_means.clone().cpu().T
-        else:
-            # no new classes
-            means = self.model.eval_classifier.class_means.cpu().T
-
-        for k, v in sorted(class_means.items()):
-            if (means[k] == 0).all():
-                means[k] = v.clone()
-            else:
-                means[k] = (means[k] + v) / 2.
-
-        # (H, n classes)
-        self.model.eval_classifier.class_means = means.to(self.device).T
+        self.model.eval_classifier.update_class_means_dict(class_means)
