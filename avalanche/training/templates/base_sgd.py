@@ -1,24 +1,40 @@
-from typing import Iterable, Sequence, Optional, Union, List
+from typing import Any, Callable, Iterable, Sequence, Optional, TypeVar, Union
 from pkg_resources import parse_version
 
 import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torch import Tensor
 
 from avalanche.benchmarks import CLExperience, CLStream
-from avalanche.core import BaseSGDPlugin
+from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
+from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.core import BasePlugin, BaseSGDPlugin
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates.base import BaseTemplate, ExpSequence
-from avalanche.models.utils import avalanche_model_adaptation
+from avalanche.training.templates.base import BaseTemplate
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
     collate_from_data_or_kwargs
+from avalanche.training.templates.strategy_mixin_protocol import \
+    SGDStrategyProtocol
 from avalanche.training.utils import trigger_plugins
 
 
-class BaseSGDTemplate(BaseTemplate):
+TDatasetExperience = TypeVar('TDatasetExperience', bound=DatasetExperience)
+TMBInput = TypeVar('TMBInput')
+TMBOutput = TypeVar('TMBOutput')
+
+
+class BaseSGDTemplate(
+        SGDStrategyProtocol[
+            TDatasetExperience,
+            TMBInput,
+            TMBOutput],
+        BaseTemplate[
+            TDatasetExperience]
+        ):
     """Base SGD class for continual learning skeletons.
 
     **Training loop**
@@ -45,11 +61,14 @@ class BaseSGDTemplate(BaseTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
-        device="cpu",
-        plugins: Optional[List["SupervisedPlugin"]] = None,
-        evaluator: EvaluationPlugin = default_evaluator(),
+        device: Union[str, torch.device] = "cpu",
+        plugins: Optional[Sequence[BasePlugin]] = None,
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
-        peval_mode="epoch",
+        peval_mode="epoch"
     ):
         """Init.
 
@@ -70,7 +89,13 @@ class BaseSGDTemplate(BaseTemplate):
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__(model=model, device=device, plugins=plugins)
+
+        super().__init__()  # type: ignore
+        BaseTemplate.__init__(
+            self=self,
+            model=model,
+            device=device,
+            plugins=plugins)
 
         self.optimizer: Optimizer = optimizer
         """ PyTorch optimizer. """
@@ -89,10 +114,16 @@ class BaseSGDTemplate(BaseTemplate):
         )
         """ Eval mini-batch size. """
 
+        self.retain_graph: bool = False
+        """ Retain graph when calling loss.backward(). """
+
         if evaluator is None:
             evaluator = EvaluationPlugin()
-        self.plugins.append(evaluator)
-        self.evaluator = evaluator
+        elif callable(evaluator):
+            evaluator = evaluator()
+
+        self.plugins.append(evaluator)  # type: ignore
+        self.evaluator: EvaluationPlugin = evaluator
         """ EvaluationPlugin used for logging and metric computations. """
 
         # Configure periodic evaluation.
@@ -101,7 +132,7 @@ class BaseSGDTemplate(BaseTemplate):
         peval = PeriodicEval(eval_every, peval_mode)
         self.plugins.append(peval)
 
-        self.clock = Clock()
+        self.clock: Clock = Clock()
         """ Incremental counters for strategy events. """
         # WARNING: Clock needs to be the last plugin, otherwise
         # counters will be wrong for plugins called after it.
@@ -111,7 +142,7 @@ class BaseSGDTemplate(BaseTemplate):
         # State variables. These are updated during the train/eval loops. #
         ###################################################################
 
-        self.adapted_dataset = None
+        self.adapted_dataset: Optional[AvalancheDataset] = None
         """ Data used to train. It may be modified by plugins. Plugins can 
         append data to it (e.g. for replay). 
 
@@ -122,25 +153,26 @@ class BaseSGDTemplate(BaseTemplate):
             use :attr:`.BaseTemplate.experience`.
         """
 
-        self.dataloader = None
+        self.dataloader: Iterable[Any] = []
         """ Dataloader. """
 
-        self.mbatch = None
+        self.mbatch: Optional[TMBInput] = None
         """ Current mini-batch. """
 
-        self.mb_output = None
+        self.mb_output: Optional[TMBOutput] = None
         """ Model's output computed on the current mini-batch. """
 
-        self.loss = None
+        self.loss: Tensor = self._make_empty_loss()
         """ Loss of the current mini-batch. """
 
         self._stop_training = False
 
     def train(self,
-              experiences: Union[CLExperience,
-                                 ExpSequence],
-              eval_streams: Optional[Sequence[Union[CLExperience,
-                                                    ExpSequence]]] = None,
+              experiences: Union[TDatasetExperience,
+                                 Iterable[TDatasetExperience]],
+              eval_streams: Optional[
+                    Sequence[Union[TDatasetExperience,
+                                   Iterable[TDatasetExperience]]]] = None,
               **kwargs):
 
         super().train(experiences, eval_streams, **kwargs)
@@ -169,7 +201,7 @@ class BaseSGDTemplate(BaseTemplate):
         # Should be implemented in Observation Type
         raise NotImplementedError()
 
-    def criterion(self):
+    def criterion(self) -> Tensor:
         """Compute loss function."""
         raise NotImplementedError()
 
@@ -191,7 +223,7 @@ class BaseSGDTemplate(BaseTemplate):
 
     def backward(self):
         """Run the backward pass."""
-        self.loss.backward()
+        self.loss.backward(retain_graph=self.retain_graph)
 
     def optimizer_step(self):
         """Execute the optimizer step (weights update)."""
@@ -212,7 +244,7 @@ class BaseSGDTemplate(BaseTemplate):
 
     # ==================================================================> NEW
 
-    def check_model_and_optimizer(self):
+    def check_model_and_optimizer(self, **kwargs):
         # Should be implemented in observation type
         raise NotImplementedError()
 
@@ -226,9 +258,7 @@ class BaseSGDTemplate(BaseTemplate):
         self.make_train_dataloader(**kwargs)
 
         # Model Adaptation (e.g. freeze/add new units)
-        # self.model = self.model_adaptation()
-        # self.make_optimizer()
-        self.check_model_and_optimizer()
+        self.check_model_and_optimizer(**kwargs)
 
         super()._before_training_exp(**kwargs)
 
@@ -236,17 +266,19 @@ class BaseSGDTemplate(BaseTemplate):
         super()._train_cleanup()
         # reset for faster serialization
         self.adapted_dataset = None
-        self.dataloader = None
+        self.dataloader = []
         self.mbatch = None
         self.mb_output = None
+        self.loss = self._make_empty_loss()
 
     def _eval_cleanup(self):
         super()._eval_cleanup()
         # reset for faster serialization
         self.adapted_dataset = None
-        self.dataloader = None
+        self.dataloader = []
         self.mbatch = None
         self.mb_output = None
+        self.loss = self._make_empty_loss()
 
     def _train_exp(
         self, experience: CLExperience, eval_streams=None, **kwargs
@@ -291,7 +323,9 @@ class BaseSGDTemplate(BaseTemplate):
 
     def train_dataset_adaptation(self, **kwargs):
         """Initialize `self.adapted_dataset`."""
+        assert self.experience is not None
         self.adapted_dataset = self.experience.dataset
+        assert self.adapted_dataset is not None
         self.adapted_dataset = self.adapted_dataset.train()
 
     def _load_train_state(self, prev_state):
@@ -312,12 +346,52 @@ class BaseSGDTemplate(BaseTemplate):
 
         super()._before_eval_exp(**kwargs)
 
+    def _obtain_common_dataloader_parameters(self, **kwargs):
+        """
+        Utility function that returns the dictionary of parameters to be passed
+        to the train and eval dataloaders.
+
+        This function can be useful when in need to customize the data loading
+        parameters but no radical changes are needed. When overriding to 
+        add/customize parameters, it is recommended to first call this 
+        implementation (super) to obtain a base dictionary of parameters.
+
+        However, if a more deep change is needed in the data loading procedure,
+        it is better to overrride :meth:`make_train_dataloader` and/or
+        :meth:`make_eval_dataloader` directly.
+
+        Note: the resulting dictionary does not include the collate function
+        unless explicitly passed.
+
+        :param kwargs: The dataloader arguments as passed to the `train`
+            or `eval` method.
+        :return: A dictionary of parameters to be passed to the DataLoader class
+            or to one of the Avalanche dataloaders.
+        """
+        other_dataloader_args = {}
+
+        if 'persistent_workers' in kwargs:
+            if parse_version(torch.__version__) >= parse_version("1.7.0"):
+                other_dataloader_args["persistent_workers"] = \
+                    kwargs['persistent_workers']
+            else:
+                del kwargs['persistent_workers']
+
+        for k, v in kwargs.items():
+            other_dataloader_args[k] = v
+
+        if other_dataloader_args.get('pin_memory', None) is None:
+            other_dataloader_args['pin_memory'] = self.device.type == 'cuda'
+
+        return other_dataloader_args
+
     def make_train_dataloader(
         self,
         num_workers=0,
         shuffle=True,
-        pin_memory=True,
+        pin_memory=None,
         persistent_workers=False,
+        drop_last=False,
         **kwargs
     ):
         """Data loader initialization.
@@ -331,25 +405,33 @@ class BaseSGDTemplate(BaseTemplate):
             pinned memory before returning them. Defaults to True.
         """
 
-        other_dataloader_args = {}
+        assert self.adapted_dataset is not None
 
-        if parse_version(torch.__version__) >= parse_version("1.7.0"):
-            other_dataloader_args["persistent_workers"] = persistent_workers
-        for k, v in kwargs.items():
-            other_dataloader_args[k] = v
+        torch.utils.data.DataLoader
+
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=self.train_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            drop_last=drop_last,
+        )
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
             oversample_small_groups=True,
-            num_workers=num_workers,
-            batch_size=self.train_mb_size,
-            shuffle=shuffle,
-            pin_memory=pin_memory,
             **other_dataloader_args
         )
 
     def make_eval_dataloader(
-        self, num_workers=0, pin_memory=True, persistent_workers=False, **kwargs
+        self,
+        num_workers=0,
+        shuffle=False,
+        pin_memory=None,
+        persistent_workers=False,
+        drop_last=False,
+        **kwargs
     ):
         """
         Initializes the eval data loader.
@@ -361,37 +443,39 @@ class BaseSGDTemplate(BaseTemplate):
         :param kwargs:
         :return:
         """
-        other_dataloader_args = {}
 
-        if parse_version(torch.__version__) >= parse_version("1.7.0"):
-            other_dataloader_args["persistent_workers"] = persistent_workers
-        for k, v in kwargs.items():
-            other_dataloader_args[k] = v
+        assert self.adapted_dataset is not None
 
-        collate_from_data_or_kwargs(self.adapted_dataset,
-                                    other_dataloader_args)
+        other_dataloader_args = self._obtain_common_dataloader_parameters(
+            batch_size=self.eval_mb_size,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            pin_memory=pin_memory,
+            persistent_workers=persistent_workers,
+            drop_last=drop_last,
+        )
+
+        collate_from_data_or_kwargs(
+            self.adapted_dataset,
+            other_dataloader_args)
+        
         self.dataloader = DataLoader(
             self.adapted_dataset,
-            num_workers=num_workers,
-            batch_size=self.eval_mb_size,
-            pin_memory=pin_memory,
             **other_dataloader_args
         )
 
     def eval_dataset_adaptation(self, **kwargs):
         """Initialize `self.adapted_dataset`."""
+        assert self.experience is not None
         self.adapted_dataset = self.experience.dataset
+        assert self.adapted_dataset is not None
         self.adapted_dataset = self.adapted_dataset.eval()
 
     def _unpack_minibatch(self):
-        """Move to device"""
-        # First verify the mini-batch
-        self._check_minibatch()
+        raise NotImplementedError()
 
-        if isinstance(self.mbatch, tuple):
-            self.mbatch = list(self.mbatch)
-        for i in range(len(self.mbatch)):
-            self.mbatch[i] = self.mbatch[i].to(self.device)
+    def _make_empty_loss(self) -> Tensor:
+        return torch.zeros(1, device=self.device)
 
     #########################################################
     # Plugin Triggers                                       #
@@ -454,13 +538,17 @@ class BaseSGDTemplate(BaseTemplate):
         trigger_plugins(self, "after_eval_dataset_adaptation", **kwargs)
 
 
-class PeriodicEval(SupervisedPlugin):
+class PeriodicEval(BaseSGDPlugin, supports_distributed=True):
     """Schedules periodic evaluation during training.
 
     This plugin is automatically configured and added by the BaseTemplate.
     """
 
-    def __init__(self, eval_every=-1, peval_mode="epoch", do_initial=True):
+    def __init__(
+            self,
+            eval_every=-1,
+            peval_mode="epoch",
+            do_initial=True):
         """Init.
 
         :param eval_every: the frequency of the calls to `eval` inside the
@@ -480,7 +568,7 @@ class PeriodicEval(SupervisedPlugin):
         self.eval_every = eval_every
         self.peval_mode = peval_mode
         self.do_initial = do_initial and eval_every > -1
-        self.do_final = None
+        self.do_final: Optional[bool] = None
         self._is_eval_updated = False
 
     def before_training(self, strategy, **kwargs):

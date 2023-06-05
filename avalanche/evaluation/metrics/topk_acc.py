@@ -9,26 +9,31 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import List, Union, Dict
+from typing import TYPE_CHECKING, List, Union, Dict
 
 import torch
 from torch import Tensor
+import torchmetrics
 from torchmetrics.functional import accuracy
 
-from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
+from avalanche.evaluation import Metric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
 from avalanche.evaluation.metric_utils import phase_and_task
 
 from collections import defaultdict
+from packaging import version
+
+if TYPE_CHECKING:
+    from avalanche.training.templates.common_templates import SupervisedTemplate
 
 
-class TopkAccuracy(Metric[float]):
+class TopkAccuracy(Metric[Dict[int, float]]):
     """
     The Top-k Accuracy metric. This is a standalone metric.
     It is defined using torchmetrics.functional accuracy with top_k
     """
 
-    def __init__(self, top_k):
+    def __init__(self, top_k: int):
         """
         Creates an instance of the standalone Top-k Accuracy metric.
 
@@ -38,8 +43,11 @@ class TopkAccuracy(Metric[float]):
 
         :param top_k: integer number to define the value of k.
         """
-        self._topk_acc_dict = defaultdict(Mean)
-        self.top_k = top_k
+        self._topk_acc_dict: Dict[int, Mean] = defaultdict(Mean)
+        self.top_k: int = top_k
+
+        self.__torchmetrics_requires_task = \
+            version.parse(torchmetrics.__version__) >= version.parse('0.11.0')
 
     @torch.no_grad()
     def update(
@@ -77,20 +85,42 @@ class TopkAccuracy(Metric[float]):
         if isinstance(task_labels, int):
             total_patterns = len(true_y)
             self._topk_acc_dict[task_labels].update(
-                accuracy(predicted_y, true_y, top_k=self.top_k), total_patterns
+                self._compute_topk_acc(predicted_y, true_y, top_k=self.top_k), 
+                total_patterns
             )
         elif isinstance(task_labels, Tensor):
             for pred, true, t in zip(predicted_y, true_y, task_labels):
-                self._topk_acc_dict[t.item()].update(
-                    accuracy(pred, true, top_k=self.top_k), 1
+                self._topk_acc_dict[int(t)].update(
+                    self._compute_topk_acc(pred, true, top_k=self.top_k),
+                    1
                 )
         else:
             raise ValueError(
                 f"Task label type: {type(task_labels)}, "
                 f"expected int/float or Tensor"
             )
-
-    def result(self, task_label=None) -> Dict[int, float]:
+        
+    def _compute_topk_acc(self, pred, gt, top_k):
+        if self.__torchmetrics_requires_task:
+            num_classes = int(torch.max(torch.as_tensor(gt))) + 1
+            pred_t = torch.as_tensor(pred)
+            if len(pred_t.shape) > 1:
+                num_classes = max(num_classes, pred_t.shape[1])
+            
+            return accuracy(
+                pred,
+                gt,
+                task="multiclass",
+                num_classes=num_classes,
+                top_k=self.top_k
+            )
+        else:
+            return accuracy(
+                pred,
+                gt,
+                top_k=self.top_k)
+        
+    def result_task_label(self, task_label: int) -> Dict[int, float]:
         """
         Retrieves the running top-k accuracy.
 
@@ -98,16 +128,24 @@ class TopkAccuracy(Metric[float]):
 
         :param task_label: if None, return the entire dictionary of accuracies
             for each task. Otherwise return the dictionary
-            `{task_label: topk_accuracy}`.
-        :return: A dict of running accuracies for each task label,
+            
+        :return: A dictionary `{task_label: topk_accuracy}`, where the accuracy
+            is a float value between 0 and 1.
+        """
+        assert task_label is not None
+        return {task_label: self._topk_acc_dict[task_label].result()}
+
+    def result(self) -> Dict[int, float]:
+        """
+        Retrieves the running top-k accuracy for all tasks.
+
+        Calling this method will not change the internal state of the metric.
+
+        :return: A dict of running top-k accuracies for each task label,
             where each value is a float value between 0 and 1.
         """
-        assert task_label is None or isinstance(task_label, int)
-        if task_label is None:
-            return {k: v.result() for k, v in self._topk_acc_dict.items()}
-        else:
-            return {task_label: self._topk_acc_dict[task_label].result()}
-
+        return {k: v.result() for k, v in self._topk_acc_dict.items()}
+    
     def reset(self, task_label=None) -> None:
         """
         Resets the metric.
@@ -123,15 +161,20 @@ class TopkAccuracy(Metric[float]):
             self._topk_acc_dict[task_label].reset()
 
 
-class TopkAccuracyPluginMetric(GenericPluginMetric[float]):
+class TopkAccuracyPluginMetric(
+        GenericPluginMetric[
+            Dict[int, float],
+            TopkAccuracy]):
     """
     Base class for all top-k accuracies plugin metrics
     """
 
     def __init__(self, reset_at, emit_at, mode, top_k):
-        self._topk_acc = TopkAccuracy(top_k=top_k)
         super(TopkAccuracyPluginMetric, self).__init__(
-            self._topk_acc, reset_at=reset_at, emit_at=emit_at, mode=mode
+            TopkAccuracy(top_k=top_k),
+            reset_at=reset_at,
+            emit_at=emit_at,
+            mode=mode
         )
 
     def reset(self, strategy=None) -> None:
@@ -140,13 +183,14 @@ class TopkAccuracyPluginMetric(GenericPluginMetric[float]):
         else:
             self._metric.reset(phase_and_task(strategy)[1])
 
-    def result(self, strategy=None) -> float:
+    def result(self, strategy=None) -> Dict[int, float]:
         if self._emit_at == "stream" or strategy is None:
             return self._metric.result()
         else:
-            return self._metric.result(phase_and_task(strategy)[1])
+            return self._metric.result_task_label(phase_and_task(strategy)[1])
 
-    def update(self, strategy):
+    def update(self, strategy: "SupervisedTemplate"):
+        assert strategy.experience is not None
         # task labels defined for each experience
         task_labels = strategy.experience.task_labels
         if len(task_labels) > 1:
@@ -154,7 +198,7 @@ class TopkAccuracyPluginMetric(GenericPluginMetric[float]):
             task_labels = strategy.mb_task_id
         else:
             task_labels = task_labels[0]
-        self._topk_acc.update(strategy.mb_output, strategy.mb_y, task_labels)
+        self._metric.update(strategy.mb_output, strategy.mb_y, task_labels)
 
 
 class MinibatchTopkAccuracy(TopkAccuracyPluginMetric):
@@ -271,11 +315,11 @@ class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
         self._current_experience = 0
         self.top_k = top_k
 
-    def after_training_exp(self, strategy) -> None:
+    def after_training_exp(self, strategy): 
         self._current_experience = strategy.experience.current_experience
         # Reset average after learning from a new experience
-        TopkAccuracyPluginMetric.reset(self, strategy)
-        return TopkAccuracyPluginMetric.after_training_exp(self, strategy)
+        self.reset(strategy)
+        return super().after_training_exp(strategy)
 
     def update(self, strategy):
         """
@@ -318,7 +362,7 @@ def topk_acc_metrics(
     experience=False,
     trained_experience=False,
     stream=False,
-) -> List[PluginMetric]:
+) -> List[TopkAccuracyPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -340,7 +384,7 @@ def topk_acc_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[TopkAccuracyPluginMetric] = []
     if minibatch:
         metrics.append(MinibatchTopkAccuracy(top_k=top_k))
     if epoch:

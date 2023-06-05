@@ -134,17 +134,17 @@ class MultiParamTransformCallable(MultiParamTransform):
             n_params = len(params)
         else:
             n_params = min(max_par, len(params))
-        params = list(params)
+        params_list = list(params)
 
-        transform_result = transform_callable(*params[:n_params])
+        transform_result = transform_callable(*params_list[:n_params])
         if not isinstance(transform_result, Sequence):
             transform_result = (transform_result,)
 
         # In this way the transform is free to return more or less elements
         # than the amount of input parameters. May be useful in the future.
-        params[:n_params] = transform_result
+        params_list[:n_params] = transform_result
 
-        return params
+        return params_list
 
     @staticmethod
     def _detect_parameters(transform_callable):
@@ -204,11 +204,11 @@ class TupleTransform(MultiParamTransform):
         self.transforms = transforms
 
     def __call__(self, *args):
-        args = list(args)
+        args_list = list(args)
         for idx, transform in enumerate(self.transforms):
             if transform is not None:
-                args[idx] = transform(args[idx])
-        return args
+                args_list[idx] = transform(args_list[idx])
+        return args_list
 
     def __str__(self):
         return "TupleTransform({})".format(self.transforms)

@@ -10,8 +10,16 @@
 ################################################################################
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, Optional, TYPE_CHECKING, List, Union
-from typing_extensions import Protocol, Literal
+from typing import (
+    Generic,
+    TypeVar,
+    Optional,
+    TYPE_CHECKING,
+    List,
+    Union,
+    overload,
+)
+from typing_extensions import Literal, Protocol
 from .metric_results import MetricValue, MetricType, AlternativeValues
 from .metric_utils import (
     get_metric_name,
@@ -23,11 +31,11 @@ if TYPE_CHECKING:
     from .metric_results import MetricResult
     from ..training.templates import SupervisedTemplate
 
-TResult = TypeVar("TResult")
-TAggregated = TypeVar("TAggregated", bound="PluginMetric")
+TResult_co = TypeVar("TResult_co", covariant=True)
+TMetric = TypeVar('TMetric', bound='Metric')
 
 
-class Metric(Protocol[TResult]):
+class Metric(Protocol[TResult_co]):
     """Standalone metric.
 
     A standalone metric exposes methods to reset its internal state and
@@ -48,7 +56,7 @@ class Metric(Protocol[TResult]):
     update and results. See :class:`PluginMetric` for more details.
     """
 
-    def result(self, **kwargs) -> Optional[TResult]:
+    def result(self) -> Optional[TResult_co]:
         """
         Obtains the value of the metric.
 
@@ -56,7 +64,7 @@ class Metric(Protocol[TResult]):
         """
         pass
 
-    def reset(self, **kwargs) -> None:
+    def reset(self) -> None:
         """
         Resets the metric internal state.
 
@@ -65,7 +73,7 @@ class Metric(Protocol[TResult]):
         pass
 
 
-class PluginMetric(Metric[TResult], ABC):
+class PluginMetric(Metric[TResult_co], ABC):
     """A metric that can be used together with :class:`EvaluationPlugin`.
 
     This class leaves the implementation of the `result` and `reset` methods
@@ -92,11 +100,11 @@ class PluginMetric(Metric[TResult], ABC):
         pass
 
     @abstractmethod
-    def result(self, **kwargs) -> Optional[TResult]:
+    def result(self) -> Optional[TResult_co]:
         pass
 
     @abstractmethod
-    def reset(self, **kwargs) -> None:
+    def reset(self) -> None:
         pass
 
     def before_training(self, strategy: "SupervisedTemplate") -> "MetricResult":
@@ -206,15 +214,57 @@ class PluginMetric(Metric[TResult], ABC):
         pass
 
 
-class GenericPluginMetric(PluginMetric[TResult]):
+class GenericPluginMetric(
+        PluginMetric[TResult_co],
+        Generic[TResult_co, TMetric]):
     """
     This class provides a generic implementation of a Plugin Metric.
     The user can subclass this class to easily implement custom plugin
     metrics.
     """
 
+    @overload
     def __init__(
-        self, metric, reset_at="experience", emit_at="experience", mode="eval"
+        self, 
+        metric: TMetric, 
+        reset_at: Literal[
+            "iteration",
+            "epoch",
+            "experience",
+            "stream",
+            "never"] = "experience",
+        emit_at: Literal[
+            "iteration",
+            "epoch",
+            "experience", 
+            "stream"] = "experience",
+        mode: Literal["train"] = "train"
+    ):
+        ...
+
+    @overload
+    def __init__(
+        self, 
+        metric: TMetric, 
+        reset_at: Literal[
+            "iteration",
+            "experience",
+            "stream",
+            "never"] = "experience",
+        emit_at: Literal[
+            "iteration",
+            "experience",
+            "stream"] = "experience",
+        mode: Literal["eval"] = "eval"
+    ):
+        ...
+
+    def __init__(
+        self, 
+        metric: TMetric, 
+        reset_at="experience",
+        emit_at="experience",
+        mode="eval"
     ):
         super(GenericPluginMetric, self).__init__()
         assert mode in {"train", "eval"}
@@ -230,22 +280,22 @@ class GenericPluginMetric(PluginMetric[TResult]):
         else:
             assert reset_at in {"iteration", "experience", "stream", "never"}
             assert emit_at in {"iteration", "experience", "stream"}
-        self._metric = metric
+        self._metric: TMetric = metric
         self._reset_at = reset_at
         self._emit_at = emit_at
         self._mode = mode
 
-    def reset(self, strategy) -> None:
+    def reset(self) -> None:
         self._metric.reset()
 
-    def result(self, strategy):
+    def result(self):
         return self._metric.result()
 
-    def update(self, strategy):
+    def update(self, strategy: "SupervisedTemplate"):
         pass
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
-        metric_value = self.result(strategy)
+        metric_value = self.result()
         add_exp = self._emit_at == "experience"
         plot_x_position = strategy.clock.train_iterations
 
@@ -275,19 +325,19 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def before_training_exp(self, strategy: "SupervisedTemplate"):
         super().before_training_exp(strategy)
         if self._reset_at == "experience" and self._mode == "train":
-            self.reset(strategy)
+            self.reset()
 
     def before_training_epoch(self, strategy: "SupervisedTemplate"):
         super().before_training_epoch(strategy)
         if self._reset_at == "epoch" and self._mode == "train":
-            self.reset(strategy)
+            self.reset()
 
     def before_training_iteration(self, strategy: "SupervisedTemplate"):
         super().before_training_iteration(strategy)
         if self._reset_at == "iteration" and self._mode == "train":
-            self.reset(strategy)
+            self.reset()
 
-    def after_training_iteration(self, strategy: "SupervisedTemplate") -> None:
+    def after_training_iteration(self, strategy: "SupervisedTemplate"):
         super().after_training_iteration(strategy)
         if self._mode == "train":
             self.update(strategy)
@@ -312,12 +362,12 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def before_eval(self, strategy: "SupervisedTemplate"):
         super().before_eval(strategy)
         if self._reset_at == "stream" and self._mode == "eval":
-            self.reset(strategy)
+            self.reset()
 
     def before_eval_exp(self, strategy: "SupervisedTemplate"):
         super().before_eval_exp(strategy)
         if self._reset_at == "experience" and self._mode == "eval":
-            self.reset(strategy)
+            self.reset()
 
     def after_eval_exp(self, strategy: "SupervisedTemplate"):
         super().after_eval_exp(strategy)
@@ -339,7 +389,7 @@ class GenericPluginMetric(PluginMetric[TResult]):
     def before_eval_iteration(self, strategy: "SupervisedTemplate"):
         super().before_eval_iteration(strategy)
         if self._reset_at == "iteration" and self._mode == "eval":
-            self.reset(strategy)
+            self.reset()
 
 
 class _ExtendedPluginMetricValue:
@@ -406,7 +456,7 @@ class _ExtendedPluginMetricValue:
 
 
 class _ExtendedGenericPluginMetric(
-    GenericPluginMetric[List[_ExtendedPluginMetricValue]]
+    GenericPluginMetric[List[_ExtendedPluginMetricValue], TMetric]
 ):
     """
     A generified version of :class:`GenericPluginMetric` which supports emitting
@@ -436,7 +486,7 @@ class _ExtendedGenericPluginMetric(
         super().__init__(*args, **kwargs)
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
-        emitted_values = self.result(strategy)
+        emitted_values = self.result()
         default_plot_x_position = strategy.clock.train_iterations
 
         metrics = []
@@ -456,9 +506,6 @@ class _ExtendedGenericPluginMetric(
             )
 
         return metrics
-
-    def result(self, strategy) -> List[_ExtendedPluginMetricValue]:
-        return self._metric.result()
 
     def metric_value_name(self, m_value: _ExtendedPluginMetricValue) -> str:
         return generic_get_metric_name(

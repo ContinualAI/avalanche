@@ -25,7 +25,7 @@ Example filename from the JSON: "file_name":
 "train_val2018/Insecta/1455/994fa5...f1e360d34aae943.jpg"
 """
 
-from typing import Any, List
+from typing import Any, Dict, List, Set
 
 import os
 import logging
@@ -125,7 +125,7 @@ class INATURALIST2018(Dataset):
         self.ds = jsonparser(annotation_file=os.path.join(root, ann_file))
 
         self.img_ids, self.targets = [], []  # targets field is required!
-        self.cats_per_supcat = {}
+        self.cats_per_supcat: Dict[str, Set[int]] = {}
 
         # Filter full dataset parsed
         for ann in self.ds.anns.values():

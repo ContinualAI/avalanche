@@ -14,7 +14,7 @@
 from pathlib import Path
 import glob
 import os
-from typing import Union
+from typing import List, Optional, Union
 from warnings import warn
 import sys
 import json
@@ -254,7 +254,7 @@ class EndlessCLSimDataset(DownloadableDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         scenario=None,
         patch_size=64,
@@ -330,8 +330,8 @@ class EndlessCLSimDataset(DownloadableDataset):
         self.semseg = semseg
         self.labelmap_path = labelmap_path
 
-        self.train_sub_sequence_datasets = []
-        self.test_sub_sequence_datasets = []
+        self.train_sub_sequence_datasets: List[ClassificationSubSequence] = []
+        self.test_sub_sequence_datasets: List[ClassificationSubSequence] = []
 
         if self.semseg and self.patch_size == 64:
             self.patch_size = (240, 135)

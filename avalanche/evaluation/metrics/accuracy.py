@@ -9,13 +9,12 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 
-from typing import List, Union, Dict
+from typing import List, Optional, Union, Dict
 
 import torch
 from torch import Tensor
-from avalanche.evaluation import Metric, PluginMetric, GenericPluginMetric
+from avalanche.evaluation import Metric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
-from avalanche.evaluation.metric_utils import phase_and_task
 from collections import defaultdict
 
 
@@ -100,7 +99,7 @@ class Accuracy(Metric[float]):
         self._mean_accuracy.reset()
 
 
-class TaskAwareAccuracy(Metric[float]):
+class TaskAwareAccuracy(Metric[Dict[int, float]]):
     """The task-aware Accuracy metric.
 
     The metric computes a dictionary of <task_label, accuracy value> pairs.
@@ -163,7 +162,7 @@ class TaskAwareAccuracy(Metric[float]):
                 f"expected int/float or Tensor"
             )
 
-    def result(self, task_label=None) -> Dict[int, float]:
+    def result(self, task_label: Optional[int] = None) -> Dict[int, float]:
         """
         Retrieves the running accuracy.
 
@@ -201,7 +200,7 @@ class TaskAwareAccuracy(Metric[float]):
             self._mean_accuracy[task_label].reset()
 
 
-class AccuracyPluginMetric(GenericPluginMetric[float]):
+class AccuracyPluginMetric(GenericPluginMetric[float, Accuracy]):
     """
     Base class for all accuracies plugin metrics
     """
@@ -214,30 +213,50 @@ class AccuracyPluginMetric(GenericPluginMetric[float]):
         :param mode:
         :param split_by_task: whether to compute task-aware accuracy or not.
         """
-        self.split_by_task = split_by_task
-        if self.split_by_task:
-            self._accuracy = TaskAwareAccuracy()
-        else:
-            self._accuracy = Accuracy()
-        super(AccuracyPluginMetric, self).__init__(
-            self._accuracy, reset_at=reset_at, emit_at=emit_at, mode=mode
+        super().__init__(
+            Accuracy(), reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
-    def reset(self, strategy=None) -> None:
+    def reset(self) -> None:
         self._metric.reset()
 
-    def result(self, strategy=None) -> float:
+    def result(self) -> float:
         return self._metric.result()
 
     def update(self, strategy):
-        if isinstance(self._accuracy, Accuracy):
-            self._accuracy.update(strategy.mb_output, strategy.mb_y)
-        elif isinstance(self._accuracy, TaskAwareAccuracy):
-            self._accuracy.update(
-                strategy.mb_output, strategy.mb_y, strategy.mb_task_id
-            )
-        else:
-            assert False, "should never get here."
+        self._metric.update(strategy.mb_output, strategy.mb_y)
+
+
+class AccuracyPerTaskPluginMetric(
+        GenericPluginMetric[
+            Dict[int, float],
+            TaskAwareAccuracy]):
+    """
+    Base class for all accuracies plugin metrics
+    """
+
+    def __init__(self, reset_at, emit_at, mode):
+        """Creates the Accuracy plugin
+
+        :param reset_at:
+        :param emit_at:
+        :param mode:
+        :param split_by_task: whether to compute task-aware accuracy or not.
+        """
+        super().__init__(
+            TaskAwareAccuracy(), reset_at=reset_at, emit_at=emit_at, mode=mode
+        )
+
+    def reset(self) -> None:
+        self._metric.reset()
+
+    def result(self) -> Dict[int, float]:
+        return self._metric.result()
+
+    def update(self, strategy):
+        self._metric.update(
+            strategy.mb_output, strategy.mb_y, strategy.mb_task_id
+        )
 
 
 class MinibatchAccuracy(AccuracyPluginMetric):
@@ -368,11 +387,11 @@ class TrainedExperienceAccuracy(AccuracyPluginMetric):
         )
         self._current_experience = 0
 
-    def after_training_exp(self, strategy) -> None:
+    def after_training_exp(self, strategy):
         self._current_experience = strategy.experience.current_experience
         # Reset average after learning from a new experience
-        AccuracyPluginMetric.reset(self, strategy)
-        return AccuracyPluginMetric.after_training_exp(self, strategy)
+        self.reset()
+        return super().after_training_exp(strategy)
 
     def update(self, strategy):
         """
@@ -394,7 +413,7 @@ def accuracy_metrics(
     experience=False,
     stream=False,
     trained_experience=False,
-) -> List[PluginMetric]:
+) -> List[AccuracyPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -416,7 +435,7 @@ def accuracy_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[AccuracyPluginMetric] = []
     if minibatch:
         metrics.append(MinibatchAccuracy())
 

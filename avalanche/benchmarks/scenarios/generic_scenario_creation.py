@@ -116,22 +116,22 @@ def create_multi_dataset_generic_scenario(
             )
 
     train_t_labels = []
-    train_dataset_list = list(train_dataset_list)
-    for dataset_idx in range(len(train_dataset_list)):
+    train_dataset_list_avl = []
+    for dataset_idx, dataset in enumerate(train_dataset_list):
         dataset = train_dataset_list[dataset_idx]
         train_t_labels.append(task_labels[dataset_idx])
-        train_dataset_list[dataset_idx] = make_classification_dataset(
+        train_dataset_list_avl.append(make_classification_dataset(
             dataset,
             task_labels=ConstantSequence(
                 task_labels[dataset_idx], len(dataset)
             ),
             transform_groups=transform_groups,
             initial_transform_group="train",
-        )
+        ))
 
     test_t_labels = []
-    test_dataset_list = list(test_dataset_list)
-    for dataset_idx in range(len(test_dataset_list)):
+    test_dataset_list_avl = []
+    for dataset_idx, dataset in enumerate(test_dataset_list):
         dataset = test_dataset_list[dataset_idx]
 
         test_t_label = task_labels[dataset_idx]
@@ -140,17 +140,17 @@ def create_multi_dataset_generic_scenario(
 
         test_t_labels.append(test_t_label)
 
-        test_dataset_list[dataset_idx] = make_classification_dataset(
+        test_dataset_list_avl.append(make_classification_dataset(
             dataset,
             task_labels=ConstantSequence(test_t_label, len(dataset)),
             transform_groups=transform_groups,
             initial_transform_group="eval",
-        )
+        ))
 
     return GenericCLScenario(
         stream_definitions={
-            "train": (train_dataset_list, train_t_labels),
-            "test": (test_dataset_list, test_t_labels),
+            "train": (train_dataset_list_avl, train_t_labels),
+            "test": (test_dataset_list_avl, test_t_labels),
         },
         complete_test_set_only=complete_test_set_only,
     )

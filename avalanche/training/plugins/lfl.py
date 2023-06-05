@@ -50,11 +50,13 @@ class LFLPlugin(SupervisedPlugin):
         """
         Compute features from prev model and current model
         """
+        prev_model = self.prev_model
+        assert prev_model is not None
         model.eval()
-        self.prev_model.eval()
+        prev_model.eval()
 
         features = model.get_features(x)
-        prev_features = self.prev_model.get_features(x)
+        prev_features = prev_model.get_features(x)
 
         return features, prev_features
 

@@ -74,6 +74,8 @@ class CPUUsage(Metric[float]):
         if self._first_update:
             self._process_handle = Process(os.getpid())
 
+        assert self._process_handle is not None
+
         last_time = getattr(self._process_handle, "_last_sys_cpu_times", None)
         utilization = self._process_handle.cpu_percent()
         current_time = getattr(
@@ -115,16 +117,15 @@ class CPUUsage(Metric[float]):
         self._first_update = True
 
 
-class CPUPluginMetric(GenericPluginMetric[float]):
+class CPUPluginMetric(GenericPluginMetric[float, CPUUsage]):
     def __init__(self, reset_at, emit_at, mode):
-        self._cpu = CPUUsage()
 
         super(CPUPluginMetric, self).__init__(
-            self._cpu, reset_at=reset_at, emit_at=emit_at, mode=mode
+            CPUUsage(), reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
     def update(self, strategy):
-        self._cpu.update()
+        self._metric.update()
 
 
 class MinibatchCPUUsage(CPUPluginMetric):
@@ -196,7 +197,7 @@ class RunningEpochCPUUsage(CPUPluginMetric):
             reset_at="epoch", emit_at="iteration", mode="train"
         )
 
-    def result(self, strategy) -> float:
+    def result(self) -> float:
         return self._mean.result()
 
     def before_training_epoch(self, strategy):
@@ -210,8 +211,8 @@ class RunningEpochCPUUsage(CPUPluginMetric):
     def after_training_iteration(self, strategy):
         super().after_training_iteration(strategy)
         self.update(strategy)
-        self._mean.update(self._cpu.result())
-        self._cpu.reset()
+        self._mean.update(self._metric.result())
+        self._metric.reset()
         return self._package_result(strategy)
 
     def __str__(self):
@@ -275,7 +276,7 @@ def cpu_usage_metrics(
     epoch_running=False,
     experience=False,
     stream=False
-) -> List[PluginMetric]:
+) -> List[CPUPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.
@@ -294,7 +295,7 @@ def cpu_usage_metrics(
     :return: A list of plugin metrics.
     """
 
-    metrics = []
+    metrics: List[CPUPluginMetric] = []
     if minibatch:
         metrics.append(MinibatchCPUUsage())
 

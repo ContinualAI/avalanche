@@ -1,3 +1,4 @@
+from typing import Dict, Optional
 import warnings
 
 import torch
@@ -50,22 +51,22 @@ class RWalkPlugin(SupervisedPlugin):
         self.delta_t = delta_t
 
         # Information computed every delta_t
-        self.checkpoint_params = None
-        self.checkpoint_loss = None
+        self.checkpoint_params: Dict[str, ParamData] = dict()
+        self.checkpoint_loss: Dict[str, ParamData] = dict()
 
         # Partial scores (s_t1^t2) computed incrementally every delta_t
-        self.checkpoint_scores = None
+        self.checkpoint_scores: Dict[str, ParamData] = dict()
 
         # Information stored at the beginning of every iteration
-        self.iter_grad = None
-        self.iter_importance = None
-        self.iter_params = None
+        self.iter_grad: Dict[str, ParamData] = dict()
+        self.iter_importance: Optional[Dict[str, ParamData]] = None
+        self.iter_params: Dict[str, ParamData] = dict()
 
         # Information stored at the end of every experience (t_k in the paper)
-        self.exp_scores = None
-        self.exp_params = None
-        self.exp_importance = None
-        self.exp_penalties = None
+        self.exp_scores: Optional[Dict[str, ParamData]] = None
+        self.exp_params: Optional[Dict[str, ParamData]] = None
+        self.exp_importance: Optional[Dict[str, ParamData]] = None
+        self.exp_penalties: Optional[Dict[str, ParamData]] = None
 
     def _is_checkpoint_iter(self, strategy):
         return (strategy.clock.train_iterations + 1) % self.delta_t == 0
@@ -141,6 +142,7 @@ class RWalkPlugin(SupervisedPlugin):
     # Add scores for a single delta_t (referred to as s_t1^t2 in the paper)
     @torch.no_grad()
     def _update_score(self, strategy):
+        assert self.iter_importance is not None
         for k, new_p in strategy.model.named_parameters():
             if k not in self.iter_importance:
                 # new params do not count
@@ -172,6 +174,8 @@ class RWalkPlugin(SupervisedPlugin):
     # Add loss penalties (Eq. 8 in the RWalk paper)
     def before_backward(self, strategy, *args, **kwargs):
         if strategy.clock.train_exp_counter > 0:
+            assert self.exp_penalties is not None
+            assert self.exp_params is not None
             ewc_loss = 0
 
             for k, param in strategy.model.named_parameters():
@@ -199,6 +203,7 @@ class RWalkPlugin(SupervisedPlugin):
 
     # Update experience information
     def after_training_exp(self, strategy, *args, **kwargs):
+        assert self.iter_importance is not None
         self.exp_importance = self.iter_importance
         self.exp_params = copy_params_dict(strategy.model)
 

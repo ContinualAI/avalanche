@@ -16,6 +16,7 @@ and their respective helper functions.
 """
 
 from abc import abstractmethod
+from typing import Union
 from matplotlib import transforms
 import torch
 import torch.nn as nn
@@ -113,7 +114,12 @@ class MlpVAE(Generator, nn.Module):
     More details can be found in: https://arxiv.org/abs/1809.10635
     """
 
-    def __init__(self, shape, nhid=16, n_classes=10, device="cpu"):
+    def __init__(
+            self,
+            shape,
+            nhid=16,
+            n_classes=10,
+            device: Union[str, torch.device] = "cpu"):
         """
         :param shape: Shape of each input sample
         :param nhid: Dimension of latent space of Encoder.

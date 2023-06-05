@@ -38,7 +38,8 @@ from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 
 # For CLEAR dataset setup
 DATASET_NAME = "clear100_cvpr2022"
-NUM_CLASSES = {"clear10": 11, "clear100_cvpr2022": 100}
+NUM_CLASSES = {"clear10_neurips_2021": 11, "clear100_cvpr2022": 100,
+               "clear10": 11, "clear100": 100}
 assert DATASET_NAME in NUM_CLASSES.keys()
 
 # please refer to paper for discussion on streaming v.s. iid protocol
@@ -188,7 +189,8 @@ def main():
     for train_idx in range(num_timestamp):
         for test_idx in range(num_timestamp):
             accuracy_matrix[train_idx][test_idx] = results[train_idx][
-                f"Top1_Acc_Stream/eval_phase/test_stream/Task00{test_idx}"
+                f"Top1_Acc_Stream/eval_phase/test_stream"
+                f"/Task00{test_idx}/Exp00{test_idx}"
             ]
     print("Accuracy_matrix : ")
     print(accuracy_matrix)

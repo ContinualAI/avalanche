@@ -11,6 +11,7 @@
 
 from typing import (
     Dict,
+    Optional,
     Union,
     Iterable,
     Sequence,
@@ -39,7 +40,7 @@ TRAIN = "train"
 
 def default_cm_image_creator(
     confusion_matrix_tensor: Tensor,
-    display_labels: Sequence = None,
+    display_labels: Optional[Iterable[Any]] = None,
     include_values=False,
     xticks_rotation=0,
     yticks_rotation=0,
@@ -158,8 +159,8 @@ def repartition_pie_chart_image_creator(
     :param colors: The colors to use in the chart.
     :param fmt: Formatting used to display the text values in the chart.
     """
-    fig, ax = plt.subplots()
     ax: Axes
+    fig, ax = plt.subplots()
 
     labels, counts = zip(*((label, c[-1]) for label, c in label2counts.items()))
 
@@ -183,8 +184,8 @@ def repartition_bar_chart_image_creator(
     :param counters: (unused) The steps the counts were taken at.
     :param colors: The colors to use in the chart.
     """
-    fig, ax = plt.subplots()
     ax: Axes
+    fig, ax = plt.subplots()
 
     y = -arange(len(label2counts))
     labels, counts = zip(*((label, c[-1]) for label, c in label2counts.items()))
@@ -217,8 +218,8 @@ def default_history_repartition_image_creator(
     :param counters: The steps the counts were taken at.
     :param colors: The colors to use in the chart.
     """
-    fig, ax = plt.subplots()
     ax: Axes
+    fig, ax = plt.subplots()
 
     ax.stackplot(
         counters,
@@ -258,8 +259,9 @@ def phase_and_task(strategy: "SupervisedTemplate") -> Tuple[str, int]:
     :return: The current phase name as either "Train" or "Task" and the
         associated task label.
     """
-    if hasattr(strategy.experience, "task_labels"):
-        task = strategy.experience.task_labels
+    task_labels = getattr(strategy.experience, "task_labels", None)
+    if task_labels is not None:
+        task = task_labels
         if len(task) > 1:
             task = None  # task labels per patterns
         else:
@@ -353,8 +355,9 @@ def get_metric_name(
         information. If False, no task label will be displayed.
         If an int, that value will be used as task label for the metric name.
     """
-
+    task_label: Optional[int]
     phase_name, task_label = phase_and_task(strategy)
+    assert strategy.experience is not None
     stream = stream_type(strategy.experience)
     experience_id = strategy.experience.current_experience
     if type(add_task) == bool and add_task is False:

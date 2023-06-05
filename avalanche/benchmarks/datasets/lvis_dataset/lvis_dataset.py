@@ -13,7 +13,7 @@
 """ LVIS PyTorch Object Detection Dataset """
 
 from pathlib import Path
-from typing import Union, List, Sequence
+from typing import Optional, Union, List, Sequence
 
 import torch
 from PIL import Image
@@ -43,14 +43,14 @@ class LvisDataset(DownloadableDataset):
 
     def __init__(
         self,
-        root: Union[str, Path] = None,
+        root: Optional[Union[str, Path]] = None,
         *,
         train=True,
         transform=None,
         loader=default_loader,
         download=True,
-        lvis_api=None,
-        img_ids: List[int] = None,
+        lvis_api: Optional[LVIS] = None,
+        img_ids: Optional[List[int]] = None,
     ):
         """
         Creates an instance of the LVIS dataset.
@@ -79,10 +79,10 @@ class LvisDataset(DownloadableDataset):
         self.transform = transform
         self.loader = loader
         self.bbox_crop = True
-        self.img_ids = img_ids
+        self.img_ids: List[int] = img_ids  # type: ignore
 
-        self.targets = None
-        self.lvis_api = lvis_api
+        self.targets: LVISDetectionTargets = None  # type: ignore
+        self.lvis_api: LVIS = lvis_api  # type: ignore
 
         super(LvisDataset, self).__init__(root, download=download, verbose=True)
 
@@ -116,10 +116,11 @@ class LvisDataset(DownloadableDataset):
 
                 self.lvis_api = LVIS(ann_json_path)
 
+            lvis_api = self.lvis_api
             if must_load_img_ids:
-                self.img_ids = list(sorted(self.lvis_api.get_img_ids()))
+                self.img_ids = list(sorted(lvis_api.get_img_ids()))
 
-            self.targets = LVISDetectionTargets(self.lvis_api, self.img_ids)
+            self.targets = LVISDetectionTargets(lvis_api, self.img_ids)
 
             # Try loading an image
             if len(self.img_ids) > 0:
@@ -130,11 +131,11 @@ class LvisDataset(DownloadableDataset):
                 assert self._load_img(img_dict) is not None
         except BaseException:
             if must_load_api:
-                self.lvis_api = None
+                self.lvis_api = None  # type: ignore
             if must_load_img_ids:
-                self.img_ids = None
+                self.img_ids = None  # type: ignore
 
-            self.targets = None
+            self.targets = None  # type: ignore
             raise
 
         return True
@@ -158,20 +159,20 @@ class LvisDataset(DownloadableDataset):
         """
         img_id = self.img_ids[index]
         img_dict: LVISImgEntry = self.lvis_api.load_imgs(ids=[img_id])[0]
-        annotation_dicts = self.targets[index]
+        annotation_dicts: LVISImgTargets = self.targets[index]
 
         # Transform from LVIS dictionary to torchvision-style target
-        num_objs = len(annotation_dicts)
+        num_objs = annotation_dicts["bbox"].shape[0]
 
         boxes = []
         labels = []
         for i in range(num_objs):
-            xmin = annotation_dicts[i]["bbox"][0]
-            ymin = annotation_dicts[i]["bbox"][1]
-            xmax = xmin + annotation_dicts[i]["bbox"][2]
-            ymax = ymin + annotation_dicts[i]["bbox"][3]
+            xmin = annotation_dicts["bbox"][i][0]
+            ymin = annotation_dicts["bbox"][i][1]
+            xmax = xmin + annotation_dicts["bbox"][i][2]
+            ymax = ymin + annotation_dicts["bbox"][i][3]
             boxes.append([xmin, ymin, xmax, ymax])
-            labels.append(annotation_dicts[i]["category_id"])
+            labels.append(annotation_dicts["category_id"][i])
 
         if len(boxes) > 0:
             boxes = torch.as_tensor(boxes, dtype=torch.float32)
@@ -182,7 +183,7 @@ class LvisDataset(DownloadableDataset):
         image_id = torch.tensor([img_id])
         areas = []
         for i in range(num_objs):
-            areas.append(annotation_dicts[i]["area"])
+            areas.append(annotation_dicts["area"][i])
         areas = torch.as_tensor(areas, dtype=torch.float32)
         iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 
@@ -232,8 +233,21 @@ class LVISAnnotationEntry(TypedDict):
     category_id: int
 
 
-class LVISDetectionTargets(Sequence[List[LVISAnnotationEntry]]):
-    def __init__(self, lvis_api: LVIS, img_ids: List[int] = None):
+class LVISImgTargets(TypedDict):
+    id: torch.Tensor
+    area: torch.Tensor
+    segmentation: List[List[List[float]]]
+    image_id: torch.Tensor
+    bbox: torch.Tensor
+    category_id: torch.Tensor
+    labels: torch.Tensor
+
+
+class LVISDetectionTargets(Sequence[List[LVISImgTargets]]):
+    def __init__(
+            self, 
+            lvis_api: LVIS,
+            img_ids: Optional[List[int]] = None):
         super(LVISDetectionTargets, self).__init__()
         self.lvis_api = lvis_api
         if img_ids is None:
@@ -250,7 +264,28 @@ class LVISDetectionTargets(Sequence[List[LVISAnnotationEntry]]):
         annotation_dicts: List[LVISAnnotationEntry] = self.lvis_api.load_anns(
             annotation_ids
         )
-        return annotation_dicts
+
+        n_annotations = len(annotation_dicts)
+
+        category_tensor = torch.empty((n_annotations,), dtype=torch.long)
+        target_dict: LVISImgTargets = {
+            'bbox': torch.empty((n_annotations, 4), dtype=torch.float32),
+            'category_id': category_tensor,
+            'id': torch.empty((n_annotations,), dtype=torch.long),
+            'area': torch.empty((n_annotations,), dtype=torch.float32),
+            'image_id': torch.full((1,), img_id, dtype=torch.long),
+            'segmentation': [],
+            'labels': category_tensor  # Alias of category_id
+        }
+
+        for ann_idx, annotation in enumerate(annotation_dicts):
+            target_dict['bbox'][ann_idx] = torch.as_tensor(annotation['bbox'])
+            target_dict['category_id'][ann_idx] = annotation['category_id']
+            target_dict['id'][ann_idx] = annotation['id']
+            target_dict['area'][ann_idx] = annotation['area']
+            target_dict['segmentation'].append(annotation['segmentation'])
+
+        return target_dict
 
 
 def _test_to_tensor(a, b):
@@ -312,5 +347,6 @@ __all__ = [
     "LvisDataset",
     "LVISImgEntry",
     "LVISAnnotationEntry",
+    "LVISImgTargets",
     "LVISDetectionTargets",
 ]

@@ -170,3 +170,8 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
     def __setstate__(self, state):
         state['_pbar'] = None
         super().__setstate__(state)
+
+
+__all__ = [
+    'InteractiveLogger'
+]

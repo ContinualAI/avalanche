@@ -67,7 +67,7 @@ def CORe50(
     mini: bool = False,
     train_transform: Optional[Any] = _default_train_transform,
     eval_transform: Optional[Any] = _default_eval_transform,
-    dataset_root: Union[str, Path] = None
+    dataset_root: Optional[Union[str, Path]] = None
 ):
     """
     Creates a CL benchmark for CORe50.
