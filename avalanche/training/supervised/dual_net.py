@@ -20,8 +20,13 @@ from avalanche.training.plugins.evaluation import (
 
 class DualNet(SupervisedTemplate):
     """
-    DualNet strategy (task-free rep. version), as originally proposed in
+    DualNet strategy as proposed in
     "DualNet: Continual Learning, Fast and Slow" by Quang Pham et. al.
+    When task_agnostic_fast_updates is False, the strategy is equivalent to 
+    "task-agnostic" version of the strategy proposed in the paper where only 
+    the slow-updates are task-agnostic and the fast-updates are task-aware. 
+    When task_agnostic_fast_updates is True, the strategy becomes fully 
+    task-agnostic without the need fot task-identity labels during training.
     https://arxiv.org/abs/2110.00175
     """
 
@@ -38,7 +43,7 @@ class DualNet(SupervisedTemplate):
         memory_strength: float = 10.0,
         temperature: float = 2.0,
         beta: float = 0.05,
-        task_agnostic: bool = True,
+        task_agnostic_fast_updates: bool = False,
         img_size: int = 84,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -64,7 +69,8 @@ class DualNet(SupervisedTemplate):
         :param temperature: Temperature for the KLDiv loss.
             mode.
         :param beta: Update rate for the slow updates.
-        :param task_agnostic: whether to train in task-agnostic or task-aware.
+        :param task_agnostic_fast_updates: whether to perform the fast updates 
+            in task-agnostic mode or task-aware mode.
         :param img_size: Dataset image size.
         :param batch_size_mem: int : Size of the batch sampled from the buffer
         :param train_mb_size: mini-batch size for training.
@@ -106,7 +112,7 @@ class DualNet(SupervisedTemplate):
         self.batch_size_mem = batch_size_mem
         self.inner_steps = inner_steps
         self.n_outer = n_outer
-        self.task_agnostic = task_agnostic
+        self.task_agnostic_fast_updates = task_agnostic_fast_updates
 
         # Optimizer
         self.optimizer = optimizer
@@ -157,14 +163,14 @@ class DualNet(SupervisedTemplate):
         return F.kl_div(
                 F.log_softmax(y1 / temp, dim=-1),
                 F.softmax(y2 / temp, dim=-1), reduce=True) * y1.shape[0]
-
+    
     def slow_update(self):
         # Performs slow updates to the model's representation backbone
         for j in range(self.n_outer):
             w_before = deepcopy(self.model.state_dict())
             for _ in range(self.inner_steps):
                 self.optimizer_bt.zero_grad()
-                if self.task_agnostic:
+                if self.task_agnostic_fast_updates:
                     if len(self.storage_policy.buffer) > 0:
                         x_, y_, l_ = self.sample_from_buffer(ssl=True)
                     else:
@@ -189,7 +195,7 @@ class DualNet(SupervisedTemplate):
         for _ in range(self.inner_steps):
             self.optimizer.zero_grad()
 
-            if self.task_agnostic:
+            if self.task_agnostic_fast_updates:
                 pred = self.model(self.transforms_0(x))
                 loss = self.bce(pred, y)
 
@@ -235,7 +241,7 @@ class DualNet(SupervisedTemplate):
         self._update_buffer()
 
     def _update_buffer(self):
-        if not self.task_agnostic:
+        if not self.task_agnostic_fast_updates:
             raise NotImplementedError()
 
         # Get dataset from the current experience
@@ -254,7 +260,7 @@ class DualNet(SupervisedTemplate):
         for x, _, _ in loader:
             x = x.to(self.device)
             out = self.model(self.transforms_0(x))
-            logits.extend(list(out.cpu()))
+            logits.extend(list(out.detach().cpu()))
 
         # Add logits to the dataset
         new_data_with_logits = make_avalanche_dataset(

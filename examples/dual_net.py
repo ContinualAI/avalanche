@@ -23,7 +23,7 @@ from avalanche.benchmarks.datasets.external_datasets.cifar import \
 def main(args):
     # Compute device
     device = torch.device(args.device)
-
+    print("Computing device: ", device)
     # Hyperparaeameters
     lr_fast = 0.1
     lr_slow = 3e-4
@@ -86,7 +86,7 @@ def main(args):
         memory_strength=10.0,
         temperature=2.0,
         beta=0.05,
-        task_agnostic=True,
+        task_agnostic_fast_updates=True,
         img_size=img_size,
         train_epochs=1,
         train_mb_size=10,
