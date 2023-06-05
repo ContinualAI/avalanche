@@ -1,12 +1,15 @@
 import warnings
-from typing import Optional, Sequence, Union
+from typing import Callable, Optional, Sequence, Union
 
 import os
 import torch
 
 from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.templates import SupervisedTemplate
-from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.plugins.evaluation import (
+    EvaluationPlugin,
+    default_evaluator,
+)
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
 
@@ -37,7 +40,10 @@ class StreamingLDA(SupervisedTemplate):
         eval_mb_size: int = 1,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
-        evaluator=default_evaluator(),
+        evaluator: Union[
+            EvaluationPlugin,
+            Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
         eval_every=-1,
     ):
         """Init function for the SLDA model.
@@ -141,7 +147,7 @@ class StreamingLDA(SupervisedTemplate):
 
             self._after_training_iteration(**kwargs)
 
-    def make_optimizer(self):
+    def make_optimizer(self, **kwargs):
         """Empty function.
         Deep SLDA does not need a Pytorch optimizer."""
         pass

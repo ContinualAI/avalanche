@@ -243,11 +243,11 @@ def find_common_transforms_group(
     for d_set in datasets:
         if isinstance(d_set, AvalancheDataset):
             if uniform_group is None:
-                uniform_group = d_set._transform_groups.current_group
+                uniform_group = d_set._flat_data._transform_groups.current_group
             else:
                 if (
                     uniform_group
-                    != d_set._transform_groups.current_group
+                    != d_set._flat_data._transform_groups.current_group
                 ):
                     uniform_group = None
                     break
@@ -482,9 +482,10 @@ def _init_transform_groups(
         # use 'train' as the initial transform group
         if (
             isinstance(dataset, AvalancheDataset)
-            and dataset._transform_groups is not None
+            and dataset._flat_data._transform_groups is not None
         ):
-            initial_transform_group = dataset._transform_groups.current_group
+            tgs = dataset._flat_data._transform_groups
+            initial_transform_group = tgs.current_group
         else:
             initial_transform_group = "train"
 

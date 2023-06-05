@@ -73,7 +73,7 @@ class SGDStrategyProtocol(
     def _make_empty_loss(self) -> Tensor:
         ...
 
-    def make_optimizer(self):
+    def make_optimizer(self, **kwargs):
         ...
         
     def optimizer_step(self) -> None:

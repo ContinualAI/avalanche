@@ -16,6 +16,7 @@ the stream of experiences is obtained by splitting the dataset in equal parts.
 """
 
 import argparse
+from pkg_resources import parse_version
 import torch
 import torchvision
 import logging
@@ -78,9 +79,7 @@ def main(args):
     if args.detection_only:
         # Ingore the segmentation task
         # load a model pre-trained on COCO
-        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
-            pretrained=True
-        )
+        model = obtain_base_model(segmentation=False)
 
         # Replace the classifier with a new one, that has "num_classes" outputs
         # 1) Get number of input features for the classifier
@@ -91,9 +90,7 @@ def main(args):
         )
     else:
         # Detection + Segmentation
-        model = torchvision.models.detection.maskrcnn_resnet50_fpn(
-            pretrained=True
-        )
+        model = obtain_base_model(segmentation=True)
 
         # Replace the classifier with a new one, that has "num_classes" outputs
         # 1) Get number of input features for the classifier
@@ -163,6 +160,35 @@ def main(args):
 
         cl_strategy.eval(benchmark.test_stream, num_workers=4)
         print("Evaluation completed")
+
+
+def obtain_base_model(segmentation: bool):
+    torchvision_is_old_version = \
+        parse_version(torch.__version__) < parse_version("0.13")
+
+    pretrain_argument = dict()
+
+    if torchvision_is_old_version:
+        pretrain_argument['pretrained'] = True
+    else:
+        if segmentation:
+            pretrain_argument['weights'] = \
+                torchvision.models.detection.mask_rcnn.\
+                MaskRCNN_ResNet50_FPN_Weights.DEFAULT
+        else:
+            pretrain_argument['weights'] = \
+                torchvision.models.detection.faster_rcnn.\
+                FasterRCNN_ResNet50_FPN_Weights.DEFAULT
+    
+    if segmentation:
+        model = torchvision.models.detection.maskrcnn_resnet50_fpn(
+            **pretrain_argument
+        )
+    else:
+        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
+            **pretrain_argument
+        )
+    return model
 
 
 def split_penn_fudan(

@@ -17,7 +17,7 @@
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 import torch
-from torch.utils.data import RandomSampler, DistributedSampler
+from torch.utils.data import RandomSampler, DistributedSampler, Dataset
 from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks.utils.collate_functions import (
@@ -31,6 +31,7 @@ from avalanche.benchmarks.utils.collate_functions import (
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
+from avalanche.distributed.distributed_helper import DistributedHelper
 
 _default_collate_mbatches_fn = classification_collate_mbatches_fn
 
@@ -284,14 +285,14 @@ class GroupBalancedInfiniteDataLoader:
         self.collate_mbatches = collate_mbatches
 
         for data in self.datasets:
-            if _DistributedHelper.is_distributed and distributed_sampling:
+            if DistributedHelper.is_distributed and distributed_sampling:
                 seed = torch.randint(
                     0,
-                    2 ** 32 - 1 - _DistributedHelper.world_size,
+                    2 ** 32 - 1 - DistributedHelper.world_size,
                     (1,),
                     dtype=torch.int64,
                 )
-                seed += _DistributedHelper.rank
+                seed += DistributedHelper.rank
                 generator = torch.Generator()
                 generator.manual_seed(int(seed))
             else:
@@ -584,11 +585,11 @@ class ReplayDataLoader:
 
 
 def _make_data_loader(
-    dataset,
-    distributed_sampling,
-    data_loader_args,
-    batch_size,
-    force_no_workers=False,
+    dataset: Dataset,
+    distributed_sampling: bool,
+    data_loader_args: Dict[str, Any],
+    batch_size: int,
+    force_no_workers: bool = False,
 ):
     data_loader_args = data_loader_args.copy()
 
@@ -601,14 +602,22 @@ def _make_data_loader(
         if 'prefetch_factor' in data_loader_args:
             data_loader_args['prefetch_factor'] = 2
 
-    if _DistributedHelper.is_distributed and distributed_sampling:
+    if DistributedHelper.is_distributed and distributed_sampling:
+        # Note: shuffle only goes in the sampler, while
+        # drop_last must be passed to both the sampler
+        # and the DataLoader
+        drop_last = data_loader_args.pop("drop_last", False)
         sampler = DistributedSampler(
             dataset,
-            shuffle=data_loader_args.pop("shuffle", False),
-            drop_last=data_loader_args.pop("drop_last", False),
+            shuffle=data_loader_args.pop("shuffle", True),
+            drop_last=drop_last,
         )
         data_loader = DataLoader(
-            dataset, sampler=sampler, batch_size=batch_size, **data_loader_args
+            dataset,
+            sampler=sampler,
+            batch_size=batch_size,
+            drop_last=drop_last,
+            **data_loader_args
         )
     else:
         sampler = None
@@ -617,15 +626,6 @@ def _make_data_loader(
         )
 
     return data_loader, sampler
-
-
-class __DistributedHelperPlaceholder:
-    is_distributed = False
-    world_size = 1
-    rank = 0
-
-
-_DistributedHelper = __DistributedHelperPlaceholder()
 
 
 __all__ = [

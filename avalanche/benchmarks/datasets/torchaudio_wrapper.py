@@ -10,6 +10,7 @@
 
 """ This module conveniently wraps TorchAudio Datasets for using a clean and
 comprehensive Avalanche API."""
+import os
 
 try:
     import torchaudio
@@ -40,11 +41,12 @@ def speech_commands_collate(batch):
         tensors_padded = tensors_padded.unsqueeze(-1)
     targets = torch.stack(targets)
     t_labels = torch.stack(t_labels)
-    return tensors_padded, targets, t_labels
+    return [tensors_padded, targets, t_labels]
 
 
 class SpeechCommandsData(SPEECHCOMMANDS):
     def __init__(self, root, url, download, subset, mfcc_preprocessing):
+        os.makedirs(root, exist_ok=True)
         super().__init__(root=root, download=download, subset=subset, url=url)
         self.labels_names = [
             "backward",
@@ -97,7 +99,7 @@ class SpeechCommandsData(SPEECHCOMMANDS):
 
 
 def SpeechCommands(
-    root=default_dataset_location(""),
+    root=default_dataset_location("speech_commands"),
     url="speech_commands_v0.02",
     download=True,
     subset=None,

@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TypeVar, Generic
+from typing import Optional, Type, TypeVar, Generic
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,8 +27,16 @@ class BasePlugin(Generic[Template], ABC):
     and loggers.
     """
 
+    supports_distributed: bool = False
+    """
+    A flag describing whether this plugin supports distributed training.
+    """
+
     def __init__(self):
-        pass
+        """
+        Inizializes an instance of a supervised plugin.
+        """
+        super().__init__()
 
     def before_training(self, strategy: Template, *args, **kwargs):
         """Called before `train` by the `BaseTemplate`."""
@@ -68,12 +76,25 @@ class BasePlugin(Generic[Template], ABC):
         """Called after `eval` by the `BaseTemplate`."""
         pass
 
+    def __init_subclass__(
+            cls,
+            supports_distributed: bool = False,
+            **kwargs) -> None:
+        cls.supports_distributed = supports_distributed
+        return super().__init_subclass__(**kwargs)
+
 
 class BaseSGDPlugin(BasePlugin[Template], ABC):
     """ABC for BaseSGDTemplate plugins.
 
     See `BaseSGDTemplate` for complete description of the train/eval loop.
     """
+
+    def __init__(self):
+        """
+        Inizializes an instance of a base SGD plugin.
+        """
+        super().__init__()
 
     def before_training_epoch(
         self, strategy: Template, *args, **kwargs
@@ -193,7 +214,11 @@ class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
 
     See `BaseTemplate` for complete description of the train/eval loop.
     """
-    pass
+    def __init__(self):
+        """
+        Inizializes an instance of a supervised plugin.
+        """
+        super().__init__()
 
 
 class SupervisedMetaLearningPlugin(SupervisedPlugin[Template], ABC):

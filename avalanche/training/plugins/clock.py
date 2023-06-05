@@ -11,7 +11,7 @@
 from avalanche.training.plugins import SupervisedPlugin
 
 
-class Clock(SupervisedPlugin):
+class Clock(SupervisedPlugin, supports_distributed=True):
     """Counter for strategy events.
 
     WARNING: Clock needs to be the last plugin, otherwise counters will be
@@ -61,3 +61,8 @@ class Clock(SupervisedPlugin):
 
     def after_eval_iteration(self, strategy, **kwargs):
         self.total_iterations += 1
+
+
+__all__ = [
+    'Clock'
+]

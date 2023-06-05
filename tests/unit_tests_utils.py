@@ -29,7 +29,7 @@ UPDATE_METRICS = False
 if "UPDATE_METRICS" in os.environ:
     UPDATE_METRICS = os.environ["UPDATE_METRICS"].lower() == "true"
 
-print(f"UPDATE_METRICS: {UPDATE_METRICS}")
+# print(f"UPDATE_METRICS: {UPDATE_METRICS}")
 
 
 def is_github_action():
@@ -115,7 +115,8 @@ def load_tensor_benchmark():
 
 def get_fast_benchmark(
     use_task_labels=False, shuffle=True, n_samples_per_class=100,
-    n_classes=10, n_features=6, seed=None
+    n_classes=10, n_features=6, seed=None,
+    train_transform=None, eval_transform=None,
 ):
     dataset = make_classification(
         n_samples=n_classes * n_samples_per_class,
@@ -141,6 +142,8 @@ def get_fast_benchmark(
         5,
         task_labels=use_task_labels,
         shuffle=shuffle,
+        train_transform=train_transform,
+        eval_transform=eval_transform,
         seed=seed
     )
     return my_nc_benchmark
