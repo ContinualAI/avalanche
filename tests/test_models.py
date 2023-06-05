@@ -620,8 +620,8 @@ class NCMClassifierTest(unittest.TestCase):
 
         mb_y = torch.tensor([0, 2], dtype=torch.float)
 
-        classifier = NCMClassifier(class_means_dict=class_means_dict,
-                                   normalize=False)
+        classifier = NCMClassifier(normalize=False)
+        classifier.update_class_means_dict(class_means_dict)
 
         pred = classifier(mb_x)
         assert torch.all(torch.max(pred, 1)[1] == mb_y)
@@ -632,7 +632,8 @@ class NCMClassifierTest(unittest.TestCase):
             dtype=torch.float,
         )
         class_means_dict = {i: el for i, el in enumerate(class_means)}
-        classifier = NCMClassifier(class_means_dict=class_means_dict)
+        classifier = NCMClassifier()
+        classifier.update_class_means_dict(class_means_dict)
         assert classifier.class_means.shape == (3, 4)
         new_mean = torch.randn(4,)
         classifier.update_class_means_dict({5: new_mean.clone()})

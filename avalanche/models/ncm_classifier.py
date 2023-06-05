@@ -1,5 +1,6 @@
 import torch
-from torch import nn
+from torch import nn, Tensor
+from typing import Dict
 
 
 class NCMClassifier(nn.Module):
@@ -8,25 +9,39 @@ class NCMClassifier(nn.Module):
     NCMClassifier performs nearest class mean classification
     measuring the distance between the input tensor and the
     ones stored in 'self.class_means'.
+
+    Before being used for inference, NCMClassifier needs to
+    be updated with a mean vector per class, by calling
+    `update_class_means_dict`.
+
+    This class registers a `class_means` buffer that stores
+    the class means in a single tensor of shape
+    [max_class_id_seen, feature_size]. Classes with ID smaller
+    than `max_class_id_seen` are associated with a 0-vector.
     """
 
-    def __init__(self, class_means_dict={}, normalize=True):
+    def __init__(self,
+                 normalize: bool = True):
         """
-        :param class_means_dict: dictionary mapping class_id to mean vector.
-            classes must be zero-indexed.
         :param normalize: whether to normalize the input with
             2-norm = 1 before computing the distance.
         """
         super().__init__()
-        assert isinstance(class_means_dict, dict), \
-            "class_means_dict must be a dictionary mapping class_id " \
-            "to mean vector"
-        self.class_means_dict = class_means_dict
         # vectorized version of class means
-        self.class_means: torch.Tensor = None
+        self.register_buffer('class_means', None)
+        self.class_means_dict = {}
+
         self.normalize = normalize
 
-        self._vectorize_means_dict()
+    def load_state_dict(self, state_dict,
+                        strict: bool = True):
+        self.class_means = state_dict['class_means']
+        super().load_state_dict(state_dict, strict)
+        # fill dictionary
+        if self.class_means is not None:
+            for i in range(self.class_means.shape[0]):
+                if (self.class_means[i] != 0).any():
+                    self.class_means_dict[i] = self.class_means[i].clone()
 
     def _vectorize_means_dict(self):
         """
@@ -58,7 +73,7 @@ class NCMClassifier(nn.Module):
         with respect to each class.
         """
 
-        assert self.class_means_dict != {}, "empty dictionary of class means."
+        assert self.class_means is not None, "no class means available."
         if self.normalize:
             # normalize across feature_size
             x = (x.T / torch.norm(x, dim=1)).T
@@ -68,7 +83,8 @@ class NCMClassifier(nn.Module):
         # (batch_size, num_classes)
         return (-sqd).T
 
-    def update_class_means_dict(self, class_means_dict):
+    def update_class_means_dict(self,
+                                class_means_dict: Dict[int, Tensor]):
         """
         Update dictionary of class means.
         If class already exists, the average of the two mean vectors
@@ -77,6 +93,9 @@ class NCMClassifier(nn.Module):
         :param class_means_dict: a dictionary mapping class id
             to class mean tensor.
         """
+        assert isinstance(class_means_dict, dict), \
+            "class_means_dict must be a dictionary mapping class_id " \
+            "to mean vector"
         for k, v in class_means_dict.items():
             if k not in self.class_means_dict:
                 self.class_means_dict[k] = class_means_dict[k].clone()
