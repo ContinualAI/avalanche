@@ -642,6 +642,19 @@ class NCMClassifierTest(unittest.TestCase):
         assert torch.all(classifier.class_means[4] == torch.zeros(4,))
         assert torch.all(classifier.class_means[5] == new_mean)
 
+    def test_ncm_save_load(self):
+        classifier = NCMClassifier()
+        classifier.update_class_means_dict({1: torch.randn(5,),
+                                            2: torch.randn(5,)})
+        torch.save(classifier.state_dict(), 'ncm.pt')
+        del classifier
+        classifier = NCMClassifier()
+        check = torch.load('ncm.pt')
+        classifier.load_state_dict(check)
+        assert classifier.class_means.shape == (3, 5)
+        assert (classifier.class_means[0] == 0).all()
+        assert len(classifier.class_means_dict) == 2
+
 
 class PNNTest(unittest.TestCase):
     def test_pnn_on_multiple_tasks(self):
