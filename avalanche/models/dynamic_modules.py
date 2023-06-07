@@ -12,7 +12,6 @@
 to allow architectural modifications (multi-head classifiers, progressive
 networks, ...).
 """
-from typing import Optional
 import torch
 from torch.nn import Module
 import numpy as np
@@ -228,7 +227,6 @@ class IncrementalClassifier(DynamicModule):
         self.classifier = torch.nn.Linear(in_features, initial_out_features)
         au_init = torch.zeros(initial_out_features, dtype=torch.int8)
         self.register_buffer("active_units", au_init)
-        self.active_units: torch.Tensor = au_init  # Needed for type checks
 
     @torch.no_grad()
     def adaptation(self, experience: CLExperience):
@@ -446,13 +444,13 @@ class MultiHeadClassifier(MultiTaskModule):
         return out
 
 
-class TrainEvalModel(DynamicModule):
+class TrainEvalModel(torch.nn.Module):
     """
     TrainEvalModel.
     This module allows to wrap together a common feature extractor and
     two classifiers: one used during training time and another
-    used at test time. The classifier is switched when `self.adaptation()`
-    is called.
+    used at test time. The classifier is switched depending on the
+    `training` state of the module.
     """
 
     def __init__(self, feature_extractor, train_classifier, eval_classifier):
@@ -468,23 +466,12 @@ class TrainEvalModel(DynamicModule):
         self.train_classifier = train_classifier
         self.eval_classifier = eval_classifier
 
-        self.classifier = train_classifier
-
     def forward(self, x):
         x = self.feature_extractor(x)
-        return self.classifier(x)
-    
-    def adaptation(self, experience: Optional[CLExperience] = None):
         if self.training:
-            self.train_adaptation(experience)
+            return self.train_classifier(x)
         else:
-            self.eval_adaptation(experience)
-
-    def train_adaptation(self, experience: Optional[CLExperience] = None):
-        self.classifier = self.train_classifier
-
-    def eval_adaptation(self, experience: Optional[CLExperience] = None):
-        self.classifier = self.eval_classifier
+            return self.eval_classifier(x)
 
 
 __all__ = [

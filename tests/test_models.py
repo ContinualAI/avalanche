@@ -583,49 +583,77 @@ class TrainEvalModelTests(unittest.TestCase):
     def test_classifier_selection(self):
         base_model = SimpleCNN()
 
-        feature_extractor = base_model.features
+        feature_extractor = torch.nn.Sequential(
+            base_model.features,
+            torch.nn.Flatten())
         classifier1 = base_model.classifier
-        classifier2 = NCMClassifier()
+        classifier2 = torch.nn.Linear(64, 7)
 
+        x = torch.randn(2, 3, 32, 32)
         model = TrainEvalModel(
             feature_extractor,
             train_classifier=classifier1,
             eval_classifier=classifier2,
         )
 
-        model.eval()
-        model.adaptation()
-        assert model.classifier is classifier2
-
         model.train()
-        model.adaptation()
-        assert model.classifier is classifier1
+        out = model(x)
+        assert out.shape[-1] == 10
 
-        model.eval_adaptation()
-        assert model.classifier is classifier2
-
-        model.train_adaptation()
-        assert model.classifier is classifier1
+        model.eval()
+        out = model(x)
+        assert out.shape[-1] == 7
 
 
 class NCMClassifierTest(unittest.TestCase):
     def test_ncm_classification(self):
         class_means = torch.tensor(
-            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
             dtype=torch.float,
         )
+        class_means_dict = {i: el for i, el in enumerate(class_means)}
 
         mb_x = torch.tensor(
-            [[4, 3, 2, 1], [3, 4, 2, 1], [3, 2, 4, 1], [3, 2, 1, 4]],
+            [[4, 3, 2, 1], [3, 2, 4, 1]],
             dtype=torch.float,
         )
 
-        mb_y = torch.tensor([0, 1, 2, 3], dtype=torch.float)
+        mb_y = torch.tensor([0, 2], dtype=torch.float)
 
-        classifier = NCMClassifier(class_means)
+        classifier = NCMClassifier(normalize=False)
+        classifier.update_class_means_dict(class_means_dict)
 
         pred = classifier(mb_x)
         assert torch.all(torch.max(pred, 1)[1] == mb_y)
+
+    def test_ncm_class_expansion(self):
+        class_means = torch.tensor(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
+            dtype=torch.float,
+        )
+        class_means_dict = {i: el for i, el in enumerate(class_means)}
+        classifier = NCMClassifier()
+        classifier.update_class_means_dict(class_means_dict)
+        assert classifier.class_means.shape == (3, 4)
+        new_mean = torch.randn(4,)
+        classifier.update_class_means_dict({5: new_mean.clone()})
+        assert classifier.class_means.shape == (6, 4)
+        assert torch.all(classifier.class_means[3] == torch.zeros(4,))
+        assert torch.all(classifier.class_means[4] == torch.zeros(4,))
+        assert torch.all(classifier.class_means[5] == new_mean)
+
+    def test_ncm_save_load(self):
+        classifier = NCMClassifier()
+        classifier.update_class_means_dict({1: torch.randn(5,),
+                                            2: torch.randn(5,)})
+        torch.save(classifier.state_dict(), 'ncm.pt')
+        del classifier
+        classifier = NCMClassifier()
+        check = torch.load('ncm.pt')
+        classifier.load_state_dict(check)
+        assert classifier.class_means.shape == (3, 5)
+        assert (classifier.class_means[0] == 0).all()
+        assert len(classifier.class_means_dict) == 2
 
 
 class PNNTest(unittest.TestCase):

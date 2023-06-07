@@ -219,7 +219,7 @@ class BaseSGDTemplate(
 
     def training_epoch(self, **kwargs):
         # Should be implemented in Update Type
-        raise NotADirectoryError()
+        raise NotImplementedError()
 
     def backward(self):
         """Run the backward pass."""
