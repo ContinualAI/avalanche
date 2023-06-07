@@ -243,8 +243,8 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
             'experience': experience_id,
             'x_step': x_plot,
             **({'task_id': task_id} 
-                    if task_id is not None
-                    else {})}
+                if task_id is not None
+                else {})}
     
         artifact = self.wandb.Artifact(
             checkpoint_name,
