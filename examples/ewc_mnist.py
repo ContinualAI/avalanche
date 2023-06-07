@@ -132,10 +132,10 @@ def main(args):
     for experience in benchmark.train_stream:
         print("Start training on experience ", experience.current_experience)
 
-        strategy.train(experience)
+        strategy.train(experience, num_workers=4)
         print("End training on experience", experience.current_experience)
         print("Computing accuracy on the test set")
-        results.append(strategy.eval(benchmark.test_stream[:]))
+        results.append(strategy.eval(benchmark.test_stream[:], num_workers=4))
 
 
 if __name__ == "__main__":
