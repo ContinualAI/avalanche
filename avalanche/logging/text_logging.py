@@ -24,7 +24,7 @@ from avalanche.evaluation.metric_utils import stream_type, phase_and_task
 if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
 
-UNSUPPORTED_TYPES: Tuple[Type] = (TensorImage,)
+UNSUPPORTED_TYPES: Tuple[Type, ...] = (TensorImage, bytes,)
 
 
 class TextLogger(BaseLogger, SupervisedPlugin):
