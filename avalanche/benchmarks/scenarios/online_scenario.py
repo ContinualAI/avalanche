@@ -271,7 +271,7 @@ def split_online_stream(
     original_stream: Iterable[DatasetExperience[TClassificationDataset]],
     experience_size: int,
     online_benchmark: 'OnlineCLScenario[TClassificationDataset]',
-    shuffle: bool = False,
+    shuffle: bool = True,
     drop_last: bool = False,
     experience_split_strategy: Optional[Callable[
         [DatasetExperience[TClassificationDataset], int],
