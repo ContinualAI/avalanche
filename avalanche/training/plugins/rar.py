@@ -133,6 +133,9 @@ class RARPlugin(SupervisedPlugin):
         if self.use_mixup:
             mb_x_buff, mb_y_buff1, mb_y_buff2, lam = self.mixup_data()
             mb_y_buff = (lam * mb_y_buff1 + (1 - lam) * mb_y_buff2).long()
+            mb_x_buff = mb_x_buff.to(strategy.device)
+            mb_y_buff1 = mb_y_buff1.to(strategy.device)
+            mb_y_buff2 = mb_y_buff2.to(strategy.device)
         else:
             batch_buff = self.get_buffer_batch()
             mb_x_buff = batch_buff[0].to(strategy.device)
@@ -180,7 +183,7 @@ class RARPlugin(SupervisedPlugin):
         dist = torch.cdist(out_buff, out_curr)
         _, ind = torch.sort(dist)
 
-        target_attack = torch.zeros(dist.size(0)).long()
+        target_attack = torch.zeros(dist.size(0)).long().to(strategy.device)
         for j in range(dist.size(0)):
             for i in ind[j]:
                 if mb_y_buff[j].item() != strategy.mb_y[i].item():
@@ -194,7 +197,16 @@ class RARPlugin(SupervisedPlugin):
         mb_x_pert = self.mifgsm_attack(mb_x_buff, mb_x_buff.grad.data)
 
         out_buff = strategy.model(mb_x_pert)
-        strategy.loss += (self.beta_coef)*strategy._criterion(out_buff, mb_y_buff)
+        
+        if self.use_mixup:
+            strategy.loss += (1-self.beta_coef)*self.mixup_criterion(
+                                    strategy._criterion, 
+                                    out_buff, 
+                                    mb_y_buff1, 
+                                    mb_y_buff2, 
+                                    lam)
+        else:
+            strategy.loss += (1-self.beta_coef)*strategy._criterion(out_buff, mb_y_buff)
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         self.storage_policy.update(strategy, **kwargs)
