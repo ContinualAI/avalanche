@@ -456,6 +456,15 @@ class AvalancheDataset(IDataset[T_co]):
 
         return default_collate
 
+    def __repr__(self):
+        return repr(self._flat_data)
+
+    def _tree_depth(self):
+        """Return the depth of the tree of datasets.
+        Use only to debug performance issues.
+        """
+        return self._flat_data._tree_depth()
+
 
 class _FlatDataWithTransform(FlatData[T_co]):
     """Private class used to wrap a dataset with a transformation group.

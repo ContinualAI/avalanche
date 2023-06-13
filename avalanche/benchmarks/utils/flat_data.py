@@ -251,6 +251,14 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
     def __hash__(self):
         return id(self)
 
+    def __repr__(self):
+        return _flatdata_repr(self)
+
+    def _tree_depth(self):
+        """Return the depth of the tree of datasets.
+        Use only to debug performance issues.
+        """
+        return _flatdata_depth(self)
 
 class ConstantSequence(IDataset[DataT], Sequence[DataT]):
     """A memory-efficient constant sequence."""

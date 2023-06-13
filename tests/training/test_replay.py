@@ -157,8 +157,9 @@ class ReplayTest(unittest.TestCase):
                 base_depth = _flatdata_depth(storage_policy.buffer._flat_data)
             # b = time.time()
             # print("Access buffer", b - a)
-            _flatdata_print(storage_policy.buffer._flat_data)
-            # print("DEPTH: ", _flatdata_depth(storage_policy.buffer._flat_data))
+            # _flatdata_print(storage_policy.buffer._flat_data)
+            # print("REPR: ", repr(storage_policy.buffer))
+            # print("DEPTH: ", storage_policy.buffer._tree_depth())
         assert _flatdata_depth(storage_policy.buffer._flat_data) == base_depth
 
 class ParametricBufferTest(unittest.TestCase):
