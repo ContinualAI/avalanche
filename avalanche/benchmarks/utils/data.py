@@ -134,10 +134,29 @@ class AvalancheDataset(IDataset[T_co]):
                     flat_datas.append(d._flat_data)
                 else:
                     flat_datas.append(d)
-        self._flat_data: _FlatDataWithTransform[T_co] = _FlatDataWithTransform(
-            flat_datas, indices=indices,
-            transform_groups=transform_groups,
-            frozen_transform_groups=frozen_transform_groups)
+        if transform_groups is None and frozen_transform_groups is None and \
+                indices is not None and len(flat_datas) == 1:
+            # TODO: remove. shouldn't be needed but helps with flattening
+            assert len(flat_datas) == 1
+            self._flat_data = flat_datas[0].subset(indices)
+        elif transform_groups is None and frozen_transform_groups is None and \
+                indices is None and len(flat_datas) > 1:
+            # TODO: remove. shouldn't be needed but helps with flattening
+            if len(flat_datas) == 0:
+                self._flat_data = _FlatDataWithTransform([])
+            self._flat_data = flat_datas[0]
+            if not isinstance(self._flat_data, _FlatDataWithTransform):
+                self._flat_data = _FlatDataWithTransform([self._flat_data])
+
+            for d in flat_datas[1:]:
+                if not isinstance(d, _FlatDataWithTransform):
+                    d = _FlatDataWithTransform([d])
+                self._flat_data = self._flat_data.concat(d)
+        else:
+            self._flat_data: _FlatDataWithTransform[T_co] = _FlatDataWithTransform(
+                flat_datas,
+                transform_groups=transform_groups,
+                frozen_transform_groups=frozen_transform_groups)
         self.collate_fn = collate_fn
 
         ####################################
