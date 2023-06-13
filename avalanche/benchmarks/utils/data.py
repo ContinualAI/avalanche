@@ -132,6 +132,8 @@ class AvalancheDataset(IDataset[T_co]):
             if len(d) > 0:
                 if isinstance(d, AvalancheDataset):
                     flat_datas.append(d._flat_data)
+                elif not isinstance(d, _FlatDataWithTransform):
+                    flat_datas.append(_FlatDataWithTransform([d]))
                 else:
                     flat_datas.append(d)
         if transform_groups is None and frozen_transform_groups is None and \
@@ -140,7 +142,7 @@ class AvalancheDataset(IDataset[T_co]):
             assert len(flat_datas) == 1
             self._flat_data = flat_datas[0].subset(indices)
         elif transform_groups is None and frozen_transform_groups is None and \
-                indices is None and len(flat_datas) > 1:
+                indices is None and len(flat_datas) >= 1:
             # TODO: remove. shouldn't be needed but helps with flattening
             if len(flat_datas) == 0:
                 self._flat_data = _FlatDataWithTransform([])
@@ -155,6 +157,7 @@ class AvalancheDataset(IDataset[T_co]):
         else:
             self._flat_data: _FlatDataWithTransform[T_co] = _FlatDataWithTransform(
                 flat_datas,
+                indices=indices,
                 transform_groups=transform_groups,
                 frozen_transform_groups=frozen_transform_groups)
         self.collate_fn = collate_fn

@@ -124,8 +124,10 @@ class NCScenario(
             test datasets must be used. Defaults to None.
         """
 
-        train_dataset = SupervisedClassificationDataset(train_dataset)
-        test_dataset = SupervisedClassificationDataset(test_dataset)
+        if not isinstance(train_dataset, SupervisedClassificationDataset):
+            train_dataset = SupervisedClassificationDataset(train_dataset)
+        if not isinstance(test_dataset, SupervisedClassificationDataset):
+            test_dataset = SupervisedClassificationDataset(test_dataset)
         
         if (
             class_ids_from_zero_from_first_exp
