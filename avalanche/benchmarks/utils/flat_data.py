@@ -251,6 +251,15 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
     def __hash__(self):
         return id(self)
 
+    def __repr__(self):
+        return _flatdata_repr(self)
+
+    def _tree_depth(self):
+        """Return the depth of the tree of datasets.
+        Use only to debug performance issues.
+        """
+        return _flatdata_depth(self)
+
 
 class ConstantSequence(IDataset[DataT], Sequence[DataT]):
     """A memory-efficient constant sequence."""
@@ -452,21 +461,28 @@ def _flatdata_depth(dataset):
 def _flatdata_print(dataset, indent=0):
     """Internal debugging method.
     Print the dataset."""
+    print(_flatdata_repr(dataset, indent))
+
+
+def _flatdata_repr(dataset, indent=0):
+    """Return the string representation of the dataset.
+    Shows the underlying dataset tree.
+    """
     if isinstance(dataset, FlatData):
         ss = dataset._indices is not None
         cc = len(dataset._datasets) != 1
         cf = dataset._can_flatten
-        print(
+        s = (
             "\t" * indent
             + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},"
-            f"cat={cc},cf={cf})"
+            f"cat={cc},cf={cf})\n"
         )
         for dd in dataset._datasets:
-            _flatdata_print(dd, indent + 1)
+            s += _flatdata_repr(dd, indent + 1)
+        return s
     else:
-        print(
-            "\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})"
-        )
+        return "\t" * indent + f"{dataset.__class__.__name__} " \
+                               f"(len={len(dataset)})\n"
 
 
 __all__ = ["FlatData", "ConstantSequence"]

@@ -185,17 +185,22 @@ class FlatteningTests(unittest.TestCase):
 
         B = concat_datasets([])  # empty dataset
         D1 = s[0].dataset
+        print(repr(D1))
+
         D2a = s[1].dataset
         D2b = s[1].dataset
 
         B1 = D1.concat(B)
         print(f"DATA depth={_flatdata_depth(B1)}, dsets={len(B1._datasets)}")
+        print(repr(B1))
         assert len(B1._datasets) <= 2
         B2 = D2a.concat(B1)
         print(f"DATA depth={_flatdata_depth(B2)}, dsets={len(B2._datasets)}")
+        print(repr(B2))
         assert len(B2._datasets) <= 2
         B3 = D2b.concat(B2)
         print(f"DATA depth={_flatdata_depth(B3)}, dsets={len(B3._datasets)}")
+        print(repr(B3))
         assert len(B3._datasets) <= 2
 
     def test_flattening_replay_ocl(self):
