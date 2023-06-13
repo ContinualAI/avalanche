@@ -155,11 +155,12 @@ class AvalancheDataset(IDataset[T_co]):
                     d = _FlatDataWithTransform([d])
                 self._flat_data = self._flat_data.concat(d)
         else:
-            self._flat_data: _FlatDataWithTransform[T_co] = _FlatDataWithTransform(
-                flat_datas,
-                indices=indices,
-                transform_groups=transform_groups,
-                frozen_transform_groups=frozen_transform_groups)
+            self._flat_data: _FlatDataWithTransform[T_co] = \
+                _FlatDataWithTransform(
+                    flat_datas,
+                    indices=indices,
+                    transform_groups=transform_groups,
+                    frozen_transform_groups=frozen_transform_groups)
         self.collate_fn = collate_fn
 
         ####################################

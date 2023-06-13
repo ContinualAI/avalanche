@@ -12,7 +12,7 @@ from avalanche.benchmarks.utils import (
     make_tensor_classification_dataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
-from avalanche.benchmarks.utils.flat_data import _flatdata_print, _flatdata_depth
+from avalanche.benchmarks.utils.flat_data import _flatdata_depth
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.storage_policy import (
@@ -138,7 +138,8 @@ class ReplayTest(unittest.TestCase):
             # b = time.time()
             # print("Access buffer", b - a)
             # _flatdata_print(storage_policy.buffer._flat_data)
-            # print("DEPTH: ", _flatdata_depth(storage_policy.buffer._flat_data))
+            # print("DEPTH: ", _flatdata_depth(
+            # storage_policy.buffer._flat_data))
         assert _flatdata_depth(storage_policy.buffer._flat_data) == base_depth
 
     def test_class_balanced_replay_flattening(self):
@@ -161,6 +162,7 @@ class ReplayTest(unittest.TestCase):
             # print("REPR: ", repr(storage_policy.buffer))
             # print("DEPTH: ", storage_policy.buffer._tree_depth())
         assert _flatdata_depth(storage_policy.buffer._flat_data) == base_depth
+
 
 class ParametricBufferTest(unittest.TestCase):
     def setUp(self) -> None:

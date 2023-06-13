@@ -260,6 +260,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         """
         return _flatdata_depth(self)
 
+
 class ConstantSequence(IDataset[DataT], Sequence[DataT]):
     """A memory-efficient constant sequence."""
 
@@ -480,7 +481,8 @@ def _flatdata_repr(dataset, indent=0):
             s += _flatdata_repr(dd, indent + 1)
         return s
     else:
-        return "\t" * indent + f"{dataset.__class__.__name__} (len={len(dataset)})\n"
+        return "\t" * indent + f"{dataset.__class__.__name__} " \
+                               f"(len={len(dataset)})\n"
 
 
 __all__ = ["FlatData", "ConstantSequence"]
