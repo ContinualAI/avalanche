@@ -123,7 +123,8 @@ class LazyRange(LazyIndices):
             yield self._offset + i
 
     def __getitem__(self, item):
-        assert item >= self._start and item < self._end, "LazyRange: index out of range"
+        assert item >= self._start and item < self._end, \
+            "LazyRange: index out of range"
         return self._start + self._offset + item
 
     def __add__(self, other):
