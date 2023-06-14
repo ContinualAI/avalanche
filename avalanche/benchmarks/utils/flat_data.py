@@ -57,8 +57,8 @@ class LazyIndices:
         new_lists = []
         for ll in lists:
             if isinstance(ll, LazyIndices) and ll._eager_list is not None:
-                    # already eagerized, don't waste work
-                    new_lists.append(ll._eager_list)
+                # already eagerized, don't waste work
+                new_lists.append(ll._eager_list)
             else:
                 new_lists.append(ll)
         self._lists = new_lists
@@ -193,10 +193,12 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
 
         # Case 1: one is a subset of the other
         if len(self._datasets) == 1 and len(other._datasets) == 1:
-            if self._can_flatten and self._datasets[0] is other and other._indices is None:
+            if self._can_flatten and self._datasets[0] is other \
+                    and other._indices is None:
                 idxs = self._get_lazy_indices() + other._get_lazy_indices()
                 return other.subset(idxs)
-            elif other._can_flatten and other._datasets[0] is self and self._indices is None:
+            elif other._can_flatten and other._datasets[0] is self \
+                    and self._indices is None:
                 idxs = self._get_lazy_indices() + other._get_lazy_indices()
                 return self.subset(idxs)
             elif (
@@ -204,7 +206,8 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
                 and other._can_flatten
                 and self._datasets[0] is other._datasets[0]
             ):
-                idxs = LazyIndices(self._get_lazy_indices(), other._get_lazy_indices())
+                idxs = LazyIndices(self._get_lazy_indices(),
+                                   other._get_lazy_indices())
                 return self.__class__(datasets=self._datasets, indices=idxs)
 
         # Case 2: at least one of them can be flattened
@@ -216,7 +219,8 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
                     base_other = 0
                 else:
                     base_other = self._cumulative_sizes[-1]
-                other_idxs = LazyIndices(other._get_lazy_indices(), offset=base_other)
+                other_idxs = LazyIndices(other._get_lazy_indices(),
+                                         offset=base_other)
                 new_indices = self._get_lazy_indices() + other_idxs
             return self.__class__(
                 datasets=self._datasets + other._datasets, indices=new_indices
@@ -240,7 +244,8 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
             else:
                 base_other = len(self)
                 self_idxs = list(range(len(self)))
-                other_idxs = LazyIndices(other._get_lazy_indices(), offset=base_other)
+                other_idxs = LazyIndices(other._get_lazy_indices(),
+                                         offset=base_other)
                 new_indices = self_idxs + other_idxs
             return self.__class__(
                 datasets=[self] + other._datasets, indices=new_indices
@@ -434,7 +439,8 @@ def _flatten_dataset_list(
         ):
             new_data_list.pop()
             # the same dataset is repeated, using indices to avoid repeating it
-            idxs = LazyIndices(range(len(last_dataset)), range(len(last_dataset)))
+            idxs = LazyIndices(range(len(last_dataset)),
+                               range(len(last_dataset)))
             merged_ds = [FlatData([last_dataset], indices=idxs)]
             new_data_list.extend(merged_ds)
         else:
