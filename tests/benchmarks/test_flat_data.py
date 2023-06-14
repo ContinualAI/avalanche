@@ -91,7 +91,11 @@ class AvalancheDatasetTests(unittest.TestCase):
 
             idxs = list(range(len(dd)))
             random.shuffle(idxs)
+            dd_old = dd
             dd = dd.subset(idxs[:12])
+
+            for i in range(12):
+                assert dd[i] == dd_old[idxs[i]]
 
             assert _flatdata_depth(dd) == 2
             assert len(dd._indices) == 12

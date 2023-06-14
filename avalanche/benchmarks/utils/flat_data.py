@@ -104,6 +104,36 @@ class LazyIndices:
             return sum(len(ll) for ll in self._lists)
 
 
+class LazyRange(LazyIndices):
+    """Avoid 'eagerification' step for ranges."""
+
+    def __init__(self, start, end, offset=0):
+        self._start = start
+        self._end = end
+        self._offset = offset
+        self._known_length = end - start
+        self._eager_list = self
+
+    def _to_eager(self):
+        # LazyRange is eager already
+        pass
+
+    def __iter__(self):
+        for i in range(self._start, self._end):
+            yield self._offset + i
+
+    def __getitem__(self, item):
+        assert item >= self._start and item < self._end, "LazyRange: index out of range"
+        return self._start + self._offset + item
+
+    def __add__(self, other):
+        # TODO: could be optimized to merge contiguous ranges
+        return LazyIndices(self, other)
+
+    def __len__(self):
+        return self._end - self._start
+
+
 class FlatData(IDataset[T_co], Sequence[T_co]):
     """FlatData is a dataset optimized for efficient repeated concatenation
     and subset operations.
@@ -162,7 +192,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         if self._indices is not None:
             return self._indices
         else:
-            return LazyIndices(range(len(self)), known_length=len(self))
+            return LazyRange(0, len(self))
 
     def subset(self: TFlatData, indices: Optional[Iterable[int]]) -> TFlatData:
         """Subsampling operation.
@@ -233,7 +263,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
                     base_other = 0
                 else:
                     base_other = self._cumulative_sizes[-1]
-                other_idxs = LazyIndices(range(len(other)), offset=base_other)
+                other_idxs = LazyRange(0, len(other), offset=base_other)
                 new_indices = self._get_lazy_indices() + other_idxs
             return self.__class__(
                 datasets=self._datasets + [other], indices=new_indices
@@ -243,7 +273,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
                 new_indices = None
             else:
                 base_other = len(self)
-                self_idxs = list(range(len(self)))
+                self_idxs = LazyRange(0, len(self))
                 other_idxs = LazyIndices(other._get_lazy_indices(),
                                          offset=base_other)
                 new_indices = self_idxs + other_idxs
@@ -439,8 +469,8 @@ def _flatten_dataset_list(
         ):
             new_data_list.pop()
             # the same dataset is repeated, using indices to avoid repeating it
-            idxs = LazyIndices(range(len(last_dataset)),
-                               range(len(last_dataset)))
+            idxs = LazyIndices(LazyRange(0, len(last_dataset)),
+                               LazyRange(0, len(last_dataset)))
             merged_ds = [FlatData([last_dataset], indices=idxs)]
             new_data_list.extend(merged_ds)
         else:
