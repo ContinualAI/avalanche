@@ -392,7 +392,13 @@ def _init_task_labels(dataset, task_labels, check_shape=True) -> \
                 "number of patterns in the dataset. Got {}, expected "
                 "{}!".format(len(task_labels), len(dataset))
             )
-        tls = SubSequence(task_labels, converter=int)
+
+        if isinstance(task_labels, ConstantSequence):
+            tls = task_labels
+        elif isinstance(task_labels, DataAttribute):
+            tls = task_labels.data
+        else:
+            tls = SubSequence(task_labels, converter=int)
     else:
         task_labels = _traverse_supported_dataset(
             dataset, _select_task_labels
@@ -400,6 +406,12 @@ def _init_task_labels(dataset, task_labels, check_shape=True) -> \
 
         if task_labels is None:
             tls = None
+        elif isinstance(task_labels, ConstantSequence):
+            tls = task_labels
+        elif isinstance(task_labels, DataAttribute):
+            return DataAttribute(
+                task_labels.data, "targets_task_labels",
+                use_in_getitem=True)
         else:
             tls = SubSequence(task_labels, converter=int)
 

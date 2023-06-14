@@ -35,13 +35,70 @@ from typing import (
 )
 
 from torch.utils.data import ConcatDataset
-
+import itertools
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
 
 
 TFlatData = TypeVar('TFlatData', bound='FlatData')
 DataT = TypeVar("DataT")
 T_co = TypeVar("T_co", covariant=True)
+
+
+class LazyIndices:
+    """More efficient ops for indices.
+
+    Avoid wasteful allocations, accept generators. Convert to list only
+    when needed.
+
+    Do not use for anything outside this file.
+    """
+
+    def __init__(self, *lists, known_length=None, offset=0):
+        new_lists = []
+        for ll in lists:
+            if isinstance(ll, LazyIndices) and ll._eager_list is not None:
+                    # already eagerized, don't waste work
+                    new_lists.append(ll._eager_list)
+            else:
+                new_lists.append(ll)
+        self._lists = new_lists
+
+        if len(self._lists) == 1 and offset == 0:
+            self._eager_list = self._lists[0]
+        else:
+            self._lazy_sequence = itertools.chain(*self._lists)
+            """chain of generators
+            this will be consumed over time whenever we need elems.
+            """
+            self._eager_list = None
+            """This is the list where we save indices
+            whenever we generate them from the lazy sequence.
+            """
+            self._offset = offset
+
+        self._known_length = known_length
+
+    def _to_eager(self):
+        if self._eager_list is not None:
+            return
+        self._eager_list = [el + self._offset for el in self._lazy_sequence]
+
+    def __getitem__(self, item):
+        if self._eager_list is None:
+            self._to_eager()
+        return self._eager_list[item]
+
+    def __add__(self, other):
+        return LazyIndices(self, other)
+
+    def __len__(self):
+        if self._eager_list is not None:
+            return len(self._eager_list)
+        elif self._known_length is not None:
+            return self._known_length
+        else:
+            # raise ValueError("Unknown lazy list length")
+            return sum(len(ll) for ll in self._lists)
 
 
 class FlatData(IDataset[T_co], Sequence[T_co]):
@@ -95,14 +152,14 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         #         f"Max index {max(self._indices)} is greater than datasets " \
         #         f"list size {self._cumulative_sizes[-1]}"
 
-    def _get_indices(self):
+    def _get_lazy_indices(self):
         """This method creates indices on-the-fly if self._indices=None.
         Only for internal use. Call may be expensive if self._indices=None.
         """
         if self._indices is not None:
             return self._indices
         else:
-            return list(range(len(self)))
+            return LazyIndices(range(len(self)), known_length=len(self))
 
     def subset(self: TFlatData, indices: Optional[Iterable[int]]) -> TFlatData:
         """Subsampling operation.
@@ -117,7 +174,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
             if self._indices is None:
                 new_indices = indices
             else:
-                self_indices = self._get_indices()
+                self_indices = self._get_lazy_indices()
                 new_indices = [self_indices[x] for x in indices]
             return self.__class__(datasets=self._datasets, indices=new_indices)
         return self.__class__(datasets=[self], indices=indices)
@@ -134,17 +191,17 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         # Case 1: one is a subset of the other
         if len(self._datasets) == 1 and len(other._datasets) == 1:
             if self._can_flatten and self._datasets[0] is other:
-                return other.subset(self._get_indices() + 
-                                    list(range(len(other))))
+                idxs = self._get_lazy_indices() + other._get_lazy_indices()
+                return other.subset(idxs)
             elif other._can_flatten and other._datasets[0] is self:
-                return self.subset(list(range(len(self))) + 
-                                   other._get_indices())
+                idxs = self._get_lazy_indices() + other._get_lazy_indices()
+                return self.subset(idxs)
             elif (
                 self._can_flatten
                 and other._can_flatten
                 and self._datasets[0] is other._datasets[0]
             ):
-                idxs = self._get_indices() + other._get_indices()
+                idxs = LazyIndices(self._get_lazy_indices(), other._get_lazy_indices())
                 return self.__class__(datasets=self._datasets, indices=idxs)
 
         # Case 2: at least one of them can be flattened
@@ -156,9 +213,8 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
                     base_other = 0
                 else:
                     base_other = self._cumulative_sizes[-1]
-                new_indices = self._get_indices() + [
-                    base_other + idx for idx in other._get_indices()
-                ]
+                other_idxs = LazyIndices(other._get_lazy_indices(), offset=base_other)
+                new_indices = self._get_lazy_indices() + other_idxs
             return self.__class__(
                 datasets=self._datasets + other._datasets, indices=new_indices
             )
@@ -170,9 +226,8 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
                     base_other = 0
                 else:
                     base_other = self._cumulative_sizes[-1]
-                new_indices = self._get_indices() + [
-                    base_other + idx for idx in range(len(other))
-                ]
+                other_idxs = LazyIndices(other._get_lazy_indices(), offset=base_other)
+                new_indices = self._get_lazy_indices() + other_idxs
             return self.__class__(
                 datasets=self._datasets + [other], indices=new_indices
             )
@@ -182,9 +237,8 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
             else:
                 base_other = len(self)
                 self_idxs = list(range(len(self)))
-                new_indices = self_idxs + [
-                    base_other + idx for idx in other._get_indices()
-                ]
+                other_idxs = LazyIndices(other._get_lazy_indices(), offset=base_other)
+                new_indices = self_idxs + other_idxs
             return self.__class__(
                 datasets=[self] + other._datasets, indices=new_indices
             )
@@ -328,7 +382,7 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
 
     def __str__(self):
         return (
-            f"ConstantSequence(value={self._constant_value}, len={self._size}"
+            f"ConstantSequence(value={self._constant_value}, len={self._size})"
         )
 
     def __hash__(self):
