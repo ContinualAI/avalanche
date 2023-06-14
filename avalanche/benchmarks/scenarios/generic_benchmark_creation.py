@@ -66,7 +66,7 @@ from avalanche.benchmarks.utils.transform_groups import (
     YTransform,
 )
 from avalanche.benchmarks.utils.utils import (
-    is_int_iterable,
+    _is_int_iterable,
     make_generic_dataset,
     make_generic_tensor_dataset,
 )
@@ -202,7 +202,7 @@ def _detect_legacy_classification_usage(
             as_classification_dataset = make_classification_dataset(
                 dataset
             )
-            if not is_int_iterable(as_classification_dataset.targets):
+            if not _is_int_iterable(as_classification_dataset.targets):
                 return False
         except Exception:
             return False
