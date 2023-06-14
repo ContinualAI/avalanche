@@ -127,7 +127,8 @@ class GEMPlugin(SupervisedPlugin):
             dataset.collate_fn if hasattr(dataset, "collate_fn") else None
         )
         dataloader = DataLoader(
-            dataset, batch_size=batch_size, collate_fn=collate_fn
+            dataset, batch_size=batch_size, collate_fn=collate_fn,
+            shuffle=True
         )
         tot = 0
         for mbatch in dataloader:
