@@ -128,6 +128,7 @@ class FlatteningTests(unittest.TestCase):
         A = FlatData([base_dataset], can_flatten=False, indices=[1, 2])
         B = FlatData([A])
         C = A.concat(B)
+        C[3]
         self.assertListEqual([2, 3, 2, 3], list(C))
 
         A = FlatData([base_dataset], can_flatten=False)

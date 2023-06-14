@@ -91,6 +91,9 @@ class LazyIndices:
     def __add__(self, other):
         return LazyIndices(self, other)
 
+    def __radd__(self, other):
+        return LazyIndices(other, self)
+
     def __len__(self):
         if self._eager_list is not None:
             return len(self._eager_list)
@@ -190,10 +193,10 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
 
         # Case 1: one is a subset of the other
         if len(self._datasets) == 1 and len(other._datasets) == 1:
-            if self._can_flatten and self._datasets[0] is other:
+            if self._can_flatten and self._datasets[0] is other and other._indices is None:
                 idxs = self._get_lazy_indices() + other._get_lazy_indices()
                 return other.subset(idxs)
-            elif other._can_flatten and other._datasets[0] is self:
+            elif other._can_flatten and other._datasets[0] is self and self._indices is None:
                 idxs = self._get_lazy_indices() + other._get_lazy_indices()
                 return self.subset(idxs)
             elif (
@@ -226,7 +229,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
                     base_other = 0
                 else:
                     base_other = self._cumulative_sizes[-1]
-                other_idxs = LazyIndices(other._get_lazy_indices(), offset=base_other)
+                other_idxs = LazyIndices(range(len(other)), offset=base_other)
                 new_indices = self._get_lazy_indices() + other_idxs
             return self.__class__(
                 datasets=self._datasets + [other], indices=new_indices
@@ -326,6 +329,8 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
         """
         self._constant_value = constant_value
         self._size = size
+        self._can_flatten = False
+        self._indices = None
 
     def __len__(self):
         return self._size
@@ -429,7 +434,7 @@ def _flatten_dataset_list(
         ):
             new_data_list.pop()
             # the same dataset is repeated, using indices to avoid repeating it
-            idxs = list(list(range(len(last_dataset))) * 2)
+            idxs = LazyIndices(range(len(last_dataset)), range(len(last_dataset)))
             merged_ds = [FlatData([last_dataset], indices=idxs)]
             new_data_list.extend(merged_ds)
         else:
