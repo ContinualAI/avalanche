@@ -126,22 +126,19 @@ class CumulativeAccuracyPluginMetric(
     def before_training_exp(self, strategy, **kwargs):
         super().before_training_exp(strategy, **kwargs)
         if isinstance(strategy.experience, OnlineCLExperience):
-            if strategy.experience.access_task_boundaries:
-                new_classes = set(
-                    strategy.experience.
+            new_classes = set(
+                strategy.experience.logging().
+                origin_experience.
+                classes_in_this_experience
+            )
+
+            task_id = (
+                    strategy.
+                    experience.
+                    logging().
                     origin_experience.
-                    classes_in_this_experience
-                )
-                task_id = (strategy.experience.
-                           origin_experience.
-                           current_experience)
-            else:
-                raise AttributeError(
-                    "Online Scenario has to allow "
-                    "access to task boundaries for"
-                    " the Cumulative Accuracy Metric"
-                    " to be computed"
-                )
+                    current_experience
+                    )
         else:
             new_classes = set(strategy.experience.classes_in_this_experience)
             task_id = strategy.experience.current_experience
