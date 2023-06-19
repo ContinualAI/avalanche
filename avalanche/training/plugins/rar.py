@@ -51,7 +51,6 @@ class RARPlugin(SupervisedPlugin):
         opt_lr: float = 0.1,
         name_ext_layer: str = None,
         use_adversarial_replay: bool = True,
-        coef_lambda: float = 1.0,
         beta_coef: float = 0.4,
         decay_factor_fgsm: float = 1.0,
         epsilon_fgsm: float = 0.0314,
@@ -59,11 +58,17 @@ class RARPlugin(SupervisedPlugin):
         storage_policy: Optional["ReservoirSamplingBuffer"] = None,
     ):
         """
-        mem_size: int       : Fixed memory size
-        subsample: int      : Size of the sample from which to look
-                              for highest interfering exemplars
-        batch_size_mem: int : Size of the batch sampled from
-                              the bigger subsample batch
+        batch_size_mem: int    : Size of the batch sampled from
+                                 the bigger buffer
+        mem_size: int          : Fixed memory size
+        opt_lr : float         : Learning rate of the internal optimizer
+        name_ext_layer: str    : Name of the layer to extract features
+        use_adversarial_replay : Boolean to use or not RAR
+        beta_coef: float       : coef between RAR and Buffer
+        decay_factor_fgsm:     : Decay factor of FGSM
+        epsilon_fgsm:          : Epsilon for FGSM
+        iter_fgsm:             : Number of iterations of FGSM
+        storage_policy:        : Storage Policy used for the buffer                      
         """
         super().__init__()
         self.mem_size = mem_size
@@ -73,7 +78,6 @@ class RARPlugin(SupervisedPlugin):
 
         self.use_adversarial_replay = use_adversarial_replay
 
-        self.coef_lambda = coef_lambda
         self.beta_coef = beta_coef
         # For Split-CIFAR10: 0.5, 0.1, 0.075 - mem size 200, 500 , 1000
         # Split-CIFAR100 and Split-miniImageNet: 0.4
@@ -123,6 +127,15 @@ class RARPlugin(SupervisedPlugin):
         )
 
     def before_backward(self, strategy: "SupervisedTemplate", **kwargs):
+        """
+        Before the backward function in the training process. We need to update 
+        the loss function.
+
+        First we add the loss of the buffer. Then if we are using RAR, we 
+        obtained the features to find the closest element of a different class.
+        We apply FGSM to those selected elements and then find the loss 
+        of the attacked samples. 
+        """
 
         if len(self.storage_policy.buffer) == 0:
             # first experience. We don't use the buffer
@@ -187,12 +200,20 @@ class RARPlugin(SupervisedPlugin):
         self.storage_policy.update(strategy, **kwargs)
 
     def get_buffer_batch(self):
+        """
+        Auxiliary function to obtained the next batch
+        """
         iter_replay = iter(self.replay_loader)
         b_batch = next(iter_replay)
 
         return b_batch
 
     def mifgsm_attack(self, input, data_grad):
+        """
+        FGSM - This function generate the perturbation to the input.
+        input: Data that we want to apply the perturbation
+        data_grad: Gradient of those samples
+        """
         pert_out = input
         alpha = self.epsilon_fgsm/self.iter_fgsm
         g = 0
