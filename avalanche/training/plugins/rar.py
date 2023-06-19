@@ -51,7 +51,6 @@ class RARPlugin(SupervisedPlugin):
         opt_lr: float = 0.1,
         name_ext_layer: str = None,
         use_adversarial_replay: bool = True,
-        use_mixup: bool = True,
         coef_lambda: float = 1.0,
         beta_coef: float = 0.4,
         decay_factor_fgsm: float = 1.0,
@@ -73,14 +72,13 @@ class RARPlugin(SupervisedPlugin):
         self.name_ext_layer = name_ext_layer
 
         self.use_adversarial_replay = use_adversarial_replay
-        self.use_mixup = use_mixup
 
         self.coef_lambda = coef_lambda
         self.beta_coef = beta_coef
         # For Split-CIFAR10: 0.5, 0.1, 0.075 - mem size 200, 500 , 1000
         # Split-CIFAR100 and Split-miniImageNet: 0.4
 
-        #FGSM
+        # FGSM
         self.decay_factor_fgsm = decay_factor_fgsm
         self.epsilon_fgsm = epsilon_fgsm
         self.iter_fgsm = iter_fgsm
@@ -129,29 +127,14 @@ class RARPlugin(SupervisedPlugin):
         if len(self.storage_policy.buffer) == 0:
             # first experience. We don't use the buffer
             return
-        
-        if self.use_mixup:
-            mb_x_buff, mb_y_buff1, mb_y_buff2, lam = self.mixup_data()
-            mb_y_buff = (lam * mb_y_buff1 + (1 - lam) * mb_y_buff2).long()
-            mb_x_buff = mb_x_buff.to(strategy.device)
-            mb_y_buff1 = mb_y_buff1.to(strategy.device)
-            mb_y_buff2 = mb_y_buff2.to(strategy.device)
-        else:
-            batch_buff = self.get_buffer_batch()
-            mb_x_buff = batch_buff[0].to(strategy.device)
-            mb_y_buff = batch_buff[1].to(strategy.device)
+
+        batch_buff = self.get_buffer_batch()
+        mb_x_buff = batch_buff[0].to(strategy.device)
+        mb_y_buff = batch_buff[1].to(strategy.device)
 
         out_buff = strategy.model(mb_x_buff)
-
-        if self.use_mixup:
-            strategy.loss += (1-self.beta_coef)*self.mixup_criterion(
-                                    strategy._criterion, 
-                                    out_buff, 
-                                    mb_y_buff1, 
-                                    mb_y_buff2, 
-                                    lam)
-        else:
-            strategy.loss += (1-self.beta_coef)*strategy._criterion(out_buff, mb_y_buff)
+        strategy.loss += (1-self.beta_coef) * \
+            strategy._criterion(out_buff, mb_y_buff)
 
         if not self.use_adversarial_replay:
             return
@@ -161,11 +144,11 @@ class RARPlugin(SupervisedPlugin):
 
         copy_model = copy.deepcopy(strategy.model)
         feature_extractor = create_feature_extractor(
-	        copy_model, return_nodes=[self.name_ext_layer])
+                copy_model, return_nodes=[self.name_ext_layer])
 
         params_list = []
         for param_group in strategy.optimizer.state_dict()['param_groups']:
-            for i,p in enumerate(copy_model.parameters()):
+            for i, p in enumerate(copy_model.parameters()):
                 if i in param_group['params']:
                     params_list.append(p)
 
@@ -197,16 +180,8 @@ class RARPlugin(SupervisedPlugin):
         mb_x_pert = self.mifgsm_attack(mb_x_buff, mb_x_buff.grad.data)
 
         out_buff = strategy.model(mb_x_pert)
-        
-        if self.use_mixup:
-            strategy.loss += (1-self.beta_coef)*self.mixup_criterion(
-                                    strategy._criterion, 
-                                    out_buff, 
-                                    mb_y_buff1, 
-                                    mb_y_buff2, 
-                                    lam)
-        else:
-            strategy.loss += (1-self.beta_coef)*strategy._criterion(out_buff, mb_y_buff)
+        strategy.loss += (1-self.beta_coef) * \
+            strategy._criterion(out_buff, mb_y_buff)
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         self.storage_policy.update(strategy, **kwargs)
@@ -220,28 +195,14 @@ class RARPlugin(SupervisedPlugin):
     def mifgsm_attack(self, input, data_grad):
         pert_out = input
         alpha = self.epsilon_fgsm/self.iter_fgsm
-        g=0
+        g = 0
         for i in range(self.iter_fgsm-1):
-            g = self.decay_factor_fgsm*g + data_grad/torch.norm(data_grad,p=1)
+            g = self.decay_factor_fgsm*g + data_grad/torch.norm(data_grad, p=1)
             pert_out = pert_out + alpha*torch.sign(g)
             pert_out = torch.clamp(pert_out, 0, 1)
-            if torch.norm((pert_out-input),p=float('inf')) > self.epsilon_fgsm:
+            if torch.norm((pert_out-input), p=float('inf')) > self.epsilon_fgsm:
                 break   
         return pert_out
-
-    def mixup_data(self):
-        b1 = self.get_buffer_batch()
-        b2 = self.get_buffer_batch()
-        x1, y1 = b1[0], b1[1]
-        x2, y2 = b2[0], b2[1]
-
-        lam = np.random.beta(self.coef_lambda, self.coef_lambda)
-        mixed_x = lam * x1 + (1 - lam) * x2
-
-        return mixed_x, y1, y2, lam
-
-    def mixup_criterion(self, criterion, pred, y_a, y_b, lam):
-        return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
 
 
 __all__ = [
