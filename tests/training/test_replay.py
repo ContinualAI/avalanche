@@ -12,6 +12,7 @@ from avalanche.benchmarks.utils import (
     make_tensor_classification_dataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.flat_data import _flatdata_depth
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.storage_policy import (
@@ -20,11 +21,12 @@ from avalanche.training.storage_policy import (
     ExemplarsSelectionStrategy,
     HerdingSelectionStrategy,
     ClosestToCenterSelectionStrategy,
-    ParametricBuffer,
+    ParametricBuffer, ReservoirSamplingBuffer,
 )
 from avalanche.training.supervised import Naive
 from avalanche.training.templates import SupervisedTemplate
 from tests.unit_tests_utils import get_fast_benchmark
+import time
 
 
 class ReplayTest(unittest.TestCase):
@@ -98,6 +100,68 @@ class ReplayTest(unittest.TestCase):
             # buffer size should equal self.mem_size if data is large enough
             len_tot = sum([len(el) for el in ext_mem_data])
             assert len_tot == policy.max_size
+
+    def test_replay_flattening(self):
+        benchmark = get_fast_benchmark(use_task_labels=True)
+        # storage_policy = ClassBalancedBuffer(100)
+
+        # check that flat data subsets are flattened
+        data = benchmark.train_stream[0].dataset._flat_data
+        base_depth = _flatdata_depth(data)
+        for i in range(10):
+            data = data.subset(range(100))
+            # _flatdata_print(data)
+            # print("DEPTH: ", _flatdata_depth(data))
+        assert _flatdata_depth(data) == base_depth
+
+        # check that supervised avalanche data subsets are flattened
+        data = benchmark.train_stream[0].dataset
+        base_depth = _flatdata_depth(data)
+        for i in range(10):
+            data = data.subset(range(100))
+            # _flatdata_print(data._flat_data)
+            # print("DEPTH: ", _flatdata_depth(data._flat_data))
+        assert _flatdata_depth(data) == base_depth
+
+        # check that replay buffer data is flattened
+        storage_policy = ReservoirSamplingBuffer(100)
+        base_depth = None
+        for experience in benchmark.train_stream:
+            # a = time.time()
+            storage_policy.update_from_dataset(experience.dataset)
+            # b = time.time()
+            # print("Update from dataset:", b - a)
+
+            # a = time.time()
+            if base_depth is None:
+                base_depth = _flatdata_depth(storage_policy.buffer._flat_data)
+            # b = time.time()
+            # print("Access buffer", b - a)
+            # _flatdata_print(storage_policy.buffer._flat_data)
+            # print("DEPTH: ", _flatdata_depth(
+            # storage_policy.buffer._flat_data))
+        assert _flatdata_depth(storage_policy.buffer._flat_data) == base_depth
+
+    def test_class_balanced_replay_flattening(self):
+        # check that replay buffer data is flattened
+        benchmark = get_fast_benchmark(use_task_labels=True)
+        storage_policy = ClassBalancedBuffer(100)
+        base_depth = None
+        for experience in benchmark.train_stream:
+            # a = time.time()
+            storage_policy.update_from_dataset(experience.dataset)
+            # b = time.time()
+            # print("Update from dataset:", b - a)
+
+            # a = time.time()
+            if base_depth is None:
+                base_depth = _flatdata_depth(storage_policy.buffer._flat_data)
+            # b = time.time()
+            # print("Access buffer", b - a)
+            # _flatdata_print(storage_policy.buffer._flat_data)
+            # print("REPR: ", repr(storage_policy.buffer))
+            # print("DEPTH: ", storage_policy.buffer._tree_depth())
+        assert _flatdata_depth(storage_policy.buffer._flat_data) == base_depth
 
 
 class ParametricBufferTest(unittest.TestCase):
