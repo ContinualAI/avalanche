@@ -348,6 +348,7 @@ def _fixed_size_split(
     online_benchmark: 'OnlineCLScenario',
     experience_size: int,
     access_task_boundaries: bool,
+    shuffle: bool,
     s: Iterable[
             DatasetExperience[TClassificationDataset]]) -> \
         CLStream[
@@ -358,6 +359,7 @@ def _fixed_size_split(
         experience_size=experience_size,
         online_benchmark=online_benchmark,
         access_task_boundaries=access_task_boundaries,
+        shuffle=shuffle,
     )
 
 
@@ -371,6 +373,7 @@ class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
         experience_size: int = 10,
         stream_split_strategy: Literal['fixed_size_split'] = "fixed_size_split",
         access_task_boundaries: bool = False,
+        shuffle: bool = True,
     ):
         """Creates an online scenario from an existing CL scenario
 
@@ -391,6 +394,8 @@ class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
         : param access_task_boundaries: If True the attributes related to task
             boundaries such as `is_first_subexp` and `is_last_subexp` become
             accessible during training.
+        :param shuffle: If True, experiences will be split by first shuffling
+            instances in each experience. Defaults to True.
         """
         
         if stream_split_strategy != "fixed_size_split":
@@ -399,7 +404,8 @@ class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
         split_strat = partial(_fixed_size_split, 
                               self,
                               experience_size,
-                              access_task_boundaries)
+                              access_task_boundaries,
+                              shuffle)
 
         streams_dict = {s.name: s for s in original_streams}
         if "train" not in streams_dict:

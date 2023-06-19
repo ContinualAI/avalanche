@@ -114,6 +114,9 @@ class BaseSGDTemplate(
         )
         """ Eval mini-batch size. """
 
+        self.retain_graph: bool = False
+        """ Retain graph when calling loss.backward(). """
+
         if evaluator is None:
             evaluator = EvaluationPlugin()
         elif callable(evaluator):
@@ -193,7 +196,7 @@ class BaseSGDTemplate(
     def _eval_exp(self, **kwargs):
         self.eval_epoch(**kwargs)
 
-    def make_optimizer(self):
+    def make_optimizer(self, **kwargs):
         """Optimizer initialization."""
         # Should be implemented in Observation Type
         raise NotImplementedError()
@@ -216,11 +219,11 @@ class BaseSGDTemplate(
 
     def training_epoch(self, **kwargs):
         # Should be implemented in Update Type
-        raise NotADirectoryError()
+        raise NotImplementedError()
 
     def backward(self):
         """Run the backward pass."""
-        self.loss.backward()
+        self.loss.backward(retain_graph=self.retain_graph)
 
     def optimizer_step(self):
         """Execute the optimizer step (weights update)."""
@@ -241,7 +244,7 @@ class BaseSGDTemplate(
 
     # ==================================================================> NEW
 
-    def check_model_and_optimizer(self):
+    def check_model_and_optimizer(self, **kwargs):
         # Should be implemented in observation type
         raise NotImplementedError()
 
@@ -255,9 +258,7 @@ class BaseSGDTemplate(
         self.make_train_dataloader(**kwargs)
 
         # Model Adaptation (e.g. freeze/add new units)
-        # self.model = self.model_adaptation()
-        # self.make_optimizer()
-        self.check_model_and_optimizer()
+        self.check_model_and_optimizer(**kwargs)
 
         super()._before_training_exp(**kwargs)
 
@@ -390,6 +391,7 @@ class BaseSGDTemplate(
         shuffle=True,
         pin_memory=None,
         persistent_workers=False,
+        drop_last=False,
         **kwargs
     ):
         """Data loader initialization.
@@ -405,13 +407,15 @@ class BaseSGDTemplate(
 
         assert self.adapted_dataset is not None
 
+        torch.utils.data.DataLoader
+
         other_dataloader_args = self._obtain_common_dataloader_parameters(
             batch_size=self.train_mb_size,
             num_workers=num_workers,
             shuffle=shuffle,
             pin_memory=pin_memory,
             persistent_workers=persistent_workers,
-            **kwargs
+            drop_last=drop_last,
         )
 
         self.dataloader = TaskBalancedDataLoader(
@@ -426,7 +430,6 @@ class BaseSGDTemplate(
         shuffle=False,
         pin_memory=None,
         persistent_workers=False,
-        drop_last=False,
         **kwargs
     ):
         """
@@ -448,8 +451,6 @@ class BaseSGDTemplate(
             shuffle=shuffle,
             pin_memory=pin_memory,
             persistent_workers=persistent_workers,
-            drop_last=drop_last,
-            **kwargs
         )
 
         collate_from_data_or_kwargs(

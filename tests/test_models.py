@@ -1,4 +1,6 @@
 import sys
+import os
+import copy
 
 import unittest
 
@@ -39,6 +41,8 @@ from tests.unit_tests_utils import (
     load_benchmark,
 )
 from tests.test_avalanche_classification_dataset import get_mbatch
+from avalanche.training.checkpoint import save_checkpoint, maybe_load_checkpoint
+from tests.unit_tests_utils import get_fast_benchmark
 
 
 class PytorchcvWrapperTests(unittest.TestCase):
@@ -89,8 +93,31 @@ class PytorchcvWrapperTests(unittest.TestCase):
 
 
 class DynamicOptimizersTests(unittest.TestCase):
+    if "USE_GPU" in os.environ:
+        use_gpu = os.environ["USE_GPU"].lower() in ["true"]
+    else:
+        use_gpu = False
+
+    print("Test on GPU:", use_gpu)
+
+    if use_gpu:
+        device = "cuda"
+    else:
+        device = "cpu"
+
     def setUp(self):
         common_setups()
+
+    def _iterate_optimizers(self, model, *optimizers):
+        for opt_class in optimizers:
+            if opt_class == "SGDmom":
+                yield torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+            if opt_class == "SGD":
+                yield torch.optim.SGD(model.parameters(), lr=0.1)
+            if opt_class == "Adam":
+                yield torch.optim.Adam(model.parameters(), lr=0.001)
+            if opt_class == "AdamW":
+                yield torch.optim.AdamW(model.parameters(), lr=0.001)
 
     def _is_param_in_optimizer(self, param, optimizer):
         for group in optimizer.param_groups:
@@ -99,10 +126,25 @@ class DynamicOptimizersTests(unittest.TestCase):
                     return True
         return False
 
+    def load_benchmark(self, use_task_labels=False):
+        """
+        Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,
+        2 classes per experience.
+
+        :param fast_test: if True loads fake data, MNIST otherwise.
+        """
+        return get_fast_benchmark(use_task_labels=use_task_labels)
+
+    def init_scenario(self, multi_task=False):
+        model = self.get_model(multi_task=multi_task)
+        criterion = CrossEntropyLoss()
+        benchmark = self.load_benchmark(use_task_labels=multi_task)
+        return model, criterion, benchmark
+
     def test_optimizer_update(self):
         model = SimpleMLP()
         optimizer = SGD(model.parameters(), lr=1e-3)
-        strategy = Naive(model, optimizer, None)
+        strategy = Naive(model, optimizer)
 
         # check add_param_group
         p = torch.nn.Parameter(torch.zeros(10, 10))
@@ -112,9 +154,123 @@ class DynamicOptimizersTests(unittest.TestCase):
         # check new_param is in optimizer
         # check old_param is NOT in optimizer
         p_new = torch.nn.Parameter(torch.zeros(10, 10))
-        update_optimizer(optimizer, [p], [p_new])
-        assert self._is_param_in_optimizer(p_new, strategy.optimizer)
-        assert not self._is_param_in_optimizer(p, strategy.optimizer)
+        optimized = update_optimizer(optimizer, 
+                                     {"new_param": p_new}, 
+                                     {"old_param": p})
+        self.assertTrue("new_param" in optimized)
+        self.assertFalse("old_param" in optimized)
+        self.assertTrue(self._is_param_in_optimizer(p_new, strategy.optimizer))
+        self.assertFalse(self._is_param_in_optimizer(p, strategy.optimizer))
+
+    def test_optimizers(self):
+        # SIT scenario
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+        for optimizer in self._iterate_optimizers(
+                model, "SGDmom", "Adam", "SGD", "AdamW"):
+            strategy = Naive(
+                model,
+                optimizer,
+                criterion,
+                train_mb_size=64,
+                device=self.device,
+                eval_mb_size=50,
+                train_epochs=2,
+            )
+            self._test_optimizer(strategy)
+
+    # Needs torch 2.0 ?
+    def test_checkpointing(self):
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+        optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        experience_0 = benchmark.train_stream[0]
+        strategy.train(experience_0)
+        old_state = copy.deepcopy(strategy.optimizer.state)
+        save_checkpoint(strategy, "./checkpoint.pt")
+
+        del strategy
+
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+        optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        strategy, exp_counter = maybe_load_checkpoint(
+            strategy, "./checkpoint.pt", strategy.device
+        )
+
+        # Check that the state has been well serialized
+        self.assertEqual(len(strategy.optimizer.state), len(old_state))
+        for (key_new, value_new_dict), (key_old, value_old_dict) in \
+                zip(strategy.optimizer.state.items(), old_state.items()):
+
+            self.assertTrue(torch.equal(key_new, key_old))
+            
+            value_new = value_new_dict["momentum_buffer"]
+            value_old = value_old_dict["momentum_buffer"]
+
+            # Empty state
+            if len(value_new) == 0 or len(value_old) == 0:
+                self.assertTrue(len(value_new) == len(value_old))
+            else:
+                self.assertTrue(torch.equal(value_new, value_old))
+
+        experience_1 = benchmark.train_stream[1]
+        strategy.train(experience_1)
+        os.remove("./checkpoint.pt")
+
+    def test_mh_classifier(self):
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+        optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        strategy.train(benchmark.train_stream)
+
+    def _test_optimizer(self, strategy):
+        # Add a parameter
+        module = torch.nn.Linear(10, 10)
+        param1 = list(module.parameters())[0]
+        strategy.make_optimizer()
+        self.assertFalse(self._is_param_in_optimizer(param1, 
+                                                     strategy.optimizer))
+        strategy.model.add_module("new_module", module)
+        strategy.make_optimizer()
+        self.assertTrue(self._is_param_in_optimizer(param1, 
+                                                    strategy.optimizer))
+        # Remove a parameter
+        del strategy.model.new_module
+
+        strategy.make_optimizer()
+        self.assertFalse(self._is_param_in_optimizer(param1, 
+                                                     strategy.optimizer))
+
+    def get_model(self, multi_task=False):
+        if multi_task:
+            model = MTSimpleMLP(input_size=6, hidden_size=10)
+        else:
+            model = SimpleMLP(input_size=6, hidden_size=10)
+        return model
 
 
 class DynamicModelsTests(unittest.TestCase):
@@ -427,49 +583,77 @@ class TrainEvalModelTests(unittest.TestCase):
     def test_classifier_selection(self):
         base_model = SimpleCNN()
 
-        feature_extractor = base_model.features
+        feature_extractor = torch.nn.Sequential(
+            base_model.features,
+            torch.nn.Flatten())
         classifier1 = base_model.classifier
-        classifier2 = NCMClassifier()
+        classifier2 = torch.nn.Linear(64, 7)
 
+        x = torch.randn(2, 3, 32, 32)
         model = TrainEvalModel(
             feature_extractor,
             train_classifier=classifier1,
             eval_classifier=classifier2,
         )
 
-        model.eval()
-        model.adaptation()
-        assert model.classifier is classifier2
-
         model.train()
-        model.adaptation()
-        assert model.classifier is classifier1
+        out = model(x)
+        assert out.shape[-1] == 10
 
-        model.eval_adaptation()
-        assert model.classifier is classifier2
-
-        model.train_adaptation()
-        assert model.classifier is classifier1
+        model.eval()
+        out = model(x)
+        assert out.shape[-1] == 7
 
 
 class NCMClassifierTest(unittest.TestCase):
     def test_ncm_classification(self):
         class_means = torch.tensor(
-            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]],
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
             dtype=torch.float,
         )
+        class_means_dict = {i: el for i, el in enumerate(class_means)}
 
         mb_x = torch.tensor(
-            [[4, 3, 2, 1], [3, 4, 2, 1], [3, 2, 4, 1], [3, 2, 1, 4]],
+            [[4, 3, 2, 1], [3, 2, 4, 1]],
             dtype=torch.float,
         )
 
-        mb_y = torch.tensor([0, 1, 2, 3], dtype=torch.float)
+        mb_y = torch.tensor([0, 2], dtype=torch.float)
 
-        classifier = NCMClassifier(class_means)
+        classifier = NCMClassifier(normalize=False)
+        classifier.update_class_means_dict(class_means_dict)
 
         pred = classifier(mb_x)
         assert torch.all(torch.max(pred, 1)[1] == mb_y)
+
+    def test_ncm_class_expansion(self):
+        class_means = torch.tensor(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
+            dtype=torch.float,
+        )
+        class_means_dict = {i: el for i, el in enumerate(class_means)}
+        classifier = NCMClassifier()
+        classifier.update_class_means_dict(class_means_dict)
+        assert classifier.class_means.shape == (3, 4)
+        new_mean = torch.randn(4,)
+        classifier.update_class_means_dict({5: new_mean.clone()})
+        assert classifier.class_means.shape == (6, 4)
+        assert torch.all(classifier.class_means[3] == torch.zeros(4,))
+        assert torch.all(classifier.class_means[4] == torch.zeros(4,))
+        assert torch.all(classifier.class_means[5] == new_mean)
+
+    def test_ncm_save_load(self):
+        classifier = NCMClassifier()
+        classifier.update_class_means_dict({1: torch.randn(5,),
+                                            2: torch.randn(5,)})
+        torch.save(classifier.state_dict(), 'ncm.pt')
+        del classifier
+        classifier = NCMClassifier()
+        check = torch.load('ncm.pt')
+        classifier.load_state_dict(check)
+        assert classifier.class_means.shape == (3, 5)
+        assert (classifier.class_means[0] == 0).all()
+        assert len(classifier.class_means_dict) == 2
 
 
 class PNNTest(unittest.TestCase):
