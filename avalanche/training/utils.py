@@ -479,7 +479,7 @@ __all__ = [
     "unfreeze_everything",
     "freeze_up_to",
     "examples_per_class",
-    "ParamData"
+    "ParamData",
     "cycle",
     "at_task_boundary",
 ]
