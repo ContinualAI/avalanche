@@ -33,6 +33,7 @@ from avalanche.training.templates import SupervisedTemplate
 
 @torch.no_grad()
 def compute_dataset_logits(dataset, model, batch_size, device):
+    was_training = model.training
     model.eval()
 
     logits = []
@@ -45,6 +46,10 @@ def compute_dataset_logits(dataset, model, batch_size, device):
         x = x.to(device)
         out = model(x)
         logits.extend(list(out.cpu()))
+
+    if was_training:
+        model.train()
+
     return logits
 
 
