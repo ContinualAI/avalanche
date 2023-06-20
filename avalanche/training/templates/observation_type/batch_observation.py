@@ -10,6 +10,7 @@ from avalanche.training.templates.strategy_mixin_protocol import \
     SGDStrategyProtocol
 from avalanche.models.dynamic_optimizers import (reset_optimizer, 
                                                  update_optimizer)
+from avalanche.training.utils import at_task_boundary
 
 
 class BatchObservation(SGDStrategyProtocol):
@@ -29,8 +30,6 @@ class BatchObservation(SGDStrategyProtocol):
 
         # For training:
         if isinstance(self.experience, OnlineCLExperience) and self.is_training:
-            # If the strategy has access to task boundaries, adapt the model
-            # for the whole origin experience to add the
             if self.experience.access_task_boundaries:
                 avalanche_model_adaptation(model, 
                                            self.experience.origin_experience)
@@ -79,16 +78,11 @@ class BatchObservation(SGDStrategyProtocol):
         if self.optimized_param_id is None:
             self.make_optimizer(reset_optimizer_state=True)
 
-        if isinstance(self.experience, OnlineCLExperience):
-            if self.experience.access_task_boundaries:
-                if self.experience.is_first_subexp:
-                    self.model = self.model_adaptation()
-                    self.make_optimizer(
-                        reset_optimizer_state=reset_optimizer_state
-                    )
-            else:
-                self.model = self.model_adaptation()
-                self.make_optimizer(reset_optimizer_state=reset_optimizer_state)
+        if at_task_boundary(self.experience):
+            self.model = self.model_adaptation()
+            self.make_optimizer(
+                reset_optimizer_state=reset_optimizer_state
+            )
         else:
             self.model = self.model_adaptation()
             self.make_optimizer(reset_optimizer_state=reset_optimizer_state)

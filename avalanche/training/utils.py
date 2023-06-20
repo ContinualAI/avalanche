@@ -23,6 +23,40 @@ from torch.nn import Module, Linear
 from torch.utils.data import Dataset, DataLoader
 
 from avalanche.models.batch_renorm import BatchRenorm2D
+from avalanche.benchmarks import OnlineCLExperience
+
+
+def at_task_boundary(training_experience) -> bool:
+    """
+    Given a training experience,
+    returns true if the experience is at the task boundary
+
+    More specifically:
+
+    - If task boundary is not available, returns True
+
+    - If task boundary is available,
+      returns True if the experience
+      is the first subexp
+
+    - If the experience is not an online experience, returns True
+
+    """
+
+    if isinstance(training_experience, OnlineCLExperience):
+        if training_experience.access_task_boundaries:
+            if training_experience.is_first_subexp:
+                return True
+        else:
+            return True
+    else:
+        return True
+
+
+def cycle(loader):
+    while True:
+        for batch in loader:
+            yield batch
 
 
 def trigger_plugins(strategy, event, **kwargs):
@@ -446,4 +480,6 @@ __all__ = [
     "freeze_up_to",
     "examples_per_class",
     "ParamData"
+    "cycle",
+    "at_task_boundary",
 ]
