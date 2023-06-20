@@ -106,5 +106,18 @@ class NCMClassifier(nn.Module):
 
         self._vectorize_means_dict()
 
+    def replace_class_means_dict(self,
+                                 class_means_dict: Dict[int, Tensor]):
+        """
+        Replace existing dictionary of means with a given dictionary.
+        """
+        assert isinstance(class_means_dict, dict), \
+            "class_means_dict must be a dictionary mapping class_id " \
+            "to mean vector"
+        self.class_means_dict = {k: v.clone()
+                                 for k, v in class_means_dict.items()}
+
+        self._vectorize_means_dict()
+
 
 __all__ = ["NCMClassifier"]

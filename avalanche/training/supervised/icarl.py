@@ -134,7 +134,6 @@ class _ICaRLPlugin(SupervisedPlugin):
         self.y_memory = []
         self.order = []
 
-        self.old_model = None
         self.observed_classes = []
         self.class_means = {}
         self.embedding_size = None
@@ -223,8 +222,8 @@ class _ICaRLPlugin(SupervisedPlugin):
             self.class_means[label] = (m1 + m2) / 2
             self.class_means[label] /= torch.norm(self.class_means[label])
 
-            strategy.model.eval_classifier.update_class_means_dict(
-                self.class_means)
+        strategy.model.eval_classifier.replace_class_means_dict(
+            self.class_means)
 
     def construct_exemplar_set(self, strategy: SupervisedTemplate):
         assert strategy.experience is not None

@@ -642,6 +642,22 @@ class NCMClassifierTest(unittest.TestCase):
         assert torch.all(classifier.class_means[4] == torch.zeros(4,))
         assert torch.all(classifier.class_means[5] == new_mean)
 
+    def test_ncm_replace_means(self):
+        class_means = torch.tensor(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
+            dtype=torch.float,
+        )
+        class_means_dict = {i: el for i, el in enumerate(class_means)}
+        classifier = NCMClassifier()
+        classifier.update_class_means_dict(class_means_dict)
+        class_means = torch.tensor(
+            [[2, 0, 0, 0], [2, 1, 0, 0], [2, 0, 1, 0]],
+            dtype=torch.float,
+        )
+        new_dict = {i: el for i, el in enumerate(class_means)}
+        classifier.replace_class_means_dict(new_dict)
+        assert (classifier.class_means[:, 0] == 2).all()
+
     def test_ncm_save_load(self):
         classifier = NCMClassifier()
         classifier.update_class_means_dict({1: torch.randn(5,),
