@@ -2,9 +2,11 @@ import unittest
 
 import torch
 from torch.utils.data import TensorDataset
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    ClassificationScenario,
+)
 
 from avalanche.benchmarks.utils import make_tensor_classification_dataset
-from avalanche.benchmarks import GenericCLScenario
 from avalanche.benchmarks.utils import make_classification_dataset
 
 
@@ -59,7 +61,7 @@ class CustomStreamsTests(unittest.TestCase):
         valid_t_labels = [{9}, {4, 5}, {7, 8}, {0}, {3}]
 
         with self.assertRaises(Exception):
-            benchmark_instance = GenericCLScenario(
+            benchmark_instance = ClassificationScenario(
                 stream_definitions={
                     "train": (train_exps,),
                     "test": (test_exps,),
@@ -69,7 +71,7 @@ class CustomStreamsTests(unittest.TestCase):
 
         valid_t_labels = valid_t_labels[:-1]
 
-        benchmark_instance = GenericCLScenario(
+        benchmark_instance = ClassificationScenario(
             stream_definitions={
                 "train": (train_exps,),
                 "test": (test_exps,),
@@ -148,7 +150,7 @@ class CustomStreamsTests(unittest.TestCase):
             )
 
         with self.assertRaises(Exception):
-            benchmark_instance = GenericCLScenario(
+            benchmark_instance = ClassificationScenario(
                 stream_definitions={
                     "train": (train_exps,),
                     "test": (test_exps,),
@@ -156,7 +158,7 @@ class CustomStreamsTests(unittest.TestCase):
                 complete_test_set_only=True,
             )
 
-        benchmark_instance = GenericCLScenario(
+        benchmark_instance = ClassificationScenario(
             stream_definitions={
                 "train": (train_exps,),
                 "test": (test_exps[0],),

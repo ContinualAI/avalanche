@@ -32,6 +32,13 @@ from typing import (
 )
 
 import torch
+from avalanche.benchmarks.scenarios.classification_benchmark_creation import (
+    create_classification_benchmark_from_filelists,
+    create_classification_benchmark_from_paths,
+    create_classification_benchmark_from_tensor_lists,
+    create_lazy_classification_benchmark,
+    create_multi_dataset_classification_benchmark,
+)
 from avalanche.benchmarks.scenarios.classification_scenario import \
     ClassificationScenario
 
@@ -58,13 +65,15 @@ from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils.classification_dataset import (
-    SupervisedClassificationDataset,
+    ClassificationDataset,
     SupportedDataset,
-    as_supervised_classification_dataset,
     make_classification_dataset,
     concat_classification_datasets_sequentially
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.scenarios.detection_benchmark_creation import (
+    create_multi_dataset_detection_benchmark,
+)
 
 
 TDatasetScenario = TypeVar(
@@ -228,10 +237,10 @@ def nc_benchmark(
             )
 
         train_dataset_sup = list(
-            map(as_supervised_classification_dataset, train_dataset)
+            map(make_classification_dataset, train_dataset)
         )
         test_dataset_sup = list(
-            map(as_supervised_classification_dataset, test_dataset)
+            map(make_classification_dataset, test_dataset)
         )
         
         seq_train_dataset, seq_test_dataset, mapping = \
@@ -256,21 +265,21 @@ def nc_benchmark(
             # Overrides n_experiences (and per_experience_classes, already done)
             n_experiences = len(train_dataset)
     else:
-        seq_train_dataset = as_supervised_classification_dataset(train_dataset)
-        seq_test_dataset = as_supervised_classification_dataset(test_dataset)
+        seq_train_dataset = make_classification_dataset(train_dataset)
+        seq_test_dataset = make_classification_dataset(test_dataset)
 
     transform_groups = dict(
         train=(train_transform, None), eval=(eval_transform, None)
     )
 
     # Set transformation groups
-    final_train_dataset = as_supervised_classification_dataset(
+    final_train_dataset = make_classification_dataset(
         seq_train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
     )
 
-    final_test_dataset = as_supervised_classification_dataset(
+    final_test_dataset = make_classification_dataset(
         seq_test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
@@ -384,10 +393,10 @@ def ni_benchmark(
             )
 
         train_dataset_sup = list(
-            map(as_supervised_classification_dataset, train_dataset)
+            map(make_classification_dataset, train_dataset)
         )
         test_dataset_sup = list(
-            map(as_supervised_classification_dataset, test_dataset)
+            map(make_classification_dataset, test_dataset)
         )
 
         seq_train_dataset, seq_test_dataset, _ = \
@@ -395,8 +404,8 @@ def ni_benchmark(
                 train_dataset_sup, test_dataset_sup
             )
     else:
-        seq_train_dataset = as_supervised_classification_dataset(train_dataset)
-        seq_test_dataset = as_supervised_classification_dataset(test_dataset)
+        seq_train_dataset = make_classification_dataset(train_dataset)
+        seq_test_dataset = make_classification_dataset(test_dataset)
 
     transform_groups = dict(
         train=(train_transform, None), eval=(eval_transform, None)
@@ -437,6 +446,21 @@ filelist_benchmark = create_generic_benchmark_from_filelists
 paths_benchmark = create_generic_benchmark_from_paths
 tensors_benchmark = create_generic_benchmark_from_tensor_lists
 lazy_benchmark = create_lazy_generic_benchmark
+
+
+# Classification-specific
+dataset_classification_benchmark = \
+    create_multi_dataset_classification_benchmark
+filelist_classification_benchmark = \
+    create_classification_benchmark_from_filelists
+paths_classification_benchmark = create_classification_benchmark_from_paths
+tensors_classification_benchmark = \
+    create_classification_benchmark_from_tensor_lists
+lazy_classification_benchmark = create_lazy_classification_benchmark
+
+# Detection-specific
+dataset_detection_benchmark = \
+    create_multi_dataset_detection_benchmark
 
 
 def _one_dataset_per_exp_class_order(
@@ -809,9 +833,9 @@ def random_validation_split_strategy(
 
 
 def class_balanced_split_strategy(
-    validation_size: Union[int, float],
-    experience: DatasetExperience[SupervisedClassificationDataset],
-) -> Tuple[SupervisedClassificationDataset, SupervisedClassificationDataset]:
+    validation_size: float,
+    experience: DatasetExperience[ClassificationDataset],
+) -> Tuple[ClassificationDataset, ClassificationDataset]:
     """Class-balanced train/validation splits.
 
     This splitting strategy splits `experience` into two experiences
@@ -831,18 +855,11 @@ def class_balanced_split_strategy(
         datasets.
     """
     if not isinstance(validation_size, float):
-        raise ValueError("validation_size must be an integer")
+        raise ValueError("validation_size must be a float")
     if not 0.0 <= validation_size <= 1.0:
         raise ValueError("validation_size must be a float in [0, 1].")
 
     exp_dataset = experience.dataset
-    if validation_size > len(exp_dataset):
-        raise ValueError(
-            f"Can't create the validation experience: not enough "
-            f"instances. Required {validation_size}, got only"
-            f"{len(exp_dataset)}"
-        )
-
     exp_indices = list(range(len(exp_dataset)))
     targets_as_tensor = torch.as_tensor(experience.dataset.targets)
     exp_classes: List[int] = targets_as_tensor.unique().tolist()
@@ -1132,6 +1149,13 @@ __all__ = [
     "filelist_benchmark",
     "paths_benchmark",
     "tensors_benchmark",
+    "lazy_benchmark",
+    "dataset_classification_benchmark",
+    "dataset_detection_benchmark",
+    "filelist_classification_benchmark",
+    "paths_classification_benchmark",
+    "tensors_classification_benchmark",
+    "lazy_classification_benchmark",
     "data_incremental_benchmark",
     "benchmark_with_validation_stream",
     "random_validation_split_strategy",

@@ -1,10 +1,10 @@
 Training module
 ============================
 
-.. currentmodule:: avalanche.training
-
-training
+avalanche.training
 ----------------------------------------
+
+.. currentmodule:: avalanche.training
 
 .. contents::
     :depth: 2
@@ -12,12 +12,12 @@ training
     :backlinks: top
 
 Training Templates
-------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Templates define the training/eval loop for each setting (supervised CL, online CL, RL, ...). Each template supports a set of callback that can be used by a plugin to execute code inside the training/eval loops.
 
-Templates
-"""""""""
+Strategy Templates
+""""""""""""""""""
 
 Templates are defined in the `avalanche.training.templates` module.
 
@@ -32,8 +32,8 @@ Templates are defined in the `avalanche.training.templates` module.
     OnlineSupervisedTemplate
 
 
-Plugins ABCs
-""""""""""""
+Plugins ABCs / Templates
+""""""""""""""""""""""""
 
 ABCs for plugins are available in `avalanche.core`.
 
@@ -50,7 +50,7 @@ ABCs for plugins are available in `avalanche.core`.
 .. currentmodule:: avalanche.training
 
 Training Strategies
-----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Ready-to-use continual learning strategies.
 
@@ -83,7 +83,7 @@ Ready-to-use continual learning strategies.
     MIR
 
 Replay Buffers and Selection Strategies
-----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Buffers to store past samples according to different policies and selection strategies.
 
@@ -115,7 +115,7 @@ Selection strategies
 
 
 Loss Functions
-----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
     :toctree: generated
@@ -126,12 +126,12 @@ Loss Functions
 
 
 Training Plugins
-----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Plugins can be added to any CL strategy to support additional behavior.
 
-Utilities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Utility Plugins
+""""""""""""""""""""
 
 Utilities in `avalanche.training.plugins`.
 
@@ -145,8 +145,8 @@ Utilities in `avalanche.training.plugins`.
     LRSchedulerPlugin
 
 
-Strategies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Strategy Plugins
+""""""""""""""""""""
 
 Strategy implemented as plugins in `avalanche.training.plugins`.
 
@@ -175,12 +175,12 @@ Strategy implemented as plugins in `avalanche.training.plugins`.
 
 
 Utilities
-----------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Checkpointing allows to save and load serialized strategies to stop and resume experiments.
 
-Utilities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Checkpointing
+""""""""""""""""""""""""""""""""""""""""
 
 Utilities in `avalanche.training.checkpoint`.
 

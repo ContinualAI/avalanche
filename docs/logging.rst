@@ -4,7 +4,7 @@ Logging module
 | This module provides a number of automatic logging facilities to monitor continual learning experiments.
 | Loggers should be provided as input to the :py:class:`EvaluationPlugin` class.
 
-logging
+avalanche.logging
 ----------------------------------------
 
 .. contents::

@@ -38,3 +38,4 @@ dependencies:
     - gym
     - lvis
     - dill
+    - sphinx_autodoc_typehints

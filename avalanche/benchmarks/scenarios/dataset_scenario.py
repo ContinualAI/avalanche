@@ -294,8 +294,9 @@ class DatasetScenario(
         parameter in the constructor.
 
         Child classes should create their own reproducibility dictionary.
-        This means that the implementation found in :class:`GenericCLScenario`
-        will return an empty dictionary, which is meaningless.
+        This means that the implementation found in 
+        :class:`ClassificationScenario` will return an empty dictionary,
+        which is meaningless.
 
         In order to obtain the same benchmark instance, the reproducibility
         data must be passed to the constructor along with the exact same

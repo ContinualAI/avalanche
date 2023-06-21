@@ -18,9 +18,12 @@ from PIL.Image import Image
 import torchvision.transforms.functional as F
 from torchvision import transforms
 from tqdm import tqdm
+from avalanche.benchmarks.generators.benchmark_generators import (
+    dataset_classification_benchmark,
+)
 
 from avalanche.benchmarks.utils.classification_dataset import (
-    SupervisedClassificationDataset,
+    ClassificationDataset,
 )
 
 try:
@@ -83,7 +86,7 @@ def CTrL(
         folder = path / "ctrl" / stream_name / f"seed_{seed}"
 
     # Train, val and test experiences
-    exps: List[List[SupervisedClassificationDataset]] = [[], [], []]
+    exps: List[List[ClassificationDataset]] = [[], [], []]
     for t_id, t in enumerate(
         tqdm(stream, desc=f"Loading {stream_name}"),
     ):
@@ -104,7 +107,7 @@ def CTrL(
                 common_root, exp_paths_list = common_paths_root(files)
                 paths_dataset: PathsDataset[Image, int] = \
                     PathsDataset(common_root, exp_paths_list)
-                dataset: SupervisedClassificationDataset = \
+                dataset: ClassificationDataset = \
                     make_classification_dataset(
                         paths_dataset,
                         task_labels=task_labels,
@@ -126,7 +129,7 @@ def CTrL(
             if t_id == n_tasks - 1:
                 break
 
-    return dataset_benchmark(
+    return dataset_classification_benchmark(
         train_datasets=exps[0],
         test_datasets=exps[2],
         other_streams_datasets=dict(val=exps[1]),

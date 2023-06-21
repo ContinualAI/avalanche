@@ -11,10 +11,12 @@
 """ This module handles all the functionalities related to the logging of
 Avalanche experiments using Weights & Biases. """
 
-from typing import Union, List, TYPE_CHECKING
+import re
+from typing import Optional, Union, List, TYPE_CHECKING
 from pathlib import Path
 import os
 import errno
+import warnings
 
 import numpy as np
 from numpy import array
@@ -30,11 +32,18 @@ from avalanche.evaluation.metric_results import (
     MetricValue,
     TensorImage,
 )
+from avalanche.evaluation.metric_utils import phase_and_task
 from avalanche.logging import BaseLogger
 
 if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricValue
     from avalanche.training.templates import SupervisedTemplate
+
+
+CHECKPOINT_METRIC_NAME = re.compile(
+    r"^WeightCheckpoint\/(?P<phase_name>\S+)_phase\/(?P<stream_name>\S+)_"
+    r"stream(\/Task(?P<task_id>\d+))?\/Exp(?P<experience_id>\d+)$"
+)
 
 
 class WandBLogger(BaseLogger, SupervisedPlugin):
@@ -72,6 +81,9 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
         :param project_name: Name of the W&B project.
         :param run_name: Name of the W&B run.
         :param log_artifacts: Option to log model weights as W&B Artifacts.
+            Note that, in order for model weights to be logged, the
+            :class:`WeightCheckpoint` metric must be added to the
+            evaluation plugin.
         :param path: Path to locally save the model checkpoints.
         :param uri: URI identifier for external storage buckets (GCS, S3).
         :param sync_tfboard: Syncs TensorBoard to the W&B dashboard UI.
@@ -102,7 +114,8 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
     def import_wandb(self):
         try:
             import wandb
-        except ImportError:
+            assert hasattr(wandb, '__version__')
+        except (ImportError, AssertionError):
             raise ImportError('Please run "pip install wandb" to install wandb')
         self.wandb = wandb
 
@@ -151,6 +164,11 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
     def log_single_metric(self, name, value, x_plot):
         self.step = x_plot
 
+        if name.startswith("WeightCheckpoint"):
+            if self.log_artifacts:
+                self._log_checkpoint(name, value, x_plot)
+            return 
+        
         if isinstance(value, AlternativeValues):
             value = value.best_supported_value(
                 Image,
@@ -189,26 +207,53 @@ class WandBLogger(BaseLogger, SupervisedPlugin):
                 {name: self.wandb.Image(array(value))}, step=self.step
             )
 
-        elif name.startswith("WeightCheckpoint"):
-            if self.log_artifacts:
-                cwd = os.getcwd()
-                ckpt = os.path.join(cwd, self.path)
-                try:
-                    os.makedirs(ckpt)
-                except OSError as e:
-                    if e.errno != errno.EEXIST:
-                        raise
-                suffix = ".pth"
-                dir_name = os.path.join(ckpt, name + suffix)
-                artifact_name = os.path.join("Models", name + suffix)
-                if isinstance(value, Tensor):
-                    torch.save(value, dir_name)
-                    name = os.path.splittext(self.checkpoint)
-                    artifact = self.wandb.Artifact(name, type="model")
-                    artifact.add_file(dir_name, name=artifact_name)
-                    self.wandb.run.log_artifact(artifact)
-                    if self.uri is not None:
-                        artifact.add_reference(self.uri, name=artifact_name)
+    def _log_checkpoint(self, name, value, x_plot):
+        assert self.wandb is not None
+
+        # Example: 'WeightCheckpoint/train_phase/train_stream/Task000/Exp000'
+        name_match = CHECKPOINT_METRIC_NAME.match(name)
+        if name_match is None:
+            warnings.warn(
+                f'Checkpoint metric has unsupported name {name}.'
+            )
+            return
+        # phase_name: str = name_match['phase_name']
+        # stream_name: str = name_match['stream_name']
+        task_id: Optional[int] = \
+            int(name_match['task_id']) \
+            if name_match['task_id'] is not None \
+            else None
+        experience_id: int = int(name_match['experience_id'])
+        assert experience_id >= 0
+
+        cwd = Path.cwd()
+        checkpoint_directory = cwd / self.path
+        checkpoint_directory.mkdir(parents=True, exist_ok=True)
+
+        checkpoint_name = "Model_{}".format(experience_id)
+        checkpoint_file_name = checkpoint_name + '.pth'
+        checkpoint_path = checkpoint_directory / checkpoint_file_name
+        artifact_name = 'Models/' + checkpoint_file_name
+
+        # Write the checkpoint blob
+        with open(checkpoint_path, 'wb') as f:
+            f.write(value)
+
+        metadata = {
+            'experience': experience_id,
+            'x_step': x_plot,
+            **({'task_id': task_id} 
+                if task_id is not None
+                else {})}
+    
+        artifact = self.wandb.Artifact(
+            checkpoint_name,
+            type='model', 
+            metadata=metadata)
+        artifact.add_file(str(checkpoint_path), name=artifact_name)
+        self.wandb.run.log_artifact(artifact)
+        if self.uri is not None:
+            artifact.add_reference(self.uri, name=artifact_name)
 
     def __getstate__(self):
         state = self.__dict__.copy()

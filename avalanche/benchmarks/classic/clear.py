@@ -24,8 +24,7 @@ Streaming Protocol: Use the data of next task as the test set for current task,
 We support both evaluation protocols for benchmark construction."""
 
 from pathlib import Path
-from typing import List, Sequence, Union, Any, Optional
-from typing_extensions import Literal
+from typing import Sequence, Union, Any, Optional
 
 from avalanche.benchmarks.datasets.clear import (
     _CLEARImage,
@@ -34,9 +33,12 @@ from avalanche.benchmarks.datasets.clear import (
     CLEAR_FEATURE_TYPES,
     _CLEAR_DATA_SPLITS,
 )
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_generic_benchmark_from_paths,
-    create_generic_benchmark_from_tensor_lists,
+from avalanche.benchmarks.scenarios.classification_benchmark_creation import (
+    create_classification_benchmark_from_paths,
+    create_classification_benchmark_from_tensor_lists,
+)
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    CommonClassificationScenarioType,
 )
 
 EVALUATION_PROTOCOLS = ["iid", "streaming"]
@@ -108,7 +110,7 @@ def CLEAR(
         Defaults to None, which means that the default location for
         str(data_name) will be used.
 
-    :returns: a properly initialized :class:`GenericCLScenario` instance.
+    :returns: a properly initialized :class:`ClassificationScenario` instance.
     """
     assert data_name in _CLEAR_DATA_SPLITS
 
@@ -130,6 +132,7 @@ def CLEAR(
     else:
         raise NotImplementedError()
 
+    benchmark_obj: CommonClassificationScenarioType
     if feature_type is None:
         clear_dataset_train = _CLEARImage(
             root=dataset_root,
@@ -153,7 +156,7 @@ def CLEAR(
         test_samples_paths = clear_dataset_test.get_paths_and_targets(
             root_appended=True
         )
-        benchmark_obj = create_generic_benchmark_from_paths(
+        benchmark_obj = create_classification_benchmark_from_paths(
             train_samples_paths,
             test_samples_paths,
             task_labels=list(range(len(train_samples_paths))),
@@ -181,7 +184,7 @@ def CLEAR(
         train_samples = clear_dataset_train.tensors_and_targets
         test_samples = clear_dataset_test.tensors_and_targets
 
-        benchmark_obj = create_generic_benchmark_from_tensor_lists(
+        benchmark_obj = create_classification_benchmark_from_tensor_lists(
             train_samples,
             test_samples,
             task_labels=list(range(len(train_samples))),

@@ -4,7 +4,7 @@ Evaluation module
 | This module provides a number of metrics to monitor the continual learning performance.
 | Metrics subclass the :py:class:`PluginMetric` class, which provides all the callbacks needed to include custom metric logic in specific points of the continual learning workflow.
 
-evaluation.metrics
+avalanche.evaluation.metrics
 ----------------------------------------
 
 .. contents::
@@ -187,7 +187,7 @@ Standalone Metrics
 
 
 
-evaluation.metrics.detection
+avalanche.evaluation.metrics.detection
 ----------------------------------------
 
 | Metrics for Object Detection tasks. Please, take a look at the examples in the `examples` folder of Avalanche to better understand how to use these metrics.
@@ -207,8 +207,8 @@ evaluation.metrics.detection
     DetectionMetrics
 
 
-evaluation.metric_definitions
--------------------------------
+avalanche.evaluation.metric_definitions
+---------------------------------------
 
 General interfaces on which metrics are built.
 
@@ -227,8 +227,8 @@ General interfaces on which metrics are built.
     GenericPluginMetric
 
 
-evaluation.metric_results
--------------------------------
+avalanche.evaluation.metric_results
+-----------------------------------
 
 Metric result types
 

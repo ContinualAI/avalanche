@@ -29,10 +29,11 @@ from typing import (
     SupportsInt,
 )
 import warnings
+import numpy as np
 
 import torch
 from torch import Tensor
-from torch.utils.data import Subset, ConcatDataset
+from torch.utils.data import Subset, ConcatDataset, TensorDataset
 
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
@@ -685,6 +686,285 @@ class TaskSet(Mapping[int, TAvalancheDataset], Generic[TAvalancheDataset]):
         return self.data.targets_task_labels  # type: ignore
 
 
+def _numpy_is_sequence_int(numpy_tensor: np.ndarray) -> bool:
+    return issubclass(numpy_tensor.dtype.type, np.integer)
+
+
+def _numpy_is_single_int(numpy_tensor: np.ndarray) -> bool:
+    try:
+        single_value = numpy_tensor.item()
+        return isinstance(single_value, int)
+    except ValueError:
+        return False
+
+
+def _torch_is_sequence_int(torch_tensor: Tensor) -> bool:
+    return not torch.is_floating_point(torch_tensor) and \
+        not torch.is_complex(torch_tensor)
+
+
+def _torch_is_single_int(torch_tensor: Tensor) -> bool:
+    try:
+        single_value = torch_tensor.item()
+        return isinstance(single_value, int)
+    except ValueError:
+        return False
+    
+
+def _element_is_single_int(element: Any):
+    if isinstance(element, (int, np.integer)):
+        return True
+    if isinstance(element, Tensor):
+        return _torch_is_single_int(element)
+    else:
+        return False
+
+
+def _is_int_iterable(iterable: Iterable[Any]):
+    if isinstance(iterable, torch.Tensor):
+        return _torch_is_sequence_int(iterable)
+    elif isinstance(iterable, np.ndarray):
+        return _numpy_is_sequence_int(iterable)
+    else:
+        for t in iterable:
+            if not _element_is_single_int(t):
+                return False
+        return True
+    
+
+AnyT = TypeVar('AnyT', bound=Iterable)
+
+
+def _to_int_list(iterable: AnyT, force: bool = True) -> Union[AnyT, List[int]]:
+    if isinstance(iterable, torch.Tensor):
+        if _torch_is_sequence_int(iterable):
+            return iterable.tolist()
+        elif force:
+            raise ValueError('Cannot convert PyTorch Tenspr to int list')
+        else:
+            return iterable
+    elif isinstance(iterable, np.ndarray):
+        if _numpy_is_sequence_int(iterable):
+            return iterable.tolist()
+        elif force:
+            raise ValueError('Cannot convert NumPy array to int list')
+        else:
+            return iterable  # type: ignore
+    else:
+        int_list = []
+        for t in iterable:
+            if _element_is_single_int(t):
+                int_list.append(t)
+            elif force:
+                raise ValueError('Cannot convert sequence to int list')
+            else:
+                return iterable
+        return int_list
+
+
+def _smart_init_targets(
+    dataset,
+    targets,
+    check_shape=True
+):
+    """
+    Initializes the targets for a given dataset.
+
+    To support backwards compatibility for when when 
+    :func:`create_multi_dataset_generic_benchmark` was
+    used to manage classification benchmarks only, this function will try to
+    mimic the steps taken in :func:`make_classification_dataset`, that is:
+    
+    - will try to check if the input dataset has classification 
+        targets (integer tensors / ndarray) and will cast them to
+        a list of native ints, as expected by other parts
+        of Avalanche.
+    - accepts passing an int for the targets field. The given int
+        will be applied to all exemplars in the dataset. 
+    - supports PyTorch TensorDataset, by taking the second tensor as targets.
+
+    If targets are not of type int, then they will be returned as-is,
+    so that other types of datasets (regression, detection, ...) are
+    supported without issues.
+
+    :param dataset: The input dataset. If the `targets` parameter is
+        not None, then targets will be retrieved from the dataset.
+    :param targets: The targets to use. Can be None, in which case
+        targets will be retrieved from the dataset.
+    :param check_shape: If True, will check if the number of exemplars
+        in the dataset match the length of the obtained targets sequence.
+    :return: The targets, as a DataAttribute of elements whose type depends
+        on the input dataset.
+    """
+    if targets is not None:
+        # User defined targets always take precedence
+        if isinstance(targets, int):
+            # Classification targets
+            targets = ConstantSequence(targets, len(dataset))
+        elif len(targets) != len(dataset) and check_shape:
+            raise ValueError(
+                "Invalid number of target labels. It must be equal to the "
+                "number of patterns in the dataset. Got {}, expected "
+                "{}!".format(len(targets), len(dataset))
+            )
+        return DataAttribute(targets, "targets")
+
+    targets = _traverse_supported_dataset(
+        dataset, _smart_select_targets_opt)
+    
+    if targets is not None:
+        # Classification targets
+        targets = _to_int_list(targets, force=False)
+
+    if targets is None:
+        return None
+    
+    return DataAttribute(targets, "targets")
+
+
+def _smart_select_targets_opt(
+        dataset: Any,
+        indices: Optional[List[int]]) -> Optional[Sequence[Any]]:
+    if hasattr(dataset, "targets"):
+        # Standard supported dataset
+        found_targets = dataset.targets
+    elif hasattr(dataset, "tensors") and len(dataset.tensors) >= 2:
+        # Support for PyTorch TensorDataset
+        found_targets = dataset.tensors[1]
+    else:
+        return None
+
+    if indices is not None:
+        found_targets = SubSequence(found_targets, indices=indices)
+
+    return found_targets
+
+
+def make_generic_dataset(
+    dataset: Any,
+    *,
+    transform: Optional[XTransform] = None,
+    target_transform: Optional[YTransform] = None,
+    transform_groups: Optional[Mapping[str, TransformGroupDef]] = None,
+    initial_transform_group: Optional[str] = None,
+    task_labels: Optional[Union[int, Sequence[int]]] = None,
+    targets: Optional[Any] = None,
+    collate_fn: Optional[Callable[[List], Any]] = None
+) -> AvalancheDataset:
+    """
+    Helper function will create an :class:`AvalancheDataset` with
+    supervision fields `targets` and `targets_task_labels` (if given or found
+    in the input dataset).
+
+    :param dataset: The dataset to wrap in the AvalancheDataset. If it contains
+        `targets` and/or `targets_task_labels` fields, then those fields will
+        be inherited by the resulting dataset (if not given by the `targets`
+        or `task_labels` parameters). This will also check if the input dataset
+        is a :class:`TensorDataset` and, in that case, will try to use the
+        second tensor as the `targets` field.
+    :param transform: The transformation to apply to X values.
+        Mutually exclusive with `transform_groups`.
+    :param target_transform: The transformation to apply to Y values.
+        Mutually exclusive with `transform_groups`.
+    :param transform_groups: The transformations groups to add to the dataset.
+        Mutually xclusive with `transform` and `target_transform`.
+    :param task_labels: A list containing a task label for each example. Can
+        also be a plain `int`, in which case it will be applied to all
+        examples. If not None, shadows the `targets_task_labels` field from
+        the input dataset.
+    :param targets: A list containing a target for each example. If not None,
+        shadows the `targets` field from the input dataset.
+    :param collate_fn: The collate function to use when loading this dataset.
+
+    :returns: An :class:`AvalancheDataset`.
+    """
+    if isinstance(dataset, AvalancheDataset):
+        return dataset
+
+    transform_gs = _init_transform_groups(
+        transform_groups=transform_groups,
+        transform=transform,
+        target_transform=target_transform,
+        initial_transform_group=initial_transform_group,
+        dataset=dataset,
+    )
+
+    targets_data: Optional[DataAttribute[Any]] = \
+        _smart_init_targets(dataset, targets)
+    task_labels_data: Optional[DataAttribute[int]] = \
+        _init_task_labels(dataset, task_labels)
+
+    das: List[DataAttribute] = []
+    if targets_data is not None:
+        das.append(targets_data)
+    if task_labels_data is not None:
+        das.append(task_labels_data)
+
+    data = AvalancheDataset(
+        [dataset],
+        data_attributes=das if len(das) > 0 else None,
+        transform_groups=transform_gs,
+        collate_fn=collate_fn,
+    )
+    
+    if initial_transform_group is not None:
+        return data.with_transforms(initial_transform_group)
+    else:
+        return data
+
+
+def make_generic_tensor_dataset(
+    dataset_tensors: Sequence,
+    *,
+    transform: Optional[XTransform] = None,
+    target_transform: Optional[YTransform] = None,
+    transform_groups: Optional[Mapping[str, TransformGroupDef]] = None,
+    initial_transform_group: Optional[str] = None,
+    task_labels: Optional[Union[int, Sequence[int]]] = None,
+    targets: Optional[Any] = None,
+    collate_fn: Optional[Callable[[List], Any]] = None
+) -> AvalancheDataset:
+    if len(dataset_tensors) < 1:
+        raise ValueError("At least one sequence must be passed")
+
+    if isinstance(targets, int):
+        targets = dataset_tensors[targets]
+    tts = []
+    for tt in dataset_tensors:  # TorchTensor requires a pytorch tensor
+        if not hasattr(tt, 'size'):
+            tt = torch.tensor(tt)
+        tts.append(tt)
+    dataset = TensorDataset(*tts)
+
+    transform_gs = _init_transform_groups(
+        transform_groups,
+        transform,
+        target_transform,
+        initial_transform_group,
+        dataset,
+    )
+    targets_data = _smart_init_targets(dataset, targets)
+    task_labels_data = _init_task_labels(dataset, task_labels)
+
+    das: List[DataAttribute] = []
+    if targets_data is not None:
+        das.append(targets_data)
+    if task_labels_data is not None:
+        das.append(task_labels_data)
+
+    data = AvalancheDataset(
+        [dataset],
+        data_attributes=das if len(das) > 0 else None,
+        transform_groups=transform_gs,
+        collate_fn=collate_fn,
+    )
+
+    if initial_transform_group is not None:
+        return data.with_transforms(initial_transform_group)
+    else:
+        return data
+
+
 __all__ = [
     "tensor_as_list",
     "grouped_and_ordered_indexes",
@@ -692,5 +972,7 @@ __all__ = [
     "as_classification_dataset",
     "concat_datasets",
     "find_common_transforms_group",
-    "TaskSet"
+    "TaskSet",
+    "make_generic_dataset",
+    "make_generic_tensor_dataset"
 ]

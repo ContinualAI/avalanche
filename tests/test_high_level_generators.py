@@ -1,3 +1,4 @@
+from functools import partial
 import os
 import tempfile
 import unittest
@@ -8,7 +9,15 @@ from numpy.testing import assert_almost_equal
 from torchvision.datasets import MNIST
 from torchvision.datasets.utils import download_url, extract_archive
 from torchvision.transforms import ToTensor
-from tests.unit_tests_utils import DummyImageDataset
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    ClassificationScenario,
+)
+from avalanche.benchmarks.scenarios.dataset_scenario import DatasetScenario
+from avalanche.benchmarks.scenarios.detection_scenario import DetectionScenario
+from tests.unit_tests_utils import (
+    DummyImageDataset,
+    get_fast_detection_datasets,
+)
 
 
 from avalanche.benchmarks import (
@@ -22,6 +31,11 @@ from avalanche.benchmarks import (
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.generators.benchmark_generators import (
     class_balanced_split_strategy,
+    dataset_classification_benchmark,
+    dataset_detection_benchmark,
+    filelist_classification_benchmark,
+    paths_classification_benchmark,
+    tensors_classification_benchmark,
 )
 from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
     create_lazy_generic_benchmark,
@@ -50,9 +64,36 @@ class HighLevelGeneratorTests(unittest.TestCase):
         train_cifar10 = DummyImageDataset(n_classes=10)
         test_cifar10 = DummyImageDataset(n_classes=10)
 
-        generic_benchmark = dataset_benchmark(
+        with self.assertWarns(DeprecationWarning):
+            # Assert it warns when creating classification
+            # scenarios implicitly
+            generic_benchmark = dataset_benchmark(
+                [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
+            )
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+
+        classification_benchmark = dataset_classification_benchmark(
             [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
         )
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
+
+        # Check dataset_benchmark classification retrocompatibility
+        # This check should be removed once we decide to transition to 
+        # dataset_classification/detection/..._benchmark
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
+
+    def test_dataset_detection_benchmark(self):
+        train_det, test_det = get_fast_detection_datasets()
+
+        generic_benchmark = dataset_benchmark(
+            [train_det], [test_det]
+        )
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+
+        classification_benchmark = dataset_detection_benchmark(
+            [train_det], [test_det]
+        )
+        self.assertIsInstance(classification_benchmark, DetectionScenario)
 
     def test_dataset_benchmark_avalanche_dataset(self):
         train_MNIST = make_classification_dataset(
@@ -83,7 +124,14 @@ class HighLevelGeneratorTests(unittest.TestCase):
             task_labels=1,
         )
 
-        generic_benchmark = dataset_benchmark(
+        with self.assertWarns(DeprecationWarning):
+            # Assert it warns when creating classification
+            # scenarios implicitly
+            generic_benchmark = dataset_benchmark(
+                [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
+            )
+
+        classification_benchmark = dataset_classification_benchmark(
             [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
         )
 
@@ -91,6 +139,13 @@ class HighLevelGeneratorTests(unittest.TestCase):
         self.assertEqual(1, generic_benchmark.train_stream[1].task_label)
         self.assertEqual(0, generic_benchmark.test_stream[0].task_label)
         self.assertEqual(1, generic_benchmark.test_stream[1].task_label)
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
+
+        # Check dataset_benchmark classification retrocompatibility
+        # This check should be removed once we decide to transition to 
+        # dataset_classification/detection/..._benchmark
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
 
     def test_filelist_benchmark(self):
         download_url(
@@ -126,8 +181,17 @@ class HighLevelGeneratorTests(unittest.TestCase):
                         wf.write(
                             "{} {}\n".format(os.path.join(rel_dir, name), label)
                         )
-
             generic_benchmark = filelist_benchmark(
+                dirpath,
+                list_paths,
+                [list_paths[0]],
+                task_labels=[0, 0],
+                complete_test_set_only=True,
+                train_transform=ToTensor(),
+                eval_transform=ToTensor(),
+            )
+
+            classification_benchmark = filelist_classification_benchmark(
                 dirpath,
                 list_paths,
                 [list_paths[0]],
@@ -139,6 +203,8 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
 
     def test_paths_benchmark(self):
         download_url(
@@ -168,7 +234,19 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 experience_paths.append(instance_tuple)
             train_experiences.append(experience_paths)
 
-        generic_benchmark = paths_benchmark(
+        with self.assertWarns(DeprecationWarning):
+            # Assert it warns when creating classification
+            # scenarios implicitly
+            generic_benchmark = paths_benchmark(
+                train_experiences,
+                [train_experiences[0]],  # Single test set
+                task_labels=[0, 0],
+                complete_test_set_only=True,
+                train_transform=ToTensor(),
+                eval_transform=ToTensor(),
+            )
+
+        classification_benchmark = paths_classification_benchmark(
             train_experiences,
             [train_experiences[0]],  # Single test set
             task_labels=[0, 0],
@@ -179,6 +257,13 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
+
+        # Check dataset_benchmark classification retrocompatibility
+        # This check should be removed once we decide to transition to 
+        # dataset_classification/detection/..._benchmark
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
 
     def test_tensors_benchmark(self):
         pattern_shape = (3, 32, 32)
@@ -196,7 +281,20 @@ class HighLevelGeneratorTests(unittest.TestCase):
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
 
-        generic_benchmark = tensors_benchmark(
+        with self.assertWarns(DeprecationWarning):
+            # Assert it warns when creating classification
+            # scenarios implicitly
+            generic_benchmark = tensors_benchmark(
+                train_tensors=[
+                    (experience_1_x, experience_1_y),
+                    (experience_2_x, experience_2_y),
+                ],
+                test_tensors=[(test_x, test_y)],
+                task_labels=[0, 0],  # Task label of each train exp
+                complete_test_set_only=True,
+            )
+
+        classification_benchmark = tensors_classification_benchmark(
             train_tensors=[
                 (experience_1_x, experience_1_y),
                 (experience_2_x, experience_2_y),
@@ -208,6 +306,13 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
         self.assertEqual(2, len(generic_benchmark.train_stream))
         self.assertEqual(1, len(generic_benchmark.test_stream))
+        self.assertIsInstance(generic_benchmark, DatasetScenario)
+        self.assertIsInstance(classification_benchmark, ClassificationScenario)
+
+        # Check dataset_benchmark classification retrocompatibility
+        # This check should be removed once we decide to transition to 
+        # dataset_classification/detection/..._benchmark
+        self.assertIsInstance(generic_benchmark, ClassificationScenario)
 
     def test_data_incremental_benchmark(self):
         pattern_shape = (3, 32, 32)
@@ -265,7 +370,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
             for x, y, *_ in exp.dataset:
                 self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
                 self.assertTrue(
-                    torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y))
+                    torch.equal(ref_tensor_y[tensor_idx], torch.as_tensor(y))
                 )
                 tensor_idx += 1
 
@@ -275,7 +380,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         tensor_idx = 0
         for x, y, *_ in exp.dataset:
             self.assertTrue(torch.equal(test_x[tensor_idx], x))
-            self.assertTrue(torch.equal(test_y[tensor_idx], torch.tensor(y)))
+            self.assertTrue(torch.equal(test_y[tensor_idx], torch.as_tensor(y)))
             tensor_idx += 1
 
     def test_data_incremental_benchmark_from_lazy_benchmark(self):
@@ -347,7 +452,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
             for x, y, *_ in exp.dataset:
                 self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
                 self.assertTrue(
-                    torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y))
+                    torch.equal(ref_tensor_y[tensor_idx], torch.as_tensor(y))
                 )
                 tensor_idx += 1
 
@@ -357,7 +462,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         tensor_idx = 0
         for x, y, *_ in exp.dataset:
             self.assertTrue(torch.equal(test_x[tensor_idx], x))
-            self.assertTrue(torch.equal(test_y[tensor_idx], torch.tensor(y)))
+            self.assertTrue(torch.equal(test_y[tensor_idx], torch.as_tensor(y)))
             tensor_idx += 1
 
     def test_benchmark_with_validation_stream_fixed_size(self):
@@ -441,7 +546,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
 
-        initial_benchmark_instance = tensors_benchmark(
+        initial_benchmark_instance = tensors_classification_benchmark(
             train_tensors=[
                 (experience_1_x, experience_1_y),
                 (experience_2_x, experience_2_y),
@@ -501,10 +606,77 @@ class HighLevelGeneratorTests(unittest.TestCase):
         self.assertTrue(torch.equal(test_y, mb[1]))
 
         # Regression test for #1371
-        self.assertEquals(
+        self.assertEqual(
             [0],
             valid_benchmark.train_stream[0].classes_in_this_experience
         )
+
+    def test_benchmark_with_validation_stream_class_balanced(self):
+        pattern_shape = (3, 32, 32)
+
+        # Definition of training experiences
+        # Experience 1
+        experience_1_x = torch.zeros(100, *pattern_shape)
+        experience_1_y = torch.randint(0, 10, (100,), dtype=torch.long)
+
+        # Experience 2
+        experience_2_x = torch.zeros(80, *pattern_shape)
+        experience_2_y = torch.randint(0, 10, (80,), dtype=torch.long)
+
+        # Test experience
+        test_x = torch.zeros(50, *pattern_shape)
+        test_y = torch.zeros(50, dtype=torch.long)
+
+        initial_benchmark_instance = tensors_classification_benchmark(
+            train_tensors=[
+                (experience_1_x, experience_1_y),
+                (experience_2_x, experience_2_y),
+            ],
+            test_tensors=[(test_x, test_y)],
+            task_labels=[0, 0],  # Task label of each train exp
+            complete_test_set_only=True,
+        )
+
+        validation_size = 0.2
+        class_balanced_strat = partial(
+            class_balanced_split_strategy,
+            validation_size
+        )
+        valid_benchmark = benchmark_with_validation_stream(
+            initial_benchmark_instance,
+            custom_split_strategy=class_balanced_strat
+        )
+
+        _, count_1 = torch.unique(experience_1_y, return_counts=True)
+        expected_class_sizes_1 = [int(validation_size * x) for x in count_1]
+        expected_size_1 = sum(expected_class_sizes_1)
+        
+        _, count_2 = torch.unique(experience_2_y, return_counts=True)
+        expected_class_sizes_2 = [int(validation_size * x) for x in count_2]
+        expected_size_2 = sum(expected_class_sizes_2)
+
+        self.assertEqual(2, len(valid_benchmark.train_stream))
+        self.assertEqual(2, len(valid_benchmark.valid_stream))
+        self.assertEqual(1, len(valid_benchmark.test_stream))
+        self.assertTrue(valid_benchmark.complete_test_set_only)
+
+        self.assertEqual(
+            100 - expected_size_1,
+            len(valid_benchmark.train_stream[0].dataset))
+        self.assertEqual(
+            80 - expected_size_2,
+            len(valid_benchmark.train_stream[1].dataset))
+        self.assertEqual(
+            expected_size_1,
+            len(valid_benchmark.valid_stream[0].dataset))
+        self.assertEqual(
+            expected_size_2,
+            len(valid_benchmark.valid_stream[1].dataset))
+
+        vd = valid_benchmark.test_stream[0].dataset
+        mb = get_mbatch(vd, len(vd))
+        self.assertTrue(torch.equal(test_x, mb[0]))
+        self.assertTrue(torch.equal(test_y, mb[1]))
 
     def test_lazy_benchmark_with_validation_stream_fixed_size(self):
         lazy_options = [None, True, False]

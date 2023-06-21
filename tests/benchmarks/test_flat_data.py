@@ -150,8 +150,8 @@ class FlatteningTests(unittest.TestCase):
         C = B.concat(A)
         self.assertListEqual([2, 3, 1, 2, 3], list(C))
 
-    def test_concat_flattens_same_classification_dataset(self):
-        D = ClassificationDataset([[1, 2, 3]])
+    def test_concat_flattens_same_avalanche_dataset(self):
+        D = AvalancheDataset([[1, 2, 3]])
         B = concat_datasets([])
         B = B.concat(D)
         B = D.concat(B)

@@ -10,8 +10,8 @@
 ################################################################################
 
 """ This module contains the high-level CORe50 benchmark generator. It
-basically returns a iterable benchmark object ``GenericCLScenario`` given a
-number of configuration parameters."""
+basically returns a iterable benchmark object :class:`ClassificationScenario`
+given a number of configuration parameters."""
 from pathlib import Path
 from typing import Union, Optional, Any
 
@@ -26,10 +26,13 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_generic_benchmark_from_filelists,
+from avalanche.benchmarks.scenarios.classification_benchmark_creation import (
+    create_classification_benchmark_from_filelists,
 )
 from avalanche.benchmarks.datasets.core50.core50 import CORe50Dataset
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    CommonClassificationScenarioType,
+)
 
 nbatch = {
     "ni": 8,
@@ -109,7 +112,7 @@ def CORe50(
         location for
         'core50' will be used.
 
-    :returns: a properly initialized :class:`GenericCLScenario` instance.
+    :returns: a properly initialized :class:`ClassificationScenario` instance.
     """
 
     assert 0 <= run <= 9, (
@@ -149,15 +152,29 @@ def CORe50(
             / ("train_batch_" + str(batch_id).zfill(2) + "_filelist.txt")
         )
 
-    benchmark_obj = create_generic_benchmark_from_filelists(
-        root_img,
-        train_failists_paths,
-        [root / filelists_bp / "test_filelist.txt"],
-        task_labels=[0 for _ in range(nbatch[scenario])],
-        complete_test_set_only=True,
-        train_transform=train_transform,
-        eval_transform=eval_transform,
-    )
+    benchmark_obj: CommonClassificationScenarioType = \
+        create_classification_benchmark_from_filelists(
+            root_img,
+            train_failists_paths,
+            [root / filelists_bp / "test_filelist.txt"],
+            task_labels=[0 for _ in range(nbatch[scenario])],
+            complete_test_set_only=True,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
+    
+    if scenario == 'nc':
+        n_classes_per_exp = []
+        classes_order = []
+        for exp in benchmark_obj.train_stream:
+            exp_dataset = exp.dataset
+            unique_targets = list(sorted(
+                set(int(x) for x in exp_dataset.targets)  # type: ignore
+            ))
+            n_classes_per_exp.append(len(unique_targets))
+            classes_order.extend(unique_targets)
+        setattr(benchmark_obj, 'n_classes_per_exp', n_classes_per_exp)
+        setattr(benchmark_obj, 'classes_order', classes_order)
 
     return benchmark_obj
 

@@ -23,7 +23,7 @@ from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
 )
 from avalanche.benchmarks.utils import classification_subset
 from avalanche.benchmarks.utils.classification_dataset import \
-    ClassificationDataset, SupervisedClassificationDataset
+    ClassificationDataset
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
@@ -31,7 +31,7 @@ class NIScenario(
         ClassificationScenario[
             'NIStream',
             'NIExperience',
-            SupervisedClassificationDataset]):
+            ClassificationDataset]):
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -107,8 +107,8 @@ class NIScenario(
             test datasets must be used. Defaults to None.
         """
 
-        train_dataset = SupervisedClassificationDataset(train_dataset)
-        test_dataset = SupervisedClassificationDataset(test_dataset)
+        train_dataset = ClassificationDataset(train_dataset)
+        test_dataset = ClassificationDataset(test_dataset)
 
         self._has_task_labels = task_labels
 
@@ -484,7 +484,7 @@ class NIStream(ClassificationStream['NIExperience']):
             set_stream_info=set_stream_info)
 
 
-class NIExperience(ClassificationExperience[SupervisedClassificationDataset]):
+class NIExperience(ClassificationExperience[ClassificationDataset]):
     """
     Defines a "New Instances" experience. It defines fields to obtain the
     current dataset and the associated task label. It also keeps a reference

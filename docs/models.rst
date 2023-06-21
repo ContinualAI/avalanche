@@ -3,7 +3,7 @@ Models module
 
 | This module provides models and building blocks to design continual learning architectures.
 
-models
+avalanche.models
 ----------------------------------------
 
 .. contents::

@@ -49,7 +49,7 @@ Streams
     ClassificationStream
 
 Experiences
-"""""""""
+"""""""""""
 
 .. autosummary::
     :toctree: generated
@@ -243,8 +243,10 @@ Benchmark Generators
 | This set of functions tries to cover most common use cases (Class/Task-Incremental, Domain-Incremental, ...) but it also allows for the creation of entirely custom benchmarks (based on lists of tensors, on file lists, ...).
 
 
+Class/Task/Domain-incremental benchmarks
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
 Generators for Class/Task/Domain-incremental benchmarks
-........................................................
 
 .. autosummary::
     :toctree: generated
@@ -253,8 +255,38 @@ Generators for Class/Task/Domain-incremental benchmarks
     ni_benchmark
 
 
-Starting from tensor lists, file lists, PyTorch datasets
-..........................................................
+Classification benchmarks
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Generate classification benchmarks, starting from tensor lists, file lists, PyTorch datasets
+
+.. autosummary::
+    :toctree: generated
+
+    dataset_classification_benchmark
+    filelist_classification_benchmark
+    paths_classification_benchmark
+    tensors_classification_benchmark
+
+
+Detection / segmentation benchmarks
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Generate detection/segmentation benchmarks, starting from PyTorch datasets
+
+
+.. autosummary::
+    :toctree: generated
+
+    dataset_detection_benchmark
+
+
+Generic benchmarks
+""""""""""""""""""
+
+
+Consider using the classification/detection when appropriate!
+
 
 .. autosummary::
     :toctree: generated
@@ -266,7 +298,7 @@ Starting from tensor lists, file lists, PyTorch datasets
 
 
 Misc (make data-incremental, add a validation stream, ...)
-..............................................................
+..........................................................
 
 | Avalanche offers utilities to adapt a previously instantiated benchmark object.
 | More utilities to come!
@@ -279,15 +311,16 @@ Misc (make data-incremental, add a validation stream, ...)
 
 .. currentmodule:: avalanche.benchmarks.utils
 
-Utils (Data Loading and AvalancheDataset)
+Utils
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-| The custom dataset and dataloader implementations contained in this sub-module are described in more detailed in the How-Tos about `"data loading and replay" <https://avalanche.continualai.org/how-tos/dataloading_buffers_replay>` and `"Avalanche Dataset" <https://avalanche.continualai.org/how-tos/avalanchedataset>`.
+| The custom dataset and dataloader implementations contained in this sub-module are described in more detailed in the How-Tos about `"Data Loading and Replay" <https://avalanche.continualai.org/how-tos/dataloading_buffers_replay>`_ and `"Avalanche Dataset" <https://avalanche.continualai.org/how-tos/avalanchedataset>`_.
 
 
 .. currentmodule:: avalanche.benchmarks.utils.data_loader
 
 Data Loaders
-............................
+""""""""""""
+
 .. autosummary::
     :toctree: generated
 
@@ -300,7 +333,8 @@ Data Loaders
 .. currentmodule:: avalanche.benchmarks.utils
 
 AvalancheDataset
-............................
+""""""""""""""""
+
 .. autosummary::
     :toctree: generated
 

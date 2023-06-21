@@ -24,6 +24,7 @@ from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
+from avalanche.evaluation.metrics.checkpoint import WeightCheckpoint
 from avalanche.logging import InteractiveLogger, WandBLogger
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.evaluation.metrics import (
@@ -87,7 +88,11 @@ def main(args):
 
     interactive_logger = InteractiveLogger()
     wandb_logger = WandBLogger(
-        project_name=args.project, run_name=args.run, config=vars(args)
+        project_name=args.project,
+        run_name=args.run,
+        log_artifacts=args.artifacts,
+        path=args.path if args.path else None,
+        config=vars(args)
     )
 
     eval_plugin = EvaluationPlugin(
@@ -130,6 +135,7 @@ def main(args):
             minibatch=True, epoch=True, experience=True, stream=True
         ),
         MAC_metrics(minibatch=True, epoch=True, experience=True),
+        WeightCheckpoint(),
         loggers=[interactive_logger, wandb_logger],
     )
 
@@ -167,9 +173,15 @@ if __name__ == "__main__":
         default=0,
         help="Select zero-indexed cuda device. -1 to use CPU.",
     )
-    parser.add_argument("--run", type=str, help="Provide a run name for WandB")
     parser.add_argument(
         "--project", type=str, help="Define the name of the WandB project"
     )
+    parser.add_argument("--run", type=str, help="Provide a run name for WandB")
+    parser.add_argument('--artifacts', default=False, 
+                        action="store_true",
+                        help='Log Model Checkpoints as W&B Artifacts')
+    parser.add_argument('--path', type=str, default="Checkpoint",
+                        help='Local path to save the model checkpoints')
+    
     args = parser.parse_args()
     main(args)

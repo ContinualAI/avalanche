@@ -10,8 +10,8 @@
 ################################################################################
 
 """ This module contains the high-level OpenLORIS benchmark/factor generator.
-It basically returns a iterable benchmark object ``GenericCLScenario`` given
-a number of configuration parameters."""
+It basically returns a iterable benchmark object :class:`ClassificationScenario`
+given a number of configuration parameters."""
 
 from pathlib import Path
 from typing import Union, Any, Optional
@@ -23,8 +23,11 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 from avalanche.benchmarks.datasets.openloris import (
     OpenLORIS as OpenLORISDataset,
 )
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
-    create_generic_benchmark_from_filelists,
+from avalanche.benchmarks.scenarios.classification_benchmark_creation import (
+    create_classification_benchmark_from_filelists,
+)
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    CommonClassificationScenarioType,
 )
 
 
@@ -92,7 +95,7 @@ def OpenLORIS(
         Defaults to None, which means that the default location for
         'openloris' will be used.
 
-    :returns: a properly initialized :class:`GenericCLScenario` instance.
+    :returns: a properly initialized :class:`ClassificationScenario` instance.
     """
 
     assert factor in nbatch.keys(), (
@@ -117,15 +120,16 @@ def OpenLORIS(
             / ("train_batch_" + str(i).zfill(2) + ".txt")
         )
 
-    factor_obj = create_generic_benchmark_from_filelists(
-        dataset_root,
-        train_failists_paths,
-        [dataset_root / filelists_bp / "test.txt"],
-        task_labels=[0 for _ in range(nbatch[factor])],
-        complete_test_set_only=True,
-        train_transform=train_transform,
-        eval_transform=eval_transform,
-    )
+    factor_obj: CommonClassificationScenarioType = \
+        create_classification_benchmark_from_filelists(
+            dataset_root,
+            train_failists_paths,
+            [dataset_root / filelists_bp / "test.txt"],
+            task_labels=[0 for _ in range(nbatch[factor])],
+            complete_test_set_only=True,
+            train_transform=train_transform,
+            eval_transform=eval_transform,
+        )
 
     return factor_obj
 
