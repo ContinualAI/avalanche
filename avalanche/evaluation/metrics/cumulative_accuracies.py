@@ -79,7 +79,10 @@ class CumulativeAccuracy(Metric[Dict[int, float]]):
             logits_exp = logits_exp[:, list(classes)]
             prediction = torch.argmax(logits_exp, dim=1)
 
-            true_positives = float(torch.sum(torch.eq(prediction, y)))
+            # Here remap predictions to true y range
+            prediction = torch.tensor(list(classes))[prediction.cpu()]
+
+            true_positives = float(torch.sum(torch.eq(prediction, y.cpu())))
             total_patterns = len(y)
             self._mean_accuracy[t].update(
                 true_positives / total_patterns, total_patterns

@@ -18,6 +18,7 @@ from torch.optim import Optimizer
 from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
+from avalanche.training.utils import cycle
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.evaluation import (
     EvaluationPlugin,
@@ -32,6 +33,7 @@ from avalanche.training.templates import SupervisedTemplate
 
 @torch.no_grad()
 def compute_dataset_logits(dataset, model, batch_size, device):
+    was_training = model.training
     model.eval()
 
     logits = []
@@ -44,13 +46,11 @@ def compute_dataset_logits(dataset, model, batch_size, device):
         x = x.to(device)
         out = model(x)
         logits.extend(list(out.cpu()))
+
+    if was_training:
+        model.train()
+
     return logits
-
-
-def cycle(loader):
-    while True:
-        for batch in loader:
-            yield batch
 
 
 class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
