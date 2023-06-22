@@ -14,7 +14,18 @@
     support for balanced dataloading between different tasks or balancing
     between the current data and the replay memory.
 """
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Sized,
+    Union,
+)
+import numpy as np
 
 import torch
 from torch.utils.data import RandomSampler, DistributedSampler, Dataset
@@ -38,6 +49,11 @@ _default_collate_mbatches_fn = classification_collate_mbatches_fn
 detection_collate_fn = _detection_collate_fn
 
 detection_collate_mbatches_fn = _detection_collate_mbatches_fn
+
+import torch
+from torch.utils.data.sampler import RandomSampler, BatchSampler
+from torch.utils.data import ConcatDataset
+from torch.utils.data.sampler import Sampler
 
 
 def return_identity(x):
@@ -384,6 +400,250 @@ class ReplayDataLoader:
         self.distributed_sampling = distributed_sampling
         self.loader_kwargs = kwargs
 
+        # Only used if persistent_workers == True in loader kwargs
+        self._persistent_loader = None
+
+        if "collate_fn" not in self.loader_kwargs:
+            self.loader_kwargs["collate_fn"] = self.data.collate_fn
+            
+        self.data_batch_sizes, _ = self._get_batch_sizes(
+            data, batch_size, 0, False
+        )
+
+        # Create dataloader for memory items
+        if task_balanced_dataloader:
+            memory_task_labels = getattr(self.memory, 'targets_task_labels')
+            assert isinstance(memory_task_labels, DataAttribute)
+            num_keys = len(memory_task_labels.uniques)
+
+            # Ensure that the per-task batch size will end up > 0
+            assert batch_size_mem >= num_keys, (
+                "Batch size must be greator or equal "
+                "to the number of tasks in the memory "
+                "and current data."
+            )
+
+            single_group_batch_size = batch_size_mem // num_keys
+            remaining_example = batch_size_mem % num_keys
+        else:
+            single_group_batch_size = batch_size_mem
+            remaining_example = 0
+
+        self.memory_batch_sizes, _ = self._get_batch_sizes(
+            memory,
+            single_group_batch_size,
+            remaining_example,
+            task_balanced_dataloader,
+        )
+
+        loaders_for_len_estimation = []
+
+        if isinstance(self.data_batch_sizes, int):
+            loaders_for_len_estimation.append(
+                _make_data_loader(
+                    data,
+                    distributed_sampling,
+                    kwargs,
+                    self.data_batch_sizes,
+                    force_no_workers=True,
+                )[0]
+            )
+        else:
+            # Task balanced
+            data_task_set: Mapping[int, AvalancheDataset] = \
+                getattr(data, 'task_set')
+            for task_id in data_task_set:
+                dataset = data_task_set[task_id]
+                mb_sz = self.data_batch_sizes[task_id]
+
+                loaders_for_len_estimation.append(
+                    _make_data_loader(
+                        dataset,
+                        distributed_sampling,
+                        kwargs,
+                        mb_sz,
+                        force_no_workers=True,
+                    )[0]
+                )
+
+        self.max_len = max([len(d) for d in loaders_for_len_estimation])
+
+    def __iter__(self):
+        # Adapted from the __iter__ of PyTorch DataLoader:
+        # https://pytorch.org/docs/stable/_modules/torch/utils/data/dataloader.html#DataLoader
+        # Needed to support 'persistent_workers'
+
+        use_persistent_workers = self.loader_kwargs.get(
+            'persistent_workers', False)
+        num_workers = self.loader_kwargs.get(
+            'num_workers', 0)
+
+        if use_persistent_workers and num_workers > 0:
+            if self._persistent_loader is None:
+                self._persistent_loader = self._get_loader()
+
+            yield from self._persistent_loader
+        else:
+            yield from self._get_loader()
+        
+    def _get_loader(self):
+        data_datasets, data_samplers = self._create_samplers(
+            self.data,
+            self.data_batch_sizes,
+            self.distributed_sampling,
+            self.loader_kwargs
+        )
+
+        memory_datasets, memory_samplers = self._create_samplers(
+            self.memory,
+            self.memory_batch_sizes,
+            self.distributed_sampling,
+            self.loader_kwargs
+        )
+
+        overall_dataset = ConcatDataset(data_datasets + memory_datasets)
+        overall_samplers = data_samplers + memory_samplers
+
+        # The longest sampler is the one that defines when an epoch ends
+        # Note: this is aligned with the behavior of LegacyReplayDataLoader
+        longest_data_sampler = np.array(
+            len(d) for d in data_samplers
+        ).argmax().item()
+
+        multi_dataset_batch_sampler = MultiDatasetSampler(
+            overall_dataset.datasets,
+            overall_samplers,
+            termination_dataset_idx=longest_data_sampler,
+            oversample_small_tasks=self.oversample_small_tasks
+        )
+
+        loader = _make_data_loader_with_batched_sampler(
+            overall_dataset,
+            batch_sampler=multi_dataset_batch_sampler,
+            data_loader_args=self.loader_kwargs
+        )
+
+        return loader
+
+    def __len__(self):
+        return self.max_len
+    
+    @staticmethod
+    def _create_samplers(
+        data: AvalancheDataset, 
+        batch_sizes: Union[int, List[int], Dict[int, int]],
+        distributed_sampling: bool,
+        loader_kwargs: Dict[str, Any]
+    ):
+        datasets = []
+        samplers = []
+
+        if isinstance(batch_sizes, int):
+            sampler = _make_sampler(
+                data,
+                distributed_sampling,
+                loader_kwargs,
+                batch_sizes
+            )
+            datasets.append(data)
+            samplers.append(sampler)
+        else:
+            for task_id in data.task_set:  # TODO: sorted (deterministic) loop
+                dataset = data.task_set[task_id]
+                mb_sz = batch_sizes[task_id]
+
+                sampler = _make_sampler(
+                    dataset,
+                    distributed_sampling,
+                    loader_kwargs,
+                    mb_sz
+                )
+
+                datasets.append(dataset)
+                samplers.append(sampler)
+        return datasets, samplers
+
+    @staticmethod
+    def _get_batch_sizes(
+        data_dict,
+        single_exp_batch_size,
+        remaining_example,
+        task_balanced_dataloader,
+    ):
+        batch_sizes = dict()
+        if task_balanced_dataloader:
+            for task_id in data_dict.task_set:
+                current_batch_size = single_exp_batch_size
+                if remaining_example > 0:
+                    current_batch_size += 1
+                    remaining_example -= 1
+                batch_sizes[task_id] = current_batch_size
+        else:
+            # Current data is loaded without task balancing
+            batch_sizes = single_exp_batch_size
+        return batch_sizes, remaining_example
+    
+
+class LegacyReplayDataLoader:
+    """Custom data loader for rehearsal/replay strategies."""
+
+    def __init__(
+        self,
+        data: AvalancheDataset,
+        memory: Optional[AvalancheDataset] = None,
+        oversample_small_tasks: bool = False,
+        batch_size: int = 32,
+        batch_size_mem: int = 32,
+        task_balanced_dataloader: bool = False,
+        distributed_sampling: bool = True,
+        **kwargs
+    ):
+        """Custom data loader for rehearsal strategies.
+
+        This dataloader iterates in parallel two datasets, the current `data`
+        and the rehearsal `memory`, which are used to create mini-batches by
+        concatenating their data together. Mini-batches from both of them are
+        balanced using the task label (i.e. each mini-batch contains a balanced
+        number of examples from all the tasks in the `data` and `memory`).
+
+        The length of the loader is determined only by the current 
+        task data and is the same than what it would be when creating a 
+        data loader for this dataset.
+
+        If `oversample_small_tasks == True` smaller tasks are oversampled to
+        match the largest task.
+
+        :param data: AvalancheDataset.
+        :param memory: AvalancheDataset.
+        :param oversample_small_tasks: whether smaller tasks should be
+            oversampled to match the largest one.
+        :param batch_size: the size of the data batch. It must be greater
+            than or equal to the number of tasks.
+        :param batch_size_mem: the size of the memory batch. If
+            `task_balanced_dataloader` is set to True, it must be greater than
+            or equal to the number of tasks.
+        :param task_balanced_dataloader: if true, buffer data loaders will be
+            task-balanced, otherwise it creates a single data loader for the
+            buffer samples.
+        :param kwargs: data loader arguments used to instantiate the loader for
+            each task separately. See pytorch :class:`DataLoader`.
+        """
+        if "collate_mbatches" in kwargs:
+            raise ValueError(
+                "collate_mbatches is not needed anymore and it has been "
+                "deprecated. Data loaders will use the collate function"
+                "`data.collate_fn`."
+            )
+
+        self.data = data
+        self.memory = memory
+        self.oversample_small_tasks = oversample_small_tasks
+        self.task_balanced_dataloader = task_balanced_dataloader
+        self.data_batch_sizes: Union[int, Dict[int, int]] = dict()
+        self.memory_batch_sizes: Union[int, Dict[int, int]] = dict()
+        self.distributed_sampling = distributed_sampling
+        self.loader_kwargs = kwargs
+
         if "collate_fn" in kwargs:
             self.collate_fn = kwargs["collate_fn"]
         else:
@@ -584,6 +844,135 @@ class ReplayDataLoader:
         return batch_sizes, remaining_example
 
 
+class MultiDatasetSampler(Sampler):
+    """
+    Iterate over datasets and provide a batch per dataset in each mini-batch.
+    """
+    def __init__(
+            self,
+            datasets: Sequence[Sized],
+            samplers: Sequence[BatchSampler],
+            termination_dataset_idx: int = 0,
+            oversample_small_tasks: bool = False):
+        assert len(datasets) == len(samplers)
+        assert termination_dataset_idx >= 0 and \
+            termination_dataset_idx < len(datasets)
+
+        self.datasets = list(datasets)
+        self.samplers = list(samplers)
+        self.cumulative_sizes = ConcatDataset.cumsum(self.datasets)
+
+        # termination_dataset_idx == dataset used to determine the epoch end
+        self.termination_dataset_idx = termination_dataset_idx
+        self.termination_dataset_iterations = \
+            len(self.samplers[self.termination_dataset_idx])
+
+        self.oversample_small_tasks = oversample_small_tasks
+       
+    def __len__(self):
+        return self.termination_dataset_iterations
+
+    def __iter__(self):
+        number_of_datasets = len(self.datasets)
+        samplers_list = []
+        sampler_iterators = []
+
+        for dataset_idx in range(number_of_datasets):
+            sampler = self.samplers[dataset_idx]
+            samplers_list.append(sampler)
+            cur_sampler_iterator = sampler.__iter__()
+            sampler_iterators.append(cur_sampler_iterator)
+
+        index_offsets = np.array([0] + self.cumulative_sizes[:-1])
+
+        while True:
+            per_dataset_indices: List[Optional[np.ndarray]] = \
+                [None] * number_of_datasets
+
+            # Obtain the indices for the "main" dataset first
+            sampling_dataset_order = [self.termination_dataset_idx] + list(
+                x for x in range(number_of_datasets)
+                if x != self.termination_dataset_idx
+            )
+            is_termination_dataset = \
+                [True] + ([False] * (number_of_datasets - 1))
+
+            for dataset_idx, is_term_dataset in zip(
+                    sampling_dataset_order, 
+                    is_termination_dataset):
+
+                sampler = samplers_list[dataset_idx]
+                sampler_iterator = sampler_iterators[dataset_idx]
+
+                if sampler is None:
+                    continue
+
+                should_stop_if_ended = is_term_dataset or not \
+                    self.oversample_small_tasks
+
+                continue_epoch, updated_iterator, next_batch_indices = \
+                    self._next_batch(
+                        sampler,
+                        sampler_iterator,
+                        stop_on_last_batch=should_stop_if_ended
+                    )
+
+                if not continue_epoch:
+                    if is_term_dataset:
+                        # The main dataset terminated -> exit
+                        return
+                    else:
+                        # Not the main dataset
+                        # Happens if oversample_small_tasks is False
+                        # Remove the dataset and sampler from the list
+                        samplers_list[dataset_idx] = None
+                        sampler_iterators[dataset_idx] = None
+                        continue
+                
+                assert next_batch_indices is not None
+                next_batch_indices = np.array(next_batch_indices)
+
+                # Shift indices according to the position of the 
+                # dataset in the list
+                next_batch_indices += index_offsets[dataset_idx]
+                
+                sampler_iterators[dataset_idx] = updated_iterator
+                per_dataset_indices[dataset_idx] = next_batch_indices
+            per_dataset_indices = [x for x in per_dataset_indices 
+                                   if x is not None]
+            yield np.concatenate(per_dataset_indices).tolist()
+    
+    @staticmethod
+    def _next_batch(
+            sampler: Sampler,
+            sampler_iterator: Iterator[Sequence[int]],
+            stop_on_last_batch: bool):
+        try:
+            next_batch_indices = next(sampler_iterator)
+            return True, sampler_iterator, next_batch_indices
+        except StopIteration:
+            if stop_on_last_batch:
+                return False, None, None
+        
+        # Re-create the iterator
+        # This time, do not catch StopIteration
+
+        if isinstance(sampler, BatchSampler):
+            if isinstance(sampler.sampler, DistributedSampler):
+                sampler.sampler.set_epoch(
+                    sampler.sampler.epoch + 1
+                )
+        elif isinstance(sampler, DistributedSampler):
+            # Manage shuffling in DistributedSampler
+            sampler.set_epoch(
+                sampler.epoch + 1
+            )
+        
+        sampler_iterator = iter(sampler)
+        next_batch_indices = next(sampler_iterator)
+        return True, sampler_iterator, next_batch_indices
+
+
 def _make_data_loader(
     dataset: Dataset,
     distributed_sampling: bool,
@@ -626,6 +1015,45 @@ def _make_data_loader(
         )
 
     return data_loader, sampler
+
+
+def _make_data_loader_with_batched_sampler(
+    dataset: Dataset,
+    batch_sampler: Any,
+    data_loader_args: Dict[str, Any]
+):
+    data_loader_args = data_loader_args.copy()
+
+    # See documentation of batch_sampler:
+    # https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+    # In fact, "generator" could be dropped too
+    data_loader_args.pop("batch_size", False)
+    data_loader_args.pop("shuffle", False)
+    data_loader_args.pop("sampler", False)
+    data_loader_args.pop("drop_last", False)
+
+    return DataLoader(
+        dataset,
+        batch_sampler=batch_sampler,
+        **data_loader_args
+    )
+
+
+def _make_sampler(
+    dataset: Any,
+    distributed_sampling: bool,
+    data_loader_args: Dict[str, Any],
+    batch_size: int
+):
+    loader, _ = _make_data_loader(
+        dataset,
+        distributed_sampling,
+        data_loader_args,
+        batch_size,
+        force_no_workers=True)
+    
+    sampler = loader.batch_sampler
+    return sampler
 
 
 __all__ = [
