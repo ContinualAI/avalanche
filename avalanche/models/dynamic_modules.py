@@ -14,7 +14,7 @@ networks, ...).
 """
 import torch
 from torch.nn import Module
-import numpy as np
+from typing import Optional
 
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 from avalanche.benchmarks.scenarios import CLExperience
@@ -444,7 +444,7 @@ class MultiHeadClassifier(MultiTaskModule):
         return out
 
 
-class TrainEvalModel(torch.nn.Module):
+class TrainEvalModel(DynamicModule):
     """
     TrainEvalModel.
     This module allows to wrap together a common feature extractor and
@@ -465,13 +465,23 @@ class TrainEvalModel(torch.nn.Module):
         self.feature_extractor = feature_extractor
         self.train_classifier = train_classifier
         self.eval_classifier = eval_classifier
+        self.classifier = train_classifier
 
     def forward(self, x):
         x = self.feature_extractor(x)
+        return self.classifier(x)
+
+    def adaptation(self, experience: Optional[CLExperience] = None):
         if self.training:
-            return self.train_classifier(x)
+            self.train_adaptation(experience)
         else:
-            return self.eval_classifier(x)
+            self.eval_adaptation(experience)
+
+    def train_adaptation(self, experience: Optional[CLExperience] = None):
+        self.classifier = self.train_classifier
+
+    def eval_adaptation(self, experience: Optional[CLExperience] = None):
+        self.classifier = self.eval_classifier
 
 
 __all__ = [
