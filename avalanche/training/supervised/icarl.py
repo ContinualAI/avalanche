@@ -185,6 +185,7 @@ class _ICaRLPlugin(SupervisedPlugin):
         self.construct_exemplar_set(strategy)
         self.reduce_exemplar_set(strategy)
         self.compute_class_means(strategy)
+        strategy.model.train()
 
     def compute_class_means(self, strategy):
         if self.class_means == {}:

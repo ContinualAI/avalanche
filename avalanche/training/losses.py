@@ -52,7 +52,6 @@ class ICaRLLossPlugin(SupervisedPlugin):
     def after_training_exp(self, strategy, **kwargs):
         if self.old_model is None:
             old_model = copy.deepcopy(strategy.model)
-            old_model.eval()
             self.old_model = old_model.to(strategy.device)
 
         self.old_model.load_state_dict(strategy.model.state_dict())

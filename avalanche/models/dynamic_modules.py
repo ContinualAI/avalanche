@@ -444,7 +444,7 @@ class MultiHeadClassifier(MultiTaskModule):
         return out
 
 
-class TrainEvalModel(DynamicModule):
+class TrainEvalModel(torch.nn.Module):
     """
     TrainEvalModel.
     This module allows to wrap together a common feature extractor and
@@ -465,23 +465,13 @@ class TrainEvalModel(DynamicModule):
         self.feature_extractor = feature_extractor
         self.train_classifier = train_classifier
         self.eval_classifier = eval_classifier
-        self.classifier = train_classifier
 
     def forward(self, x):
         x = self.feature_extractor(x)
-        return self.classifier(x)
-
-    def adaptation(self, experience: Optional[CLExperience] = None):
         if self.training:
-            self.train_adaptation(experience)
+            return self.train_classifier(x)
         else:
-            self.eval_adaptation(experience)
-
-    def train_adaptation(self, experience: Optional[CLExperience] = None):
-        self.classifier = self.train_classifier
-
-    def eval_adaptation(self, experience: Optional[CLExperience] = None):
-        self.classifier = self.eval_classifier
+            return self.eval_classifier(x)
 
 
 __all__ = [
