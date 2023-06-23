@@ -596,13 +596,19 @@ class TrainEvalModelTests(unittest.TestCase):
             eval_classifier=classifier2,
         )
 
-        model.train()
-        out = model(x)
-        assert out.shape[-1] == 10
-
         model.eval()
-        out = model(x)
-        assert out.shape[-1] == 7
+        model.adaptation()
+        assert model.classifier is classifier2
+
+        model.train()
+        model.adaptation()
+        assert model.classifier is classifier1
+
+        model.eval_adaptation()
+        assert model.classifier is classifier2
+
+        model.train_adaptation()
+        assert model.classifier is classifier1
 
 
 class NCMClassifierTest(unittest.TestCase):
