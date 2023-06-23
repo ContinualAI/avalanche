@@ -77,8 +77,9 @@ class MultiDatasetDataLoader:
         The length of the loader (that is, the number of iterations in an 
         epoch) is determined by the `termination_dataset`.
 
-        The `oversample_small_datasets` paramter can be used to control what to
-        do when smaller datasets are consumed and the epoch is not ended yet.
+        The `oversample_small_datasets` parameter can be used to control what
+        to do when smaller datasets are consumed and the epoch is not ended
+        yet.
 
         :param datasets: A list of :class:`AvalancheDataset`.
         :param batch_sizes: A list of int, describing the number of examples
