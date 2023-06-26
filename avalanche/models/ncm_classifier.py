@@ -73,10 +73,10 @@ class NCMClassifier(nn.Module):
         with respect to each class.
         """
 
-        assert self.class_means is not None, "no class means available."
+        assert self.class_means_dict != {}, "no class means available."
         if self.normalize:
             # normalize across feature_size
-            x = (x.T / torch.norm(x, dim=1)).T
+            x = (x.T / torch.norm(x.T, dim=0)).T
 
         # (num_classes, batch_size)
         sqd = torch.cdist(self.class_means.to(x.device), x)

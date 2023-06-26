@@ -185,6 +185,7 @@ class _ICaRLPlugin(SupervisedPlugin):
         self.construct_exemplar_set(strategy)
         self.reduce_exemplar_set(strategy)
         self.compute_class_means(strategy)
+        strategy.model.train()
 
     def compute_class_means(self, strategy):
         if self.class_means == {}:
@@ -201,7 +202,8 @@ class _ICaRLPlugin(SupervisedPlugin):
                 mapped_prototypes = strategy.model.feature_extractor(
                     class_samples
                 ).detach()
-            D = mapped_prototypes.T / torch.norm(mapped_prototypes, dim=1)
+            D = mapped_prototypes.T
+            D = D / torch.norm(D, dim=0)
 
             if len(class_samples.shape) == 4:
                 class_samples = torch.flip(class_samples, [3])
@@ -211,7 +213,8 @@ class _ICaRLPlugin(SupervisedPlugin):
                     class_samples
                 ).detach()
 
-            D2 = mapped_prototypes2.T / torch.norm(mapped_prototypes2, dim=1)
+            D2 = mapped_prototypes2.T
+            D2 = D2 / torch.norm(D2, dim=0)
 
             div = torch.ones(class_samples.shape[0], device=strategy.device)
             div = div / class_samples.shape[0]
