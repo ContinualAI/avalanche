@@ -1,4 +1,3 @@
-
 from avalanche.training.templates.strategy_mixin_protocol \
     import SGDStrategyProtocol
 
