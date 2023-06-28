@@ -21,7 +21,8 @@ from avalanche.training.storage_policy import (
     ExemplarsSelectionStrategy,
     HerdingSelectionStrategy,
     ClosestToCenterSelectionStrategy,
-    ParametricBuffer, ReservoirSamplingBuffer,
+    ParametricBuffer,
+    ReservoirSamplingBuffer,
 )
 from avalanche.training.supervised import Naive
 from avalanche.training.templates import SupervisedTemplate

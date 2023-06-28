@@ -6,7 +6,11 @@ import torch
 from avalanche.benchmarks import fixed_size_experience_split
 from avalanche.benchmarks.utils import AvalancheDataset, concat_datasets
 from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
-from avalanche.benchmarks.utils.flat_data import FlatData, _flatten_datasets_and_reindex, LazyIndices
+from avalanche.benchmarks.utils.flat_data import (
+    FlatData,
+    _flatten_datasets_and_reindex,
+    LazyIndices,
+)
 from avalanche.benchmarks.utils.flat_data import (
     _flatdata_depth,
     _flatdata_print,
@@ -275,6 +279,7 @@ class LazyIndicesTests(unittest.TestCase):
         self.assertEqual(len(eager) * (i + 2), len(li))
         for el in li:  # keep this to check recursion error
             pass
+
 
 if __name__ == "__main__":
     unittest.main()

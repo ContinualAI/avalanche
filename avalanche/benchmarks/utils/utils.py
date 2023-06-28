@@ -396,8 +396,8 @@ def _init_task_labels(
             tls = task_labels
         elif isinstance(task_labels, DataAttribute):
             return DataAttribute(
-                task_labels.data, "targets_task_labels",
-                use_in_getitem=True)
+                task_labels.data, "targets_task_labels", use_in_getitem=True
+            )
         else:
             tls = SubSequence(task_labels, converter=int)
 

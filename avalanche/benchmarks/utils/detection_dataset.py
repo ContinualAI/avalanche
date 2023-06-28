@@ -80,21 +80,18 @@ class DetectionDataset(AvalancheDataset[T_co]):
         return self.targets_task_labels.val_to_idx  # type: ignore
 
     @property
-    def task_set(self: TDetectionDataset) -> \
-            TaskSet[TDetectionDataset]:
+    def task_set(self: TDetectionDataset) -> TaskSet[TDetectionDataset]:
         """Returns the dataset's ``TaskSet``, which is a mapping <task-id,
         task-dataset>."""
         return TaskSet(self)
 
     def subset(self, indices):
         data = super().subset(indices)
-        return data.with_transforms(
-            self._flat_data._transform_groups.current_group)
+        return data.with_transforms(self._flat_data._transform_groups.current_group)
 
     def concat(self, other):
         data = super().concat(other)
-        return data.with_transforms(
-            self._flat_data._transform_groups.current_group)
+        return data.with_transforms(self._flat_data._transform_groups.current_group)
 
     def __hash__(self):
         return id(self)

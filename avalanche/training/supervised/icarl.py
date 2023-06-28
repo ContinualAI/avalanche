@@ -185,9 +185,10 @@ class _ICaRLPlugin(SupervisedPlugin):
     def compute_class_means(self, strategy):
         if self.class_means == {}:
             n_classes = sum(strategy.experience.benchmark.n_classes_per_exp)
-            self.class_means = {c_id: torch.zeros(self.embedding_size,
-                                                  device=strategy.device)
-                                for c_id in range(n_classes)}
+            self.class_means = {
+                c_id: torch.zeros(self.embedding_size, device=strategy.device)
+                for c_id in range(n_classes)
+            }
 
         for i, class_samples in enumerate(self.x_memory):
             label = self.y_memory[i][0]
@@ -220,8 +221,7 @@ class _ICaRLPlugin(SupervisedPlugin):
             self.class_means[label] = (m1 + m2) / 2
             self.class_means[label] /= torch.norm(self.class_means[label])
 
-        strategy.model.eval_classifier.replace_class_means_dict(
-            self.class_means)
+        strategy.model.eval_classifier.replace_class_means_dict(self.class_means)
 
     def construct_exemplar_set(self, strategy: SupervisedTemplate):
         assert strategy.experience is not None

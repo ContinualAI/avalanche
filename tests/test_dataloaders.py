@@ -29,7 +29,7 @@ from avalanche.benchmarks.utils.data_loader import (
     ReplayDataLoader,
     TaskBalancedDataLoader,
     GroupBalancedDataLoader,
-    GroupBalancedInfiniteDataLoader
+    GroupBalancedInfiniteDataLoader,
 )
 
 

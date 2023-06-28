@@ -603,11 +603,23 @@ class NCMClassifierTest(unittest.TestCase):
         classifier = NCMClassifier()
         classifier.update_class_means_dict(class_means_dict)
         assert classifier.class_means.shape == (3, 4)
-        new_mean = torch.randn(4,)
+        new_mean = torch.randn(
+            4,
+        )
         classifier.update_class_means_dict({5: new_mean.clone()})
         assert classifier.class_means.shape == (6, 4)
-        assert torch.all(classifier.class_means[3] == torch.zeros(4,))
-        assert torch.all(classifier.class_means[4] == torch.zeros(4,))
+        assert torch.all(
+            classifier.class_means[3]
+            == torch.zeros(
+                4,
+            )
+        )
+        assert torch.all(
+            classifier.class_means[4]
+            == torch.zeros(
+                4,
+            )
+        )
         assert torch.all(classifier.class_means[5] == new_mean)
 
     def test_ncm_replace_means(self):
@@ -628,12 +640,20 @@ class NCMClassifierTest(unittest.TestCase):
 
     def test_ncm_save_load(self):
         classifier = NCMClassifier()
-        classifier.update_class_means_dict({1: torch.randn(5,),
-                                            2: torch.randn(5,)})
-        torch.save(classifier.state_dict(), 'ncm.pt')
+        classifier.update_class_means_dict(
+            {
+                1: torch.randn(
+                    5,
+                ),
+                2: torch.randn(
+                    5,
+                ),
+            }
+        )
+        torch.save(classifier.state_dict(), "ncm.pt")
         del classifier
         classifier = NCMClassifier()
-        check = torch.load('ncm.pt')
+        check = torch.load("ncm.pt")
         classifier.load_state_dict(check)
         assert classifier.class_means.shape == (3, 5)
         assert (classifier.class_means[0] == 0).all()
