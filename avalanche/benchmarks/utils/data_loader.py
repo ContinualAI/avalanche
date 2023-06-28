@@ -4,7 +4,7 @@
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
 # Date: 01-12-2020                                                             #
-# Author(s): Antonio Carta                                                     #
+# Author(s): Antonio Carta, Lorenzo Pellegrini                                 #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
@@ -33,9 +33,8 @@ from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from avalanche.distributed.distributed_helper import DistributedHelper
 
-from torch.utils.data.sampler import BatchSampler
+from torch.utils.data.sampler import Sampler, BatchSampler
 from torch.utils.data import ConcatDataset
-from torch.utils.data.sampler import Sampler
 
 
 def return_identity(x):
@@ -570,6 +569,11 @@ class MultiDatasetSampler(Sampler[List[int]]):
             self.termination_dataset_idx = -1
             self.termination_dataset_iterations = 10**10
             self.oversample_small_datasets = True
+
+            if sum(len(x) for x in self.samplers) == 0:
+                raise RuntimeError(
+                    'The never ending sampler must able to create a mini-batch'
+                )
         else:
             # termination_dataset_idx => dataset used to determine the epoch end
             self.termination_dataset_idx = termination_dataset_idx
@@ -621,6 +625,14 @@ class MultiDatasetSampler(Sampler[List[int]]):
                 if sampler is None:
                     continue
 
+                if len(sampler) == 0:
+                    if is_term_dataset and (not self.never_ending):
+                        return
+                    
+                    samplers_list[dataset_idx] = None
+                    sampler_iterators[dataset_idx] = None
+                    continue
+
                 should_stop_if_ended = (
                     is_term_dataset or not self.oversample_small_datasets
                 ) and (not self.never_ending)
@@ -668,7 +680,6 @@ class MultiDatasetSampler(Sampler[List[int]]):
 
         # Re-create the iterator
         # This time, do not catch StopIteration
-
         if isinstance(sampler, BatchSampler):
             if isinstance(sampler.sampler, DistributedSampler):
                 sampler.sampler.set_epoch(sampler.sampler.epoch + 1)
