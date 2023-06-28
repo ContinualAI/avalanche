@@ -18,6 +18,7 @@ import numpy as np
 from avalanche.benchmarks.utils.dataset_utils import (
     slice_alike_object_to_indices,
 )
+
 try:
     from collections import Hashable
 except ImportError:
@@ -37,7 +38,6 @@ from typing import (
 from torch.utils.data import ConcatDataset
 import itertools
 from avalanche.benchmarks.utils.dataset_definitions import IDataset
-
 
 TFlatData = TypeVar('TFlatData', bound='FlatData')
 DataT = TypeVar("DataT")
@@ -61,12 +61,12 @@ class LazyIndices:
                 new_lists.append(ll._eager_list)
             else:
                 new_lists.append(ll)
-        self._lists = new_lists
+        self._lists = new_lists  # freed after eagerification
 
-        if len(self._lists) == 1 and offset == 0:
-            self._eager_list = self._lists[0]
+        if len(new_lists) == 1 and offset == 0:
+            self._eager_list = new_lists[0]
         else:
-            self._lazy_sequence = itertools.chain(*self._lists)
+            self._lazy_sequence = itertools.chain(*new_lists)
             """chain of generators
             this will be consumed over time whenever we need elems.
             """
@@ -76,12 +76,35 @@ class LazyIndices:
             """
             self._offset = offset
 
-        self._known_length = known_length
+        # check depth to avoid RecursionError
+        if self._depth() > 500:
+            self._to_eager()
+
+        if known_length is not None:
+            self._known_length = known_length
+        elif self._eager_list is not None:
+            self._known_length = len(self._eager_list)
+        else:
+            self._known_length = sum(len(ll) for ll in new_lists)
+
+    def _depth(self):
+        """Return the depth of the LazyIndices tree.
+        Use it only to eagerify early to avoid RecursionErrors.
+        """
+        if self._eager_list is not None:
+            return 0
+
+        lens = [0]
+        for ll in self._lists:
+            if isinstance(ll, LazyIndices):
+                lens.append(ll._depth())
+        return max(lens) + 1
 
     def _to_eager(self):
         if self._eager_list is not None:
             return
         self._eager_list = [el + self._offset for el in self._lazy_sequence]
+        self._lists = None  # free memory
 
     def __getitem__(self, item):
         if self._eager_list is None:
@@ -95,13 +118,7 @@ class LazyIndices:
         return LazyIndices(other, self)
 
     def __len__(self):
-        if self._eager_list is not None:
-            return len(self._eager_list)
-        elif self._known_length is not None:
-            return self._known_length
-        else:
-            # raise ValueError("Unknown lazy list length")
-            return sum(len(ll) for ll in self._lists)
+        return self._known_length
 
 
 class LazyRange(LazyIndices):
@@ -157,10 +174,10 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
     """
 
     def __init__(
-        self,
-        datasets: Sequence[IDataset[T_co]],
-        indices: Optional[List[int]] = None,
-        can_flatten: bool = True,
+            self,
+            datasets: Sequence[IDataset[T_co]],
+            indices: Optional[List[int]] = None,
+            can_flatten: bool = True,
     ):
         """Constructor
 
@@ -233,9 +250,9 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
                 idxs = self._get_lazy_indices() + other._get_lazy_indices()
                 return self.subset(idxs)
             elif (
-                self._can_flatten
-                and other._can_flatten
-                and self._datasets[0] is other._datasets[0]
+                    self._can_flatten
+                    and other._can_flatten
+                    and self._datasets[0] is other._datasets[0]
             ):
                 idxs = LazyIndices(self._get_lazy_indices(),
                                    other._get_lazy_indices())
@@ -304,7 +321,7 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
             else:
                 idx = idx - self._cumulative_sizes[dataset_idx - 1]
         return dataset_idx, int(idx)
-    
+
     @overload
     def __getitem__(self, item: int) -> T_co:
         ...
@@ -370,11 +387,11 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
 
     def __len__(self):
         return self._size
-    
+
     @overload
     def __getitem__(self, index: int) -> DataT:
         ...
-    
+
     @overload
     def __getitem__(self, index: slice) -> 'ConstantSequence[DataT]':
         ...
@@ -383,7 +400,7 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
             'Union[DataT, ConstantSequence[DataT]]':
         if isinstance(index, (int, np.integer)):
             index = int(index)
-        
+
             if index >= len(self):
                 raise IndexError()
             return self._constant_value
@@ -412,8 +429,8 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
         :return:
         """
         if (
-            isinstance(other, ConstantSequence)
-            and self._constant_value == other._constant_value
+                isinstance(other, ConstantSequence)
+                and self._constant_value == other._constant_value
         ):
             return ConstantSequence(
                 self._constant_value, len(self) + len(other)
@@ -432,7 +449,7 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
 
 def _flatten_dataset_list(
         datasets: List[Union[FlatData[T_co], IDataset[T_co]]]) -> \
-            List[IDataset[T_co]]:
+        List[IDataset[T_co]]:
     """Flatten the dataset tree if possible."""
     # Concat -> Concat branch
     # Flattens by borrowing the list of concatenated datasets
@@ -442,9 +459,9 @@ def _flatten_dataset_list(
         if len(dataset) == 0:
             continue
         elif (
-            isinstance(dataset, FlatData)
-            and dataset._indices is None
-            and dataset._can_flatten
+                isinstance(dataset, FlatData)
+                and dataset._indices is None
+                and dataset._can_flatten
         ):
             flattened_list.extend(dataset._datasets)
         else:
@@ -455,18 +472,18 @@ def _flatten_dataset_list(
     for dataset in flattened_list:
         last_dataset = new_data_list[-1] if len(new_data_list) > 0 else None
         if (
-            isinstance(dataset, FlatData)
-            and len(new_data_list) > 0
-            and isinstance(last_dataset, FlatData)
+                isinstance(dataset, FlatData)
+                and len(new_data_list) > 0
+                and isinstance(last_dataset, FlatData)
         ):
             new_data_list.pop()
             merged_ds = _maybe_merge_subsets(last_dataset, dataset)
             new_data_list.extend(merged_ds)
         elif (
-            (dataset is not None)
-            and len(new_data_list) > 0
-            and (last_dataset is not None)
-            and last_dataset is dataset
+                (dataset is not None)
+                and len(new_data_list) > 0
+                and (last_dataset is not None)
+                and last_dataset is dataset
         ):
             new_data_list.pop()
             # the same dataset is repeated, using indices to avoid repeating it
@@ -482,7 +499,7 @@ def _flatten_dataset_list(
 def _flatten_datasets_and_reindex(
         datasets: List[IDataset],
         indices: Optional[List[int]]) -> \
-            Tuple[List[IDataset], Optional[List[int]]]:
+        Tuple[List[IDataset], Optional[List[int]]]:
     """The same dataset may occurr multiple times in the list of datasets.
 
     Here, we flatten the list of datasets and fix the indices to account for
@@ -533,9 +550,9 @@ def _maybe_merge_subsets(d1: FlatData, d2: FlatData):
         return [d1, d2]
 
     if (
-        len(d1._datasets) == 1
-        and len(d2._datasets) == 1
-        and d1._datasets[0] is d2._datasets[0]
+            len(d1._datasets) == 1
+            and len(d2._datasets) == 1
+            and d1._datasets[0] is d2._datasets[0]
     ):
         # return [d1.__class__(d1._datasets, d1._indices + d2._indices)]
         return [d1.concat(d2)]
@@ -569,9 +586,9 @@ def _flatdata_repr(dataset, indent=0):
         cc = len(dataset._datasets) != 1
         cf = dataset._can_flatten
         s = (
-            "\t" * indent
-            + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},"
-            f"cat={cc},cf={cf})\n"
+                "\t" * indent
+                + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},"
+                  f"cat={cc},cf={cf})\n"
         )
         for dd in dataset._datasets:
             s += _flatdata_repr(dd, indent + 1)

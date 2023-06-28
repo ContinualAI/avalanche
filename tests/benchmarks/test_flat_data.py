@@ -6,7 +6,7 @@ import torch
 from avalanche.benchmarks import fixed_size_experience_split
 from avalanche.benchmarks.utils import AvalancheDataset, concat_datasets
 from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
-from avalanche.benchmarks.utils.flat_data import FlatData, _flatten_datasets_and_reindex
+from avalanche.benchmarks.utils.flat_data import FlatData, _flatten_datasets_and_reindex, LazyIndices
 from avalanche.benchmarks.utils.flat_data import (
     _flatdata_depth,
     _flatdata_print,
@@ -249,6 +249,32 @@ class FlatteningTests(unittest.TestCase):
         print(f"DATA depth={_flatdata_depth(b)}, dsets={len(b._datasets)}")
         assert len(b._datasets) <= 2
 
+
+class LazyIndicesTests(unittest.TestCase):
+    def test_basic(self):
+        eager = list(range(10))
+        li = LazyIndices(eager)
+        self.assertListEqual(eager, list(li))
+        self.assertEqual(len(eager), len(li))
+
+        li = LazyIndices(eager, eager)
+        self.assertListEqual(eager + eager, list(li))
+        self.assertEqual(len(eager) * 2, len(li))
+
+        li = LazyIndices(eager, offset=7)
+        self.assertListEqual(list([el + 7 for el in eager]), list(li))
+        self.assertEqual(len(eager), len(li))
+
+    def test_recursion(self):
+        eager = list(range(10))
+
+        li = LazyIndices(eager, offset=0)
+        for i in range(2100):
+            li = LazyIndices(li, eager, offset=0)
+
+        self.assertEqual(len(eager) * (i + 2), len(li))
+        for el in li:  # keep this to check recursion error
+            pass
 
 if __name__ == "__main__":
     unittest.main()
