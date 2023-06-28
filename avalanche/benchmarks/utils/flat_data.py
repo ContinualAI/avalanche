@@ -77,7 +77,7 @@ class LazyIndices:
             self._offset = offset
 
         # check depth to avoid RecursionError
-        if self._depth() > sys.getrecursionlimit() - 10:
+        if self._depth() > sys.getrecursionlimit() // 4:
             self._to_eager()
 
         if known_length is not None:
