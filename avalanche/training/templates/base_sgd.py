@@ -209,7 +209,7 @@ class BaseSGDTemplate(
 
     def training_epoch(self, **kwargs):
         # Should be implemented in Update Type
-        raise NotADirectoryError()
+        raise NotImplementedError()
 
     def backward(self):
         """Run the backward pass."""
@@ -416,7 +416,6 @@ class BaseSGDTemplate(
         shuffle=False,
         pin_memory=None,
         persistent_workers=False,
-        drop_last=False,
         **kwargs
     ):
         """
@@ -438,7 +437,6 @@ class BaseSGDTemplate(
             shuffle=shuffle,
             pin_memory=pin_memory,
             persistent_workers=persistent_workers,
-            drop_last=drop_last,
         )
 
         collate_from_data_or_kwargs(self.adapted_dataset, other_dataloader_args)

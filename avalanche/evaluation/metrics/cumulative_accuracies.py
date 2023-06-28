@@ -19,12 +19,10 @@ from torch import Tensor
 from avalanche.benchmarks import OnlineCLExperience
 from avalanche.evaluation import GenericPluginMetric, Metric, PluginMetric
 from avalanche.evaluation.metrics.mean import Mean
-from avalanche.evaluation.metric_utils import (
-    phase_and_task,
-    stream_type,
-    generic_get_metric_name,
-    default_metric_name_template,
-)
+from avalanche.evaluation.metric_utils import (phase_and_task,
+                                               stream_type,
+                                               generic_get_metric_name,
+                                               default_metric_name_template)
 from avalanche.evaluation.metric_results import MetricValue
 
 if TYPE_CHECKING:
@@ -57,22 +55,23 @@ class CumulativeAccuracy(Metric[Dict[int, float]]):
         true_y = torch.as_tensor(true_y)
         predicted_y = torch.as_tensor(predicted_y)
         if len(true_y) != len(predicted_y):
-            raise ValueError("Size mismatch for true_y " "and predicted_y tensors")
+            raise ValueError("Size mismatch for true_y " 
+                             "and predicted_y tensors")
         for t, classes in classes_splits.items():
-            # This is to fix a weird bug
+            # This is to fix a weird bug 
             # that was happening in some workflows
             if t not in self._mean_accuracy:
                 self._mean_accuracy[t]
 
             # Only compute Accuracy for classes that are in classes set
             if len(set(true_y.cpu().numpy()).intersection(classes)) == 0:
-                # Here this assumes that true_y is only
-                # coming from the same classes split,
+                # Here this assumes that true_y is only 
+                # coming from the same classes split, 
                 # this is a shortcut
                 # but sometimes this is not true so we
                 # do additional filtering later to make sure
                 continue
-
+            
             idxs = np.where(np.isin(true_y.cpu(), list(classes)))[0]
             y = true_y[idxs]
             logits_exp = predicted_y[idxs, :]
@@ -80,7 +79,10 @@ class CumulativeAccuracy(Metric[Dict[int, float]]):
             logits_exp = logits_exp[:, list(classes)]
             prediction = torch.argmax(logits_exp, dim=1)
 
-            true_positives = float(torch.sum(torch.eq(prediction, y)))
+            # Here remap predictions to true y range
+            prediction = torch.tensor(list(classes))[prediction.cpu()]
+
+            true_positives = float(torch.sum(torch.eq(prediction, y.cpu())))
             total_patterns = len(y)
             self._mean_accuracy[t].update(
                 true_positives / total_patterns, total_patterns
@@ -119,25 +121,27 @@ class CumulativeAccuracyPluginMetric(
 
         self.classes_seen_so_far = set()
         self.classes_splits = {}
-        super().__init__(
-            CumulativeAccuracy(), reset_at=reset_at, emit_at=emit_at, mode=mode
-        )
+        super().__init__(CumulativeAccuracy(), 
+                         reset_at=reset_at, 
+                         emit_at=emit_at, 
+                         mode=mode)
 
     def before_training_exp(self, strategy, **kwargs):
         super().before_training_exp(strategy, **kwargs)
         if isinstance(strategy.experience, OnlineCLExperience):
-            if strategy.experience.access_task_boundaries:
-                new_classes = set(
-                    strategy.experience.origin_experience.classes_in_this_experience
-                )
-                task_id = strategy.experience.origin_experience.current_experience
-            else:
-                raise AttributeError(
-                    "Online Scenario has to allow "
-                    "access to task boundaries for"
-                    " the Cumulative Accuracy Metric"
-                    " to be computed"
-                )
+            new_classes = set(
+                strategy.experience.logging().
+                origin_experience.
+                classes_in_this_experience
+            )
+
+            task_id = (
+                    strategy.
+                    experience.
+                    logging().
+                    origin_experience.
+                    current_experience
+                    )
         else:
             new_classes = set(strategy.experience.classes_in_this_experience)
             task_id = strategy.experience.current_experience
@@ -152,7 +156,10 @@ class CumulativeAccuracyPluginMetric(
         return self._metric.result()
 
     def update(self, strategy):
-        self._metric.update(self.classes_splits, strategy.mb_output, strategy.mb_y)
+        self._metric.update(
+            self.classes_splits,
+            strategy.mb_output,
+            strategy.mb_y)
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         assert strategy.experience is not None
@@ -174,7 +181,9 @@ class CumulativeAccuracyPluginMetric(
                     "stream_name": stream,
                 },
             )
-            metrics.append(MetricValue(self, metric_name, v, plot_x_position))
+            metrics.append(
+                MetricValue(self, metric_name, v, plot_x_position)
+            )
         return metrics
 
     def __repr__(self):
@@ -209,18 +218,23 @@ class CumulativeForgettingPluginMetric(
 
         self.train_task_id = None
 
-        super().__init__(
-            CumulativeAccuracy(), reset_at=reset_at, emit_at=emit_at, mode=mode
-        )
+        super().__init__(CumulativeAccuracy(), 
+                         reset_at=reset_at, 
+                         emit_at=emit_at, 
+                         mode=mode)
 
     def before_training_exp(self, strategy, **kwargs):
         super().before_training_exp(strategy, **kwargs)
         if isinstance(strategy.experience, OnlineCLExperience):
             if strategy.experience.access_task_boundaries:
                 new_classes = set(
-                    strategy.experience.origin_experience.classes_in_this_experience
+                    strategy.experience.
+                    origin_experience.
+                    classes_in_this_experience
                 )
-                task_id = strategy.experience.origin_experience.current_experience
+                task_id = (strategy.experience.
+                           origin_experience.
+                           current_experience)
             else:
                 raise AttributeError(
                     "Online Scenario has to allow "
@@ -269,11 +283,16 @@ class CumulativeForgettingPluginMetric(
                     "stream_name": stream,
                 },
             )
-            metrics.append(MetricValue(self, metric_name, v, plot_x_position))
+            metrics.append(
+                MetricValue(self, metric_name, v, plot_x_position)
+            )
         return metrics
 
     def update(self, strategy):
-        self._metric.update(self.classes_splits, strategy.mb_output, strategy.mb_y)
+        self._metric.update(
+            self.classes_splits, 
+            strategy.mb_output, 
+            strategy.mb_y)
 
     def _compute_forgetting(self):
         for t, item in self._metric.result().items():

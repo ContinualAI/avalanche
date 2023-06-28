@@ -159,7 +159,8 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
         if isinstance(seq, torch.Tensor):
             # equality doesn't work for tensors
             seq = seq.tolist()
-        if not isinstance(seq, FlatData):
+        if not isinstance(seq, FlatData) \
+                and not isinstance(seq, ConstantSequence):
             return FlatData([seq])
         return seq
 

@@ -75,7 +75,7 @@ class ICaRL(SupervisedTemplate):
         model = TrainEvalModel(
             feature_extractor,
             train_classifier=classifier,
-            eval_classifier=NCMClassifier(),
+            eval_classifier=NCMClassifier(normalize=True),
         )
 
         icarl = _ICaRLPlugin(memory_size, buffer_transform, fixed_memory)
@@ -133,9 +133,8 @@ class _ICaRLPlugin(SupervisedPlugin):
         self.y_memory = []
         self.order = []
 
-        self.old_model = None
         self.observed_classes = []
-        self.class_means = None
+        self.class_means = {}
         self.embedding_size = None
         self.output_size = None
         self.input_size = None
@@ -181,13 +180,14 @@ class _ICaRLPlugin(SupervisedPlugin):
         self.construct_exemplar_set(strategy)
         self.reduce_exemplar_set(strategy)
         self.compute_class_means(strategy)
+        strategy.model.train()
 
     def compute_class_means(self, strategy):
-        if self.class_means is None:
+        if self.class_means == {}:
             n_classes = sum(strategy.experience.benchmark.n_classes_per_exp)
-            self.class_means = torch.zeros((self.embedding_size, n_classes)).to(
-                strategy.device
-            )
+            self.class_means = {c_id: torch.zeros(self.embedding_size,
+                                                  device=strategy.device)
+                                for c_id in range(n_classes)}
 
         for i, class_samples in enumerate(self.x_memory):
             label = self.y_memory[i][0]
@@ -216,10 +216,12 @@ class _ICaRLPlugin(SupervisedPlugin):
 
             m1 = torch.mm(D, div.unsqueeze(1)).squeeze(1)
             m2 = torch.mm(D2, div.unsqueeze(1)).squeeze(1)
-            self.class_means[:, label] = (m1 + m2) / 2
-            self.class_means[:, label] /= torch.norm(self.class_means[:, label])
 
-            strategy.model.eval_classifier.class_means = self.class_means
+            self.class_means[label] = (m1 + m2) / 2
+            self.class_means[label] /= torch.norm(self.class_means[label])
+
+        strategy.model.eval_classifier.replace_class_means_dict(
+            self.class_means)
 
     def construct_exemplar_set(self, strategy: SupervisedTemplate):
         assert strategy.experience is not None

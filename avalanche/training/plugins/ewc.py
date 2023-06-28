@@ -175,6 +175,8 @@ class EWCPlugin(SupervisedPlugin):
         for _, imp in importances.items():
             imp.data /= float(len(dataloader))
 
+        model.train()
+
         return importances
 
     @torch.no_grad()

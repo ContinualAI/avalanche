@@ -14,7 +14,7 @@ networks, ...).
 """
 import torch
 from torch.nn import Module
-import numpy as np
+from typing import Optional
 
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 from avalanche.benchmarks.scenarios import CLExperience

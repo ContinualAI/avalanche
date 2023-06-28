@@ -13,12 +13,7 @@ from avalanche.training.plugins.evaluation import (
 )
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
-
-
-def cycle(loader):
-    while True:
-        for batch in loader:
-            yield batch
+from avalanche.training.utils import cycle
 
 
 class ER_ACE(SupervisedTemplate):

@@ -85,7 +85,7 @@ def lookup(indexable, idx):
 
 class ClassificationDataset(AvalancheDataset[T_co]):
     @property
-    def task_pattern_indices(self):
+    def task_pattern_indices(self) -> Dict[int, Sequence[int]]:
         """A dictionary mapping task ids to their sample indices."""
         return self.targets_task_labels.val_to_idx  # type: ignore
 

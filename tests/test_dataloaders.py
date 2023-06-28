@@ -29,6 +29,7 @@ from avalanche.benchmarks.utils.data_loader import (
     ReplayDataLoader,
     TaskBalancedDataLoader,
     GroupBalancedDataLoader,
+    GroupBalancedInfiniteDataLoader
 )
 
 
@@ -76,6 +77,12 @@ class DataLoaderTests(unittest.TestCase):
         dl = ReplayDataLoader(data, data)
         for el in dl:
             pass
+
+        dl = GroupBalancedInfiniteDataLoader(ds)
+        max_iters = 10**3
+        for i, el in enumerate(dl):
+            if i == max_iters:
+                break
 
     def test_dataload_reinit(self):
         benchmark = get_fast_benchmark()

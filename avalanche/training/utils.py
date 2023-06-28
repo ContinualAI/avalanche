@@ -23,6 +23,40 @@ from torch.nn import Module, Linear
 from torch.utils.data import Dataset, DataLoader
 
 from avalanche.models.batch_renorm import BatchRenorm2D
+from avalanche.benchmarks import OnlineCLExperience
+
+
+def at_task_boundary(training_experience) -> bool:
+    """
+    Given a training experience,
+    returns true if the experience is at the task boundary
+
+    More specifically:
+
+    - If task boundary is not available, returns True
+
+    - If task boundary is available,
+      returns True if the experience
+      is the first subexp
+
+    - If the experience is not an online experience, returns True
+
+    """
+
+    if isinstance(training_experience, OnlineCLExperience):
+        if training_experience.access_task_boundaries:
+            if training_experience.is_first_subexp:
+                return True
+        else:
+            return True
+    else:
+        return True
+
+
+def cycle(loader):
+    while True:
+        for batch in loader:
+            yield batch
 
 
 def trigger_plugins(strategy, event, **kwargs):
@@ -79,7 +113,7 @@ def load_all_dataset(dataset: Dataset, num_workers: int = 0):
         return x, y
 
 
-def zerolike_params_dict(model: Module) -> Dict[str, "ParamData"]:
+def zerolike_params_dict(model: Module) -> Dict[str, 'ParamData']:
     """
     Create a list of (name, parameter), where parameter is initalized to zero.
     The list has as many parameters as model, with the same size.
@@ -87,15 +121,11 @@ def zerolike_params_dict(model: Module) -> Dict[str, "ParamData"]:
     :param model: a pytorch model
     """
 
-    return dict(
-        [
-            (k, ParamData(k, p.shape, device=p.device))
-            for k, p in model.named_parameters()
-        ]
-    )
+    return dict([(k, ParamData(k, p.shape, device=p.device))
+                 for k, p in model.named_parameters()])
 
 
-def copy_params_dict(model, copy_grad=False) -> Dict[str, "ParamData"]:
+def copy_params_dict(model, copy_grad=False) -> Dict[str, 'ParamData']:
     """
     Create a list of (name, parameter), where parameter is copied from model.
     The list has as many parameters as model, with the same size.
@@ -108,7 +138,8 @@ def copy_params_dict(model, copy_grad=False) -> Dict[str, "ParamData"]:
         if copy_grad and p.grad is None:
             continue
         init = p.grad.data.clone() if copy_grad else p.data.clone()
-        out[k] = ParamData(k, p.shape, device=p.device, init_tensor=init)
+        out[k] = ParamData(k, p.shape, device=p.device,
+                           init_tensor=init)
     return out
 
 
@@ -122,7 +153,9 @@ class LayerAndParameter(NamedTuple):
 def get_layers_and_params(model: Module, prefix="") -> List[LayerAndParameter]:
     result: List[LayerAndParameter] = []
     for param_name, param in model.named_parameters(recurse=False):
-        result.append(LayerAndParameter(prefix[:-1], model, prefix + param_name, param))
+        result.append(
+            LayerAndParameter(prefix[:-1], model, prefix + param_name, param)
+        )
 
     layer_name: str
     layer: Module
@@ -162,7 +195,9 @@ def swap_last_fc_layer(model: Module, new_layer: Module) -> None:
 
 
 def adapt_classification_layer(
-    model: Module, num_classes: int, bias: Optional[bool] = None
+    model: Module,
+    num_classes: int,
+    bias: Optional[bool] = None
 ) -> Tuple[str, Linear]:
     last_fc_layer: Linear
     last_fc_name, last_fc_layer = get_last_fc_layer(model)
@@ -313,20 +348,21 @@ def examples_per_class(targets):
         torch.as_tensor(targets), return_counts=True
     )
     for unique_idx in range(len(unique_classes)):
-        result[int(unique_classes[unique_idx])] = int(examples_count[unique_idx])
+        result[int(unique_classes[unique_idx])] = int(
+            examples_count[unique_idx]
+        )
 
     return result
 
 
 class ParamData(object):
     def __init__(
-        self,
-        name: str,
-        shape: Optional[tuple] = None,
-        init_function: Callable[[torch.Size], torch.Tensor] = torch.zeros,
-        init_tensor: Union[torch.Tensor, None] = None,
-        device: Union[str, torch.device] = "cpu",
-    ):
+            self,
+            name: str,
+            shape: Optional[tuple] = None,
+            init_function: Callable[[torch.Size], torch.Tensor] = torch.zeros,
+            init_tensor: Union[torch.Tensor, None] = None,
+            device: Union[str, torch.device] = 'cpu'):
         """
         An object that contains a tensor with methods to expand it along
         a single dimension.
@@ -339,7 +375,7 @@ class ParamData(object):
             on subsequent calls of `reset_like` method.
         :param init_tensor: value to be used when creating the object. If None,
             `init_function` will be used.
-        :param device: pytorch like device specification as a string or
+        :param device: pytorch like device specification as a string or 
             `torch.device`.
         """
         assert isinstance(name, str)
@@ -350,11 +386,11 @@ class ParamData(object):
         self.init_function = init_function
         self.name = name
         if shape is not None:
-            self.shape = torch.Size(shape)
+            self.shape = torch.Size(shape) 
         else:
             assert init_tensor is not None
             self.shape = init_tensor.size()
-
+            
         self.device = torch.device(device)
         if init_tensor is not None:
             self._data: torch.Tensor = init_tensor
@@ -389,14 +425,14 @@ class ParamData(object):
 
         :return the expanded tensor or the previous tensor
         """
-        assert len(new_shape) == len(self.shape), "Expansion cannot add new dimensions"
+        assert len(new_shape) == len(self.shape), \
+            "Expansion cannot add new dimensions"
         expanded = False
         for i, (snew, sold) in enumerate(zip(new_shape, self.shape)):
             assert snew >= sold, "Shape cannot decrease."
             if snew > sold:
-                assert (
-                    not expanded
-                ), "Expansion cannot occur in more than one dimension."
+                assert not expanded, \
+                    "Expansion cannot occur in more than one dimension."
                 expanded = True
                 exp_idx = i
 
@@ -404,10 +440,9 @@ class ParamData(object):
             old_data = self._data.clone()
             old_shape_len = self._data.shape[exp_idx]
             self.reset_like(new_shape, init_function=padding_fn)
-            idx = [
-                slice(el) if i != exp_idx else slice(old_shape_len)
-                for i, el in enumerate(new_shape)
-            ]
+            idx = [slice(el) if i != exp_idx else
+                   slice(old_shape_len) for i, el in
+                   enumerate(new_shape)]
             self._data[idx] = old_data
         return self.data
 
@@ -417,11 +452,10 @@ class ParamData(object):
 
     @data.setter
     def data(self, value):
-        assert value.shape == self._data.shape, (
-            "Shape of new value should be the same of old value. "
-            "Use `expand` method to expand one dimension. "
+        assert value.shape == self._data.shape, \
+            "Shape of new value should be the same of old value. " \
+            "Use `expand` method to expand one dimension. " \
             "Use `reset_like` to reset with a different shape."
-        )
         self._data = value
 
     def __str__(self):
@@ -446,4 +480,6 @@ __all__ = [
     "freeze_up_to",
     "examples_per_class",
     "ParamData",
+    "cycle",
+    "at_task_boundary",
 ]
