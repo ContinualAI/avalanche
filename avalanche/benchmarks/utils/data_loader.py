@@ -572,7 +572,7 @@ class MultiDatasetSampler(Sampler[List[int]]):
 
             if sum(len(x) for x in self.samplers) == 0:
                 raise RuntimeError(
-                    'The never ending sampler must able to create a mini-batch'
+                    "The never ending sampler must able to create a mini-batch"
                 )
         else:
             # termination_dataset_idx => dataset used to determine the epoch end
@@ -628,7 +628,7 @@ class MultiDatasetSampler(Sampler[List[int]]):
                 if len(sampler) == 0:
                     if is_term_dataset and (not self.never_ending):
                         return
-                    
+
                     samplers_list[dataset_idx] = None
                     sampler_iterators[dataset_idx] = None
                     continue
