@@ -23,7 +23,7 @@ from avalanche.evaluation.metrics import (
     Forgetting,
     ForwardTransfer,
     CumulativeAccuracy,
-    LabelsRepartition
+    LabelsRepartition,
 )
 
 from tests.unit_tests_utils import FAST_TEST, is_github_action
@@ -96,25 +96,18 @@ class GeneralMetricTests(unittest.TestCase):
         test_out[6][2] = 0.8
         test_out[6][3] = 0.7
 
-        expected_per_k = [
-            2/7,  # top-1
-            4/7,  # top-2
-            6/7,  # top-3
-            1.0   # top-4
-        ]
+        expected_per_k = [2 / 7, 4 / 7, 6 / 7, 1.0]  # top-1  # top-2  # top-3  # top-4
 
         for k in range(1, 5):
             with self.subTest(k=k):
                 test_t_label = k % 2
                 metric = TopkAccuracy(k)
-                expected_result = expected_per_k[k-1]
-            
+                expected_result = expected_per_k[k - 1]
+
                 self.assertEqual(metric.result(), {})
                 metric.update(test_out, test_y, test_t_label)
 
-                self.assertAlmostEqual(
-                    expected_result,
-                    metric.result()[test_t_label])
+                self.assertAlmostEqual(expected_result, metric.result()[test_t_label])
                 metric.reset()
                 self.assertEqual(metric.result(), {})
 
@@ -383,9 +376,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertDictEqual(metric.result(), {0: my_amca, 1: my_amca2})
 
         metric.next_experience()
-        self.assertDictEqual(
-            metric.result(), {0: my_amca * 2 / 3, 1: my_amca2 * 2 / 3}
-        )
+        self.assertDictEqual(metric.result(), {0: my_amca * 2 / 3, 1: my_amca2 * 2 / 3})
 
         metric.reset()
         self.assertDictEqual(metric.result(), {0: 0.0, 1: 0.0})
@@ -425,9 +416,7 @@ class GeneralMetricTests(unittest.TestCase):
         self.assertDictEqual(metric.result(), {"test": {0: my_amca}})
 
         metric.set_stream("train")
-        self.assertDictEqual(
-            metric.result(), {"test": {0: my_amca}, "train": {}}
-        )
+        self.assertDictEqual(metric.result(), {"test": {0: my_amca}, "train": {}})
 
         metric.update(my_out2, my_y2, 1)
         self.assertDictEqual(
@@ -447,9 +436,7 @@ class GeneralMetricTests(unittest.TestCase):
         )
 
         metric.reset()
-        self.assertDictEqual(
-            metric.result(), {"test": {0: 0.0}, "train": {1: 0.0}}
-        )
+        self.assertDictEqual(metric.result(), {"test": {0: 0.0}, "train": {1: 0.0}})
 
     def test_loss(self):
         metric = TaskAwareLoss()
@@ -626,54 +613,30 @@ class GeneralMetricTests(unittest.TestCase):
         for id in expected_results:
             self.assertEqual(result[id], expected_results[id])
         metric.reset()
-        
+
     def test_labels_repartition(self):
         metric = LabelsRepartition()
         f = metric.result()
         self.assertEqual(f, {})
-        metric.update(
-            [0, 0, 1, 0, 2, 1, 2], 
-            [1, 1, 2, 2, 3, 3, 5])
-        
-        metric.update(
-            [0, 3], 
-            [7, 8])
-        
+        metric.update([0, 0, 1, 0, 2, 1, 2], [1, 1, 2, 2, 3, 3, 5])
+
+        metric.update([0, 3], [7, 8])
+
         f = metric.result()
         reference_dict = {
-            0: {
-                1: 2,
-                2: 1,
-                7: 1
-            },
-            1: {
-                2: 1,
-                3: 1
-            },
-            2: {
-                3: 1,
-                5: 1
-            },
-            3: {
-                8: 1
-            }
+            0: {1: 2, 2: 1, 7: 1},
+            1: {2: 1, 3: 1},
+            2: {3: 1, 5: 1},
+            3: {8: 1},
         }
         self.assertDictEqual(reference_dict, f)
         metric.update_order([7, 8, 9, 10, 0, 2, 1, 5, 3])
         f = metric.result()
         self.assertDictEqual(reference_dict, f)
-        self.assertSequenceEqual(
-            list(f[0].keys()), [7, 2, 1]
-        )
-        self.assertSequenceEqual(
-            list(f[1].keys()), [2, 3]
-        )
-        self.assertSequenceEqual(
-            list(f[2].keys()), [5, 3]
-        )
-        self.assertSequenceEqual(
-            list(f[3].keys()), [8]
-        )
+        self.assertSequenceEqual(list(f[0].keys()), [7, 2, 1])
+        self.assertSequenceEqual(list(f[1].keys()), [2, 3])
+        self.assertSequenceEqual(list(f[2].keys()), [5, 3])
+        self.assertSequenceEqual(list(f[3].keys()), [8])
 
         # Should not return a defaultdict
         with self.assertRaises(Exception):
@@ -683,20 +646,12 @@ class GeneralMetricTests(unittest.TestCase):
         metric.update_order([7, 8, 9, 10, 0, 2, 1, 5])
         f2 = metric.result()
         reference_dict2 = {
-            0: {
-                1: 2,
-                2: 1,
-                7: 1
-            },
+            0: {1: 2, 2: 1, 7: 1},
             1: {
                 2: 1,
             },
-            2: {
-                5: 1
-            },
-            3: {
-                8: 1
-            }
+            2: {5: 1},
+            3: {8: 1},
         }
         self.assertDictEqual(reference_dict2, f2)
 

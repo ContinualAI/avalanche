@@ -4,14 +4,13 @@ from avalanche.benchmarks.scenarios.dataset_scenario import (
     DatasetStream,
 )
 
-from avalanche.benchmarks.utils.classification_dataset import \
-    ClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 
 
 def check_vision_benchmark(
-        benchmark_instance: DatasetScenario,
-        show_without_transforms=True):
+    benchmark_instance: DatasetScenario, show_without_transforms=True
+):
     from matplotlib import pyplot as plt
     from torch.utils.data.dataloader import DataLoader
 

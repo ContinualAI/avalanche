@@ -52,9 +52,7 @@ scen2dirs = {
 
 normalize = Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-_default_train_transform = Compose(
-    [ToTensor(), RandomHorizontalFlip(), normalize]
-)
+_default_train_transform = Compose([ToTensor(), RandomHorizontalFlip(), normalize])
 
 _default_eval_transform = Compose([ToTensor(), normalize])
 
@@ -113,8 +111,7 @@ def CORe50(
     """
 
     assert 0 <= run <= 9, (
-        "Pre-defined run of CORe50 are only 10. Indicate "
-        "a number between 0 and 9."
+        "Pre-defined run of CORe50 are only 10. Indicate " "a number between 0 and 9."
     )
     assert scenario in nbatch.keys(), (
         "The selected scenario is note "

@@ -25,15 +25,24 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
 from avalanche.benchmarks import CLExperience, SplitMNIST
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
-    class_accuracy_metrics
-from avalanche.logging import InteractiveLogger, TensorboardLogger, \
-    WandBLogger, TextLogger
+from avalanche.evaluation.metrics import (
+    accuracy_metrics,
+    loss_metrics,
+    class_accuracy_metrics,
+)
+from avalanche.logging import (
+    InteractiveLogger,
+    TensorboardLogger,
+    WandBLogger,
+    TextLogger,
+)
 from avalanche.models import SimpleMLP, as_multitask
 from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.plugins import EvaluationPlugin, ReplayPlugin
-from avalanche.training.plugins.checkpoint import CheckpointPlugin, \
-    FileSystemCheckpointStorage
+from avalanche.training.plugins.checkpoint import (
+    CheckpointPlugin,
+    FileSystemCheckpointStorage,
+)
 from avalanche.training.supervised import Naive
 
 
@@ -46,26 +55,24 @@ def main(args):
 
     # Nothing new here...
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
-    print('Using device', device)
+    print("Using device", device)
 
     # CL Benchmark Creation
     n_experiences = 5
-    scenario = SplitMNIST(n_experiences=n_experiences,
-                          return_task_id=True)
-    input_size = 28*28*1
+    scenario = SplitMNIST(n_experiences=n_experiences, return_task_id=True)
+    input_size = 28 * 28 * 1
 
     train_stream: Sequence[CLExperience] = scenario.train_stream
     test_stream: Sequence[CLExperience] = scenario.test_stream
 
     # Define the model (and load initial weights if necessary)
     # Again, not checkpoint-related
-    model = SimpleMLP(input_size=input_size,
-                      num_classes=scenario.n_classes // n_experiences)
-    model = as_multitask(model, 'classifier')
+    model = SimpleMLP(
+        input_size=input_size, num_classes=scenario.n_classes // n_experiences
+    )
+    model = as_multitask(model, "classifier")
 
     # Prepare for training & testing: not checkpoint-related
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
@@ -86,9 +93,9 @@ def main(args):
     # In brief: CUDA -> CPU (OK), CUDA:0 -> CUDA:1 (OK), CPU -> CUDA (NO!)
     checkpoint_plugin = CheckpointPlugin(
         FileSystemCheckpointStorage(
-            directory='./checkpoints/task_incremental',
+            directory="./checkpoints/task_incremental",
         ),
-        map_location=device
+        map_location=device,
     )
 
     # THIRD CHANGE: LOAD THE CHECKPOINT IF IT EXISTS
@@ -109,32 +116,29 @@ def main(args):
         ]
 
         # Create loggers (as usual)
-        os.makedirs(f'./logs/checkpointing_{args.checkpoint_at}',
-                    exist_ok=True)
+        os.makedirs(f"./logs/checkpointing_{args.checkpoint_at}", exist_ok=True)
         loggers = [
             TextLogger(
-                open(f'./logs/checkpointing_'
-                     f'{args.checkpoint_at}/log.txt', 'w')),
+                open(f"./logs/checkpointing_" f"{args.checkpoint_at}/log.txt", "w")
+            ),
             InteractiveLogger(),
-            TensorboardLogger(f'./logs/checkpointing_{args.checkpoint_at}')
+            TensorboardLogger(f"./logs/checkpointing_{args.checkpoint_at}"),
         ]
 
         if args.wandb:
-            loggers.append(WandBLogger(
-                project_name='AvalancheCheckpointing',
-                run_name=f'checkpointing_{args.checkpoint_at}'
-            ))
+            loggers.append(
+                WandBLogger(
+                    project_name="AvalancheCheckpointing",
+                    run_name=f"checkpointing_{args.checkpoint_at}",
+                )
+            )
 
         # Create the evaluation plugin (as usual)
         evaluation_plugin = EvaluationPlugin(
-            accuracy_metrics(minibatch=False, epoch=True,
-                             experience=True, stream=True),
-            loss_metrics(minibatch=False, epoch=True,
-                         experience=True, stream=True),
-            class_accuracy_metrics(
-                stream=True
-            ),
-            loggers=loggers
+            accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+            loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+            class_accuracy_metrics(stream=True),
+            loggers=loggers,
         )
 
         # Create the strategy (as usual)
@@ -147,7 +151,7 @@ def main(args):
             eval_mb_size=128,
             device=device,
             plugins=plugins,
-            evaluator=evaluation_plugin
+            evaluator=evaluation_plugin,
         )
 
     # Train and test loop, as usual.
@@ -164,7 +168,7 @@ def main(args):
         strategy.eval(test_stream, num_workers=10)
 
         if train_task.current_experience == args.checkpoint_at:
-            print('Exiting early')
+            print("Exiting early")
             break
 
 
@@ -174,15 +178,8 @@ if __name__ == "__main__":
         "--cuda",
         type=int,
         default=0,
-        help="Select zero-indexed cuda device. -1 to use CPU."
+        help="Select zero-indexed cuda device. -1 to use CPU.",
     )
-    parser.add_argument(
-        "--checkpoint_at",
-        type=int,
-        default=-1
-    )
-    parser.add_argument(
-        "--wandb",
-        action='store_true'
-    )
+    parser.add_argument("--checkpoint_at", type=int, default=-1)
+    parser.add_argument("--wandb", action="store_true")
     main(parser.parse_args())

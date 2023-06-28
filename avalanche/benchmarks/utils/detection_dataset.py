@@ -49,7 +49,8 @@ from .data import AvalancheDataset
 from .data_attribute import DataAttribute
 from .dataset_definitions import (
     IDataset,
-    IDatasetWithTargets, )
+    IDatasetWithTargets,
+)
 from .dataset_utils import (
     SubSequence,
 )
@@ -79,21 +80,18 @@ class DetectionDataset(AvalancheDataset[T_co]):
         return self.targets_task_labels.val_to_idx  # type: ignore
 
     @property
-    def task_set(self: TDetectionDataset) -> \
-            TaskSet[TDetectionDataset]:
+    def task_set(self: TDetectionDataset) -> TaskSet[TDetectionDataset]:
         """Returns the dataset's ``TaskSet``, which is a mapping <task-id,
         task-dataset>."""
         return TaskSet(self)
 
     def subset(self, indices):
         data = super().subset(indices)
-        return data.with_transforms(
-            self._flat_data._transform_groups.current_group)
+        return data.with_transforms(self._flat_data._transform_groups.current_group)
 
     def concat(self, other):
         data = super().concat(other)
-        return data.with_transforms(
-            self._flat_data._transform_groups.current_group)
+        return data.with_transforms(self._flat_data._transform_groups.current_group)
 
     def __hash__(self):
         return id(self)
@@ -101,44 +99,44 @@ class DetectionDataset(AvalancheDataset[T_co]):
 
 class SupervisedDetectionDataset(DetectionDataset[T_co]):
     def __init__(
-            self,
-            datasets: List[IDataset[T_co]],
-            *,
-            indices: Optional[List[int]] = None,
-            data_attributes: Optional[List[DataAttribute]] = None,
-            transform_groups: Optional[TransformGroups] = None,
-            frozen_transform_groups: Optional[TransformGroups] = None,
-            collate_fn: Optional[Callable[[List], Any]] = None):
+        self,
+        datasets: List[IDataset[T_co]],
+        *,
+        indices: Optional[List[int]] = None,
+        data_attributes: Optional[List[DataAttribute]] = None,
+        transform_groups: Optional[TransformGroups] = None,
+        frozen_transform_groups: Optional[TransformGroups] = None,
+        collate_fn: Optional[Callable[[List], Any]] = None
+    ):
         super().__init__(
             datasets=datasets,
             indices=indices,
             data_attributes=data_attributes,
             transform_groups=transform_groups,
             frozen_transform_groups=frozen_transform_groups,
-            collate_fn=collate_fn
+            collate_fn=collate_fn,
         )
-        
-        assert hasattr(self, 'targets'), \
-            'The supervised version of the ClassificationDataset requires ' + \
-            'the targets field'
-        assert hasattr(self, 'targets_task_labels'), \
-            'The supervised version of the ClassificationDataset requires ' + \
-            'the targets_task_labels field'
+
+        assert hasattr(self, "targets"), (
+            "The supervised version of the ClassificationDataset requires "
+            + "the targets field"
+        )
+        assert hasattr(self, "targets_task_labels"), (
+            "The supervised version of the ClassificationDataset requires "
+            + "the targets_task_labels field"
+        )
 
     @property
     def targets(self) -> DataAttribute[TTargetType]:
-        return self._data_attributes['targets']
+        return self._data_attributes["targets"]
 
     @property
     def targets_task_labels(self) -> DataAttribute[int]:
-        return self._data_attributes['targets_task_labels']
+        return self._data_attributes["targets_task_labels"]
 
 
 SupportedDetectionDataset = Union[
-    IDatasetWithTargets,
-    Subset,
-    ConcatDataset,
-    DetectionDataset
+    IDatasetWithTargets, Subset, ConcatDataset, DetectionDataset
 ]
 
 
@@ -284,10 +282,10 @@ def make_detection_dataset(
         initial_transform_group,
         dataset,
     )
-    targets_data: Optional[DataAttribute[TTargetType]] = \
-        _init_targets(dataset, targets)
-    task_labels_data: Optional[DataAttribute[int]] = \
-        _init_task_labels(dataset, task_labels)
+    targets_data: Optional[DataAttribute[TTargetType]] = _init_targets(dataset, targets)
+    task_labels_data: Optional[DataAttribute[int]] = _init_task_labels(
+        dataset, task_labels
+    )
 
     das: List[DataAttribute] = []
     if targets_data is not None:
@@ -297,11 +295,11 @@ def make_detection_dataset(
 
     # Check if supervision data has been added
     is_supervised = is_supervised or (
-        targets_data is not None and
-        task_labels_data is not None)
-    
+        targets_data is not None and task_labels_data is not None
+    )
+
     if collate_fn is None:
-        collate_fn = getattr(dataset, 'collate_fn', detection_collate_fn)
+        collate_fn = getattr(dataset, "collate_fn", detection_collate_fn)
 
     data: Union[DetectionDataset, SupervisedDetectionDataset]
     if is_supervised:
@@ -318,15 +316,16 @@ def make_detection_dataset(
             transform_groups=transform_gs,
             collate_fn=collate_fn,
         )
-    
+
     if initial_transform_group is not None:
         return data.with_transforms(initial_transform_group)
     else:
         return data
 
 
-def _init_targets(dataset, targets, check_shape=True) -> \
-        Optional[DataAttribute[TTargetType]]:
+def _init_targets(
+    dataset, targets, check_shape=True
+) -> Optional[DataAttribute[TTargetType]]:
     if targets is not None:
         # User defined targets always take precedence
         if len(targets) != len(dataset) and check_shape:
@@ -337,12 +336,11 @@ def _init_targets(dataset, targets, check_shape=True) -> \
             )
         return DataAttribute(targets, "targets")
 
-    targets = _traverse_supported_dataset(
-        dataset, _select_targets)
+    targets = _traverse_supported_dataset(dataset, _select_targets)
 
     if targets is None:
         return None
-    
+
     return DataAttribute(targets, "targets")
 
 
@@ -352,8 +350,7 @@ def _detection_class_mapping_transform(class_mapping, example_target_dict):
     # example_target_dict["labels"] is a tensor containing one label
     # for each bounding box in the image. We need to remap each of them
     example_target_labels = example_target_dict["labels"]
-    example_mapped_labels = [class_mapping[int(el)] for el
-                             in example_target_labels]
+    example_mapped_labels = [class_mapping[int(el)] for el in example_target_labels]
 
     if isinstance(example_target_labels, Tensor):
         example_mapped_labels = torch.as_tensor(example_mapped_labels)
@@ -371,8 +368,7 @@ def detection_subset(
     class_mapping: Optional[Sequence[int]] = None,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Mapping[str, 
-                                       Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Mapping[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
@@ -389,8 +385,7 @@ def detection_subset(
     class_mapping: Optional[Sequence[int]] = None,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Mapping[str, 
-                                       Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Mapping[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
     task_labels: Union[int, Sequence[int]],
     targets: Sequence[TTargetType],
@@ -407,8 +402,7 @@ def detection_subset(
     class_mapping: Optional[Sequence[int]] = None,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Mapping[str, 
-                                       Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Mapping[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
@@ -424,8 +418,7 @@ def detection_subset(
     class_mapping: Optional[Sequence[int]] = None,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Mapping[str, 
-                                       Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Mapping[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
@@ -511,11 +504,13 @@ def detection_subset(
         ):
             return dataset.subset(indices)
 
-    targets_data: Optional[DataAttribute[TTargetType]] = \
-        _init_targets(dataset, targets, check_shape=False)
-    task_labels_data: Optional[DataAttribute[int]] = \
-        _init_task_labels(dataset, task_labels, check_shape=False)
-    
+    targets_data: Optional[DataAttribute[TTargetType]] = _init_targets(
+        dataset, targets, check_shape=False
+    )
+    task_labels_data: Optional[DataAttribute[int]] = _init_task_labels(
+        dataset, task_labels, check_shape=False
+    )
+
     del task_labels
     del targets
 
@@ -527,33 +522,29 @@ def detection_subset(
         dataset,
     )
 
-    if initial_transform_group is not None and isinstance(
-        dataset, AvalancheDataset
-    ):
+    if initial_transform_group is not None and isinstance(dataset, AvalancheDataset):
         dataset = dataset.with_transforms(initial_transform_group)
 
     if class_mapping is not None:  # update targets
-
         if targets_data is None:
             # Should not happen
             # The following line usually fails
             targets_data = dataset.targets  # type: ignore
-        
-        assert targets_data is not None, \
-            'To execute the class mapping, a list of targets is required.'
-        
+
+        assert (
+            targets_data is not None
+        ), "To execute the class mapping, a list of targets is required."
+
         tgs = [
-            _detection_class_mapping_transform(
-                class_mapping, example_target_dict)
-            for example_target_dict in targets_data]
+            _detection_class_mapping_transform(class_mapping, example_target_dict)
+            for example_target_dict in targets_data
+        ]
 
         targets_data = DataAttribute(tgs, "targets")
 
     if class_mapping is not None:
         mapping_fn = partial(_detection_class_mapping_transform, class_mapping)
-        frozen_transform_groups = DefaultTransformGroups(
-            (None, mapping_fn)
-        )
+        frozen_transform_groups = DefaultTransformGroups((None, mapping_fn))
     else:
         frozen_transform_groups = None
 
@@ -565,8 +556,8 @@ def detection_subset(
 
     # Check if supervision data has been added
     is_supervised = is_supervised or (
-        targets_data is not None and
-        task_labels_data is not None)
+        targets_data is not None and task_labels_data is not None
+    )
 
     if collate_fn is None:
         collate_fn = detection_collate_fn
@@ -597,15 +588,12 @@ def concat_detection_datasets(
     *,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Mapping[str,
-                                       Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Mapping[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
-    task_labels: Optional[Union[int,
-                                Sequence[int],
-                                Sequence[Sequence[int]]]] = None,
-    targets: Optional[Union[
-        Sequence[TTargetType], Sequence[Sequence[TTargetType]]
-    ]] = None,
+    task_labels: Optional[Union[int, Sequence[int], Sequence[Sequence[int]]]] = None,
+    targets: Optional[
+        Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
+    ] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
 ) -> SupervisedDetectionDataset:
     ...
@@ -617,13 +605,10 @@ def concat_detection_datasets(
     *,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Mapping[str, 
-                                       Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Mapping[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
     task_labels: Union[int, Sequence[int], Sequence[Sequence[int]]],
-    targets: Union[
-        Sequence[TTargetType], Sequence[Sequence[TTargetType]]
-    ],
+    targets: Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]],
     collate_fn: Optional[Callable[[List], Any]] = None
 ) -> SupervisedDetectionDataset:
     ...
@@ -635,15 +620,12 @@ def concat_detection_datasets(
     *,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Mapping[str, 
-                                       Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Mapping[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
-    task_labels: Optional[Union[int, 
-                                Sequence[int],
-                                Sequence[Sequence[int]]]] = None,
-    targets: Optional[Union[
-        Sequence[TTargetType], Sequence[Sequence[TTargetType]]
-    ]] = None,
+    task_labels: Optional[Union[int, Sequence[int], Sequence[Sequence[int]]]] = None,
+    targets: Optional[
+        Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
+    ] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
 ) -> DetectionDataset:
     ...
@@ -654,15 +636,12 @@ def concat_detection_datasets(
     *,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Mapping[str, 
-                                       Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Mapping[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
-    task_labels: Optional[Union[int,
-                                Sequence[int],
-                                Sequence[Sequence[int]]]] = None,
-    targets: Optional[Union[
-        Sequence[TTargetType], Sequence[Sequence[TTargetType]]
-    ]] = None,
+    task_labels: Optional[Union[int, Sequence[int], Sequence[Sequence[int]]]] = None,
+    targets: Optional[
+        Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
+    ] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
 ) -> Union[DetectionDataset, SupervisedDetectionDataset]:
     """Creates a ``AvalancheConcatDataset`` instance.
@@ -729,18 +708,15 @@ def concat_detection_datasets(
         in different datasets.
     """
     dds = []
-    per_dataset_task_labels = _split_user_def_task_label(
-        datasets, task_labels
-    )
+    per_dataset_task_labels = _split_user_def_task_label(datasets, task_labels)
 
     per_dataset_targets = _split_user_def_targets(
-        datasets,
-        targets,
-        lambda x: isinstance(x, dict)
+        datasets, targets, lambda x: isinstance(x, dict)
     )
-    
-    for dd, dataset_task_labels, dataset_targets in \
-            zip(datasets, per_dataset_task_labels, per_dataset_targets):
+
+    for dd, dataset_task_labels, dataset_targets in zip(
+        datasets, per_dataset_task_labels, per_dataset_targets
+    ):
         dd = make_detection_dataset(
             dd,
             transform=transform,
@@ -752,7 +728,7 @@ def concat_detection_datasets(
             collate_fn=collate_fn,
         )
         dds.append(dd)
-    
+
     if (
         transform is None
         and target_transform is None
@@ -790,10 +766,7 @@ def concat_detection_datasets(
                     if uniform_group is None:
                         uniform_group = d_set._transform_groups.current_group
                     else:
-                        if (
-                            uniform_group
-                            != d_set._transform_groups.current_group
-                        ):
+                        if uniform_group != d_set._transform_groups.current_group:
                             uniform_group = None
                             break
 
@@ -807,17 +780,13 @@ def concat_detection_datasets(
         #######################################
 
         totlen = sum([len(d) for d in datasets])
-        if (
-            task_labels is not None
-        ):  # User defined targets always take precedence
-            
+        if task_labels is not None:  # User defined targets always take precedence
             all_labels: IDataset[int]
             if isinstance(task_labels, int):
                 all_labels = ConstantSequence(task_labels, totlen)
             else:
                 all_labels_lst = []
-                for dd, dataset_task_labels in \
-                        zip(dds, per_dataset_task_labels):
+                for dd, dataset_task_labels in zip(dds, per_dataset_task_labels):
                     assert dataset_task_labels is not None
 
                     # We already checked that len(t_labels) == len(dataset)
@@ -828,9 +797,7 @@ def concat_detection_datasets(
                         all_labels_lst.extend(dataset_task_labels)
                 all_labels = all_labels_lst
             das.append(
-                DataAttribute(
-                    all_labels, "targets_task_labels", use_in_getitem=True
-                )
+                DataAttribute(all_labels, "targets_task_labels", use_in_getitem=True)
             )
 
         if targets is not None:  # User defined targets always take precedence
@@ -844,26 +811,24 @@ def concat_detection_datasets(
             das.append(DataAttribute(all_targets_lst, "targets"))
     else:
         transform_groups_obj = None
-        initial_transform_group = 'train'
+        initial_transform_group = "train"
 
     data = DetectionDataset(
         dds,
         transform_groups=transform_groups_obj,
-        data_attributes=das if len(das) > 0 else None
+        data_attributes=das if len(das) > 0 else None,
     )
     return data.with_transforms(initial_transform_group)
 
 
 def _select_targets(
-        dataset: SupportedDetectionDataset,
-        indices: Optional[List[int]]) -> Sequence[TTargetType]:
+    dataset: SupportedDetectionDataset, indices: Optional[List[int]]
+) -> Sequence[TTargetType]:
     if hasattr(dataset, "targets"):
         # Standard supported dataset
         found_targets = dataset.targets
     else:
-        raise ValueError(
-            "Unsupported dataset: must have a valid targets field"
-        )
+        raise ValueError("Unsupported dataset: must have a valid targets field")
 
     if indices is not None:
         found_targets = SubSequence(found_targets, indices=indices)
@@ -876,5 +841,5 @@ __all__ = [
     "DetectionDataset",
     "make_detection_dataset",
     "detection_subset",
-    "concat_detection_datasets"
+    "concat_detection_datasets",
 ]

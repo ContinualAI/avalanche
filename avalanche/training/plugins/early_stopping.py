@@ -67,9 +67,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         self.margin = margin
 
         self.metric_name = metric_name
-        self.metric_key = (
-            f"{self.metric_name}/eval_phase/" f"{self.val_stream_name}"
-        )
+        self.metric_key = f"{self.metric_name}/eval_phase/" f"{self.val_stream_name}"
 
         if mode not in ("max", "min"):
             raise ValueError(f'Mode must be "max" or "min", got {mode}.')

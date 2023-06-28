@@ -34,7 +34,7 @@ def experimental(reason: Optional[str] = None):
 
     def decorator(func):
         if func.__doc__ is None:
-            func.__doc__ = ''
+            func.__doc__ = ""
         else:
             func.__doc__ += "\n\n"
 
@@ -59,6 +59,7 @@ def deprecated(version: float, reason: str):
         alternative
     :return:
     """
+
     def decorator(func):
         if inspect.isclass(func):
             msg_prefix = "Call to deprecated class {name}"
@@ -69,21 +70,23 @@ def deprecated(version: float, reason: str):
         msg = msg_prefix + msg_suffix
 
         if func.__doc__ is None:
-            func.__doc__ = ''
+            func.__doc__ = ""
         else:
             func.__doc__ += "\n\n"
 
         func.__doc__ += "Warning: Deprecated" + msg_suffix.format(
-            name=func.__name__, version=version, reason=reason)
+            name=func.__name__, version=version, reason=reason
+        )
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.simplefilter('always', DeprecationWarning)
-            warnings.warn(msg.format(name=func.__name__, version=version,
-                                     reason=reason),
-                          category=DeprecationWarning,
-                          stacklevel=2)
-            warnings.simplefilter('default', DeprecationWarning)
+            warnings.simplefilter("always", DeprecationWarning)
+            warnings.warn(
+                msg.format(name=func.__name__, version=version, reason=reason),
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+            warnings.simplefilter("default", DeprecationWarning)
             return func(*args, **kwargs)
 
         return wrapper

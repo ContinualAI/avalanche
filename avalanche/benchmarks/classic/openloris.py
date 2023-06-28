@@ -112,9 +112,7 @@ def OpenLORIS(
     train_failists_paths = []
     for i in range(nbatch[factor]):
         train_failists_paths.append(
-            dataset_root
-            / filelists_bp
-            / ("train_batch_" + str(i).zfill(2) + ".txt")
+            dataset_root / filelists_bp / ("train_batch_" + str(i).zfill(2) + ".txt")
         )
 
     factor_obj = create_generic_benchmark_from_filelists(

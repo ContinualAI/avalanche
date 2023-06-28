@@ -44,12 +44,12 @@ class AccuracyMatrixPluginMetric(PluginMetric[float]):
     def add_new_task(self, new_length):
         """Adds a new dimension to the accuracy matrix.
 
-        :param new_length: The new dimension of the matrix. We assume a square 
+        :param new_length: The new dimension of the matrix. We assume a square
                             matrix
         """
         temp = self.matrix.clone()
         self.matrix = torch.zeros((new_length, new_length))
-        self.matrix[:temp.size(0), :temp.size(1)] = temp
+        self.matrix[: temp.size(0), : temp.size(1)] = temp
 
     def update(self, num_training_steps, eval_exp_id):
         """Updates the matrix with the accuracy value for a given task pair.
@@ -58,7 +58,7 @@ class AccuracyMatrixPluginMetric(PluginMetric[float]):
         :param eval_exp_id: The ID of the evaluation experience.
         """
         if (max(num_training_steps, eval_exp_id) + 1) > self.matrix.size(0):
-            self.add_new_task(max(num_training_steps, eval_exp_id)+1)
+            self.add_new_task(max(num_training_steps, eval_exp_id) + 1)
 
         acc = self._accuracy.result()
         self.matrix[num_training_steps, eval_exp_id] = acc
@@ -112,11 +112,10 @@ class AccuracyMatrixPluginMetric(PluginMetric[float]):
         if self.num_training_steps is not None:
             self.num_training_steps += 1
         else:
-            self.num_training_steps = 0     
+            self.num_training_steps = 0
 
 
-def accuracy_matrix_metrics(
-) -> List[PluginMetric]:
+def accuracy_matrix_metrics() -> List[PluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
     plugin metrics.

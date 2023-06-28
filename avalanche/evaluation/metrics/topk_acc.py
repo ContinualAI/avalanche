@@ -46,8 +46,9 @@ class TopkAccuracy(Metric[Dict[int, float]]):
         self._topk_acc_dict: Dict[int, Mean] = defaultdict(Mean)
         self.top_k: int = top_k
 
-        self.__torchmetrics_requires_task = \
-            version.parse(torchmetrics.__version__) >= version.parse('0.11.0')
+        self.__torchmetrics_requires_task = version.parse(
+            torchmetrics.__version__
+        ) >= version.parse("0.11.0")
 
     @torch.no_grad()
     def update(
@@ -85,41 +86,33 @@ class TopkAccuracy(Metric[Dict[int, float]]):
         if isinstance(task_labels, int):
             total_patterns = len(true_y)
             self._topk_acc_dict[task_labels].update(
-                self._compute_topk_acc(predicted_y, true_y, top_k=self.top_k), 
-                total_patterns
+                self._compute_topk_acc(predicted_y, true_y, top_k=self.top_k),
+                total_patterns,
             )
         elif isinstance(task_labels, Tensor):
             for pred, true, t in zip(predicted_y, true_y, task_labels):
                 self._topk_acc_dict[int(t)].update(
-                    self._compute_topk_acc(pred, true, top_k=self.top_k),
-                    1
+                    self._compute_topk_acc(pred, true, top_k=self.top_k), 1
                 )
         else:
             raise ValueError(
                 f"Task label type: {type(task_labels)}, "
                 f"expected int/float or Tensor"
             )
-        
+
     def _compute_topk_acc(self, pred, gt, top_k):
         if self.__torchmetrics_requires_task:
             num_classes = int(torch.max(torch.as_tensor(gt))) + 1
             pred_t = torch.as_tensor(pred)
             if len(pred_t.shape) > 1:
                 num_classes = max(num_classes, pred_t.shape[1])
-            
+
             return accuracy(
-                pred,
-                gt,
-                task="multiclass",
-                num_classes=num_classes,
-                top_k=self.top_k
+                pred, gt, task="multiclass", num_classes=num_classes, top_k=self.top_k
             )
         else:
-            return accuracy(
-                pred,
-                gt,
-                top_k=self.top_k)
-        
+            return accuracy(pred, gt, top_k=self.top_k)
+
     def result_task_label(self, task_label: int) -> Dict[int, float]:
         """
         Retrieves the running top-k accuracy.
@@ -128,7 +121,7 @@ class TopkAccuracy(Metric[Dict[int, float]]):
 
         :param task_label: if None, return the entire dictionary of accuracies
             for each task. Otherwise return the dictionary
-            
+
         :return: A dictionary `{task_label: topk_accuracy}`, where the accuracy
             is a float value between 0 and 1.
         """
@@ -145,7 +138,7 @@ class TopkAccuracy(Metric[Dict[int, float]]):
             where each value is a float value between 0 and 1.
         """
         return {k: v.result() for k, v in self._topk_acc_dict.items()}
-    
+
     def reset(self, task_label=None) -> None:
         """
         Resets the metric.
@@ -161,20 +154,14 @@ class TopkAccuracy(Metric[Dict[int, float]]):
             self._topk_acc_dict[task_label].reset()
 
 
-class TopkAccuracyPluginMetric(
-        GenericPluginMetric[
-            Dict[int, float],
-            TopkAccuracy]):
+class TopkAccuracyPluginMetric(GenericPluginMetric[Dict[int, float], TopkAccuracy]):
     """
     Base class for all top-k accuracies plugin metrics
     """
 
     def __init__(self, reset_at, emit_at, mode, top_k):
         super(TopkAccuracyPluginMetric, self).__init__(
-            TopkAccuracy(top_k=top_k),
-            reset_at=reset_at,
-            emit_at=emit_at,
-            mode=mode
+            TopkAccuracy(top_k=top_k), reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
     def reset(self, strategy=None) -> None:
@@ -315,7 +302,7 @@ class TrainedExperienceTopkAccuracy(TopkAccuracyPluginMetric):
         self._current_experience = 0
         self.top_k = top_k
 
-    def after_training_exp(self, strategy): 
+    def after_training_exp(self, strategy):
         self._current_experience = strategy.experience.current_experience
         # Reset average after learning from a new experience
         self.reset(strategy)

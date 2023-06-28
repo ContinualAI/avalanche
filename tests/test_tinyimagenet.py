@@ -26,7 +26,6 @@ class TinyImagenetTest(unittest.TestCase):
         "We don't want to download large datasets in github actions.",
     )
     def test_tinyimagenet_default_loader(self):
-
         logger = logging.getLogger("avalanche")
         logger.setLevel(logging.INFO)
         logger.addHandler(logging.StreamHandler())

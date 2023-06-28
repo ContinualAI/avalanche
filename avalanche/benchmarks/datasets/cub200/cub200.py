@@ -41,12 +41,10 @@ class CUB200(PathsDataset, DownloadableDataset):
 
     images_folder = "CUB_200_2011/images"
     official_url = (
-        "http://www.vision.caltech.edu/visipedia-data/CUB-200-2011/"
-        "CUB_200_2011.tgz"
+        "http://www.vision.caltech.edu/visipedia-data/CUB-200-2011/" "CUB_200_2011.tgz"
     )
     gdrive_url = (
-        "https://drive.google.com/u/0/uc?id="
-        "1hbzc_P1FuxMkcabkgn9ZKinBwW683j45"
+        "https://drive.google.com/u/0/uc?id=" "1hbzc_P1FuxMkcabkgn9ZKinBwW683j45"
     )
     filename = "CUB_200_2011.tgz"
     tgz_md5 = "97eceeb196236b17998738112f37df78"
@@ -88,9 +86,7 @@ class CUB200(PathsDataset, DownloadableDataset):
         self.root: Path = Path(root)
         self._images: List[Tuple[str, int]]
 
-        DownloadableDataset.__init__(
-            self, root, download=download, verbose=True
-        )
+        DownloadableDataset.__init__(self, root, download=download, verbose=True)
         self._load_dataset()
 
         PathsDataset.__init__(
@@ -183,7 +179,6 @@ class CUB200(PathsDataset, DownloadableDataset):
 
 
 if __name__ == "__main__":
-
     """Simple test that will start if you run this script directly"""
 
     import matplotlib.pyplot as plt

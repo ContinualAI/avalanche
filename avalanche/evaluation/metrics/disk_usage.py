@@ -27,10 +27,7 @@ class DiskUsage(Metric[float]):
     """
 
     def __init__(
-        self,
-        paths_to_monitor: Optional[
-            Union[PathAlike, Sequence[PathAlike]]
-        ] = None
+        self, paths_to_monitor: Optional[Union[PathAlike, Sequence[PathAlike]]] = None
     ):
         """
         Creates an instance of the standalone disk usage metric.

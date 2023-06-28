@@ -45,9 +45,7 @@ from avalanche.training.supervised import Naive
 def main(args):
     # --- CONFIG
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     # ---------
 
@@ -77,9 +75,7 @@ def main(args):
         download=True,
         transform=test_transform,
     )
-    benchmark = nc_benchmark(
-        mnist_train, mnist_test, 5, task_labels=False, seed=1234
-    )
+    benchmark = nc_benchmark(mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
 
     # MODEL CREATION
@@ -109,12 +105,8 @@ def main(args):
         confusion_matrix_metrics(
             stream=True, wandb=True, class_names=[str(i) for i in range(10)]
         ),
-        cpu_usage_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
-        timing_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
+        cpu_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        timing_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         ram_usage_metrics(
             every=0.5, minibatch=True, epoch=True, experience=True, stream=True
         ),
@@ -126,9 +118,7 @@ def main(args):
             experience=True,
             stream=True,
         ),
-        disk_usage_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
+        disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         MAC_metrics(minibatch=True, epoch=True, experience=True),
         loggers=[interactive_logger, wandb_logger],
     )

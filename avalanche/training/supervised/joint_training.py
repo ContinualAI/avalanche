@@ -34,17 +34,13 @@ class AlreadyTrainedError(Exception):
     pass
 
 
-TDatasetExperience = TypeVar('TDatasetExperience', bound=DatasetExperience)
-TPluginType = TypeVar('TPluginType', bound=BasePlugin, contravariant=True)
-TMBInput = TypeVar('TMBInput')
-TMBOutput = TypeVar('TMBOutput')
+TDatasetExperience = TypeVar("TDatasetExperience", bound=DatasetExperience)
+TPluginType = TypeVar("TPluginType", bound=BasePlugin, contravariant=True)
+TMBInput = TypeVar("TMBInput")
+TMBOutput = TypeVar("TMBOutput")
 
 
-class JointTraining(SupervisedTemplate[
-    TDatasetExperience,
-    TMBInput,
-    TMBOutput
-]):
+class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput]):
     """Joint training on the entire stream.
 
     JointTraining performs joint training (also called offline training) on
@@ -70,8 +66,7 @@ class JointTraining(SupervisedTemplate[
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[TPluginType]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
     ):
@@ -110,13 +105,9 @@ class JointTraining(SupervisedTemplate[
 
     def train(
         self,
-        experiences: Union[
-            TDatasetExperience,
-            Iterable[TDatasetExperience]],
+        experiences: Union[TDatasetExperience, Iterable[TDatasetExperience]],
         eval_streams: Optional[
-            Sequence[
-                Union[TDatasetExperience,
-                      Iterable[TDatasetExperience]]]
+            Sequence[Union[TDatasetExperience, Iterable[TDatasetExperience]]]
         ] = None,
         **kwargs
     ):
@@ -144,9 +135,10 @@ class JointTraining(SupervisedTemplate[
             )
 
         # Normalize training and eval data.
-        experiences_list: Iterable[TDatasetExperience] = \
-            _experiences_parameter_as_iterable(experiences)
-        
+        experiences_list: Iterable[
+            TDatasetExperience
+        ] = _experiences_parameter_as_iterable(experiences)
+
         if eval_streams is None:
             eval_streams = [experiences_list]
 

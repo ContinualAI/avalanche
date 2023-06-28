@@ -27,12 +27,9 @@ class TestReplayDataLoader(unittest.TestCase):
             np.arange(len(dataset_for_current)), size=100, replace=False
         )
 
-        self.big_task_set = \
-            AvalancheSubset(dataset_for_current, indices_big_set)
-        self.small_task_set = \
-            AvalancheSubset(dataset_for_current, indices_small_set)
-        self.tiny_task_set = \
-            AvalancheSubset(dataset_for_current, indices_tiny_set)
+        self.big_task_set = AvalancheSubset(dataset_for_current, indices_big_set)
+        self.small_task_set = AvalancheSubset(dataset_for_current, indices_small_set)
+        self.tiny_task_set = AvalancheSubset(dataset_for_current, indices_tiny_set)
 
         indices_memory = np.random.choice(
             np.arange(len(dataset_for_memory)), size=2000, replace=False
@@ -44,8 +41,7 @@ class TestReplayDataLoader(unittest.TestCase):
 
         self.memory_set = AvalancheSubset(dataset_for_memory, indices_memory)
         self.small_memory_set = AvalancheSubset(
-            dataset_for_memory,
-            indices_memory_small
+            dataset_for_memory, indices_memory_small
         )
 
         self._batch_size = None
@@ -69,7 +65,7 @@ class TestReplayDataLoader(unittest.TestCase):
     def _test_batch_size(self, loader, expected_size=None):
         if expected_size is None:
             expected_size = self._batch_size * 2
-        
+
         for batch in loader:
             self.assertEqual(len(batch[0]), expected_size)
 
@@ -113,17 +109,13 @@ class TestReplayDataLoader(unittest.TestCase):
     def test_zero_iterations_memory(self):
         self._batch_size = 256
         self._task_dataset = self.big_task_set
-        loader = self._make_loader(
-            memory_set=self.small_memory_set
-        )
+        loader = self._make_loader(memory_set=self.small_memory_set)
         self._launch_test_suite_dropped_memory(loader)
 
     def test_zero_iterations_current(self):
         self._batch_size = 256
         self._task_dataset = self.tiny_task_set
-        loader = self._make_loader(
-            memory_set=self.memory_set
-        )
+        loader = self._make_loader(memory_set=self.memory_set)
         self.assertEqual(0, self._length)
         self._launch_test_suite(loader)
 

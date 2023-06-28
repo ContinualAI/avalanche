@@ -141,9 +141,7 @@ class INATURALIST_DATA(object):
         if os.path.isabs(data_folder):
             self.data_folder = data_folder
         else:
-            self.data_folder = os.path.join(
-                os.path.dirname(__file__), data_folder
-            )
+            self.data_folder = os.path.join(os.path.dirname(__file__), data_folder)
 
         try:
             # Create target Directory for INATURALIST data
@@ -172,8 +170,13 @@ class INATURALIST_DATA(object):
             self.log.info("Downloading " + name[1] + "...")
             save_name = os.path.join(self.data_folder, name[0])
             if not os.path.exists(save_name):
-                with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024,
-                              miniters=1, desc=name[0]) as t:
+                with TqdmUpTo(
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    miniters=1,
+                    desc=name[0],
+                ) as t:
                     urlretrieve(name[1], save_name, reporthook=t.update_to)
             else:
                 self.log.info("Skipping download, exists: ", save_name)

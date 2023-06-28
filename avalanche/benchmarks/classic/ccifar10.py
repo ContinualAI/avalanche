@@ -18,26 +18,21 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 
-from avalanche.benchmarks.datasets.external_datasets.cifar import \
-    get_cifar10_dataset
+from avalanche.benchmarks.datasets.external_datasets.cifar import get_cifar10_dataset
 
 _default_cifar10_train_transform = transforms.Compose(
     [
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize(
-            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
-        ),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ]
 )
 
 _default_cifar10_eval_transform = transforms.Compose(
     [
         transforms.ToTensor(),
-        transforms.Normalize(
-            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)
-        ),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ]
 )
 
@@ -158,6 +153,4 @@ if __name__ == "__main__":
     check_vision_benchmark(benchmark_instance)
     sys.exit(0)
 
-__all__ = [
-    "SplitCIFAR10"
-]
+__all__ = ["SplitCIFAR10"]

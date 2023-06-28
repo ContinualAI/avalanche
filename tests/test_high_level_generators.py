@@ -102,13 +102,9 @@ class HighLevelGeneratorTests(unittest.TestCase):
         archive_name = os.path.join(
             expanduser("~") + "/.avalanche/data", "cats_and_dogs_filtered.zip"
         )
-        extract_archive(
-            archive_name, to_path=expanduser("~") + "/.avalanche/data/"
-        )
+        extract_archive(archive_name, to_path=expanduser("~") + "/.avalanche/data/")
 
-        dirpath = (
-            expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
-        )
+        dirpath = expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
 
         with tempfile.TemporaryDirectory() as tmpdirname:
             list_paths = []
@@ -123,9 +119,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 list_paths.append(filelist_path)
                 with open(filelist_path, "w") as wf:
                     for name in filenames_list:
-                        wf.write(
-                            "{} {}\n".format(os.path.join(rel_dir, name), label)
-                        )
+                        wf.write("{} {}\n".format(os.path.join(rel_dir, name), label))
 
             generic_benchmark = filelist_benchmark(
                 dirpath,
@@ -150,13 +144,9 @@ class HighLevelGeneratorTests(unittest.TestCase):
         archive_name = os.path.join(
             expanduser("~") + "/.avalanche/data", "cats_and_dogs_filtered.zip"
         )
-        extract_archive(
-            archive_name, to_path=expanduser("~") + "/.avalanche/data/"
-        )
+        extract_archive(archive_name, to_path=expanduser("~") + "/.avalanche/data/")
 
-        dirpath = (
-            expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
-        )
+        dirpath = expanduser("~") + "/.avalanche/data/cats_and_dogs_filtered/train"
 
         train_experiences = []
         for rel_dir, label in zip(["cats", "dogs"], [0, 1]):
@@ -264,9 +254,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
             for x, y, *_ in exp.dataset:
                 self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
-                self.assertTrue(
-                    torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y))
-                )
+                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y)))
                 tensor_idx += 1
 
         exp = data_incremental_instance.test_stream[0]
@@ -346,9 +334,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
             for x, y, *_ in exp.dataset:
                 self.assertTrue(torch.equal(ref_tensor_x[tensor_idx], x))
-                self.assertTrue(
-                    torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y))
-                )
+                self.assertTrue(torch.equal(ref_tensor_y[tensor_idx], torch.tensor(y)))
                 tensor_idx += 1
 
         exp = data_incremental_instance.test_stream[0]
@@ -502,8 +488,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
 
         # Regression test for #1371
         self.assertEquals(
-            [0],
-            valid_benchmark.train_stream[0].classes_in_this_experience
+            [0], valid_benchmark.train_stream[0].classes_in_this_experience
         )
 
     def test_lazy_benchmark_with_validation_stream_fixed_size(self):
@@ -530,9 +515,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 # Test experience
                 test_x = torch.zeros(50, *pattern_shape)
                 test_y = torch.zeros(50, dtype=torch.long)
-                experience_test = make_tensor_classification_dataset(
-                    test_x, test_y
-                )
+                experience_test = make_tensor_classification_dataset(test_x, test_y)
 
                 def train_gen():
                     # Lazy generator of the training stream
@@ -545,9 +528,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
                         yield dataset
 
                 initial_benchmark_instance = create_lazy_generic_benchmark(
-                    train_generator=LazyStreamDefinition(
-                        train_gen(), 2, [0, 0]
-                    ),
+                    train_generator=LazyStreamDefinition(train_gen(), 2, [0, 0]),
                     test_generator=LazyStreamDefinition(test_gen(), 1, [0]),
                     complete_test_set_only=True,
                 )
@@ -579,36 +560,28 @@ class HighLevelGeneratorTests(unittest.TestCase):
                 ].exps_data.get_experience_if_loaded(0)
                 self.assertEqual(expect_laziness, maybe_exp is None)
 
-                self.assertEqual(
-                    80, len(valid_benchmark.train_stream[0].dataset)
-                )
+                self.assertEqual(80, len(valid_benchmark.train_stream[0].dataset))
 
                 maybe_exp = valid_benchmark.stream_definitions[
                     "train"
                 ].exps_data.get_experience_if_loaded(1)
                 self.assertEqual(expect_laziness, maybe_exp is None)
 
-                self.assertEqual(
-                    60, len(valid_benchmark.train_stream[1].dataset)
-                )
+                self.assertEqual(60, len(valid_benchmark.train_stream[1].dataset))
 
                 maybe_exp = valid_benchmark.stream_definitions[
                     "valid"
                 ].exps_data.get_experience_if_loaded(0)
                 self.assertEqual(expect_laziness, maybe_exp is None)
 
-                self.assertEqual(
-                    20, len(valid_benchmark.valid_stream[0].dataset)
-                )
+                self.assertEqual(20, len(valid_benchmark.valid_stream[0].dataset))
 
                 maybe_exp = valid_benchmark.stream_definitions[
                     "valid"
                 ].exps_data.get_experience_if_loaded(1)
                 self.assertEqual(expect_laziness, maybe_exp is None)
 
-                self.assertEqual(
-                    20, len(valid_benchmark.valid_stream[1].dataset)
-                )
+                self.assertEqual(20, len(valid_benchmark.valid_stream[1].dataset))
 
                 self.assertIsNotNone(
                     valid_benchmark.stream_definitions[

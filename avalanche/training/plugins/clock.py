@@ -63,6 +63,4 @@ class Clock(SupervisedPlugin, supports_distributed=True):
         self.total_iterations += 1
 
 
-__all__ = [
-    'Clock'
-]
+__all__ = ["Clock"]

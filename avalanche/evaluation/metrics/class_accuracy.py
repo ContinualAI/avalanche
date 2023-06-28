@@ -137,8 +137,7 @@ class ClassAccuracy(Metric[Dict[int, Dict[int, float]]]):
 
         if not isinstance(task_labels, (int, Tensor)):
             raise ValueError(
-                f"Task label type: {type(task_labels)}, "
-                f"expected int or Tensor"
+                f"Task label type: {type(task_labels)}, " f"expected int or Tensor"
             )
 
         if isinstance(task_labels, int):
@@ -216,21 +215,19 @@ class ClassAccuracyPluginMetric(_ExtendedGenericPluginMetric[ClassAccuracy]):
 
     def __init__(self, reset_at, emit_at, mode, classes=None):
         super(ClassAccuracyPluginMetric, self).__init__(
-            ClassAccuracy(classes=classes), 
+            ClassAccuracy(classes=classes),
             reset_at=reset_at,
             emit_at=emit_at,
-            mode=mode
+            mode=mode,
         )
-        self.phase_name = 'train'
-        self.stream_name = 'train'
+        self.phase_name = "train"
+        self.stream_name = "train"
         self.experience_id = 0
 
     def update(self, strategy: "SupervisedTemplate"):
         assert strategy.mb_output is not None
         assert strategy.experience is not None
-        self._metric.update(
-            strategy.mb_output, strategy.mb_y, strategy.mb_task_id
-        )
+        self._metric.update(strategy.mb_output, strategy.mb_y, strategy.mb_task_id)
 
         self.phase_name = "train" if strategy.is_training else "eval"
         self.stream_name = strategy.experience.origin_stream.name

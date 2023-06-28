@@ -22,9 +22,7 @@ from tests.training.test_strategy_utils import run_strategy
 class AR1Test(unittest.TestCase):
     def test_ar1(self):
         my_nc_benchmark = self.load_ar1_benchmark()
-        strategy = AR1(
-            train_epochs=1, train_mb_size=10, eval_mb_size=10, rm_sz=20
-        )
+        strategy = AR1(train_epochs=1, train_mb_size=10, eval_mb_size=10, rm_sz=20)
         run_strategy(my_nc_benchmark, strategy)
 
     def load_ar1_benchmark(self):

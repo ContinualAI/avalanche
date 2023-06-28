@@ -85,16 +85,13 @@ def main():
     """
 
     def t2t_converter(example):
-        example[
-            "input_text"
-        ] = f"question: {example['question']}"
-        + f"context: {example['context']} </s>"
+        example["input_text"] = f"question: {example['question']}"
+        +f"context: {example['context']} </s>"
         example["target_text"] = f"{example['answers']['text'][0]} </s>"
         return example
 
     def preprocess_function(
-        examples, encoder_max_len=encoder_max_len,
-        decoder_max_len=decoder_max_len
+        examples, encoder_max_len=encoder_max_len, decoder_max_len=decoder_max_len
     ):
         encoder_inputs = tokenizer(
             examples["input_text"],
@@ -130,8 +127,7 @@ def main():
     squad_tr = squad_tr.map(t2t_converter)
     squad_tr = squad_tr.map(preprocess_function, batched=True)
     squad_tr = squad_tr.remove_columns(
-        ["id", "title", "context", "question",
-            "answers", "input_text", "target_text"]
+        ["id", "title", "context", "question", "answers", "input_text", "target_text"]
     )
     squad_val = squad_val.map(t2t_converter)
     squad_val = squad_val.map(preprocess_function, batched=True)
@@ -149,16 +145,14 @@ def main():
         # We use very small experiences only to showcase the library.
         # Adapt this to your own benchmark
         exp_data = squad_tr.select(range(30 * i, 30 * (i + 1)))
-        tl = DataAttribute(ConstantSequence(
-            i, len(exp_data)), "targets_task_labels")
+        tl = DataAttribute(ConstantSequence(i, len(exp_data)), "targets_task_labels")
 
         exp = CLExperience()
         exp.dataset = AvalancheDataset(
             [exp_data], data_attributes=[tl], collate_fn=data_collator
         )
         train_exps.append(exp)
-    tl = DataAttribute(ConstantSequence(
-        2, len(squad_val)), "targets_task_labels")
+    tl = DataAttribute(ConstantSequence(2, len(squad_val)), "targets_task_labels")
     val_exp = CLExperience()
     val_exp.dataset = AvalancheDataset(
         [squad_val], data_attributes=[tl], collate_fn=data_collator
@@ -224,8 +218,7 @@ def main():
         repetition_penalty=2.0,
     )
 
-    decoded_answer = tokenizer.batch_decode(
-        generated_answer, skip_special_tokens=True)
+    decoded_answer = tokenizer.batch_decode(generated_answer, skip_special_tokens=True)
     print(f"Answer: {decoded_answer}")
 
 

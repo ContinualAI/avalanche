@@ -135,9 +135,7 @@ class EpochMAC(MACPluginMetric):
         """
         Creates an instance of the EpochMAC metric.
         """
-        super(EpochMAC, self).__init__(
-            reset_at="epoch", emit_at="epoch", mode="train"
-        )
+        super(EpochMAC, self).__init__(reset_at="epoch", emit_at="epoch", mode="train")
 
     def __str__(self):
         return "MAC_Epoch"

@@ -13,18 +13,15 @@ from avalanche.benchmarks.scenarios.generic_scenario import (
 )
 from avalanche.core import BasePlugin
 
-TExperienceType = TypeVar('TExperienceType', bound=CLExperience)
-TSGDExperienceType = TypeVar('TSGDExperienceType', bound=DatasetExperience)
-TMBinput = TypeVar('TMBinput')
-TMBoutput = TypeVar('TMBoutput')
+TExperienceType = TypeVar("TExperienceType", bound=CLExperience)
+TSGDExperienceType = TypeVar("TSGDExperienceType", bound=DatasetExperience)
+TMBinput = TypeVar("TMBinput")
+TMBoutput = TypeVar("TMBoutput")
 
 
-class BaseStrategyProtocol(
-        Protocol[
-            TExperienceType]):
-
+class BaseStrategyProtocol(Protocol[TExperienceType]):
     model: Module
-    
+
     device: torch.device
 
     plugins: List[BasePlugin]
@@ -37,12 +34,9 @@ class BaseStrategyProtocol(
 
 
 class SGDStrategyProtocol(
-        BaseStrategyProtocol[
-            TSGDExperienceType],
-        Protocol[
-            TSGDExperienceType,
-            TMBinput,
-            TMBoutput]):
+    BaseStrategyProtocol[TSGDExperienceType],
+    Protocol[TSGDExperienceType, TMBinput, TMBoutput],
+):
     """
     A protocol for strategies to be used for typing mixin classes.
     """
@@ -63,10 +57,10 @@ class SGDStrategyProtocol(
 
     def forward(self) -> TMBoutput:
         ...
-    
+
     def criterion(self) -> Tensor:
         ...
-    
+
     def backward(self) -> None:
         ...
 
@@ -75,7 +69,7 @@ class SGDStrategyProtocol(
 
     def make_optimizer(self, **kwargs):
         ...
-        
+
     def optimizer_step(self) -> None:
         ...
 
@@ -111,11 +105,8 @@ class SGDStrategyProtocol(
 
 
 class SupervisedStrategyProtocol(
-    SGDStrategyProtocol[
-        TSGDExperienceType,
-        TMBinput,
-        TMBoutput], Protocol):
-
+    SGDStrategyProtocol[TSGDExperienceType, TMBinput, TMBoutput], Protocol
+):
     mb_x: Tensor
 
     mb_y: Tensor
@@ -124,11 +115,8 @@ class SupervisedStrategyProtocol(
 
 
 class MetaLearningStrategyProtocol(
-    SGDStrategyProtocol[
-        TSGDExperienceType,
-        TMBinput,
-        TMBoutput], Protocol):
-
+    SGDStrategyProtocol[TSGDExperienceType, TMBinput, TMBoutput], Protocol
+):
     def _before_inner_updates(self, **kwargs):
         ...
 
@@ -149,7 +137,7 @@ class MetaLearningStrategyProtocol(
 
 
 __all__ = [
-    'SGDStrategyProtocol',
-    'SupervisedStrategyProtocol',
-    'MetaLearningStrategyProtocol'
+    "SGDStrategyProtocol",
+    "SupervisedStrategyProtocol",
+    "MetaLearningStrategyProtocol",
 ]
