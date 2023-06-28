@@ -12,7 +12,7 @@
     Datasets with optimized concat/subset operations.
 """
 import bisect
-
+import sys
 import numpy as np
 
 from avalanche.benchmarks.utils.dataset_utils import (
@@ -77,7 +77,7 @@ class LazyIndices:
             self._offset = offset
 
         # check depth to avoid RecursionError
-        if self._depth() > 500:
+        if self._depth() > sys.getrecursionlimit() - 10:
             self._to_eager()
 
         if known_length is not None:

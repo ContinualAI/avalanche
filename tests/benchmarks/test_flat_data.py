@@ -1,3 +1,4 @@
+import sys
 import unittest
 import random
 
@@ -273,7 +274,7 @@ class LazyIndicesTests(unittest.TestCase):
         eager = list(range(10))
 
         li = LazyIndices(eager, offset=0)
-        for i in range(2100):
+        for i in range(sys.getrecursionlimit() * 2 + 10):
             li = LazyIndices(li, eager, offset=0)
 
         self.assertEqual(len(eager) * (i + 2), len(li))
