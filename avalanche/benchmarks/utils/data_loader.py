@@ -298,7 +298,7 @@ class MultiDatasetDataLoader:
 class SingleDatasetDataLoader(MultiDatasetDataLoader):
     """
     Replacement of PyTorch DataLoader that also supports
-    the additioan loading mechanisms implemented in
+    the additional loading mechanisms implemented in
     :class:`MultiDatasetDataLoader`.
     """
 
