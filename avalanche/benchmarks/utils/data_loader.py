@@ -26,11 +26,16 @@ from typing import (
 )
 import numpy as np
 
+import torch
 from torch.utils.data import DistributedSampler, Dataset
 from torch.utils.data.dataloader import DataLoader
 
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
+from avalanche.benchmarks.utils.ffcv_support.ffcv_components import (
+    HybridFfcvLoader,
+    has_ffcv_support,
+)
 from avalanche.distributed.distributed_helper import DistributedHelper
 
 from torch.utils.data.sampler import Sampler, BatchSampler
@@ -64,6 +69,7 @@ class MultiDatasetDataLoader:
         oversample_small_datasets: bool = False,
         distributed_sampling: bool = True,
         never_ending: bool = False,
+        use_ffcv: bool = True,
         **kwargs
     ):
         """Custom data loader for loading batches from multiple datasets.
@@ -93,12 +99,17 @@ class MultiDatasetDataLoader:
             will not contribute to the minibatch composition near the end of
             the epoch.
         :param distributed_sampling: If True, apply the PyTorch 
-            :class:`DistributedSampler`. Defaults to False.
+            :class:`DistributedSampler`. Defaults to True.
+            Note: the distributed sampler is not applied if not running
+            a distributed training, even when True is passed.
         :param never_ending: If True, this data loader will cycle indefinitely
             by iterating over all datasets again and again and the epoch will
             never end. In this case, the `termination_dataset` and
             `oversample_small_datasets` parameters are ignored. Defaults to
             False.
+        :param use_ffcv: If True, use FFCV data loading mechanism. Has effect
+            only if the support for FFCV has been explicitly enabled by the
+            user. Defaults to True.
         :param kwargs: data loader arguments used to instantiate the loader for
             each dataset. See PyTorch :class:`DataLoader`.
         """
@@ -126,8 +137,12 @@ class MultiDatasetDataLoader:
         self.termination_dataset: int = termination_dataset
         self.never_ending: bool = never_ending
 
+        self.use_ffcv: bool = use_ffcv
+        self.loader_kwargs, self.ffcv_args = \
+            self._extract_ffcv_args(self.loader_kwargs)
+
         # Only used if persistent_workers == True in loader kwargs
-        self._persistent_loader = None
+        self._persistent_loader: Optional[DataLoader] = None
 
         if "collate_fn" not in self.loader_kwargs:
             self.loader_kwargs["collate_fn"] = self.datasets[0].collate_fn
@@ -148,7 +163,7 @@ class MultiDatasetDataLoader:
                         _make_data_loader(
                             data_subset,
                             distributed_sampling,
-                            kwargs,
+                            self.loader_kwargs,
                             subset_mb_size,
                             force_no_workers=True,
                         )[0]
@@ -158,7 +173,7 @@ class MultiDatasetDataLoader:
                     _make_data_loader(
                         self.datasets[self.termination_dataset],
                         distributed_sampling,
-                        kwargs,
+                        self.loader_kwargs,
                         self.batch_sizes[self.termination_dataset],
                         force_no_workers=True
                     )[0]
@@ -193,23 +208,67 @@ class MultiDatasetDataLoader:
             self.loader_kwargs
         )
 
-        overall_dataset = ConcatDataset(self.datasets)
-
         multi_dataset_batch_sampler = MultiDatasetSampler(
-            overall_dataset.datasets,
+            self.datasets,
             samplers,
             termination_dataset_idx=self.termination_dataset,
             oversample_small_datasets=self.oversample_small_datasets,
             never_ending=self.never_ending
         )
 
-        loader = _make_data_loader_with_batched_sampler(
-            overall_dataset,
-            batch_sampler=multi_dataset_batch_sampler,
-            data_loader_args=self.loader_kwargs
-        )
+        if self.use_ffcv and has_ffcv_support(self.datasets):
+            loader = self._make_ffcv_loader(
+                self.datasets,
+                multi_dataset_batch_sampler,
+            )
+        else:
+            loader = self._make_pytorch_loader(
+                self.datasets,
+                multi_dataset_batch_sampler,
+            )
 
         return loader
+    
+    def _make_pytorch_loader(self, datasets: List[AvalancheDataset], batch_sampler):
+        return _make_data_loader_with_batched_sampler(
+            ConcatDataset(datasets),
+            batch_sampler=batch_sampler,
+            data_loader_args=self.loader_kwargs
+        )
+    
+    def _make_ffcv_loader(self, datasets: List[AvalancheDataset], batch_sampler):
+        ffcv_args = dict(self.ffcv_args)
+        device = ffcv_args.pop('device')
+        print_ffcv_summary = ffcv_args.pop('print_ffcv_summary')
+
+        persistent_workers = self.loader_kwargs.get('persistent_workers', False)
+
+        return HybridFfcvLoader(
+            dataset=AvalancheDataset(
+                datasets
+            ),
+            batch_sampler=batch_sampler,
+            batch_size=sum(self.batch_sizes),  # TODO: implement
+            ffcv_loader_parameters=ffcv_args,
+            device=device,
+            persistent_workers=persistent_workers,
+            print_ffcv_summary=print_ffcv_summary
+        )
+    
+    def _extract_ffcv_args(self, loader_args):
+        loader_args = dict(loader_args)
+        ffcv_args: Dict[str, Any] = loader_args.pop('ffcv_args', dict())
+        ffcv_args.setdefault('device', None)
+        ffcv_args.setdefault('print_ffcv_summary', False)
+
+        for arg_name, arg_value in loader_args.items():
+            if arg_name in ffcv_args:
+                # Already specified in ffcv_args -> discard
+                continue
+
+            if arg_name in HybridFfcvLoader.VALID_FFCV_PARAMS:
+                ffcv_args[arg_name] = arg_value
+        return loader_args, ffcv_args
 
     def __len__(self):
         return self.n_iterations
@@ -234,6 +293,26 @@ class MultiDatasetDataLoader:
             samplers.append(sampler)
         
         return samplers
+    
+
+class SingleDatasetDataLoader(MultiDatasetDataLoader):
+    """
+    Replacement of PyTorch DataLoader that also supports
+    the additioan loading mechanisms implemented in
+    :class:`MultiDatasetDataLoader`.
+    """
+
+    def __init__(
+            self,
+            datasets: AvalancheDataset,
+            batch_size: int = 1,
+            **kwargs
+    ):
+        super().__init__(
+            [datasets],
+            [batch_size],
+            **kwargs
+        )
     
 
 class GroupBalancedDataLoader(MultiDatasetDataLoader):
@@ -264,7 +343,9 @@ class GroupBalancedDataLoader(MultiDatasetDataLoader):
         :param batch_size: the size of the batch. It must be greater than or
             equal to the number of groups.
         :param distributed_sampling: If True, apply the PyTorch 
-            :class:`DistributedSampler`. Defaults to False.
+            :class:`DistributedSampler`. Defaults to True.
+            Note: the distributed sampler is not applied if not running
+            a distributed training, even when True is passed.
         :param kwargs: data loader arguments used to instantiate the loader for
             each group separately. See pytorch :class:`DataLoader`.
         """
@@ -301,7 +382,7 @@ class TaskBalancedDataLoader(GroupBalancedDataLoader):
         data: AvalancheDataset,
         batch_size: int = 32,
         oversample_small_groups: bool = False,
-        distributed_sampling: bool = True,  # TODO: doc fix
+        distributed_sampling: bool = True,
         **kwargs
     ):
         """Task-balanced data loader for Avalanche's datasets.
@@ -319,7 +400,9 @@ class TaskBalancedDataLoader(GroupBalancedDataLoader):
         :param oversample_small_groups: whether smaller tasks should be
             oversampled to match the largest one.
         :param distributed_sampling: If True, apply the PyTorch 
-            :class:`DistributedSampler`. Defaults to False.
+            :class:`DistributedSampler`. Defaults to True.
+            Note: the distributed sampler is not applied if not running
+            a distributed training, even when True is passed.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
@@ -373,7 +456,9 @@ class GroupBalancedInfiniteDataLoader(MultiDatasetDataLoader):
             final mini-batch, NOT the final mini-batch size. The final
             mini-batches will be of size `len(datasets) * batch_size`.
         :param distributed_sampling: If True, apply the PyTorch 
-            :class:`DistributedSampler`. Defaults to False.
+            :class:`DistributedSampler`. Defaults to True.
+            Note: the distributed sampler is not applied if not running
+            a distributed training, even when True is passed.
         :param kwargs: data loader arguments used to instantiate the loader for
             each group separately. See pytorch :class:`DataLoader`.
         """
@@ -433,7 +518,9 @@ class ReplayDataLoader(MultiDatasetDataLoader):
             task-balanced, otherwise it creates a single data loader for the
             buffer samples.
         :param distributed_sampling: If True, apply the PyTorch 
-            :class:`DistributedSampler`. Defaults to False.
+            :class:`DistributedSampler`. Defaults to True.
+            Note: the distributed sampler is not applied if not running
+            a distributed training, even when True is passed.
         :param kwargs: data loader arguments used to instantiate the loader for
             each task separately. See pytorch :class:`DataLoader`.
         """
@@ -708,6 +795,7 @@ def _make_data_loader(
     force_no_workers: bool = False,
 ):
     data_loader_args = data_loader_args.copy()
+    data_loader_args.pop('ffcv_args', None)
 
     collate_from_data_or_kwargs(dataset, data_loader_args)
 
@@ -758,6 +846,8 @@ def _make_data_loader_with_batched_sampler(
     data_loader_args.pop("shuffle", False)
     data_loader_args.pop("sampler", False)
     data_loader_args.pop("drop_last", False)
+
+    data_loader_args.pop('ffcv_args', None)
 
     return DataLoader(
         dataset,

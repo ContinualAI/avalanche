@@ -564,6 +564,7 @@ def _flatdata_repr(dataset, indent=0):
     """Return the string representation of the dataset.
     Shows the underlying dataset tree.
     """
+    from avalanche.benchmarks.utils.data import _FlatDataWithTransform
     if isinstance(dataset, FlatData):
         ss = dataset._indices is not None
         cc = len(dataset._datasets) != 1
@@ -573,6 +574,11 @@ def _flatdata_repr(dataset, indent=0):
             + f"{dataset.__class__.__name__} (len={len(dataset)},subset={ss},"
             f"cat={cc},cf={cf})\n"
         )
+        if isinstance(dataset, _FlatDataWithTransform):
+            s = s[:-2] + (
+                f",transform_groups={dataset._transform_groups},"
+                f"frozen_transform_groups={dataset._frozen_transform_groups})\n"
+            )
         for dd in dataset._datasets:
             s += _flatdata_repr(dd, indent + 1)
         return s

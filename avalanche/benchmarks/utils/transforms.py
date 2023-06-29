@@ -13,19 +13,49 @@
     This module contains a bunch of utility classes to help define
     multi-argument transformations.
 """
+from abc import ABC, abstractmethod
 import warnings
-from typing import Callable, Sequence
+from typing import Any, Callable, Iterable, List, Sequence, Tuple, Union
 from inspect import signature, Parameter
+from torchvision.transforms import Compose
 
 
-class MultiParamTransform:
+class MultiParamTransform(ABC):
     """We need this class to be able to distinguish between a single argument
     transformation and multi-argument ones.
 
     Transformations are callable objects.
     """
 
+    @abstractmethod
     def __call__(self, *args, **kwargs):
+        """
+        Applies this transformations to the given inputs.
+        """
+        pass
+
+    @abstractmethod
+    def flat_transforms(self, position: int) -> List[Any]:
+        """
+        Returns a flat list of transformations.
+
+        A flat list of transformations is a list in which
+        all intermediate wrappers (such as torchvision Compose,
+        Avalanche MultiParamCompose, ...) are removed.
+
+        The position parameter is used to control which transformations
+        are to be returned based on the position of the tranformed element. 
+        Position 0 means transformations on the "x" value,
+        1 means "target" (or y) transformations, and so on.
+
+        Please note that transformations acting on multiple parameters
+        may be returned when appropriate. This is common for object
+        detection augmentations that transform x (image) and y (bounding boxes)
+        inputs at the same time.
+
+        :position: The position of the tranformed element.
+        :return: A list of transformations for the given position.
+        """
         pass
 
 
@@ -50,7 +80,7 @@ class MultiParamCompose(MultiParamTransform):
         # skip empty transforms
         transforms = list(filter(lambda x: x is not None, transforms))
         self.transforms = transforms
-        self.param_def = []
+        self.param_def: List[Tuple[int, int]] = []
 
         self.max_params = -1
         self.min_params = -1
@@ -63,7 +93,7 @@ class MultiParamCompose(MultiParamTransform):
             all_maxes = set([max_p for _, max_p in self.param_def])
             if len(all_maxes) > 1:
                 warnings.warn(
-                    "Transformations define a different amount of parameters. "
+                    "Transformations define a different number of parameters. "
                     "This may lead to errors. This warning will only appear"
                     "once.",
                     ComposeMaxParamsWarning,
@@ -98,6 +128,17 @@ class MultiParamCompose(MultiParamTransform):
 
     def __str__(self):
         return self.__repr__()
+    
+    def flat_transforms(self, position: int):
+        all_transforms = []
+
+        for transform, par_def in zip(self.transforms, self.param_def):
+            max_params = par_def[1]
+
+            if position < max_params or max_params == -1:
+                all_transforms.append(transform)
+        
+        return flat_transforms_recursive(all_transforms, position)
 
 
 class MultiParamTransformCallable(MultiParamTransform):
@@ -147,7 +188,7 @@ class MultiParamTransformCallable(MultiParamTransform):
         return params_list
 
     @staticmethod
-    def _detect_parameters(transform_callable):
+    def _detect_parameters(transform_callable) -> Tuple[int, int]:
         min_params = 0
         max_params = 0
 
@@ -195,6 +236,13 @@ class MultiParamTransformCallable(MultiParamTransform):
         tc_class = transform_callable.__class__
         tc_module = tc_class.__module__
         return "torchvision.transforms" in tc_module
+    
+    def flat_transforms(self, position: int):
+        if position < self.max_params or self.max_params == -1:
+            return flat_transforms_recursive(
+                self.transform,
+                position)
+        return []
 
 
 class TupleTransform(MultiParamTransform):
@@ -212,6 +260,55 @@ class TupleTransform(MultiParamTransform):
 
     def __str__(self):
         return "TupleTransform({})".format(self.transforms)
+    
+    def __repr__(self):
+        return "TupleTransform({})".format(self.transforms)
+    
+    def flat_transforms(self, position: int):
+        if position < len(self.transforms):
+            return flat_transforms_recursive(
+                self.transforms[position],
+                position)
+        return []
+    
+
+def flat_transforms_recursive(
+        transforms: Union[List, Any],
+        position: int) -> List[Any]:
+    """
+    Flattens a list of transformations.
+
+    :param transforms: The list of transformations to flatten.
+    :param position: The position of the transformed element.
+    :return: A flat list of transformations.
+    """
+    if not isinstance(transforms, Iterable):
+        transforms = [transforms]
+    
+    must_flat = True
+    while must_flat:
+        must_flat = False
+        flattened_list = []
+
+        for transform in transforms:
+            flat_strat = getattr(transform, 'flat_transforms', None)
+            if callable(flat_strat):
+                flattened_list.extend(flat_strat(position))
+                must_flat = True
+            elif isinstance(transform, Compose):
+                flattened_list.extend(transform.transforms)
+                must_flat = True
+            elif isinstance(transform, Sequence):
+                flattened_list.extend(transform)
+                must_flat = True
+            elif transform is None:
+                pass
+            else:
+                flattened_list.append(transform)
+        
+        transforms = flattened_list
+
+    return transforms
 
 
 class ComposeMaxParamsWarning(Warning):
@@ -228,4 +325,5 @@ __all__ = [
     "MultiParamTransformCallable",
     "ComposeMaxParamsWarning",
     "TupleTransform",
+    "flat_transforms_recursive"
 ]

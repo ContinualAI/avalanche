@@ -133,7 +133,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         num_workers=0,
         shuffle=True,
         pin_memory=None,
-        persistent_workers=False,
+        persistent_workers=True,
         **kwargs
     ):
         """Data loader initialization.

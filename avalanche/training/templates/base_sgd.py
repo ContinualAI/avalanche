@@ -4,19 +4,22 @@ from pkg_resources import parse_version
 import torch
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 from torch import Tensor
 
 from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.core import BasePlugin, BaseSGDPlugin
-from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
+from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates.base import BaseTemplate
-from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader, \
+from avalanche.benchmarks.utils.data_loader import (
+    SingleDatasetDataLoader,
+    TaskBalancedDataLoader,
     collate_from_data_or_kwargs
+)
+
 from avalanche.training.templates.strategy_mixin_protocol import \
     SGDStrategyProtocol
 from avalanche.training.utils import trigger_plugins
@@ -390,7 +393,7 @@ class BaseSGDTemplate(
         num_workers=0,
         shuffle=True,
         pin_memory=None,
-        persistent_workers=False,
+        persistent_workers=True,
         drop_last=False,
         **kwargs
     ):
@@ -407,8 +410,6 @@ class BaseSGDTemplate(
 
         assert self.adapted_dataset is not None
 
-        torch.utils.data.DataLoader
-
         other_dataloader_args = self._obtain_common_dataloader_parameters(
             batch_size=self.train_mb_size,
             num_workers=num_workers,
@@ -417,6 +418,9 @@ class BaseSGDTemplate(
             persistent_workers=persistent_workers,
             drop_last=drop_last,
         )
+
+        if 'ffcv_args' in kwargs:
+            other_dataloader_args['ffcv_args'] = kwargs['ffcv_args']
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset,
@@ -457,7 +461,10 @@ class BaseSGDTemplate(
             self.adapted_dataset,
             other_dataloader_args)
         
-        self.dataloader = DataLoader(
+        if 'ffcv_args' in kwargs:
+            other_dataloader_args['ffcv_args'] = kwargs['ffcv_args']
+        
+        self.dataloader = SingleDatasetDataLoader(
             self.adapted_dataset,
             **other_dataloader_args
         )

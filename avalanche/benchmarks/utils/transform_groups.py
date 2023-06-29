@@ -90,7 +90,7 @@ class TransformGroups:
             and transformations (pytorch transformations) as values.
         :param current_group: the currently active group.
         """
-        self.transform_groups: Dict[str, Union[TupleTransform, 
+        self.transform_groups: Dict[str, Union[TupleTransform,
                                                MultiParamTransform,
                                                None]] = dict()
         for group, transform in transform_groups.items():

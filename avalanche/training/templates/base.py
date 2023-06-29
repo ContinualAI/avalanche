@@ -1,7 +1,7 @@
 import sys
 import warnings
 from collections import defaultdict
-from typing import Generic, Iterable, Sequence, Optional, TypeVar, Union, List
+from typing import Iterable, Sequence, Optional, TypeVar, Union, List
 
 import torch
 from torch.nn import Module

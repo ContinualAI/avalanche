@@ -259,10 +259,10 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
 
             self._loaded_experiences[exp_id] = generated_exp
             self.targets_field_sequence[exp_id] = \
-                getattr(generated_exp, 'targets')
+                list(getattr(generated_exp, 'targets'))
             self.task_labels_field_sequence[
                 exp_id
-            ] = getattr(generated_exp, 'targets_task_labels')
+            ] = list(getattr(generated_exp, 'targets_task_labels'))
             self._next_exp_id += 1
 
         if self._next_exp_id >= len(self):
