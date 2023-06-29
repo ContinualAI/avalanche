@@ -249,8 +249,3 @@ class RARPlugin(SupervisedPlugin):
             if torch.norm((pert_out-input), p=float('inf')) > self.epsilon_fgsm:
                 break   
         return pert_out
-
-
-__all__ = [
-    'RARPlugin'
-]
