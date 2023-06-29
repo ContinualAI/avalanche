@@ -7,8 +7,8 @@ from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from torchvision.models.feature_extraction import (
     get_graph_node_names,
-    create_feature_extractor
-    )
+    create_feature_extractor,
+)
 
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
@@ -22,25 +22,25 @@ class RARPlugin(SupervisedPlugin):
     """
     Retrospective Adversarial Replay for Continual Learning
     https://openreview.net/forum?id=XEoih0EwCwL
-    Continual learning is an emerging research challenge in machine learning 
-    that addresses the problem where models quickly fit the most recently 
-    trained-on data and are prone to catastrophic forgetting due to 
-    distribution shifts --- it does this by maintaining a small historical 
-    replay buffer in replay-based methods. 
-    To avoid these problems, this paper proposes a method, 
-    ``Retrospective Adversarial Replay (RAR)'', that synthesizes adversarial 
-    samples near the forgetting boundary. RAR perturbs a buffered sample 
-    towards its nearest neighbor drawn from the current task in a latent 
-    representation space. By replaying such samples, we are able to refine the 
-    boundary between previous and current tasks, hence combating forgetting and 
-    reducing bias towards the current task. To mitigate the severity of a small 
-    replay buffer, we develop a novel MixUp-based strategy to increase replay 
-    variation by replaying mixed augmentations. 
-    Combined with RAR, this achieves a holistic framework that helps to 
-    alleviate catastrophic forgetting. We show that this excels on 
-    broadly-used benchmarks and outperforms other continual learning baselines 
-    especially when only a small buffer is used. We conduct a thorough 
-    ablation study over each key component as well as a hyperparameter 
+    Continual learning is an emerging research challenge in machine learning
+    that addresses the problem where models quickly fit the most recently
+    trained-on data and are prone to catastrophic forgetting due to
+    distribution shifts --- it does this by maintaining a small historical
+    replay buffer in replay-based methods.
+    To avoid these problems, this paper proposes a method,
+    ``Retrospective Adversarial Replay (RAR)'', that synthesizes adversarial
+    samples near the forgetting boundary. RAR perturbs a buffered sample
+    towards its nearest neighbor drawn from the current task in a latent
+    representation space. By replaying such samples, we are able to refine the
+    boundary between previous and current tasks, hence combating forgetting and
+    reducing bias towards the current task. To mitigate the severity of a small
+    replay buffer, we develop a novel MixUp-based strategy to increase replay
+    variation by replaying mixed augmentations.
+    Combined with RAR, this achieves a holistic framework that helps to
+    alleviate catastrophic forgetting. We show that this excels on
+    broadly-used benchmarks and outperforms other continual learning baselines
+    especially when only a small buffer is used. We conduct a thorough
+    ablation study over each key component as well as a hyperparameter
     sensitivity analysis to demonstrate the effectiveness and robustness of RAR.
 
     """
@@ -69,7 +69,7 @@ class RARPlugin(SupervisedPlugin):
         :param decay_factor_fgsm: Decay factor of FGSM
         :param epsilon_fgsm: Epsilon for FGSM
         :param iter_fgsm: Number of iterations of FGSM
-        :param storage_policy: Storage Policy used for the buffer                      
+        :param storage_policy: Storage Policy used for the buffer
         """
         super().__init__()
         self.mem_size = mem_size
@@ -97,9 +97,7 @@ class RARPlugin(SupervisedPlugin):
             self.storage_policy = storage_policy
             assert storage_policy.max_size == self.mem_size
         else:  # Default
-            self.storage_policy = ReservoirSamplingBuffer(
-                max_size=self.mem_size
-            )
+            self.storage_policy = ReservoirSamplingBuffer(max_size=self.mem_size)
 
     def before_training_exp(
         self,
@@ -144,13 +142,13 @@ class RARPlugin(SupervisedPlugin):
 
     def before_backward(self, strategy: "SupervisedTemplate", **kwargs):
         """
-        Before the backward function in the training process. We need to update 
+        Before the backward function in the training process. We need to update
         the loss function.
 
-        First we add the loss of the buffer. Then if we are using RAR, we 
+        First we add the loss of the buffer. Then if we are using RAR, we
         obtained the features to find the closest element of a different class.
-        We apply FGSM to those selected elements and then find the loss 
-        of the attacked samples. 
+        We apply FGSM to those selected elements and then find the loss
+        of the attacked samples.
         """
 
         if len(self.storage_policy.buffer) == 0:
@@ -173,12 +171,13 @@ class RARPlugin(SupervisedPlugin):
 
         copy_model = copy.deepcopy(strategy.model)
         feature_extractor = create_feature_extractor(
-                copy_model, return_nodes=[self.name_ext_layer])
+            copy_model, return_nodes=[self.name_ext_layer]
+        )
 
         params_list = []
-        for param_group in strategy.optimizer.state_dict()['param_groups']:
+        for param_group in strategy.optimizer.state_dict()["param_groups"]:
             for i, p in enumerate(copy_model.parameters()):
-                if i in param_group['params']:
+                if i in param_group["params"]:
                     params_list.append(p)
 
         optimizer = SGD(params_list, lr=self.opt_lr)
@@ -209,8 +208,7 @@ class RARPlugin(SupervisedPlugin):
         mb_x_pert = self.mifgsm_attack(mb_x_buff, mb_x_buff.grad.data)
 
         out_buff = strategy.model(mb_x_pert)
-        strategy.loss += (self.beta_coef) * \
-            strategy._criterion(out_buff, mb_y_buff)
+        strategy.loss += (self.beta_coef) * strategy._criterion(out_buff, mb_y_buff)
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
         self.storage_policy.update(strategy, **kwargs)
@@ -221,7 +219,7 @@ class RARPlugin(SupervisedPlugin):
 
         :return: Batch from the buffer
         """
-        
+
         try:
             b_batch = next(self.iter_replay)
         except:
@@ -233,19 +231,19 @@ class RARPlugin(SupervisedPlugin):
     def mifgsm_attack(self, input, data_grad):
         """
         FGSM - This function generate the perturbation to the input.
-        
+
         :param input: Data that we want to apply the perturbation
         :param data_grad: Gradient of those samples
 
         :return: Attacked input
         """
         pert_out = input
-        alpha = self.epsilon_fgsm/self.iter_fgsm
+        alpha = self.epsilon_fgsm / self.iter_fgsm
         g = 0
-        for i in range(self.iter_fgsm-1):
-            g = self.decay_factor_fgsm*g + data_grad/torch.norm(data_grad, p=1)
-            pert_out = pert_out + alpha*torch.sign(g)
+        for i in range(self.iter_fgsm - 1):
+            g = self.decay_factor_fgsm * g + data_grad / torch.norm(data_grad, p=1)
+            pert_out = pert_out + alpha * torch.sign(g)
             pert_out = torch.clamp(pert_out, 0, 1)
-            if torch.norm((pert_out-input), p=float('inf')) > self.epsilon_fgsm:
-                break   
+            if torch.norm((pert_out - input), p=float("inf")) > self.epsilon_fgsm:
+                break
         return pert_out
