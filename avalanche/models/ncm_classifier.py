@@ -1,6 +1,7 @@
-import torch
-from torch import nn, Tensor
 from typing import Dict
+
+import torch
+from torch import Tensor, nn
 
 
 class NCMClassifier(nn.Module):
@@ -81,7 +82,9 @@ class NCMClassifier(nn.Module):
         # (batch_size, num_classes)
         return (-sqd).T
 
-    def update_class_means_dict(self, class_means_dict: Dict[int, Tensor]):
+    def update_class_means_dict(
+        self, class_means_dict: Dict[int, Tensor], momentum: float = 0.5
+    ):
         """
         Update dictionary of class means.
         If class already exists, the average of the two mean vectors
@@ -89,7 +92,10 @@ class NCMClassifier(nn.Module):
 
         :param class_means_dict: a dictionary mapping class id
             to class mean tensor.
+        :param momentum: Weighting of the new means vs old means
+                         in the update. 1 = replace, 0 = don't update
         """
+        assert momentum <= 1 and momentum >= 0
         assert isinstance(class_means_dict, dict), (
             "class_means_dict must be a dictionary mapping class_id " "to mean vector"
         )
@@ -98,8 +104,10 @@ class NCMClassifier(nn.Module):
                 self.class_means_dict[k] = class_means_dict[k].clone()
             else:
                 device = self.class_means_dict[k].device
-                self.class_means_dict[k] += class_means_dict[k].to(device)
-                self.class_means_dict[k] /= 2
+                self.class_means_dict[k] = (
+                    momentum * class_means_dict[k].to(device)
+                    + (1 - momentum) * self.class_means_dict[k]
+                )
 
         self._vectorize_means_dict()
 
