@@ -2201,9 +2201,7 @@ IMAGENET_TORCHVISION_CLASSES: List[Tuple[str, ...]] = [
 ]
 
 IMAGENET_TORCHVISION_CLASS_TO_IDX: Dict[str, int] = {
-    cls: idx
-    for idx, clss in enumerate(IMAGENET_TORCHVISION_CLASSES)
-    for cls in clss
+    cls: idx for idx, clss in enumerate(IMAGENET_TORCHVISION_CLASSES) for cls in clss
 }
 
 __all__ = [

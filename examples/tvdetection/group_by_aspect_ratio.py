@@ -74,9 +74,7 @@ class GroupedBatchSampler(BatchSampler):
                 samples_from_group_id = _repeat_to_at_least(
                     samples_per_group[group_id], remaining
                 )
-                buffer_per_group[group_id].extend(
-                    samples_from_group_id[:remaining]
-                )
+                buffer_per_group[group_id].extend(samples_from_group_id[:remaining])
                 assert len(buffer_per_group[group_id]) == self.batch_size
                 yield buffer_per_group[group_id]
                 num_remaining -= 1

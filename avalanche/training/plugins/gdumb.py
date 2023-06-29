@@ -21,9 +21,7 @@ class GDumbPlugin(SupervisedPlugin, supports_distributed=True):
     https://www.robots.ox.ac.uk/~tvg/publications/2020/gdumb.pdf
     """
 
-    def __init__(
-            self, 
-            mem_size: int = 200):
+    def __init__(self, mem_size: int = 200):
         super().__init__()
         self.mem_size = mem_size
 
@@ -34,9 +32,7 @@ class GDumbPlugin(SupervisedPlugin, supports_distributed=True):
         )
         self.init_model = None
 
-    def before_train_dataset_adaptation(
-        self, strategy: "SupervisedTemplate", **kwargs
-    ):
+    def before_train_dataset_adaptation(self, strategy: "SupervisedTemplate", **kwargs):
         """Reset model."""
         if self.init_model is None:
             self.init_model = copy.deepcopy(strategy.model)
@@ -44,18 +40,12 @@ class GDumbPlugin(SupervisedPlugin, supports_distributed=True):
             strategy.model = copy.deepcopy(self.init_model)
         strategy.model_adaptation(self.init_model)
 
-    def before_eval_dataset_adaptation(
-        self, strategy: "SupervisedTemplate", **kwargs
-    ):
+    def before_eval_dataset_adaptation(self, strategy: "SupervisedTemplate", **kwargs):
         strategy.model_adaptation(self.init_model)
 
-    def after_train_dataset_adaptation(
-        self, strategy: "SupervisedTemplate", **kwargs
-    ):
+    def after_train_dataset_adaptation(self, strategy: "SupervisedTemplate", **kwargs):
         self.storage_policy.update(strategy, **kwargs)
         strategy.adapted_dataset = self.storage_policy.buffer
 
 
-__all__ = [
-    'GDumbPlugin'
-]
+__all__ = ["GDumbPlugin"]

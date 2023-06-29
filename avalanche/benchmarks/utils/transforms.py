@@ -77,9 +77,7 @@ class MultiParamCompose(MultiParamTransform):
 
     def __call__(self, *args, force_tuple_output=False):
         if len(self.transforms) > 0:
-            for transform, (min_par, max_par) in zip(
-                self.transforms, self.param_def
-            ):
+            for transform, (min_par, max_par) in zip(self.transforms, self.param_def):
                 args = MultiParamTransformCallable._call_transform(
                     transform, min_par, max_par, *args
                 )
@@ -156,9 +154,7 @@ class MultiParamTransformCallable(MultiParamTransform):
         ):
             min_params = transform_callable.min_params
             max_params = transform_callable.max_params
-        elif MultiParamTransformCallable._is_torchvision_transform(
-            transform_callable
-        ):
+        elif MultiParamTransformCallable._is_torchvision_transform(transform_callable):
             min_params = 1
             max_params = 1
         else:

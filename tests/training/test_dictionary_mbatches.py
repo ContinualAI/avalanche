@@ -83,15 +83,13 @@ class TestDictionaryDatasets(unittest.TestCase):
             exp.dataset = av_data
             train_exps.append(exp)
             test_exps.append(exp)
-        
+
         train_stream = CLStream("train", train_exps, None)
         test_stream = CLStream("test", test_exps, None)
-        benchmark = CLScenario(
-            [train_stream, test_stream]
-        )
+        benchmark = CLScenario([train_stream, test_stream])
         train_stream.benchmark = benchmark
         test_stream.benchmark = benchmark
-        
+
         eval_plugin = avalanche.training.plugins.EvaluationPlugin(
             avalanche.evaluation.metrics.loss_metrics(
                 epoch=True, experience=True, stream=True

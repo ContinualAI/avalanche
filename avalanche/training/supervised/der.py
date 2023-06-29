@@ -18,6 +18,7 @@ from torch.optim import Optimizer
 from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
+from avalanche.training.utils import cycle
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.evaluation import (
     EvaluationPlugin,
@@ -32,6 +33,7 @@ from avalanche.training.templates import SupervisedTemplate
 
 @torch.no_grad()
 def compute_dataset_logits(dataset, model, batch_size, device):
+    was_training = model.training
     model.eval()
 
     logits = []
@@ -44,13 +46,11 @@ def compute_dataset_logits(dataset, model, batch_size, device):
         x = x.to(device)
         out = model(x)
         logits.extend(list(out.cpu()))
+
+    if was_training:
+        model.train()
+
     return logits
-
-
-def cycle(loader):
-    while True:
-        for batch in loader:
-            yield batch
 
 
 class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
@@ -74,8 +74,9 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         :param transforms: transformation to be applied to the buffer
         """
         if not adaptive_size:
-            assert total_num_classes is not None and total_num_classes > 0, \
-                "When fixed exp mem size, total_num_classes should be > 0."
+            assert (
+                total_num_classes is not None and total_num_classes > 0
+            ), "When fixed exp mem size, total_num_classes should be > 0."
 
         super().__init__(max_size, adaptive_size, total_num_classes)
         self.adaptive_size = adaptive_size
@@ -87,10 +88,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         new_data: AvalancheDataset = strategy.experience.dataset
 
         logits = compute_dataset_logits(
-            new_data.eval(), 
-            strategy.model,
-            strategy.train_mb_size, 
-            strategy.device
+            new_data.eval(), strategy.model, strategy.train_mb_size, strategy.device
         )
         new_data_with_logits = make_avalanche_dataset(
             new_data,
@@ -100,7 +98,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         )
         # Get sample idxs per class
         cl_idxs: Dict[int, List[int]] = defaultdict(list)
-        targets: Sequence[SupportsInt] = getattr(new_data, 'targets')
+        targets: Sequence[SupportsInt] = getattr(new_data, "targets")
         for idx, target in enumerate(targets):
             # Conversion to int may fix issues when target
             # is a single-element torch.tensor
@@ -136,8 +134,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
 
         # resize buffers
         for class_id, class_buf in self.buffer_groups.items():
-            self.buffer_groups[class_id].resize(strategy, 
-                                                class_to_len[class_id])
+            self.buffer_groups[class_id].resize(strategy, class_to_len[class_id])
 
 
 class DER(SupervisedTemplate):
@@ -162,8 +159,7 @@ class DER(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -285,21 +281,20 @@ class DER(SupervisedTemplate):
             self._after_forward(**kwargs)
 
             if self.replay_loader is not None:
-
                 # DER Loss computation
 
                 self.loss += F.cross_entropy(
-                    self.mb_output[self.batch_size_mem:],
-                    self.mb_y[self.batch_size_mem:],
+                    self.mb_output[self.batch_size_mem :],
+                    self.mb_y[self.batch_size_mem :],
                 )
 
                 self.loss += self.alpha * F.mse_loss(
-                    self.mb_output[:self.batch_size_mem],
+                    self.mb_output[: self.batch_size_mem],
                     self.batch_logits,
                 )
                 self.loss += self.beta * F.cross_entropy(
-                    self.mb_output[:self.batch_size_mem],
-                    self.mb_y[:self.batch_size_mem],
+                    self.mb_output[: self.batch_size_mem],
+                    self.mb_y[: self.batch_size_mem],
                 )
 
                 # They are a few difference compared to the autors impl:

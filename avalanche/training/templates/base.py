@@ -9,13 +9,12 @@ from torch.nn import Module
 from avalanche.benchmarks import CLExperience, CLStream
 from avalanche.core import BasePlugin
 from avalanche.distributed.distributed_helper import DistributedHelper
-from avalanche.training.templates.strategy_mixin_protocol import \
-    BaseStrategyProtocol
+from avalanche.training.templates.strategy_mixin_protocol import BaseStrategyProtocol
 from avalanche.training.utils import trigger_plugins
 
 
-TExperienceType = TypeVar('TExperienceType', bound=CLExperience)
-TPluginType = TypeVar('TPluginType', bound=BasePlugin, contravariant=True)
+TExperienceType = TypeVar("TExperienceType", bound=CLExperience)
+TPluginType = TypeVar("TPluginType", bound=BasePlugin, contravariant=True)
 
 
 class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
@@ -52,15 +51,14 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
 
         if device is None:
             warnings.warn(
-                'When instantiating a strategy, please pass a non-None device.'
+                "When instantiating a strategy, please pass a non-None device."
             )
-            device = 'cpu'
+            device = "cpu"
 
         self.device = torch.device(device)
         """ PyTorch device where the model will be allocated. """
 
-        self.plugins: List[BasePlugin] = [] \
-            if plugins is None else list(plugins)
+        self.plugins: List[BasePlugin] = [] if plugins is None else list(plugins)
         """ List of `SupervisedPlugin`s. """
 
         # check plugin compatibility
@@ -118,11 +116,11 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
             have different names.
         """
         if not self._distributed_check:
-            # Checks if the strategy elements are compatible with 
+            # Checks if the strategy elements are compatible with
             # distributed training
             self._check_distributed_training_compatibility()
             self._distributed_check = True
-        
+
         self.is_training = True
         self._stop_training = False
 
@@ -130,8 +128,9 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        experiences_list: Iterable[TExperienceType] = \
-            _experiences_parameter_as_iterable(experiences)
+        experiences_list: Iterable[
+            TExperienceType
+        ] = _experiences_parameter_as_iterable(experiences)
 
         if eval_streams is None:
             eval_streams = [experiences_list]
@@ -172,19 +171,20 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
             each metric name
         """
         if not self._distributed_check:
-            # Checks if the strategy elements are compatible with 
+            # Checks if the strategy elements are compatible with
             # distributed training
             self._check_distributed_training_compatibility()
             self._distributed_check = True
-        
+
         # eval can be called inside the train method.
         # Save the shared state here to restore before returning.
         prev_train_state = self._save_train_state()
         self.is_training = False
         self.model.eval()
 
-        experiences_list: Iterable[TExperienceType] = \
-            _experiences_parameter_as_iterable(experiences)
+        experiences_list: Iterable[
+            TExperienceType
+        ] = _experiences_parameter_as_iterable(experiences)
         self.current_eval_stream = experiences_list
 
         self._before_eval(**kwargs)
@@ -268,7 +268,7 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
                     f"callbacks: {cb_p - cb_supported}",
                 )
                 return
-            
+
     def _check_distributed_training_compatibility(self):
         """
         Check if strategy elements (plugins, ...) are compatible with
@@ -284,8 +284,10 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
                 unsupported_plugins.append(plugin)
 
         if len(unsupported_plugins) > 0:
-            warnings.warn('You are using plugins that are not compatible'
-                          'with distributed training:')
+            warnings.warn(
+                "You are using plugins that are not compatible"
+                "with distributed training:"
+            )
             for plugin in unsupported_plugins:
                 print(type(plugin), file=sys.stderr)
 
@@ -323,7 +325,6 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
 def _group_experiences_by_stream(
     eval_streams: Iterable[Union[Iterable[CLExperience], CLExperience]]
 ) -> List[List[CLExperience]]:
-
     exps: List[CLExperience] = []
     # First, we unpack the list of experiences.
     for exp in eval_streams:
@@ -349,6 +350,4 @@ def _experiences_parameter_as_iterable(
         return [experiences]
 
 
-__all__ = [
-    'BaseTemplate'
-]
+__all__ = ["BaseTemplate"]

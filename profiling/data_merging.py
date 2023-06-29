@@ -9,7 +9,11 @@ from os.path import expanduser
 
 from tqdm import tqdm
 
-from avalanche.benchmarks import fixed_size_experience_split, SplitMNIST, classification_subset
+from avalanche.benchmarks import (
+    fixed_size_experience_split,
+    SplitMNIST,
+    classification_subset,
+)
 from avalanche.benchmarks.utils.flat_data import _flatdata_depth
 from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training import ReservoirSamplingBuffer

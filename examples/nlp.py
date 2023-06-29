@@ -45,7 +45,6 @@ class CustomDataCollatorSeq2SeqBeta:
     return_tensors: str = "pt"
 
     def __call__(self, features, return_tensors=None):
-
         if return_tensors is None:
             return_tensors = self.return_tensors
         labels = (
@@ -99,10 +98,8 @@ class CustomDataCollatorSeq2SeqBeta:
             and self.model is not None
             and hasattr(self.model, "prepare_decoder_input_ids_from_labels")
         ):
-            decoder_input_ids = (
-                self.model.prepare_decoder_input_ids_from_labels(
-                    labels=features["labels"]
-                )
+            decoder_input_ids = self.model.prepare_decoder_input_ids_from_labels(
+                labels=features["labels"]
             )
             features["decoder_input_ids"] = decoder_input_ids
 
@@ -163,9 +160,7 @@ class HGNaive(avalanche.training.Naive):
 
 def main():
     tokenizer = AutoTokenizer.from_pretrained("t5-small", padding=True)
-    tokenizer.save_pretrained(
-        "./MLDATA/NLP/hf_tokenizers"
-    )  # CHANGE DIRECTORY
+    tokenizer.save_pretrained("./MLDATA/NLP/hf_tokenizers")  # CHANGE DIRECTORY
 
     prefix = "<2en>"
     source_lang = "de"
@@ -173,9 +168,7 @@ def main():
     remote_data = load_dataset("news_commentary", "de-en")
 
     def preprocess_function(examples):
-        inputs = [
-            prefix + example[source_lang] for example in examples["translation"]
-        ]
+        inputs = [prefix + example[source_lang] for example in examples["translation"]]
         targets = [example[target_lang] for example in examples["translation"]]
         model_inputs = tokenizer(inputs, max_length=128, truncation=True)
         with tokenizer.as_target_tokenizer():
@@ -187,18 +180,14 @@ def main():
     model = T5ForConditionalGeneration.from_pretrained("t5-small")
     remote_data = remote_data.remove_columns(["id", "translation"])
     remote_data.set_format(type="torch")
-    data_collator = CustomDataCollatorSeq2SeqBeta(
-        tokenizer=tokenizer, model=model
-    )
+    data_collator = CustomDataCollatorSeq2SeqBeta(tokenizer=tokenizer, model=model)
 
     train_exps = []
     for i in range(0, 2):
         # We use very small experiences only to showcase the library.
         # Adapt this to your own benchmark
         exp_data = remote_data["train"].select(range(30 * i, 30 * (i + 1)))
-        tl = DataAttribute(
-            ConstantSequence(i, len(exp_data)), "targets_task_labels"
-        )
+        tl = DataAttribute(ConstantSequence(i, len(exp_data)), "targets_task_labels")
 
         exp = CLExperience()
         exp.dataset = AvalancheDataset(

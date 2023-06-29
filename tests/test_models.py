@@ -52,9 +52,7 @@ class PytorchcvWrapperTests(unittest.TestCase):
     def test_vgg(self):
         model = vgg(depth=19, batch_normalization=True, pretrained=False)
         # Batch norm is activated
-        self.assertIsInstance(
-            model.features.stage1.unit1.bn, torch.nn.BatchNorm2d
-        )
+        self.assertIsInstance(model.features.stage1.unit1.bn, torch.nn.BatchNorm2d)
         # Check correct depth is loaded
         self.assertEqual(len(model.features.stage5), 5)
 
@@ -72,24 +70,18 @@ class PytorchcvWrapperTests(unittest.TestCase):
 
     def test_pyramidnet(self):
         model = pyramidnet("cifar10", depth=110)
-        self.assertIsInstance(
-            model, pytorchcv.models.pyramidnet_cifar.CIFARPyramidNet
-        )
+        self.assertIsInstance(model, pytorchcv.models.pyramidnet_cifar.CIFARPyramidNet)
         model = pyramidnet("imagenet", depth=101)
         self.assertIsInstance(model, pytorchcv.models.pyramidnet.PyramidNet)
 
     def test_densenet(self):
         model = densenet("svhn", depth=40)
-        self.assertIsInstance(
-            model, pytorchcv.models.densenet_cifar.CIFARDenseNet
-        )
+        self.assertIsInstance(model, pytorchcv.models.densenet_cifar.CIFARDenseNet)
 
     def test_get_model(self):
         # Check general wrapper and whether downloading pretrained model works
         model = get_model("resnet10", pretrained=True)
-        self.assertIsInstance(
-            model, pytorchcv.models.resnet.ResNet
-        )
+        self.assertIsInstance(model, pytorchcv.models.resnet.ResNet)
 
 
 class DynamicOptimizersTests(unittest.TestCase):
@@ -154,9 +146,7 @@ class DynamicOptimizersTests(unittest.TestCase):
         # check new_param is in optimizer
         # check old_param is NOT in optimizer
         p_new = torch.nn.Parameter(torch.zeros(10, 10))
-        optimized = update_optimizer(optimizer, 
-                                     {"new_param": p_new}, 
-                                     {"old_param": p})
+        optimized = update_optimizer(optimizer, {"new_param": p_new}, {"old_param": p})
         self.assertTrue("new_param" in optimized)
         self.assertFalse("old_param" in optimized)
         self.assertTrue(self._is_param_in_optimizer(p_new, strategy.optimizer))
@@ -166,7 +156,8 @@ class DynamicOptimizersTests(unittest.TestCase):
         # SIT scenario
         model, criterion, benchmark = self.init_scenario(multi_task=True)
         for optimizer in self._iterate_optimizers(
-                model, "SGDmom", "Adam", "SGD", "AdamW"):
+            model, "SGDmom", "Adam", "SGD", "AdamW"
+        ):
             strategy = Naive(
                 model,
                 optimizer,
@@ -215,11 +206,11 @@ class DynamicOptimizersTests(unittest.TestCase):
 
         # Check that the state has been well serialized
         self.assertEqual(len(strategy.optimizer.state), len(old_state))
-        for (key_new, value_new_dict), (key_old, value_old_dict) in \
-                zip(strategy.optimizer.state.items(), old_state.items()):
-
+        for (key_new, value_new_dict), (key_old, value_old_dict) in zip(
+            strategy.optimizer.state.items(), old_state.items()
+        ):
             self.assertTrue(torch.equal(key_new, key_old))
-            
+
             value_new = value_new_dict["momentum_buffer"]
             value_old = value_old_dict["momentum_buffer"]
 
@@ -252,18 +243,15 @@ class DynamicOptimizersTests(unittest.TestCase):
         module = torch.nn.Linear(10, 10)
         param1 = list(module.parameters())[0]
         strategy.make_optimizer()
-        self.assertFalse(self._is_param_in_optimizer(param1, 
-                                                     strategy.optimizer))
+        self.assertFalse(self._is_param_in_optimizer(param1, strategy.optimizer))
         strategy.model.add_module("new_module", module)
         strategy.make_optimizer()
-        self.assertTrue(self._is_param_in_optimizer(param1, 
-                                                    strategy.optimizer))
+        self.assertTrue(self._is_param_in_optimizer(param1, strategy.optimizer))
         # Remove a parameter
         del strategy.model.new_module
 
         strategy.make_optimizer()
-        self.assertFalse(self._is_param_in_optimizer(param1, 
-                                                     strategy.optimizer))
+        self.assertFalse(self._is_param_in_optimizer(param1, strategy.optimizer))
 
     def get_model(self, multi_task=False):
         if multi_task:
@@ -276,9 +264,7 @@ class DynamicOptimizersTests(unittest.TestCase):
 class DynamicModelsTests(unittest.TestCase):
     def setUp(self):
         common_setups()
-        self.benchmark = get_fast_benchmark(
-            use_task_labels=False, shuffle=False
-        )
+        self.benchmark = get_fast_benchmark(use_task_labels=False, shuffle=False)
 
     def test_incremental_classifier(self):
         model = SimpleMLP(input_size=6, hidden_size=10)
@@ -311,9 +297,7 @@ class DynamicModelsTests(unittest.TestCase):
         w_ptr = model.classifier.classifier.weight.data_ptr()
         b_ptr = model.classifier.classifier.bias.data_ptr()
         opt_params_ptrs = [
-            w.data_ptr()
-            for group in optimizer.param_groups
-            for w in group["params"]
+            w.data_ptr() for group in optimizer.param_groups for w in group["params"]
         ]
         # classifier params should be optimized
         assert w_ptr in opt_params_ptrs
@@ -332,9 +316,7 @@ class DynamicModelsTests(unittest.TestCase):
         old_w_ptr, old_b_ptr = w_ptr, b_ptr
         strategy.train(benchmark.train_stream[4])
         opt_params_ptrs = [
-            w.data_ptr()
-            for group in optimizer.param_groups
-            for w in group["params"]
+            w.data_ptr() for group in optimizer.param_groups for w in group["params"]
         ]
         new_w_ptr = model.classifier.classifier.weight.data_ptr()
         new_b_ptr = model.classifier.classifier.bias.data_ptr()
@@ -421,27 +403,19 @@ class DynamicModelsTests(unittest.TestCase):
         w_ptr = model.classifier.classifiers["0"].classifier.weight.data_ptr()
         b_ptr = model.classifier.classifiers["0"].classifier.bias.data_ptr()
         opt_params_ptrs = [
-            w.data_ptr()
-            for group in optimizer.param_groups
-            for w in group["params"]
+            w.data_ptr() for group in optimizer.param_groups for w in group["params"]
         ]
         assert w_ptr in opt_params_ptrs
         assert b_ptr in opt_params_ptrs
 
         # head update
         strategy.train(benchmark.train_stream[4])
-        w_ptr_t0 = model.classifier.classifiers[
-            "0"
-        ].classifier.weight.data_ptr()
+        w_ptr_t0 = model.classifier.classifiers["0"].classifier.weight.data_ptr()
         b_ptr_t0 = model.classifier.classifiers["0"].classifier.bias.data_ptr()
-        w_ptr_new = model.classifier.classifiers[
-            "4"
-        ].classifier.weight.data_ptr()
+        w_ptr_new = model.classifier.classifiers["4"].classifier.weight.data_ptr()
         b_ptr_new = model.classifier.classifiers["4"].classifier.bias.data_ptr()
         opt_params_ptrs = [
-            w.data_ptr()
-            for group in optimizer.param_groups
-            for w in group["params"]
+            w.data_ptr() for group in optimizer.param_groups for w in group["params"]
         ]
 
         assert w_ptr not in opt_params_ptrs  # head0 has been updated
@@ -560,9 +534,7 @@ class DynamicModelsTests(unittest.TestCase):
             mb, _, tmb = get_mbatch(exp.dataset, batch_size=7)
             out = model(mb, tmb)
             assert torch.all(out[:, curr_au] != model.mask_value)
-            assert torch.all(
-                out[:, :nunits][:, curr_mask == 0] == model.mask_value
-            )
+            assert torch.all(out[:, :nunits][:, curr_mask == 0] == model.mask_value)
         # check masking after adaptation on the entire stream
         for tid, exp in enumerate(benchmark.train_stream):
             curr_au = exp.classes_in_this_experience
@@ -574,18 +546,14 @@ class DynamicModelsTests(unittest.TestCase):
             mb, _, tmb = get_mbatch(exp.dataset)
             out = model(mb, tmb)
             assert torch.all(out[:, curr_au] != model.mask_value)
-            assert torch.all(
-                out[:, :nunits][:, curr_mask == 0] == model.mask_value
-            )
+            assert torch.all(out[:, :nunits][:, curr_mask == 0] == model.mask_value)
 
 
 class TrainEvalModelTests(unittest.TestCase):
     def test_classifier_selection(self):
         base_model = SimpleCNN()
 
-        feature_extractor = torch.nn.Sequential(
-            base_model.features,
-            torch.nn.Flatten())
+        feature_extractor = torch.nn.Sequential(base_model.features, torch.nn.Flatten())
         classifier1 = base_model.classifier
         classifier2 = torch.nn.Linear(64, 7)
 
@@ -635,21 +603,57 @@ class NCMClassifierTest(unittest.TestCase):
         classifier = NCMClassifier()
         classifier.update_class_means_dict(class_means_dict)
         assert classifier.class_means.shape == (3, 4)
-        new_mean = torch.randn(4,)
+        new_mean = torch.randn(
+            4,
+        )
         classifier.update_class_means_dict({5: new_mean.clone()})
         assert classifier.class_means.shape == (6, 4)
-        assert torch.all(classifier.class_means[3] == torch.zeros(4,))
-        assert torch.all(classifier.class_means[4] == torch.zeros(4,))
+        assert torch.all(
+            classifier.class_means[3]
+            == torch.zeros(
+                4,
+            )
+        )
+        assert torch.all(
+            classifier.class_means[4]
+            == torch.zeros(
+                4,
+            )
+        )
         assert torch.all(classifier.class_means[5] == new_mean)
+
+    def test_ncm_replace_means(self):
+        class_means = torch.tensor(
+            [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]],
+            dtype=torch.float,
+        )
+        class_means_dict = {i: el for i, el in enumerate(class_means)}
+        classifier = NCMClassifier()
+        classifier.update_class_means_dict(class_means_dict)
+        class_means = torch.tensor(
+            [[2, 0, 0, 0], [2, 1, 0, 0], [2, 0, 1, 0]],
+            dtype=torch.float,
+        )
+        new_dict = {i: el for i, el in enumerate(class_means)}
+        classifier.replace_class_means_dict(new_dict)
+        assert (classifier.class_means[:, 0] == 2).all()
 
     def test_ncm_save_load(self):
         classifier = NCMClassifier()
-        classifier.update_class_means_dict({1: torch.randn(5,),
-                                            2: torch.randn(5,)})
-        torch.save(classifier.state_dict(), 'ncm.pt')
+        classifier.update_class_means_dict(
+            {
+                1: torch.randn(
+                    5,
+                ),
+                2: torch.randn(
+                    5,
+                ),
+            }
+        )
+        torch.save(classifier.state_dict(), "ncm.pt")
         del classifier
         classifier = NCMClassifier()
-        check = torch.load('ncm.pt')
+        check = torch.load("ncm.pt")
         classifier.load_state_dict(check)
         assert classifier.class_means.shape == (3, 5)
         assert (classifier.class_means[0] == 0).all()

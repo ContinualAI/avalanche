@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from avalanche.evaluation.metric_results import MetricResult
 
 
-TAggregation = TypeVar('TAggregation')
+TAggregation = TypeVar("TAggregation")
 LabelCat = Literal["new", "old"]
 
 
@@ -69,7 +69,6 @@ class MeanScores(Metric[Dict[TAggregation, float]], ABC):
 
 
 class PerClassMeanScores(MeanScores[int]):
-
     def result(self) -> Dict[int, float]:
         return {label: m.result() for label, m in self.label2mean.items()}
 
@@ -169,9 +168,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
         super().__init__()
         self.mean_scores = MeanNewOldScores()
         self.image_creator = image_creator
-        self.label_cat2step2mean: Dict[
-            LabelCat, Dict[int, float]
-        ] = defaultdict(dict)
+        self.label_cat2step2mean: Dict[LabelCat, Dict[int, float]] = defaultdict(dict)
 
     def reset(self) -> None:
         self.mean_scores.reset()
@@ -183,9 +180,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
         )
 
     def update(self, strategy: "SupervisedTemplate"):
-        self.mean_scores.update(
-            predicted_y=strategy.mb_output, true_y=strategy.mb_y
-        )
+        self.mean_scores.update(predicted_y=strategy.mb_output, true_y=strategy.mb_y)
 
     def result(self) -> Dict[LabelCat, float]:
         return self.mean_scores.result()
@@ -215,8 +210,7 @@ class MeanScoresPluginMetricABC(PluginMetric, ABC):
                 MetricValue(
                     self,
                     name=base_metric_name + f"/new_old_diff",
-                    value=label_cat2mean_score["new"]
-                    - label_cat2mean_score["old"],
+                    value=label_cat2mean_score["new"] - label_cat2mean_score["old"],
                     x_plot=num_it,
                 )
             )
@@ -254,9 +248,7 @@ class MeanScoresTrainPluginMetric(MeanScoresPluginMetricABC):
             self.update(strategy)
         super().after_training_iteration(strategy)
 
-    def after_training_epoch(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def after_training_epoch(self, strategy: "SupervisedTemplate") -> "MetricResult":
         if strategy.clock.train_exp_epochs == strategy.train_epochs - 1:
             return self._package_result(strategy)
         else:
@@ -287,9 +279,7 @@ def mean_scores_metrics(
     *,
     on_train: bool = True,
     on_eval: bool = True,
-    image_creator: Optional[
-        MeanScoresImageCreator
-    ] = default_mean_scores_image_creator,
+    image_creator: Optional[MeanScoresImageCreator] = default_mean_scores_image_creator,
 ) -> List[PluginMetric]:
     """
     Helper to create plugins to show the scores of the true class, averaged by

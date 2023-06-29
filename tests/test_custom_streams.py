@@ -10,7 +10,6 @@ from avalanche.benchmarks.utils import make_classification_dataset
 
 class CustomStreamsTests(unittest.TestCase):
     def test_custom_streams_name_and_length(self):
-
         train_exps = []
         test_exps = []
         valid_exps = []

@@ -23,14 +23,10 @@ class LeNet5(nn.Module):
             nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5, stride=1),
             nn.Tanh(),
             nn.AvgPool2d(kernel_size=2),
-            nn.Conv2d(
-                in_channels=16, out_channels=120, kernel_size=5, stride=1
-            ),
+            nn.Conv2d(in_channels=16, out_channels=120, kernel_size=5, stride=1),
             nn.Tanh(),
         )
-        self.ff = nn.Sequential(
-            nn.Linear(in_features=120, out_features=84), nn.Tanh()
-        )
+        self.ff = nn.Sequential(nn.Linear(in_features=120, out_features=84), nn.Tanh())
 
         self.classifier = nn.Sequential(
             nn.Linear(in_features=84, out_features=n_classes),

@@ -41,8 +41,7 @@ def vgg(depth: int, batch_normalization=False, pretrained=False) -> Module:
     available_depths = [11, 13, 16, 19]
     if depth not in available_depths:
         raise ValueError(
-            f"Depth {depth} not available, "
-            f"availble depths are {available_depths}"
+            f"Depth {depth} not available, " f"availble depths are {available_depths}"
         )
 
     name = f"vgg{depth}"

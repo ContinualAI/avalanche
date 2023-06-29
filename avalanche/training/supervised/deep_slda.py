@@ -41,8 +41,7 @@ class StreamingLDA(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
     ):
@@ -190,8 +189,7 @@ class StreamingLDA(SupervisedTemplate):
             # there have been updates to the model, compute Lambda
             self.Lambda = torch.pinverse(
                 (1 - self.shrinkage_param) * self.Sigma
-                + self.shrinkage_param
-                * torch.eye(self.input_size, device=self.device)
+                + self.shrinkage_param * torch.eye(self.input_size, device=self.device)
             )
             self.prev_num_updates = self.num_updates
 
@@ -225,9 +223,7 @@ class StreamingLDA(SupervisedTemplate):
 
         cov_estimator = OAS(assume_centered=True)
         cov_estimator.fit((X - self.muK[y]).cpu().numpy())
-        self.Sigma = (
-            torch.from_numpy(cov_estimator.covariance_).float().to(self.device)
-        )
+        self.Sigma = torch.from_numpy(cov_estimator.covariance_).float().to(self.device)
 
     def save_model(self, save_path, save_name):
         """

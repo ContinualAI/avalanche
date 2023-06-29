@@ -61,9 +61,7 @@ class MLPAdapter(nn.Module):
             return  # first adapter is empty
 
         # Eq. 2 - MLP adapter. Not needed for the first task.
-        self.V = nn.Linear(
-            in_features * num_prev_modules, out_features_per_column
-        )
+        self.V = nn.Linear(in_features * num_prev_modules, out_features_per_column)
         self.alphas = nn.Parameter(torch.randn(num_prev_modules))
         self.U = nn.Linear(out_features_per_column, out_features_per_column)
 
@@ -152,9 +150,7 @@ class PNNLayer(MultiTaskModule):
 
         # convert from task label to module list order
         self.task_to_module_idx = {}
-        first_col = PNNColumn(
-            in_features, out_features_per_column, 0, adapter=adapter
-        )
+        first_col = PNNColumn(in_features, out_features_per_column, 0, adapter=adapter)
         self.columns = nn.ModuleList([first_col])
 
     @property

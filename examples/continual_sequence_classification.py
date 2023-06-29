@@ -25,18 +25,14 @@ def main():
 
     if mfcc:
         mfcc_preprocess = torchaudio.transforms.MFCC(
-            sample_rate=16000, n_mfcc=40, 
-            melkwargs={"n_mels": 50, "hop_length": 10}
+            sample_rate=16000, n_mfcc=40, melkwargs={"n_mels": 50, "hop_length": 10}
         )
     else:
         mfcc_preprocess = None
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    train_ds = SpeechCommands(
-        subset="training", 
-        mfcc_preprocessing=mfcc_preprocess
-    )
+    train_ds = SpeechCommands(subset="training", mfcc_preprocessing=mfcc_preprocess)
     test_ds = SpeechCommands(
         subset="testing",  # you may also use "validation"
         mfcc_preprocessing=mfcc_preprocess,
@@ -71,13 +67,9 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(
-            epoch=True, experience=True, stream=True
-        ),
-        loss_metrics(
-            epoch=True, experience=True, stream=True
-        ),
-        loggers=[InteractiveLogger()]
+        accuracy_metrics(epoch=True, experience=True, stream=True),
+        loss_metrics(epoch=True, experience=True, stream=True),
+        loggers=[InteractiveLogger()],
     )
 
     strategy = Naive(
@@ -88,7 +80,7 @@ def main():
         train_epochs=1,
         eval_mb_size=256,
         device=device,
-        evaluator=eval_plugin
+        evaluator=eval_plugin,
     )
 
     for exp in benchmark.train_stream:

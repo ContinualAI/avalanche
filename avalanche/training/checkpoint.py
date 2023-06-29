@@ -46,12 +46,11 @@ def maybe_load_checkpoint(strategy, fname, map_location=None):
     if not os.path.exists(fname):
         return strategy, 0
 
-    ckp = torch.load(fname, pickle_module=dill,
-                     map_location=map_location)
+    ckp = torch.load(fname, pickle_module=dill, map_location=map_location)
 
     print(ckp)
-    strategy.__dict__.update(ckp['strategy'].__dict__)
-    exp_counter = ckp['exp_counter']
+    strategy.__dict__.update(ckp["strategy"].__dict__)
+    exp_counter = ckp["exp_counter"]
     return strategy, exp_counter
 
 
@@ -82,8 +81,8 @@ def save_checkpoint(strategy, fname, exclude=None):
         delattr(strategy, attr)
 
     checkpoint_data = {
-        'strategy': strategy,
-        'rng_manager': RNGManager,
-        'exp_counter': ended_experience_counter
+        "strategy": strategy,
+        "rng_manager": RNGManager,
+        "exp_counter": ended_experience_counter,
     }
     torch.save(checkpoint_data, fname, pickle_module=dill)

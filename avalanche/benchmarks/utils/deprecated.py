@@ -94,15 +94,12 @@ def AvalancheConcatDataset(
     *,
     transform: Optional[XTransform] = None,
     target_transform: Optional[YTransform] = None,
-    transform_groups: Optional[Dict[str, 
-                                    Tuple[XTransform, YTransform]]] = None,
+    transform_groups: Optional[Dict[str, Tuple[XTransform, YTransform]]] = None,
     initial_transform_group: Optional[str] = None,
-    task_labels: Optional[Union[int, 
-                                Sequence[int],
-                                Sequence[Sequence[int]]]] = None,
-    targets: Optional[Union[
-        Sequence[TTargetType], Sequence[Sequence[TTargetType]]
-    ]] = None,
+    task_labels: Optional[Union[int, Sequence[int], Sequence[Sequence[int]]]] = None,
+    targets: Optional[
+        Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
+    ] = None,
     collate_fn: Optional[Callable[[List], Any]] = None,
 ):
     warnings.warn(

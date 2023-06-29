@@ -39,9 +39,7 @@ from avalanche.logging import InteractiveLogger
 def main(args):
     # --- CONFIG
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     # ---------
 
@@ -71,9 +69,7 @@ def main(args):
         download=True,
         transform=test_transform,
     )
-    benchmark = nc_benchmark(
-        mnist_train, mnist_test, 5, task_labels=False, seed=1234
-    )
+    benchmark = nc_benchmark(mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
 
     # MODEL CREATION
@@ -85,9 +81,7 @@ def main(args):
         # save image should be False to appropriately view
         # results in Interactive Logger.
         # a tensor will be printed
-        confusion_matrix_metrics(
-            save_image=False, normalize="all", stream=True
-        ),
+        confusion_matrix_metrics(save_image=False, normalize="all", stream=True),
         loggers=InteractiveLogger(),
     )
 

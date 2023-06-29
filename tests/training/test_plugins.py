@@ -312,7 +312,6 @@ class PluginTests(unittest.TestCase):
         first_epoch_only=False,
         first_exp_only=False,
     ):
-
         benchmark = PluginTests.create_benchmark(n_samples_per_class=20)
         model = _PlainMLP(input_size=6, hidden_size=10)
         optim = SGD(model.parameters(), lr=base_lr)
@@ -341,15 +340,13 @@ class PluginTests(unittest.TestCase):
         self.assertSetEqual(set(dict1.keys()), set(dict2.keys()))
 
         # compare params
-        for (k, v) in dict1.items():
+        for k, v in dict1.items():
             self.assertTrue(torch.equal(v, dict2[k]))
 
     def assert_benchmark_equals(
         self, bench1: GenericCLScenario, bench2: GenericCLScenario
     ):
-        self.assertSetEqual(
-            set(bench1.streams.keys()), set(bench2.streams.keys())
-        )
+        self.assertSetEqual(set(bench1.streams.keys()), set(bench2.streams.keys()))
 
         def get_mbatch(data, batch_size=5):
             dl = DataLoader(
@@ -367,19 +364,11 @@ class PluginTests(unittest.TestCase):
                 dataset1 = exp1.dataset
                 dataset2 = exp2.dataset
                 for t_idx in range(3):
-                    dataset1_content = get_mbatch(dataset1, len(dataset1))[
-                        t_idx
-                    ]
-                    dataset2_content = get_mbatch(dataset2, len(dataset2))[:][
-                        t_idx
-                    ]
-                    self.assertTrue(
-                        torch.equal(dataset1_content, dataset2_content)
-                    )
+                    dataset1_content = get_mbatch(dataset1, len(dataset1))[t_idx]
+                    dataset2_content = get_mbatch(dataset2, len(dataset2))[:][t_idx]
+                    self.assertTrue(torch.equal(dataset1_content, dataset2_content))
 
-    def _verify_rop_tests_reproducibility(
-        self, init_strategy, n_epochs, criterion
-    ):
+    def _verify_rop_tests_reproducibility(self, init_strategy, n_epochs, criterion):
         # This doesn't actually test the support for the specific scheduler
         # (ReduceLROnPlateau), but it's only used to check if:
         # - the same model+benchmark pair can be instantiated in a
@@ -440,9 +429,7 @@ class PluginTests(unittest.TestCase):
         def _prepare_rng_critical_parts(seed=1234):
             torch.random.manual_seed(seed)
             return (
-                PluginTests.create_benchmark(
-                    seed=seed, n_samples_per_class=100
-                ),
+                PluginTests.create_benchmark(seed=seed, n_samples_per_class=100),
                 _PlainMLP(input_size=6, hidden_size=10),
             )
 
@@ -565,8 +552,7 @@ class PluginTests(unittest.TestCase):
 
     @unittest.skipIf(
         FAST_TEST,
-        "skip test because it is extremely slow "
-        "and should not be broken easily.",
+        "skip test because it is extremely slow " "and should not be broken easily.",
     )
     def test_scheduler_reduce_on_plateau_plugin_with_val_stream(self):
         # Regression test for issue #858 (part 2)
@@ -631,7 +617,6 @@ class PluginTests(unittest.TestCase):
                         scheduler = ReduceLROnPlateau(optimizer)
 
                     for epoch in range(n_epochs):
-
                         val_exp = benchmark.valid_stream[exp_idx]
 
                         for x, y, t in TaskBalancedDataLoader(
@@ -858,7 +843,6 @@ class _PlainMLP(nn.Module, BaseModel):
         hidden_size=512,
         hidden_layers=1,
     ):
-
         super().__init__()
 
         layers = nn.Sequential(

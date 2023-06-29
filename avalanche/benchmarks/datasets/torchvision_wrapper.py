@@ -155,7 +155,6 @@ def CelebA(*args, **kwargs):
 
 
 if __name__ == "__main__":
-
     mnist = MNIST(".", download=True)
 
 

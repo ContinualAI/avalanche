@@ -8,9 +8,10 @@ from avalanche.benchmarks.scenarios import CLExperience
 
 
 def is_multi_task_module(model: nn.Module) -> bool:
-    return isinstance(model, MultiTaskModule) or \
-        (isinstance(model, DistributedDataParallel) and 
-         isinstance(model.module, MultiTaskModule))
+    return isinstance(model, MultiTaskModule) or (
+        isinstance(model, DistributedDataParallel)
+        and isinstance(model.module, MultiTaskModule)
+    )
 
 
 def avalanche_forward(model, x, task_labels):
@@ -22,8 +23,10 @@ def avalanche_forward(model, x, task_labels):
 
 def avalanche_model_adaptation(model: nn.Module, experience: CLExperience):
     if isinstance(model, DistributedDataParallel):
-        raise RuntimeError('The model is wrapped in DistributedDataParallel. '
-                           'Please unwrap it before calling this method.')
+        raise RuntimeError(
+            "The model is wrapped in DistributedDataParallel. "
+            "Please unwrap it before calling this method."
+        )
     for module in model.modules():
         if isinstance(module, DynamicModule):
             module.adaptation(experience)

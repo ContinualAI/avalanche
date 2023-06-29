@@ -92,9 +92,7 @@ class MaxGPU(Metric[float]):
             gpu_perc = GPUtil.getGPUs()[self.gpu_id].load * 100
             if gpu_perc > self.max_usage:
                 self.max_usage = gpu_perc
-            time.sleep(
-                self.every - ((time.monotonic() - start_time) % self.every)
-            )
+            time.sleep(self.every - ((time.monotonic() - start_time) % self.every))
 
     def start_thread(self):
         if self.gpu_id is not None:
@@ -136,10 +134,7 @@ class GPUPluginMetric(GenericPluginMetric[float, MaxGPU]):
         self.gpu_id = gpu_id
 
         super(GPUPluginMetric, self).__init__(
-            MaxGPU(gpu_id, every), 
-            reset_at=reset_at,
-            emit_at=emit_at,
-            mode=mode
+            MaxGPU(gpu_id, every), reset_at=reset_at, emit_at=emit_at, mode=mode
         )
 
     def update(self, strategy):

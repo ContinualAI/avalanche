@@ -37,9 +37,7 @@ from avalanche.benchmarks.scenarios.classification_scenario import (
 from avalanche.benchmarks.scenarios.generic_scenario_creation import *
 from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
-from avalanche.benchmarks.utils.classification_dataset import (
-    SupportedDataset
-)
+from avalanche.benchmarks.utils.classification_dataset import SupportedDataset
 
 
 def nc_scenario(
@@ -156,7 +154,7 @@ def nc_scenario(
         class_ids_from_zero_from_first_exp=class_ids_from_zero_from_first_exp,
         class_ids_from_zero_in_each_exp=class_ids_from_zero_in_each_exp,
         one_dataset_per_exp=one_dataset_per_exp,
-        reproducibility_data=reproducibility_data
+        reproducibility_data=reproducibility_data,
     )
 
 
@@ -243,7 +241,7 @@ def ni_scenario(
         balance_experiences=balance_experiences,
         min_class_patterns_in_exp=min_class_patterns_in_exp,
         fixed_exp_assignment=fixed_exp_assignment,
-        reproducibility_data=reproducibility_data
+        reproducibility_data=reproducibility_data,
     )
 
 
@@ -394,9 +392,7 @@ FileAndLabel = Tuple[Union[str, Path], int]
 
 def paths_scenario(
     train_list_of_files: Sequence[Sequence[FileAndLabel]],
-    test_list_of_files: Union[
-        Sequence[FileAndLabel], Sequence[Sequence[FileAndLabel]]
-    ],
+    test_list_of_files: Union[Sequence[FileAndLabel], Sequence[Sequence[FileAndLabel]]],
     task_labels: Sequence[int],
     *,
     complete_test_set_only: bool = False,
@@ -669,8 +665,7 @@ def tensor_scenario(
 
     if len(train_data_x) != len(train_data_y):
         raise ValueError(
-            "train_data_x and train_data_y must contain"
-            " the same amount of elements"
+            "train_data_x and train_data_y must contain" " the same amount of elements"
         )
 
     exp_train_first_structure = []

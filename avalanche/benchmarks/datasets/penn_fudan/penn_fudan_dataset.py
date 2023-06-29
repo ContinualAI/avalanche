@@ -169,8 +169,9 @@ class PennFudanDataset(SimpleDownloadableDataset):
         masks = torch.as_tensor(masks, dtype=torch.uint8)
 
         image_id = torch.tensor([idx])
-        area = (boxes_as_tensor[:, 3] - boxes_as_tensor[:, 1]) * \
-               (boxes_as_tensor[:, 2] - boxes_as_tensor[:, 0])
+        area = (boxes_as_tensor[:, 3] - boxes_as_tensor[:, 1]) * (
+            boxes_as_tensor[:, 2] - boxes_as_tensor[:, 0]
+        )
         # suppose all instances are not crowd
         iscrowd = torch.zeros((num_objs,), dtype=torch.int64)
 

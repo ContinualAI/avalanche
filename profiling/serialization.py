@@ -17,16 +17,18 @@ from avalanche.training.determinism import RNGManager
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.serialization import maybe_load_checkpoint, save_checkpoint
 
-if __name__ == '__main__':
-    device = 'cpu'
+if __name__ == "__main__":
+    device = "cpu"
     RNGManager.set_random_seeds(42)
     fname = "./checkpoint.pkl"
 
     benchmark = SplitCIFAR100(50)
-    evaluator = EvaluationPlugin(accuracy_metrics(experience=True), loggers=[InteractiveLogger()])
+    evaluator = EvaluationPlugin(
+        accuracy_metrics(experience=True), loggers=[InteractiveLogger()]
+    )
 
-    model = SimpleMLP(input_size=32*32*3, num_classes=benchmark.n_classes)
-    opt = SGD(model.parameters(), lr=.1)
+    model = SimpleMLP(input_size=32 * 32 * 3, num_classes=benchmark.n_classes)
+    opt = SGD(model.parameters(), lr=0.1)
     strat = Naive(model, opt, train_mb_size=128)
 
     if os.path.exists(fname):
@@ -41,17 +43,21 @@ if __name__ == '__main__':
         strat.eval(exp)
 
         start_time = time.time()
-        save_checkpoint(strat, fname, exclude=[
-            # 'optimizer',
-            # These attributes do not have state. Do not save.
-            # They are automatically set to None by the strategy templates
-            # If not, there is a bug...
-            # 'experience',
-            # 'adapted_dataset',
-            # 'dataloader',
-            # 'mbatch',
-            # 'mb_output',
-            # 'current_eval_stream',
-            # '_eval_streams'
-        ])
+        save_checkpoint(
+            strat,
+            fname,
+            exclude=[
+                # 'optimizer',
+                # These attributes do not have state. Do not save.
+                # They are automatically set to None by the strategy templates
+                # If not, there is a bug...
+                # 'experience',
+                # 'adapted_dataset',
+                # 'dataloader',
+                # 'mbatch',
+                # 'mb_output',
+                # 'current_eval_stream',
+                # '_eval_streams'
+            ],
+        )
         print("SAVING TIME: ", time.time() - start_time)

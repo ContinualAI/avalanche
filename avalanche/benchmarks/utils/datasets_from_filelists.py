@@ -67,20 +67,18 @@ def default_flist_reader(flist: Union[str, Path]) -> List[Tuple[str, int]]:
     return imlist
 
 
-T = TypeVar('T', covariant=True)
-TTargetsType = TypeVar('TTargetsType')
+T = TypeVar("T", covariant=True)
+TTargetsType = TypeVar("TTargetsType")
 
 PathALikeT = Union[Path, str]
 CoordsT = Union[int, float]
 CropBoxT = Tuple[CoordsT, CoordsT, CoordsT, CoordsT]
 FilesDefT = Union[
-    Tuple[PathALikeT, TTargetsType],
-    Tuple[PathALikeT, TTargetsType, Sequence[int]]
+    Tuple[PathALikeT, TTargetsType], Tuple[PathALikeT, TTargetsType, Sequence[int]]
 ]
 
 
-class PathsDataset(data.Dataset[Tuple[T, TTargetsType]], 
-                   Generic[T, TTargetsType]):
+class PathsDataset(data.Dataset[Tuple[T, TTargetsType]], Generic[T, TTargetsType]):
     """
     This class extends the basic Pytorch Dataset class to handle list of paths
     as the main data source.
@@ -249,9 +247,7 @@ def datasets_from_filelists(
     """
 
     if complete_test_set_only:
-        if not (
-            isinstance(test_filelists, str) or isinstance(test_filelists, Path)
-        ):
+        if not (isinstance(test_filelists, str) or isinstance(test_filelists, Path)):
             if len(test_filelists) > 1:
                 raise ValueError(
                     "When complete_test_set_only is True, test_filelists must "
@@ -372,14 +368,8 @@ def datasets_from_paths(
     # Detect common root
     try:
         all_paths = [
-            pattern_tuple[0]
-            for exp_list in train_list
-            for pattern_tuple in exp_list
-        ] + [
-            pattern_tuple[0]
-            for exp_list in test_list
-            for pattern_tuple in exp_list
-        ]
+            pattern_tuple[0] for exp_list in train_list for pattern_tuple in exp_list
+        ] + [pattern_tuple[0] for exp_list in test_list for pattern_tuple in exp_list]
 
         common_root = os.path.commonpath(all_paths)
     except ValueError:
@@ -454,8 +444,9 @@ def datasets_from_paths(
     return train_inc_datasets, test_inc_datasets
 
 
-def common_paths_root(exp_list: Sequence[FilesDefT]) -> \
-        Tuple[Union[str, None], Sequence[FilesDefT]]:
+def common_paths_root(
+    exp_list: Sequence[FilesDefT],
+) -> Tuple[Union[str, None], Sequence[FilesDefT]]:
     common_root = None
 
     # Detect common root

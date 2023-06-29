@@ -39,17 +39,13 @@ class MultiTaskDecorator(MultiTaskModule):
         if isinstance(old_classifier, nn.Linear):
             in_size = old_classifier.in_features
             out_size = old_classifier.out_features
-            old_params = [
-                torch.clone(p.data) for p in old_classifier.parameters()
-            ]
+            old_params = [torch.clone(p.data) for p in old_classifier.parameters()]
             # Replace old classifier by empty block
             setattr(self.model, classifier_name, nn.Sequential())
         elif isinstance(old_classifier, nn.Sequential):
             in_size = old_classifier[-1].in_features
             out_size = old_classifier[-1].out_features
-            old_params = [
-                torch.clone(p.data) for p in old_classifier[-1].parameters()
-            ]
+            old_params = [torch.clone(p.data) for p in old_classifier[-1].parameters()]
             del old_classifier[-1]
         else:
             raise NotImplementedError(

@@ -79,9 +79,9 @@ class TransformGroups:
     def __init__(
         self,
         transform_groups: Mapping[
-            str, Union[None, 
-                       Callable,
-                       Sequence[Union[Callable, XTransform, YTransform]]]],
+            str,
+            Union[None, Callable, Sequence[Union[Callable, XTransform, YTransform]]],
+        ],
         current_group="train",
     ):
         """Constructor.
@@ -90,9 +90,9 @@ class TransformGroups:
             and transformations (pytorch transformations) as values.
         :param current_group: the currently active group.
         """
-        self.transform_groups: Dict[str, Union[TupleTransform, 
-                                               MultiParamTransform,
-                                               None]] = dict()
+        self.transform_groups: Dict[
+            str, Union[TupleTransform, MultiParamTransform, None]
+        ] = dict()
         for group, transform in transform_groups.items():
             norm_transform = _normalize_transform(transform)
             self.transform_groups[group] = norm_transform
@@ -141,9 +141,7 @@ class TransformGroups:
                 self_group = tgroups[gname]
                 other_group = gtrans
 
-                to_expand_group: Union[TupleTransform, 
-                                       MultiParamTransform,
-                                       None]
+                to_expand_group: Union[TupleTransform, MultiParamTransform, None]
                 for to_expand_group in [self_group, other_group]:
                     if to_expand_group is None:
                         pass
@@ -223,13 +221,13 @@ def _normalize_transform(transforms):
 
 
 __all__ = [
-    'XComposedTransformDef',
-    'XTransformDef',
-    'YTransformDef',
-    'XTransform',
-    'YTransform',
-    'TransformGroupDef',
-    'TransformGroups',
-    'DefaultTransformGroups',
-    'EmptyTransformGroups'
+    "XComposedTransformDef",
+    "XTransformDef",
+    "YTransformDef",
+    "XTransform",
+    "YTransform",
+    "TransformGroupDef",
+    "TransformGroups",
+    "DefaultTransformGroups",
+    "EmptyTransformGroups",
 ]

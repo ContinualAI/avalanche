@@ -156,9 +156,7 @@ class MiniImageNetDataset(Dataset):
         """
 
         # TODO: the original loader from yaoyao-liu uses cv2.INTER_AREA
-        self._transform = Resize(
-            self.resize_to, interpolation=PIL.Image.BILINEAR
-        )
+        self._transform = Resize(self.resize_to, interpolation=PIL.Image.BILINEAR)
 
         # The following fields are filled by self.prepare_dataset()
         self.image_paths: List[str] = []
@@ -264,24 +262,16 @@ class MiniImageNetDataset(Dataset):
         for cls in images.keys():
             cls_numerical_label = self.wnid_to_idx[cls]
             lst_files = []
-            for file in glob.glob(
-                str(self.imagenet_path / cls / ("*" + cls + "*"))
-            ):
+            for file in glob.glob(str(self.imagenet_path / cls / ("*" + cls + "*"))):
                 lst_files.append(file)
 
-            lst_index = [
-                int(i[i.rfind("_") + 1 : i.rfind(".")]) for i in lst_files
-            ]
-            index_sorted = sorted(
-                range(len(lst_index)), key=lst_index.__getitem__
-            )
+            lst_index = [int(i[i.rfind("_") + 1 : i.rfind(".")]) for i in lst_files]
+            index_sorted = sorted(range(len(lst_index)), key=lst_index.__getitem__)
 
             index_selected = [
                 int(i[i.index(".") - 4 : i.index(".")]) for i in images[cls]
             ]
-            selected_images = np.array(index_sorted)[
-                np.array(index_selected) - 1
-            ]
+            selected_images = np.array(index_sorted)[np.array(index_selected) - 1]
             for i in np.arange(len(selected_images)):
                 self.image_paths.append(lst_files[selected_images[i]])
                 self.targets.append(cls_numerical_label)
@@ -301,9 +291,7 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     print("Creating training dataset")
-    train_dataset = MiniImageNetDataset(
-        "/ssd2/datasets/imagenet", split="train"
-    )
+    train_dataset = MiniImageNetDataset("/ssd2/datasets/imagenet", split="train")
     print("Creating validation dataset")
     val_dataset = MiniImageNetDataset("/ssd2/datasets/imagenet", split="val")
     print("Creating test dataset")
@@ -325,9 +313,7 @@ if __name__ == "__main__":
         plt.show()
         print(img)
         print(label)
-        class_to_idx = train_dataset.class_to_idx[
-            train_dataset.classes[label][0]
-        ]
+        class_to_idx = train_dataset.class_to_idx[train_dataset.classes[label][0]]
         assert class_to_idx == label
         if img_idx == 2:
             break
@@ -357,9 +343,7 @@ if __name__ == "__main__":
         plt.show()
         print(img)
         print(label)
-        class_to_idx = test_dataset.class_to_idx[
-            train_dataset.classes[label][0]
-        ]
+        class_to_idx = test_dataset.class_to_idx[train_dataset.classes[label][0]]
         assert class_to_idx == label
         if img_idx == 2:
             break

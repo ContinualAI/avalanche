@@ -3,12 +3,16 @@ from unittest.mock import Mock
 import time
 from tqdm import tqdm
 
-from avalanche.benchmarks import fixed_size_experience_split, SplitMNIST, split_online_stream
+from avalanche.benchmarks import (
+    fixed_size_experience_split,
+    SplitMNIST,
+    split_online_stream,
+)
 from avalanche.training import ReservoirSamplingBuffer
 from avalanche.training import ParametricBuffer
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     benchmark = SplitMNIST(n_experiences=5)
 
     experience = benchmark.train_stream[0]

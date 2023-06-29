@@ -18,15 +18,14 @@ from avalanche.benchmarks.scenarios.generic_scenario import CLExperience
 
 
 def AE_loss(target, reconstruction):
-    """Calculates the MSE loss for the autoencoder by comparing the 
+    """Calculates the MSE loss for the autoencoder by comparing the
     reconstruction to the pre-processed input.
 
     :param target: the target for the autoencoder
     :param reconstruction: output of the autoencoder
     :return: mean squared error loss between the target and reconstruction
     """
-    reconstruction_loss = mse_loss(
-        input=reconstruction, target=target, reduction="sum")
+    reconstruction_loss = mse_loss(input=reconstruction, target=target, reduction="sum")
     return reconstruction_loss
 
 
@@ -35,36 +34,39 @@ class ExpertAutoencoder(nn.Module):
     for the incoming data.
     """
 
-    def __init__(self, 
-                 shape, 
-                 latent_dim, 
-                 device,
-                 arch="alexnet",
-                 pretrained_flag=True,
-                 output_layer_name="features"):
+    def __init__(
+        self,
+        shape,
+        latent_dim,
+        device,
+        arch="alexnet",
+        pretrained_flag=True,
+        output_layer_name="features",
+    ):
         """
         :param shape: shape of the input layer
         :param latent_dim: size of the autoencoder's latent dimension
         :param device: gpu or cpu
-        :param arch: the architecture to use from torchvision.models, 
+        :param arch: the architecture to use from torchvision.models,
         defaults to "alexnet"
-        :param pretrained_flag: determines if torchvision model is pre-trained, 
+        :param pretrained_flag: determines if torchvision model is pre-trained,
         defaults to True
-        :param output_layer_name: output layer of the feature backbone, 
+        :param output_layer_name: output layer of the feature backbone,
         defaults to "features"
         """
 
         super().__init__()
 
-        # Select pretrained AlexNet for preprocessing input 
-        base_template = (models.__dict__[arch](
-            weights=('AlexNet_Weights.IMAGENET1K_V1' 
-                     if pretrained_flag 
-                     else 'AlexNet_Weights.NONE'))
-            .to(device))
+        # Select pretrained AlexNet for preprocessing input
+        base_template = models.__dict__[arch](
+            weights=(
+                "AlexNet_Weights.IMAGENET1K_V1"
+                if pretrained_flag
+                else "AlexNet_Weights.NONE"
+            )
+        ).to(device)
 
-        self.feature_module = FeatureExtractorBackbone(
-                base_template, output_layer_name)
+        self.feature_module = FeatureExtractorBackbone(base_template, output_layer_name)
 
         self.feature_module.to(device)
 
@@ -79,19 +81,15 @@ class ExpertAutoencoder(nn.Module):
         # Encoder Linear -> ReLU
         flattened_size = torch.Size(shape).numel()
         self.encoder = nn.Sequential(
-            Flatten(),
-            nn.Linear(flattened_size, latent_dim),
-            nn.ReLU()
+            Flatten(), nn.Linear(flattened_size, latent_dim), nn.ReLU()
         ).to(device)
 
         # Decoder Linear -> Sigmoid
         self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, flattened_size), 
-            nn.Sigmoid()
+            nn.Linear(latent_dim, flattened_size), nn.Sigmoid()
         ).to(device)
 
     def forward(self, x):
-
         # Preprocessing step
         x = x.to(self.device)
         x = self.feature_module(x)
@@ -107,24 +105,21 @@ class ExpertAutoencoder(nn.Module):
 
 
 class ExpertModel(nn.Module):
-    """The expert classifier which sits behind the autoencoder. 
-    Each expert classifieris usually a pre-trained AlexNet fine-tuned 
-    on a specific task. The final classification layer is replaced and 
+    """The expert classifier which sits behind the autoencoder.
+    Each expert classifieris usually a pre-trained AlexNet fine-tuned
+    on a specific task. The final classification layer is replaced and
     sized based on the number of classes for a task.
     """
 
-    def __init__(self, 
-                 num_classes, 
-                 arch, 
-                 device, 
-                 pretrained_flag, 
-                 provided_template=None):
+    def __init__(
+        self, num_classes, arch, device, pretrained_flag, provided_template=None
+    ):
         """
         :param num_classes: number of classes this expert model will classify
         :param arch: the architecture to use from torchvision.models
         :param device: gpu or cpu
-        :param pretrained_flag: determines if torchvision model is pre-trained 
-        :param provided_template: the expert model to copy the backbone from, 
+        :param pretrained_flag: determines if torchvision model is pre-trained
+        :param provided_template: the expert model to copy the backbone from,
         defaults to None
         """
         super().__init__()
@@ -133,33 +128,36 @@ class ExpertModel(nn.Module):
         self.num_classes = num_classes
 
         # Select pretrained AlexNet for feature backbone
-        base_template = (models.__dict__[arch](
-            weights=('AlexNet_Weights.IMAGENET1K_V1' 
-                     if pretrained_flag 
-                     else 'AlexNet_Weights.NONE'))
-            .to(device))
+        base_template = models.__dict__[arch](
+            weights=(
+                "AlexNet_Weights.IMAGENET1K_V1"
+                if pretrained_flag
+                else "AlexNet_Weights.NONE"
+            )
+        ).to(device)
 
-        # Set the feature module from provided template 
-        if (provided_template is None):
-            self.feature_module = deepcopy(base_template._modules['features'])
+        # Set the feature module from provided template
+        if provided_template is None:
+            self.feature_module = deepcopy(base_template._modules["features"])
 
         # Use base template if nothing provided
-        else: 
+        else:
             self.feature_module = deepcopy(provided_template.feature_module)
 
         # Set avgpool layer
-        self.avg_pool = deepcopy(base_template._modules['avgpool'])
+        self.avg_pool = deepcopy(base_template._modules["avgpool"])
 
         # Flattener
         self.flatten = Flatten()
 
         # Classifier module
-        self.classifier_module = deepcopy(base_template._modules['classifier'])
+        self.classifier_module = deepcopy(base_template._modules["classifier"])
 
         # Customize final layer for  the number of classes in the data
         original_classifier_input_dim = self.classifier_module[-1].in_features
         self.classifier_module[-1] = nn.Linear(
-            original_classifier_input_dim, self.num_classes)
+            original_classifier_input_dim, self.num_classes
+        )
 
         for param in self.parameters():
             param.requires_grad = True
@@ -173,8 +171,8 @@ class ExpertModel(nn.Module):
 
 
 class ExpertGate(nn.Module):
-    """Overall parent module that holds the dictionary of expert autoencoders 
-    and expert classifiers. 
+    """Overall parent module that holds the dictionary of expert autoencoders
+    and expert classifiers.
     """
 
     def __init__(
@@ -183,16 +181,16 @@ class ExpertGate(nn.Module):
         device,
         arch="alexnet",
         pretrained_flag=True,
-        output_layer_name="features"
+        output_layer_name="features",
     ):
         """
         :param shape: shape of the input layer
         :param device: gpu or cpu
-        :param arch: the architecture to use from torchvision.models, 
+        :param arch: the architecture to use from torchvision.models,
         defaults to "alexnet"
-        :param pretrained_flag: determines if torchvision model is pre-trained, 
+        :param pretrained_flag: determines if torchvision model is pre-trained,
         defaults to True
-        :param output_layer_name: output layer of the feature backbone, 
+        :param output_layer_name: output layer of the feature backbone,
         defaults to "features"
         """
         super().__init__()
@@ -214,15 +212,17 @@ class ExpertGate(nn.Module):
         # Initialize an expert with pretrained AlexNet
         self.expert = (
             models.__dict__[arch](
-                weights=('AlexNet_Weights.IMAGENET1K_V1' 
-                         if pretrained_flag 
-                         else 'AlexNet_Weights.NONE'))
+                weights=(
+                    "AlexNet_Weights.IMAGENET1K_V1"
+                    if pretrained_flag
+                    else "AlexNet_Weights.NONE"
+                )
+            )
             .to(device)
             .eval()
         )
 
     def _get_average_reconstruction_error(self, autoencoder_id, x):
-
         # Select autoencoder with the given ID
         autoencoder = self.autoencoder_dict[str(autoencoder_id)]
 
@@ -238,18 +238,15 @@ class ExpertGate(nn.Module):
         return error
 
     def forward(self, x):
-
         # If not in training mode, select the best expert for the input data
-        if (not self.training):
-
+        if not self.training:
             # Build an error tensor to hold errors for all autoencoders
-            all_errors = [None]*len(self.autoencoder_dict)
+            all_errors = [None] * len(self.autoencoder_dict)
 
             # Iterate through all autoencoders to populate error tensor
             for autoencoder_id in self.autoencoder_dict:
-                error = self._get_average_reconstruction_error(
-                    autoencoder_id, x)
-                error = -error/self.temp
+                error = self._get_average_reconstruction_error(autoencoder_id, x)
+                error = -error / self.temp
                 all_errors[int(autoencoder_id)] = torch.tensor(error)
 
             # Softmax to get probabilites

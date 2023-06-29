@@ -31,9 +31,7 @@ from avalanche.training.supervised import Naive
 def main(args):
     # --- CONFIG
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     # ---------
 
@@ -63,9 +61,7 @@ def main(args):
         download=True,
         transform=test_transform,
     )
-    benchmark = nc_benchmark(
-        mnist_train, mnist_test, 5, task_labels=False, seed=1234
-    )
+    benchmark = nc_benchmark(mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
 
     # MODEL CREATION

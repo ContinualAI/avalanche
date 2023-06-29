@@ -59,9 +59,7 @@ class IDatasetWithTargets(IDataset[T_co], Protocol[T_co, TTargetType_co]):
         ...
 
 
-class ISupportedClassificationDataset(
-    IDatasetWithTargets[T_co, SupportsInt], Protocol
-):
+class ISupportedClassificationDataset(IDatasetWithTargets[T_co, SupportsInt], Protocol):
     """
     Protocol definition of a Dataset that has a valid targets field (like the
     Datasets in the torchvision package) for classification.
@@ -78,6 +76,7 @@ class ISupportedClassificationDataset(
     On the contrary, class :class:`IClassificationDataset` strictly
     defines a `targets` field as sequence of native `int`s.
     """
+
     @property
     def targets(self) -> Sequence[SupportsInt]:
         """

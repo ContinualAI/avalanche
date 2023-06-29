@@ -25,7 +25,6 @@ class EndlessCLSimTest(unittest.TestCase):
         "We don't want to download large datasets in github actions.",
     )
     def test_endless_cl_classification(self):
-
         if "FAST_TEST" in os.environ:
             pass
         else:

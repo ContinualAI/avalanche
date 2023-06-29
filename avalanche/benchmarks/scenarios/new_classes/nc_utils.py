@@ -39,16 +39,14 @@ def _indexes_grouped_by_classes(
     # Without the tensor_as_list conversion:
     # result_per_class[element].append(idx) -> error
     # because result_per_class[0] won't exist (result_per_class[tensor(0)] will)
-    
+
     sequence_list: List[int] = tensor_as_list(sequence)
     if search_elements is not None:
         search_elements_list = tensor_as_list(search_elements)
     else:
-        search_elements_list = torch.unique(
-            torch.as_tensor(sequence_list)).tolist()
+        search_elements_list = torch.unique(torch.as_tensor(sequence_list)).tolist()
 
     if sort_classes:
-
         # Consider that result_per_class is an OrderedDict
         # This means that, if sort_classes is True, the next for statement
         # will initialize the "result_per_class" in sorted order ->
@@ -194,7 +192,7 @@ def make_nc_transformation_subset(
     return classification_subset(
         dataset,
         indices=_indexes_from_set(
-            getattr(dataset, 'targets'),
+            getattr(dataset, "targets"),
             classes,
             bucket_classes=bucket_classes,
             sort_classes=sort_classes,
@@ -205,6 +203,4 @@ def make_nc_transformation_subset(
     )
 
 
-__all__ = [
-    "make_nc_transformation_subset"
-]
+__all__ = ["make_nc_transformation_subset"]

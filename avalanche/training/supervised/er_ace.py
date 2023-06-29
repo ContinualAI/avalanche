@@ -13,12 +13,7 @@ from avalanche.training.plugins.evaluation import (
 )
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
-
-
-def cycle(loader):
-    while True:
-        for batch in loader:
-            yield batch
+from avalanche.training.utils import cycle
 
 
 class ER_ACE(SupervisedTemplate):
@@ -48,8 +43,7 @@ class ER_ACE(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -158,8 +152,10 @@ class ER_ACE(SupervisedTemplate):
         # Update buffer before training exp so that we have current data in
         self.storage_policy.update(self, **kwargs)
         buffer = self.storage_policy.buffer
-        if len(buffer) >= self.batch_size_mem and \
-                self.experience.current_experience > 0:
+        if (
+            len(buffer) >= self.batch_size_mem
+            and self.experience.current_experience > 0
+        ):
             self.replay_loader = cycle(
                 torch.utils.data.DataLoader(
                     buffer,

@@ -7,8 +7,9 @@ from torchvision.datasets import MNIST
 
 from avalanche.benchmarks import tensors_benchmark
 from avalanche.benchmarks.generators import nc_benchmark, ni_benchmark
-from avalanche.benchmarks.scenarios.classification_scenario import \
-    ClassificationExperience
+from avalanche.benchmarks.scenarios.classification_scenario import (
+    ClassificationExperience,
+)
 
 
 class ScenariosTypeChecksTests(unittest.TestCase):
@@ -48,9 +49,7 @@ class ScenariosTypeChecksTests(unittest.TestCase):
             train=False,
             download=True,
         )
-        my_nc_benchmark = nc_benchmark(
-            mnist_train, mnist_test, 5, task_labels=False
-        )
+        my_nc_benchmark = nc_benchmark(mnist_train, mnist_test, 5, task_labels=False)
 
         for batch_info in my_nc_benchmark.train_stream:
             self.assertIsInstance(batch_info, ClassificationExperience)
@@ -82,12 +81,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
 
         tensors_benchmark(
             train_tensors=[
-                (torch.randn(2, 3), torch.zeros(2))
-                for _ in range(n_experiences)
+                (torch.randn(2, 3), torch.zeros(2)) for _ in range(n_experiences)
             ],
             test_tensors=[
-                (torch.randn(2, 3), torch.zeros(2))
-                for _ in range(n_experiences)
+                (torch.randn(2, 3), torch.zeros(2)) for _ in range(n_experiences)
             ],
             task_labels=[0] * n_experiences,
             complete_test_set_only=False,
@@ -95,8 +92,7 @@ class ScenariosTypeChecksTests(unittest.TestCase):
 
         tensors_benchmark(
             train_tensors=[
-                (torch.randn(2, 3), torch.zeros(2))
-                for _ in range(n_experiences)
+                (torch.randn(2, 3), torch.zeros(2)) for _ in range(n_experiences)
             ],
             test_tensors=[(torch.randn(2, 3), torch.zeros(2))],
             task_labels=[0] * n_experiences,
@@ -106,12 +102,10 @@ class ScenariosTypeChecksTests(unittest.TestCase):
         with self.assertRaises(Exception):
             tensors_benchmark(
                 train_tensors=[
-                    (torch.randn(2, 3), torch.zeros(2))
-                    for _ in range(n_experiences)
+                    (torch.randn(2, 3), torch.zeros(2)) for _ in range(n_experiences)
                 ],
                 test_tensors=[
-                    (torch.randn(2, 3), torch.zeros(2))
-                    for _ in range(n_experiences)
+                    (torch.randn(2, 3), torch.zeros(2)) for _ in range(n_experiences)
                 ],
                 task_labels=[0] * n_experiences,
                 complete_test_set_only=True,
