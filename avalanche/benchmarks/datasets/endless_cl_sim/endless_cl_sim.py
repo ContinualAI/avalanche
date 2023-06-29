@@ -160,9 +160,7 @@ class VideoSubSequence(Dataset):
         self.classmap = self._load_classmap(classmap_file=self.classmap_file)
 
         # Init labelmap
-        self.labelmap = self._load_labelmap(
-            labelmap_file=self.segmentation_file
-        )
+        self.labelmap = self._load_labelmap(labelmap_file=self.segmentation_file)
         return
 
     def _pil_loader(self, file_path, is_target=False):
@@ -319,9 +317,7 @@ class EndlessCLSimDataset(DownloadableDataset):
         if scenario is None and download:
             raise ValueError("No scenario defined to download!")
 
-        super(EndlessCLSimDataset, self).__init__(
-            root, download=download, verbose=True
-        )
+        super(EndlessCLSimDataset, self).__init__(root, download=download, verbose=True)
 
         self.scenario = scenario
         self.patch_size = patch_size
@@ -479,17 +475,13 @@ class EndlessCLSimDataset(DownloadableDataset):
                     dir_name = data_content.split(os.path.sep)[-1]
                     if "Color" == dir_name:
                         # Extend color path
-                        color_path = (
-                            data_content + os.path.sep + "0" + os.path.sep
-                        )
+                        color_path = data_content + os.path.sep + "0" + os.path.sep
                         # Get all files
                         for file_name in sorted(os.listdir(color_path)):
                             image_paths.append(color_path + file_name)
                     elif "Seg" == dir_name:
                         # Extend seg path
-                        seg_path = (
-                            data_content + os.path.sep + "0" + os.path.sep
-                        )
+                        seg_path = data_content + os.path.sep + "0" + os.path.sep
                         # Get all files
                         for file_name in sorted(os.listdir(seg_path)):
                             target_paths.append(seg_path + file_name)
@@ -515,9 +507,7 @@ class EndlessCLSimDataset(DownloadableDataset):
             if self.verbose:
                 print("All metadata checks complete!")
 
-            sequence_indices = self._load_sequence_indices(
-                sequence_file=sequence_file
-            )
+            sequence_indices = self._load_sequence_indices(sequence_file=sequence_file)
 
             if self.verbose:
                 print("Sequence file loaded..")
@@ -532,9 +522,7 @@ class EndlessCLSimDataset(DownloadableDataset):
                 image_subsequence_paths = image_paths[last_index:next_index]
                 target_subsequence_paths = target_paths[last_index:next_index]
 
-                assert len(image_subsequence_paths) == len(
-                    target_subsequence_paths
-                )
+                assert len(image_subsequence_paths) == len(target_subsequence_paths)
 
                 # Create subsequence dataset
                 subsequence_dataset = VideoSubSequence(
@@ -587,14 +575,10 @@ class EndlessCLSimDataset(DownloadableDataset):
             extract_root_file_list = glob.glob(str(extract_root) + "/*")
             for file_name in extract_root_file_list:
                 sub_file_name = file_name.split("/")[-1]
-                extract_subsubdir = (
-                    extract_subdir + "/" + sub_file_name.split(".")[0]
-                )
+                extract_subsubdir = extract_subdir + "/" + sub_file_name.split(".")[0]
                 if self.verbose:
                     print(f"Extracting: {sub_file_name} to {extract_subdir}")
-                self._extract_archive(
-                    file_name, extract_subdir, remove_archive=True
-                )
+                self._extract_archive(file_name, extract_subdir, remove_archive=True)
                 if self.verbose:
                     print("Extraction complete!")
 
@@ -626,9 +610,7 @@ class EndlessCLSimDataset(DownloadableDataset):
 
             if not self.semseg:
                 is_subsequence_preparation_done = (
-                    self._prepare_classification_subsequence_datasets(
-                        match_path
-                    )
+                    self._prepare_classification_subsequence_datasets(match_path)
                 )
             else:
                 is_subsequence_preparation_done = (
@@ -644,13 +626,11 @@ class EndlessCLSimDataset(DownloadableDataset):
         # If a 'generic'-endless-cl-sim-scenario has been selected
         if not self.semseg:
             is_subsequence_preparation_done = (
-                self._prepare_classification_subsequence_datasets(
-                    str(self.root)
-                )
+                self._prepare_classification_subsequence_datasets(str(self.root))
             )
         else:
-            is_subsequence_preparation_done = (
-                self._prepare_video_subsequence_datasets(str(self.root))
+            is_subsequence_preparation_done = self._prepare_video_subsequence_datasets(
+                str(self.root)
             )
 
         if is_subsequence_preparation_done and self.verbose:

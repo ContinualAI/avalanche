@@ -3,10 +3,8 @@ import unittest
 import numpy as np
 import torch
 
-from avalanche.benchmarks.utils import (classification_subset,
-                                        make_avalanche_dataset)
-from avalanche.benchmarks.utils.data_attribute import (DataAttribute,
-                                                       TensorDataAttribute)
+from avalanche.benchmarks.utils import classification_subset, make_avalanche_dataset
+from avalanche.benchmarks.utils.data_attribute import DataAttribute, TensorDataAttribute
 
 
 class DataAttributeTests(unittest.TestCase):
@@ -28,8 +26,7 @@ class DataAttributeTests(unittest.TestCase):
         t0 = torch.zeros(10, dtype=torch.int)
         t1 = torch.ones(10, dtype=torch.int)
         da = DataAttribute(torch.cat([t0, t1]), "task_labels")
-        self.assertEqual(da.val_to_idx, {0: list(range(10)), 
-                                         1: list(range(10, 20))})
+        self.assertEqual(da.val_to_idx, {0: list(range(10)), 1: list(range(10, 20))})
 
     def test_subset(self):
         """Test that subset is correctly computed."""
@@ -44,8 +41,7 @@ class DataAttributeTests(unittest.TestCase):
         t0 = torch.zeros(10, dtype=torch.int)
         t1 = torch.ones(10, dtype=torch.int)
         da = DataAttribute(torch.cat([t0, t1]), "task_labels")
-        self.assertEqual(list(da.concat(da).data), 
-                         list(torch.cat([t0, t1, t0, t1])))
+        self.assertEqual(list(da.concat(da).data), list(torch.cat([t0, t1, t0, t1])))
 
 
 class TensorDataAttributeTests(unittest.TestCase):
@@ -62,8 +58,7 @@ class TensorDataAttributeTests(unittest.TestCase):
         t0 = torch.zeros(10)
         t1 = torch.ones(10)
         da = DataAttribute(torch.cat([t0, t1]), "logits")
-        self.assertEqual(list(da.concat(da).data), 
-                         list(torch.cat([t0, t1, t0, t1])))
+        self.assertEqual(list(da.concat(da).data), list(torch.cat([t0, t1, t0, t1])))
 
     def test_swap(self):
         """Test that data attributes are

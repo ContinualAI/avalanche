@@ -18,7 +18,7 @@ clear10 = [
     (
         "clear10-test.zip",  # name
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
-    )
+    ),
 ]
 clear100 = [
     (
@@ -28,7 +28,7 @@ clear100 = [
     (
         "clear100-test.zip",  # name
         "https://clear-challenge.s3.us-east-2.amazonaws.com",
-    )
+    ),
 ]
 clear10_neurips2021 = [
     (

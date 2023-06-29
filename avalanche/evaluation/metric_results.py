@@ -61,9 +61,7 @@ class AlternativeValues:
     def __init__(self, *alternatives: MetricType):
         self.alternatives: Tuple[MetricType, ...] = alternatives
 
-    def best_supported_value(
-        self, *supported_types: type
-    ) -> Optional[MetricType]:
+    def best_supported_value(self, *supported_types: type) -> Optional[MetricType]:
         """
         Retrieves a supported representation for this metric value.
 

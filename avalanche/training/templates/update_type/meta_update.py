@@ -1,5 +1,6 @@
-from avalanche.training.templates.strategy_mixin_protocol import \
-    MetaLearningStrategyProtocol
+from avalanche.training.templates.strategy_mixin_protocol import (
+    MetaLearningStrategyProtocol,
+)
 from avalanche.training.utils import trigger_plugins
 
 
@@ -53,6 +54,4 @@ class MetaUpdate(MetaLearningStrategyProtocol):
         trigger_plugins(self, "after_outer_update", **kwargs)
 
 
-__all__ = [
-    'MetaUpdate'
-]
+__all__ = ["MetaUpdate"]

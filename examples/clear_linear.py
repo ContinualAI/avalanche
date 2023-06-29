@@ -37,8 +37,12 @@ from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 
 # For CLEAR dataset setup
 DATASET_NAME = "clear10_neurips2021"
-NUM_CLASSES = {"clear10_neurips_2021": 11, "clear100_cvpr2022": 100,
-               "clear10": 11, "clear100": 100}
+NUM_CLASSES = {
+    "clear10_neurips_2021": 11,
+    "clear100_cvpr2022": 100,
+    "clear10": 11,
+    "clear100": 100,
+}
 CLEAR_FEATURE_TYPE = "moco_b0"  # MoCo V2 pretrained on bucket 0
 # CLEAR_FEATURE_TYPE = "moco_imagenet"  # MoCo V2 pretrained on imagenet
 # CLEAR_FEATURE_TYPE = "byol_imagenet"  # BYOL pretrained on imagenet
@@ -87,20 +91,15 @@ def main():
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, experience=True,
-                         stream=True),
-        loss_metrics(minibatch=True, epoch=True, experience=True,
-                     stream=True),
+        accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(epoch=True, epoch_running=True),
         forgetting_metrics(experience=True, stream=True),
         cpu_usage_metrics(experience=True),
         confusion_matrix_metrics(
-            num_classes=NUM_CLASSES[DATASET_NAME], save_image=False,
-            stream=True
+            num_classes=NUM_CLASSES[DATASET_NAME], save_image=False, stream=True
         ),
-        disk_usage_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
+        disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         loggers=[interactive_logger, text_logger, tb_logger],
     )
 
@@ -154,8 +153,7 @@ def main():
         print("Current Classes: ", experience.classes_in_this_experience)
         res = cl_strategy.train(experience)
         torch.save(
-            model.state_dict(),
-            str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
+            model.state_dict(), str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
         )
         print("Training completed")
         print(
@@ -168,8 +166,10 @@ def main():
     accuracy_matrix = np.zeros((num_timestamp, num_timestamp))
     for train_idx in range(num_timestamp):
         for test_idx in range(num_timestamp):
-            mname = f"Top1_Acc_Exp/eval_phase/test_stream" \
-                    f"/Task00{test_idx}/Exp00{test_idx}"
+            mname = (
+                f"Top1_Acc_Exp/eval_phase/test_stream"
+                f"/Task00{test_idx}/Exp00{test_idx}"
+            )
             accuracy_matrix[train_idx][test_idx] = results[train_idx][mname]
     print("Accuracy_matrix : ")
     print(accuracy_matrix)

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union, Callable, IO, Any, Dict, Optional, Iterable, \
-    BinaryIO
+from typing import Union, Callable, IO, Any, Dict, Optional, Iterable, BinaryIO
 
 import torch
 
@@ -9,8 +8,7 @@ from avalanche.core import BaseSGDPlugin
 from avalanche.training.templates import BaseSGDTemplate
 
 
-@deprecated(0.5, "Please use `save_checkpoint` and `maybe_load_checkpoint` "
-                 "instead.")
+@deprecated(0.5, "Please use `save_checkpoint` and `maybe_load_checkpoint` " "instead.")
 class CheckpointStorage(ABC):
     """
     Abstract class for the checkpoint storage component.
@@ -19,6 +17,7 @@ class CheckpointStorage(ABC):
     and load checkpoints from a persistent storage. Instances of this class are
     used by the :class:`CheckpointPlugin` strategy plugin.
     """
+
     def __init__(self):
         """
         Initializes the checkpoint storage.
@@ -27,10 +26,10 @@ class CheckpointStorage(ABC):
 
     @abstractmethod
     def store_checkpoint(
-            self,
-            checkpoint_name: str,
-            checkpoint_writer: Callable[[Union[BinaryIO, IO[bytes]]], None]) \
-            -> None:
+        self,
+        checkpoint_name: str,
+        checkpoint_writer: Callable[[Union[BinaryIO, IO[bytes]]], None],
+    ) -> None:
         """
         Stores a checkpoint.
 
@@ -71,10 +70,10 @@ class CheckpointStorage(ABC):
 
     @abstractmethod
     def load_checkpoint(
-            self,
-            checkpoint_name: str,
-            checkpoint_loader: Callable[[Union[BinaryIO, IO[bytes]]], Any]) \
-            -> Any:
+        self,
+        checkpoint_name: str,
+        checkpoint_loader: Callable[[Union[BinaryIO, IO[bytes]]], Any],
+    ) -> Any:
         """
         Loads a checkpoint.
 
@@ -93,8 +92,7 @@ class CheckpointStorage(ABC):
         pass
 
 
-@deprecated(0.5, "Please use `save_checkpoint` and `maybe_load_checkpoint` "
-                 "instead.")
+@deprecated(0.5, "Please use `save_checkpoint` and `maybe_load_checkpoint` " "instead.")
 class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
     """
     A checkpointing facility that can be used to persist the entire state of the
@@ -135,11 +133,10 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
     """
 
     def __init__(
-            self,
-            storage: CheckpointStorage,
-            map_location: Optional[Union[str,
-                                         torch.device,
-                                         Dict[str, str]]] = None):
+        self,
+        storage: CheckpointStorage,
+        map_location: Optional[Union[str, torch.device, Dict[str, str]]] = None,
+    ):
         """
         Creates an instance of the checkpoint plugin.
 
@@ -156,12 +153,12 @@ class CheckpointPlugin(BaseSGDPlugin[BaseSGDTemplate]):
             but it is needed to properly manage things in Avalanche).
             Defaults to None, which means that no mapping will take place.
         """
-        raise ValueError("Please use `save_checkpoint` and "
-                         "`maybe_load_checkpoint` "
-                         "instead.")
+        raise ValueError(
+            "Please use `save_checkpoint` and " "`maybe_load_checkpoint` " "instead."
+        )
 
 
 __all__ = [
-    'CheckpointStorage',
-    'CheckpointPlugin',
+    "CheckpointStorage",
+    "CheckpointPlugin",
 ]

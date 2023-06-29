@@ -22,9 +22,7 @@ from avalanche.benchmarks import nc_benchmark
 
 from torchvision import transforms
 
-normalize = transforms.Normalize(
-    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-)
+normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
 _default_train_transform = transforms.Compose(
     [
@@ -181,16 +179,10 @@ def _get_inaturalist_dataset(dataset_root, super_categories, download):
         dataset_root = default_dataset_location("inatuarlist2018")
 
     train_set = INATURALIST2018(
-        str(dataset_root),
-        split="train",
-        supcats=super_categories,
-        download=download
+        str(dataset_root), split="train", supcats=super_categories, download=download
     )
     test_set = INATURALIST2018(
-        str(dataset_root),
-        split="val",
-        supcats=super_categories,
-        download=download
+        str(dataset_root), split="val", supcats=super_categories, download=download
     )
 
     return train_set, test_set

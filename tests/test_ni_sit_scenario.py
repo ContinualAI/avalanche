@@ -45,9 +45,7 @@ class NISITTests(unittest.TestCase):
             torch.as_tensor(mnist_train.targets), return_counts=True
         )
 
-        min_batch_size = torch.sum(
-            unique_count // my_ni_benchmark.n_experiences
-        ).item()
+        min_batch_size = torch.sum(unique_count // my_ni_benchmark.n_experiences).item()
         max_batch_size = min_batch_size + my_ni_benchmark.n_classes
 
         pattern_count = 0
@@ -87,9 +85,7 @@ class NISITTests(unittest.TestCase):
             mnist_train, mnist_test, 5, shuffle=True, seed=1234
         )
 
-        reference_assignment = (
-            ni_benchmark_reference.train_exps_patterns_assignment
-        )
+        reference_assignment = ni_benchmark_reference.train_exps_patterns_assignment
 
         my_ni_benchmark = ni_benchmark(
             mnist_train,
@@ -160,25 +156,15 @@ class NISITTests(unittest.TestCase):
             download=True,
         )
 
-        train_part1 = make_nc_transformation_subset(
-            mnist_train, None, None, range(5)
-        )
+        train_part1 = make_nc_transformation_subset(mnist_train, None, None, range(5))
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(5, 10)
         )
-        train_part2 = classification_subset(
-            train_part2, class_mapping=split_mapping
-        )
+        train_part2 = classification_subset(train_part2, class_mapping=split_mapping)
 
-        test_part1 = make_nc_transformation_subset(
-            mnist_test, None, None, range(5)
-        )
-        test_part2 = make_nc_transformation_subset(
-            mnist_test, None, None, range(5, 10)
-        )
-        test_part2 = classification_subset(
-            test_part2, class_mapping=split_mapping
-        )
+        test_part1 = make_nc_transformation_subset(mnist_test, None, None, range(5))
+        test_part2 = make_nc_transformation_subset(mnist_test, None, None, range(5, 10))
+        test_part2 = classification_subset(test_part2, class_mapping=split_mapping)
         my_ni_benchmark = ni_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
@@ -198,9 +184,7 @@ class NISITTests(unittest.TestCase):
 
         all_classes = set()
         for batch_id in range(5):
-            all_classes.update(
-                my_ni_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.update(my_ni_benchmark.classes_in_experience["train"][batch_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -236,9 +220,7 @@ class NISITTests(unittest.TestCase):
         self.assertEqual("train", sliced_stream.name)
 
         for batch_id, experience in enumerate(sliced_stream):
-            self.assertEqual(
-                iterable_slice[batch_id], experience.current_experience
-            )
+            self.assertEqual(iterable_slice[batch_id], experience.current_experience)
             self.assertIsInstance(experience, NIExperience)
 
         with self.assertRaises(IndexError):
@@ -252,9 +234,7 @@ class NISITTests(unittest.TestCase):
         self.assertEqual("test", sliced_stream.name)
 
         for batch_id, experience in enumerate(sliced_stream):
-            self.assertEqual(
-                iterable_slice[batch_id], experience.current_experience
-            )
+            self.assertEqual(iterable_slice[batch_id], experience.current_experience)
             self.assertIsInstance(experience, NIExperience)
 
 

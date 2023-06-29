@@ -22,16 +22,16 @@ from avalanche.benchmarks.scenarios.new_instances.ni_utils import (
     _exp_structure_from_assignment,
 )
 from avalanche.benchmarks.utils import classification_subset
-from avalanche.benchmarks.utils.classification_dataset import \
-    ClassificationDataset, SupervisedClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
+    SupervisedClassificationDataset,
+)
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
 class NIScenario(
-        ClassificationScenario[
-            'NIStream',
-            'NIExperience',
-            SupervisedClassificationDataset]):
+    ClassificationScenario["NIStream", "NIExperience", SupervisedClassificationDataset]
+):
     """
     This class defines a "New Instance" scenario.
     Once created, an instance of this class can be iterated in order to obtain
@@ -153,9 +153,7 @@ class NIScenario(
         The amount of classes in the original training set.
         """
 
-        self.n_patterns_per_class: List[int] = [
-            0 for _ in range(self.n_classes)
-        ]
+        self.n_patterns_per_class: List[int] = [0 for _ in range(self.n_classes)]
         """
         The amount of patterns for each class in the original training set.
         """
@@ -170,9 +168,7 @@ class NIScenario(
             included_patterns: List[int] = list()
             for exp_def in lst_fixed_exp_assignment:
                 included_patterns.extend(exp_def)
-            subset = classification_subset(
-                train_dataset, indices=included_patterns
-            )
+            subset = classification_subset(train_dataset, indices=included_patterns)
             unique_targets, unique_count = torch.unique(
                 torch.as_tensor(subset.targets), return_counts=True
             )
@@ -226,9 +222,7 @@ class NIScenario(
             # First, get the patterns indexes for each class
             targets_as_tensor = torch.as_tensor(train_dataset.targets)
             classes_to_patterns_idx = [
-                torch.nonzero(torch.eq(targets_as_tensor, class_id))
-                .view(-1)
-                .tolist()
+                torch.nonzero(torch.eq(targets_as_tensor, class_id)).view(-1).tolist()
                 for class_id in range(self.n_classes)
             ]
 
@@ -336,8 +330,7 @@ class NIScenario(
                 # First, initialize exp_patterns and exp_structure
                 exp_patterns = [[] for _ in range(n_experiences)]
                 self.exp_structure = [
-                    [0 for _ in range(self.n_classes)]
-                    for _ in range(n_experiences)
+                    [0 for _ in range(self.n_classes)] for _ in range(n_experiences)
                 ]
 
                 # For each experience we assign exactly
@@ -353,9 +346,7 @@ class NIScenario(
                     for class_id in range(self.n_classes):
                         next_idx = next_idx_per_class[class_id]
                         end_idx = next_idx + min_class_patterns_in_exp
-                        selected_patterns = classes_to_patterns_idx[
-                            next_idx:end_idx
-                        ]
+                        selected_patterns = classes_to_patterns_idx[next_idx:end_idx]
                         exp_patterns[exp_id].extend(selected_patterns)
                         self.exp_structure[exp_id][
                             class_id
@@ -369,7 +360,7 @@ class NIScenario(
                 # now we assign the remaining patterns
                 #
                 # We'll work on lst_remaining_patterns, which contains
-                # indexes of patterns not assigned in the previous 
+                # indexes of patterns not assigned in the previous
                 # experience.
                 if shuffle:
                     patterns_order = torch.as_tensor(lst_remaining_patterns)[
@@ -379,8 +370,7 @@ class NIScenario(
                     lst_remaining_patterns.sort()
                     patterns_order = lst_remaining_patterns
                 targets_order = [
-                    train_dataset.targets[pattern_idx]
-                    for pattern_idx in patterns_order
+                    train_dataset.targets[pattern_idx] for pattern_idx in patterns_order
                 ]
 
                 avg_exp_size = len(patterns_order) // n_experiences
@@ -388,9 +378,7 @@ class NIScenario(
                 prev_idx = 0
                 for exp_id in range(n_experiences):
                     next_idx = prev_idx + avg_exp_size
-                    exp_patterns[exp_id].extend(
-                        patterns_order[prev_idx:next_idx]
-                    )
+                    exp_patterns[exp_id].extend(patterns_order[prev_idx:next_idx])
                     cls_ids, cls_counts = torch.unique(
                         torch.as_tensor(targets_order[prev_idx:next_idx]),
                         return_counts=True,
@@ -400,9 +388,9 @@ class NIScenario(
                     cls_counts = cls_counts.tolist()
 
                     for unique_idx in range(len(cls_ids)):
-                        self.exp_structure[exp_id][
-                            cls_ids[unique_idx]
-                        ] += cls_counts[unique_idx]
+                        self.exp_structure[exp_id][cls_ids[unique_idx]] += cls_counts[
+                            unique_idx
+                        ]
                     prev_idx = next_idx
 
                 # Distribute remaining patterns
@@ -434,7 +422,7 @@ class NIScenario(
                 train_task_labels.append(t_id)
             else:
                 train_task_labels.append(0)
-            
+
             exp_task_labels = ConstantSequence(
                 train_task_labels[-1], len(train_dataset)
             )
@@ -456,7 +444,7 @@ class NIScenario(
             },
             complete_test_set_only=True,
             stream_factory=NIStream,
-            experience_factory=NIExperience
+            experience_factory=NIExperience,
         )
 
     def get_reproducibility_data(self) -> Dict[str, Any]:
@@ -467,7 +455,7 @@ class NIScenario(
         return reproducibility_data
 
 
-class NIStream(ClassificationStream['NIExperience']):
+class NIStream(ClassificationStream["NIExperience"]):
     def __init__(
         self,
         name: str,
@@ -481,7 +469,8 @@ class NIStream(ClassificationStream['NIExperience']):
             name=name,
             benchmark=benchmark,
             slice_ids=slice_ids,
-            set_stream_info=set_stream_info)
+            set_stream_info=set_stream_info,
+        )
 
 
 class NIExperience(ClassificationExperience[SupervisedClassificationDataset]):
@@ -512,9 +501,7 @@ class NIExperience(ClassificationExperience[SupervisedClassificationDataset]):
     @property  # type: ignore[override]
     def benchmark(self) -> NIScenario:
         bench = self._benchmark
-        NIExperience._check_unset_attribute(
-            'benchmark', bench
-        )   
+        NIExperience._check_unset_attribute("benchmark", bench)
         return bench
 
     @benchmark.setter
@@ -522,8 +509,4 @@ class NIExperience(ClassificationExperience[SupervisedClassificationDataset]):
         self._benchmark = bench
 
 
-__all__ = [
-    "NIScenario",
-    "NIStream",
-    "NIExperience"
-]
+__all__ = ["NIScenario", "NIStream", "NIExperience"]

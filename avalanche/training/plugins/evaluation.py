@@ -48,10 +48,13 @@ class EvaluationPlugin:
     def __init__(
         self,
         *metrics: Union["PluginMetric", Sequence["PluginMetric"]],
-        loggers: Optional[Union[
-            "BaseLogger",
-            Sequence["BaseLogger"],
-            Callable[[], Sequence["BaseLogger"]]]] = None,
+        loggers: Optional[
+            Union[
+                "BaseLogger",
+                Sequence["BaseLogger"],
+                Callable[[], Sequence["BaseLogger"]],
+            ]
+        ] = None,
         collect_all=True,
         strict_checks=False
     ):
@@ -104,7 +107,7 @@ class EvaluationPlugin:
             self.all_metric_results = defaultdict(_init_metrics_list_lambda)
         else:
             self.all_metric_results = dict()
-        
+
         # Dictionary of last values emitted. Dictionary key
         # is the full metric name, while dictionary value is
         # metric value.
@@ -217,6 +220,7 @@ class EvaluationPlugin:
                 # method is a callback. Forward to metrics.
                 def fun(strat, **kwargs):
                     return self._update_metrics_and_loggers(strat, item)
+
                 return fun
             raise
 
@@ -227,7 +231,6 @@ class EvaluationPlugin:
             "evaluation stream."
         )
         if self.strict_checks:
-
             curr_stream = next(iter(strategy.current_eval_stream)).origin_stream
             benchmark = curr_stream[0].origin_stream.benchmark
             full_stream = benchmark.streams[curr_stream.name]
@@ -245,15 +248,10 @@ def default_loggers() -> Sequence["BaseLogger"]:
 
 def default_evaluator() -> EvaluationPlugin:
     return EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=False, epoch=True, experience=True, stream=True
-        ),
+        accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
         loggers=default_loggers,
     )
 
 
-__all__ = [
-    "EvaluationPlugin",
-    "default_evaluator"
-]
+__all__ = ["EvaluationPlugin", "default_evaluator"]

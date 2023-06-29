@@ -58,9 +58,7 @@ class CWRStarPlugin(SupervisedPlugin):
         data = strategy.experience.dataset
         self.model.cur_j = examples_per_class(data.targets)
         self.cur_class = [
-            cls
-            for cls in set(self.model.cur_j.keys())
-            if self.model.cur_j[cls] > 0
+            cls for cls in set(self.model.cur_j.keys()) if self.model.cur_j[cls] > 0
         ]
 
         self.reset_weights(self.cur_class)
@@ -70,8 +68,7 @@ class CWRStarPlugin(SupervisedPlugin):
 
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
-            assert cwr_layer is not None, \
-                'Could not find the CWR layer.'
+            assert cwr_layer is not None, "Could not find the CWR layer."
             # calculate the average of the current classes
             globavg = np.average(
                 cwr_layer.weight.detach().cpu().numpy()[self.cur_class]
@@ -83,9 +80,7 @@ class CWRStarPlugin(SupervisedPlugin):
                 new_w = w - globavg
                 # if the class has been already seen
                 if c in self.model.saved_weights.keys():
-                    wpast_j = np.sqrt(
-                        self.model.past_j[c] / self.model.cur_j[c]
-                    )
+                    wpast_j = np.sqrt(self.model.past_j[c] / self.model.cur_j[c])
                     # consolidation
                     self.model.saved_weights[c] = (
                         self.model.saved_weights[c] * wpast_j + new_w
@@ -101,20 +96,16 @@ class CWRStarPlugin(SupervisedPlugin):
 
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
-            assert cwr_layer is not None, \
-                'Could not find the CWR layer.'
-            
+            assert cwr_layer is not None, "Could not find the CWR layer."
+
             for c, w in self.model.saved_weights.items():
-                cwr_layer.weight[c].copy_(
-                    torch.from_numpy(self.model.saved_weights[c])
-                )
+                cwr_layer.weight[c].copy_(torch.from_numpy(self.model.saved_weights[c]))
 
     def reset_weights(self, cur_clas):
         """reset weights"""
         with torch.no_grad():
             cwr_layer = self.get_cwr_layer()
-            assert cwr_layer is not None, \
-                'Could not find the CWR layer.'
+            assert cwr_layer is not None, "Could not find the CWR layer."
 
             cwr_layer.weight.fill_(0.0)
             for c, w in self.model.saved_weights.items():

@@ -20,9 +20,7 @@ from avalanche.training.plugins import EvaluationPlugin
 
 def main(cuda: int):
     # --- CONFIG
-    device = torch.device(
-        f"cuda:{cuda}" if torch.cuda.is_available() else "cpu"
-    )
+    device = torch.device(f"cuda:{cuda}" if torch.cuda.is_available() else "cpu")
 
     # --- BENCHMARK CREATION
     benchmark = SplitMNIST(n_experiences=5, seed=42)

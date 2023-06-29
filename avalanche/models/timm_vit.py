@@ -37,7 +37,7 @@ try:
         adapt_input_conv,
         checkpoint_seq,
         resolve_pretrained_cfg,
-        build_model_with_cfg
+        build_model_with_cfg,
     )
     from timm.models.layers import PatchEmbed
     from timm.models.vision_transformer import VisionTransformer, Block
@@ -54,7 +54,7 @@ except ImportError:
 
 class ViTWithPrompt(VisionTransformer):
     """
-    Visual Transformer with Prompt. This class add prompts to a visual 
+    Visual Transformer with Prompt. This class add prompts to a visual
     transformer to implement the Method Learning to Prompt (L2P)
 
     Implementation based on VisionTransformer from timm library
@@ -145,20 +145,20 @@ class ViTWithPrompt(VisionTransformer):
             embed_layer=embed_layer,
             norm_layer=norm_layer,
             act_layer=act_layer,
-            block_fn=block_fn
+            block_fn=block_fn,
         )
 
         self.class_token = class_token
         num_patches = self.patch_embed.num_patches
 
         if no_embed_class:
-            embed_len = num_patches  
+            embed_len = num_patches
         else:
             embed_len = num_patches + self.num_prefix_tokens
 
         if prompt_length is not None and pool_size is not None and prompt_pool:
             embed_len += prompt_length * top_k
-        self.pos_embed = nn.Parameter(torch.randn(1, embed_len, embed_dim)*0.02)
+        self.pos_embed = nn.Parameter(torch.randn(1, embed_len, embed_dim) * 0.02)
         self.pos_drop = nn.Dropout(p=drop_rate)
 
         self.prompt_pool = prompt_pool
@@ -180,8 +180,8 @@ class ViTWithPrompt(VisionTransformer):
             )
 
         if num_classes > 0:
-            self.head = nn.Linear(self.embed_dim, num_classes) 
-        else: 
+            self.head = nn.Linear(self.embed_dim, num_classes)
+        else:
             self.head = nn.Identity()
 
         if weight_init != "skip":
@@ -196,18 +196,12 @@ class ViTWithPrompt(VisionTransformer):
                 start = task_id * self.prompt.top_k
                 end = (task_id + 1) * self.prompt.top_k
                 single_prompt_mask = torch.arange(start, end).to(x.device)
-                prompt_mask = single_prompt_mask.\
-                    unsqueeze(0).\
-                    expand(x.shape[0], -1)
+                prompt_mask = single_prompt_mask.unsqueeze(0).expand(x.shape[0], -1)
                 if end > self.prompt.pool_size:
                     prompt_mask = None
             else:
                 prompt_mask = None
-            res = self.prompt(
-                            x, 
-                            prompt_mask=prompt_mask, 
-                            cls_features=cls_features
-                        )
+            res = self.prompt(x, prompt_mask=prompt_mask, cls_features=cls_features)
             self.total_prompt_len = res["total_prompt_len"]
             x = res["prompted_embedding"]
         else:
@@ -240,9 +234,7 @@ class ViTWithPrompt(VisionTransformer):
                 else x[:, 0 : self.total_prompt_len]
             )
             x = x.mean(dim=1)
-        elif self.head_type == "token+prompt" \
-                and self.prompt_pool \
-                and self.class_token:
+        elif self.head_type == "token+prompt" and self.prompt_pool and self.class_token:
             x = x[:, 0 : self.total_prompt_len + 1]
             x = x.mean(dim=1)
         else:
@@ -257,27 +249,21 @@ class ViTWithPrompt(VisionTransformer):
         return res
 
     def forward(self, x, task_id=-1, cls_features=None, train=False):
-        res = self.forward_features(    
-                                x, 
-                                task_id=task_id, 
-                                cls_features=cls_features, 
-                                train=train
-                            )
+        res = self.forward_features(
+            x, task_id=task_id, cls_features=cls_features, train=train
+        )
         res = self.forward_head(res)
         return res
 
     @torch.jit.ignore()
-    def load_pretrained(self, checkpoint_path, prefix=''):
+    def load_pretrained(self, checkpoint_path, prefix=""):
         _load_weights(self, checkpoint_path, prefix)
 
 
 @torch.no_grad()
-def _load_weights(
-                model: VisionTransformer, 
-                checkpoint_path: str, 
-                prefix: str = ""):
+def _load_weights(model: VisionTransformer, checkpoint_path: str, prefix: str = ""):
     """
-    Load weights from .npz checkpoints for official 
+    Load weights from .npz checkpoints for official
     Google Brain Flax implementation
     """
     import numpy as np
@@ -304,8 +290,9 @@ def _load_weights(
         stem_only = not hasattr(backbone, "stem")
         stem = backbone if stem_only else backbone.stem
         stem.conv.weight.copy_(
-            adapt_input_conv(stem.conv.weight.shape[1],
-                             _n2p(w[f"{prefix}conv_root/kernel"]))
+            adapt_input_conv(
+                stem.conv.weight.shape[1], _n2p(w[f"{prefix}conv_root/kernel"])
+            )
         )
         stem.norm.weight.copy_(_n2p(w[f"{prefix}gn_root/scale"]))
         stem.norm.bias.copy_(_n2p(w[f"{prefix}gn_root/bias"]))
@@ -314,40 +301,36 @@ def _load_weights(
                 for j, block in enumerate(stage.blocks):
                     bp = f"{prefix}block{i + 1}/unit{j + 1}/"
                     for r in range(3):
-                        getattr(
-                            block, 
-                            f"conv{r + 1}").\
-                                weight.copy_(_n2p(w[f"{bp}conv{r + 1}/kernel"]))
-                        getattr(
-                            block, 
-                            f"norm{r + 1}").\
-                            weight.copy_(_n2p(w[f"{bp}gn{r + 1}/scale"]))
-                        getattr(
-                            block, 
-                            f"norm{r + 1}").\
-                            bias.copy_(_n2p(w[f"{bp}gn{r + 1}/bias"]))
+                        getattr(block, f"conv{r + 1}").weight.copy_(
+                            _n2p(w[f"{bp}conv{r + 1}/kernel"])
+                        )
+                        getattr(block, f"norm{r + 1}").weight.copy_(
+                            _n2p(w[f"{bp}gn{r + 1}/scale"])
+                        )
+                        getattr(block, f"norm{r + 1}").bias.copy_(
+                            _n2p(w[f"{bp}gn{r + 1}/bias"])
+                        )
                     if block.downsample is not None:
-                        block.downsample.\
-                            conv.weight.copy_(_n2p(w[f"{bp}conv_proj/kernel"]))
-                        block.downsample.\
-                            norm.weight.copy_(_n2p(w[f"{bp}gn_proj/scale"]))
-                        block.downsample.\
-                            norm.bias.copy_(_n2p(w[f"{bp}gn_proj/bias"]))
+                        block.downsample.conv.weight.copy_(
+                            _n2p(w[f"{bp}conv_proj/kernel"])
+                        )
+                        block.downsample.norm.weight.copy_(
+                            _n2p(w[f"{bp}gn_proj/scale"])
+                        )
+                        block.downsample.norm.bias.copy_(_n2p(w[f"{bp}gn_proj/bias"]))
         embed_conv_w = _n2p(w[f"{prefix}embedding/kernel"])
     else:
         embed_conv_w = adapt_input_conv(
-            model.patch_embed.proj.weight.shape[1], 
-            _n2p(w[f"{prefix}embedding/kernel"])
+            model.patch_embed.proj.weight.shape[1], _n2p(w[f"{prefix}embedding/kernel"])
         )
     model.patch_embed.proj.weight.copy_(embed_conv_w)
     model.patch_embed.proj.bias.copy_(_n2p(w[f"{prefix}embedding/bias"]))
     model.cls_token.copy_(_n2p(w[f"{prefix}cls"], t=False))
-    pos_embed_w = _n2p(w[f"{prefix}Transformer/posembed_input/pos_embedding"], 
-                       t=False)
+    pos_embed_w = _n2p(w[f"{prefix}Transformer/posembed_input/pos_embedding"], t=False)
     if pos_embed_w.shape != model.pos_embed.shape:
         pos_embed_w = (
             # resize pos embedding when different size from pretrained weights
-            resize_pos_embed(  
+            resize_pos_embed(
                 pos_embed_w,
                 model.pos_embed,
                 getattr(model, "num_prefix_tokens", 1),
@@ -363,9 +346,9 @@ def _load_weights(
     ):
         model.head.weight.copy_(_n2p(w[f"{prefix}head/kernel"]))
         model.head.bias.copy_(_n2p(w[f"{prefix}head/bias"]))
-    # NOTE representation layer has been removed, 
+    # NOTE representation layer has been removed,
     # not used in latest 21k/1k pretrained weights
-    # if isinstance(getattr(model.pre_logits, 'fc', None), nn.Linear) 
+    # if isinstance(getattr(model.pre_logits, 'fc', None), nn.Linear)
     #               and f'{prefix}pre_logits/bias' in w:
     #     model.pre_logits.fc.weight.\
     #               copy_(_n2p(w[f'{prefix}pre_logits/kernel']))
@@ -392,10 +375,8 @@ def _load_weights(
                 ]
             )
         )
-        block.attn.\
-            proj.weight.copy_(_n2p(w[f"{mha_prefix}out/kernel"]).flatten(1))
-        block.attn.\
-            proj.bias.copy_(_n2p(w[f"{mha_prefix}out/bias"]))
+        block.attn.proj.weight.copy_(_n2p(w[f"{mha_prefix}out/kernel"]).flatten(1))
+        block.attn.proj.bias.copy_(_n2p(w[f"{mha_prefix}out/bias"]))
         for r in range(2):
             getattr(block.mlp, f"fc{r + 1}").weight.copy_(
                 _n2p(w[f"{block_prefix}MlpBlock_3/Dense_{r}/kernel"])
@@ -408,7 +389,7 @@ def _load_weights(
 
 
 def resize_pos_embed(posemb, posemb_new, num_prefix_tokens=1, gs_new=()):
-    # Rescale the grid of position embeddings when loading from state_dict. 
+    # Rescale the grid of position embeddings when loading from state_dict.
     # Adapted from:
     # https://github.com/google-research/vision_transformer/blob/
     #       00883dd691c63a6830751563748663526e811cee/vit_jax/checkpoint.py#L224
@@ -432,12 +413,10 @@ def resize_pos_embed(posemb, posemb_new, num_prefix_tokens=1, gs_new=()):
     assert len(gs_new) >= 2
 
     posemb_grid = posemb_grid.reshape(1, gs_old, gs_old, -1).permute(0, 3, 1, 2)
-    posemb_grid = F.interpolate(posemb_grid, 
-                                size=gs_new, 
-                                mode="bicubic", 
-                                align_corners=False)
-    posemb_grid = posemb_grid.\
-        permute(0, 2, 3, 1).reshape(1, gs_new[0] * gs_new[1], -1)
+    posemb_grid = F.interpolate(
+        posemb_grid, size=gs_new, mode="bicubic", align_corners=False
+    )
+    posemb_grid = posemb_grid.permute(0, 2, 3, 1).reshape(1, gs_new[0] * gs_new[1], -1)
     posemb = torch.cat([posemb_prefix, posemb_grid], dim=1)
     return posemb
 
@@ -458,13 +437,13 @@ def checkpoint_filter_fn(state_dict, model, adapt_layer_scale=False):
             O, _, H, W = model.patch_embed.proj.weight.shape
             v = v.reshape(O, -1, H, W)
         elif k == "pos_embed" and v.shape[1] != model.pos_embed.shape[1]:
-            # To resize pos embedding when using model at different size 
+            # To resize pos embedding when using model at different size
             # from pretrained weights
             v = resize_pos_embed(
                 v,
                 model.pos_embed,
-                0 
-                if getattr(model, "no_embed_class") 
+                0
+                if getattr(model, "no_embed_class")
                 else getattr(model, "num_prefix_tokens", 1),
                 model.patch_embed.grid_size,
             )
@@ -472,7 +451,7 @@ def checkpoint_filter_fn(state_dict, model, adapt_layer_scale=False):
             # remap layer-scale gamma into sub-module (deit3 models)
             k = re.sub(r"gamma_([0-9])", r"ls\1.gamma", k)
         elif "pre_logits" in k:
-            # NOTE representation layer removed as not used in latest 21k/1k 
+            # NOTE representation layer removed as not used in latest 21k/1k
             # pretrained weights
             continue
         out_dict[k] = v
@@ -481,8 +460,10 @@ def checkpoint_filter_fn(state_dict, model, adapt_layer_scale=False):
 
 def _create_vision_transformer(variant, pretrained=False, **kwargs):
     if kwargs.get("features_only", None):
-        raise RuntimeError("features_only not implemented for \
-                            Vision Transformer models.")
+        raise RuntimeError(
+            "features_only not implemented for \
+                            Vision Transformer models."
+        )
 
     pretrained_cfg = resolve_pretrained_cfg(
         variant, pretrained_cfg=kwargs.pop("pretrained_cfg", None)

@@ -74,9 +74,7 @@ class TinyImagenet(SimpleDownloadableDataset):
     def _load_metadata(self) -> bool:
         self.data_folder = self.root / "tiny-imagenet-200"
 
-        self.label2id, self.id2label = TinyImagenet.labels2dict(
-            self.data_folder
-        )
+        self.label2id, self.id2label = TinyImagenet.labels2dict(self.data_folder)
         self.data, self.targets = self.load_data()
         return True
 
@@ -94,7 +92,6 @@ class TinyImagenet(SimpleDownloadableDataset):
         id2label = {}
 
         with open(str(data_folder / "wnids.txt"), "r") as f:
-
             reader = csv.reader(f)
             curr_idx = 0
             for ll in reader:
@@ -139,8 +136,7 @@ class TinyImagenet(SimpleDownloadableDataset):
             collected.
         :returns img_paths: list of strings (paths)
         """
-        train_img_folder: Path = \
-            self.data_folder / "train" / class_name / "images"
+        train_img_folder: Path = self.data_folder / "train" / class_name / "images"
 
         img_paths = [f for f in train_img_folder.iterdir() if f.is_file()]
 
@@ -155,16 +151,13 @@ class TinyImagenet(SimpleDownloadableDataset):
         :returns img_paths: list of strings (paths)
         """
 
-        val_img_folder: Path = \
-            self.data_folder / "val" / "images"
-        annotations_file: Path = \
-            self.data_folder / "val" / "val_annotations.txt"
+        val_img_folder: Path = self.data_folder / "val" / "images"
+        annotations_file: Path = self.data_folder / "val" / "val_annotations.txt"
 
         valid_names = []
 
         # filter validation images by class using appropriate file
         with open(str(annotations_file), "r") as f:
-
             reader = csv.reader(f, dialect="excel-tab")
             for ll in reader:
                 if ll[1] == class_name:
@@ -197,7 +190,6 @@ class TinyImagenet(SimpleDownloadableDataset):
 
 
 if __name__ == "__main__":
-
     # this little example script can be used to visualize the first image
     # loaded from the dataset.
     from torch.utils.data.dataloader import DataLoader

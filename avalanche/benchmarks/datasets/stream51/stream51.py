@@ -31,7 +31,7 @@ from avalanche.benchmarks.datasets import (
 from avalanche.benchmarks.datasets.stream51 import stream51_data
 
 
-TSequence = TypeVar('TSequence', bound=Sequence)
+TSequence = TypeVar("TSequence", bound=Sequence)
 
 
 class Stream51(DownloadableDataset):
@@ -100,9 +100,7 @@ class Stream51(DownloadableDataset):
                     if "json" in filename:
                         target = open(str(self.root / filename), "wb")
                     else:
-                        dest_folder = os.path.join(
-                            *(member.split(os.path.sep)[1:-1])
-                        )
+                        dest_folder = os.path.join(*(member.split(os.path.sep)[1:-1]))
                         dest_folder_path = self.root / dest_folder
                         dest_folder_path.mkdir(exist_ok=True, parents=True)
 
@@ -114,13 +112,9 @@ class Stream51(DownloadableDataset):
 
     def _load_metadata(self) -> bool:
         if self.train:
-            data_list = json.load(
-                open(str(self.root / "Stream-51_meta_train.json"))
-            )
+            data_list = json.load(open(str(self.root / "Stream-51_meta_train.json")))
         else:
-            data_list = json.load(
-                open(str(self.root / "Stream-51_meta_test.json"))
-            )
+            data_list = json.load(open(str(self.root / "Stream-51_meta_test.json")))
 
         self.samples = data_list
         self.targets = [s[0] for s in data_list]
@@ -140,9 +134,7 @@ class Stream51(DownloadableDataset):
         )
 
     @staticmethod
-    def _instance_ordering(
-            data_list: Sequence[TSequence], 
-            seed) -> List[TSequence]:
+    def _instance_ordering(data_list: Sequence[TSequence], seed) -> List[TSequence]:
         # organize data by video
         total_videos = 0
         new_data_list = []
@@ -178,9 +170,7 @@ class Stream51(DownloadableDataset):
                 random.shuffle(class_data_list)
             else:
                 # shuffle clips within class
-                class_data_list = Stream51._instance_ordering(
-                    class_data_list, seed
-                )
+                class_data_list = Stream51._instance_ordering(class_data_list, seed)
             new_data_list.append(class_data_list)
         # shuffle classes
         random.seed(seed)
@@ -262,15 +252,12 @@ class Stream51(DownloadableDataset):
         tmp = "    Target Transforms (if any): "
         fmt_str += "{0}{1}".format(
             tmp,
-            self.target_transform.__repr__().replace(
-                "\n", "\n" + " " * len(tmp)
-            ),
+            self.target_transform.__repr__().replace("\n", "\n" + " " * len(tmp)),
         )
         return fmt_str
 
 
 if __name__ == "__main__":
-
     # this little example script can be used to visualize the first image
     # loaded from the dataset.
     from torch.utils.data.dataloader import DataLoader

@@ -86,9 +86,7 @@ class CTrLTests(unittest.TestCase):
                 bench_1 = CTrL(stream, seed=1)
                 bench_2 = CTrL(stream, seed=1)
 
-                for exp1, exp2 in zip(
-                    bench_1.train_stream, bench_2.train_stream
-                ):
+                for exp1, exp2 in zip(bench_1.train_stream, bench_2.train_stream):
                     for sample1, sample2 in zip(exp1.dataset, exp2.dataset):
                         self.assertTrue(custom_equals(sample1, sample2))
 

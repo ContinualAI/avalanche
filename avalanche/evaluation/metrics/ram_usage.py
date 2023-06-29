@@ -74,9 +74,7 @@ class MaxRAM(Metric[float]):
             ram_usage = self._process_handle.memory_info().rss / 1024 / 1024
             if ram_usage > self.max_usage:
                 self.max_usage = ram_usage
-            time.sleep(
-                self.every - ((time.monotonic() - start_time) % self.every)
-            )
+            time.sleep(self.every - ((time.monotonic() - start_time) % self.every))
 
     def result(self) -> Optional[float]:
         """
@@ -116,10 +114,7 @@ class MaxRAM(Metric[float]):
 
 class RAMPluginMetric(GenericPluginMetric[float, MaxRAM]):
     def __init__(self, every, reset_at, emit_at, mode):
-
-        super(RAMPluginMetric, self).__init__(
-            MaxRAM(every), reset_at, emit_at, mode
-        )
+        super(RAMPluginMetric, self).__init__(MaxRAM(every), reset_at, emit_at, mode)
 
     def update(self, strategy):
         self._metric.update()

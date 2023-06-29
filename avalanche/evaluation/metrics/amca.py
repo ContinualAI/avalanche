@@ -263,14 +263,11 @@ class MultiStreamAMCA(Metric[Dict[str, Dict[int, float]]]):
         """
         if self._current_stream is None:
             raise RuntimeError(
-                "No current stream set. "
-                'Call "set_stream" to set the current stream.'
+                "No current stream set. " 'Call "set_stream" to set the current stream.'
             )
 
         if self._is_stream_tracked(self._current_stream):
-            self._amcas[self._current_stream].update(
-                predicted_y, true_y, task_labels
-            )
+            self._amcas[self._current_stream].update(predicted_y, true_y, task_labels)
 
     def result(self) -> Dict[str, Dict[int, float]]:
         """
@@ -359,18 +356,14 @@ class AMCAPluginMetric(_ExtendedGenericPluginMetric):
         self._ignore_validation = ignore_validation
 
         self._is_training = False
-        super().__init__(
-            self._ms_amca, reset_at="never", emit_at="stream", mode="eval"
-        )
+        super().__init__(self._ms_amca, reset_at="never", emit_at="stream", mode="eval")
 
     def update(self, strategy: "SupervisedTemplate"):
         if self._is_training and self._ignore_validation:
             # Running a validation (eval phase inside a train phase), ignore it
             return
 
-        self._ms_amca.update(
-            strategy.mb_output, strategy.mb_y, strategy.mb_task_id
-        )
+        self._ms_amca.update(strategy.mb_output, strategy.mb_y, strategy.mb_task_id)
 
     def before_training(self, strategy: "SupervisedTemplate"):
         self._is_training = True
@@ -419,9 +412,7 @@ class AMCAPluginMetric(_ExtendedGenericPluginMetric):
         return metric_values
 
     def metric_value_name(self, m_value: _ExtendedPluginMetricValue) -> str:
-        return generic_get_metric_name(
-            AMCAPluginMetric.VALUE_NAME, vars(m_value)
-        )
+        return generic_get_metric_name(AMCAPluginMetric.VALUE_NAME, vars(m_value))
 
     def __str__(self):
         return "Top1_AMCA_Stream"

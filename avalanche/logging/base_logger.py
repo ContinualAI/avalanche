@@ -31,12 +31,12 @@ class BaseLogger(ABC):
         super().__init__()
 
         if not DistributedHelper.is_main_process:
-
             raise RuntimeError(
-                'You are creating a logger in a non-main process during a '
-                'distributed training session. '
-                'Jump to this error for an example on how to fix this.')
-        
+                "You are creating a logger in a non-main process during a "
+                "distributed training session. "
+                "Jump to this error for an example on how to fix this."
+            )
+
         # You have to create the loggers in the main process only. Otherwise,
         # metrics will end up duplicated in your log files and consistency
         # errors may arise. When creating the EvaluationPlugin in a

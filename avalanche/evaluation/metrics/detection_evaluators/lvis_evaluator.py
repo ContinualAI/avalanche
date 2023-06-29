@@ -28,10 +28,7 @@ from avalanche.evaluation.metrics.detection import (
 )
 
 
-class LvisEvaluator(
-        DetectionEvaluator[
-            Dict[str, LVISEval],
-            TCommonDetectionOutput]):
+class LvisEvaluator(DetectionEvaluator[Dict[str, LVISEval], TCommonDetectionOutput]):
     """
     Defines an evaluator for the LVIS dataset.
 
@@ -68,8 +65,9 @@ class LvisEvaluator(
             my_rank = dist.get_rank()
             is_main_rank = my_rank == 0
             if is_main_rank:
-                output: List[Dict[str, Any]] = \
-                    [None] * dist.get_world_size()  # type: ignore
+                output: List[Dict[str, Any]] = [
+                    None
+                ] * dist.get_world_size()  # type: ignore
                 dist.gather_object(
                     self.predictions,
                     output,
@@ -88,9 +86,9 @@ class LvisEvaluator(
         else:
             return self.predictions, True
 
-    def evaluate(self, max_dets_per_image=None) -> Optional[
-        Union[Dict[str, Any], Tuple[Dict[str, Any], Dict[str, LVISEval]]]
-    ]:
+    def evaluate(
+        self, max_dets_per_image=None
+    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, Any], Dict[str, LVISEval]]]]:
         all_preds, main_process = self.synchronize_between_processes()
         if main_process:
             if max_dets_per_image is None:
@@ -165,9 +163,7 @@ class LvisEvaluator(
                 masks = masks > 0.5
                 rles = [
                     mask_util.encode(
-                        np.array(
-                            mask[0, :, :, np.newaxis], dtype=np.uint8, order="F"
-                        )
+                        np.array(mask[0, :, :, np.newaxis], dtype=np.uint8, order="F")
                     )[0]
                     for mask in masks
                 ]

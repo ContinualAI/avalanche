@@ -26,9 +26,7 @@ def train_one_epoch(
 ):
     model.train()
     metric_logger = MetricLogger(delimiter="  ")
-    metric_logger.add_meter(
-        "lr", SmoothedValue(window_size=1, fmt="{value:.6f}")
-    )
+    metric_logger.add_meter("lr", SmoothedValue(window_size=1, fmt="{value:.6f}"))
     header = f"Epoch: [{epoch}]"
 
     lr_scheduler = None
@@ -41,9 +39,7 @@ def train_one_epoch(
         )
 
     # Avalanche: added "*_"
-    for images, targets, *_ in metric_logger.log_every(
-        data_loader, print_freq, header
-    ):
+    for images, targets, *_ in metric_logger.log_every(data_loader, print_freq, header):
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         with torch.cuda.amp.autocast(enabled=scaler is not None):
@@ -97,9 +93,7 @@ def evaluate_coco(
     coco_evaluator = CocoEvaluator(coco, iou_types)
     header = "Test:"
 
-    for images, targets, *_ in metric_logger.log_every(
-        data_loader, 100, header
-    ):
+    for images, targets, *_ in metric_logger.log_every(data_loader, 100, header):
         images = list(img.to(device) for img in images)
 
         if torch.cuda.is_available():
@@ -117,9 +111,7 @@ def evaluate_coco(
         evaluator_time = time.time()
         coco_evaluator.update(res)
         evaluator_time = time.time() - evaluator_time
-        metric_logger.update(
-            model_time=model_time, evaluator_time=evaluator_time
-        )
+        metric_logger.update(model_time=model_time, evaluator_time=evaluator_time)
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
@@ -135,14 +127,11 @@ def evaluate_coco(
 def evaluate_lvis(
     model, data_loader, device, lvis: LVIS, metric_logger, cpu_device, iou_types
 ):
-
     # Lorenzo: implemented by taking inspiration from COCO code
     lvis_evaluator = LvisEvaluator(lvis, iou_types)
     header = "Test:"
 
-    for images, targets, *_ in metric_logger.log_every(
-        data_loader, 100, header
-    ):
+    for images, targets, *_ in metric_logger.log_every(data_loader, 100, header):
         images = list(img.to(device) for img in images)
 
         if torch.cuda.is_available():
@@ -159,9 +148,7 @@ def evaluate_lvis(
         evaluator_time = time.time()
         lvis_evaluator.update(res)
         evaluator_time = time.time() - evaluator_time
-        metric_logger.update(
-            model_time=model_time, evaluator_time=evaluator_time
-        )
+        metric_logger.update(model_time=model_time, evaluator_time=evaluator_time)
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()

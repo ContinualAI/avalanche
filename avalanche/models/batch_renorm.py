@@ -71,13 +71,14 @@ class BatchRenorm2D(Module):
         self.d_max = d_max
 
     def forward(self, x):
-
         device = self.gamma.device
 
-        self.r_max = self.r_max if isinstance(self.r_max, float)\
-            else self.r_max.to(device)
-        self.d_max = self.d_max if isinstance(self.d_max, float)\
-            else self.d_max.to(device)
+        self.r_max = (
+            self.r_max if isinstance(self.r_max, float) else self.r_max.to(device)
+        )
+        self.d_max = (
+            self.d_max if isinstance(self.d_max, float) else self.d_max.to(device)
+        )
 
         batch_ch_mean = torch.mean(x, dim=(0, 2, 3), keepdim=True).to(device)
         batch_ch_std = torch.sqrt(
@@ -101,8 +102,7 @@ class BatchRenorm2D(Module):
             )
             d = (
                 torch.clamp(
-                    (batch_ch_mean - self.running_avg_mean)
-                    / self.running_avg_std,
+                    (batch_ch_mean - self.running_avg_mean) / self.running_avg_std,
                     -self.d_max,
                     self.d_max,
                 )
@@ -127,7 +127,6 @@ class BatchRenorm2D(Module):
             )
 
         else:
-
             x = (x - self.running_avg_mean) / self.running_avg_std
             x = self.gamma * x + self.beta
 

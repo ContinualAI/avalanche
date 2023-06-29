@@ -9,17 +9,13 @@ from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel
 from typing_extensions import Literal
-from torch.distributed import (
-    init_process_group,
-    broadcast_object_list
-)
+from torch.distributed import init_process_group, broadcast_object_list
 
 
-BroadcastT = TypeVar('BroadcastT')
+BroadcastT = TypeVar("BroadcastT")
 
 
-from avalanche.distributed.distributed_consistency_verification import \
-    hash_tensor
+from avalanche.distributed.distributed_consistency_verification import hash_tensor
 
 
 class _Singleton(type):
@@ -27,8 +23,7 @@ class _Singleton(type):
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(_Singleton, cls).__call__(
-                *args, **kwargs)
+            cls._instances[cls] = super(_Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
 
@@ -41,19 +36,23 @@ class RollingSeedContext(object):
       - behave differently depending on the rank
       - change the global state of random number generators
     """
+
     def __init__(self):
         self.rng_manager_state = None
 
     def save_generators_state(self):
         from avalanche.training.determinism.rng_manager import RNGManager
+
         self.rng_manager_state = RNGManager.__getstate__()
 
     def load_generators_state(self):
         from avalanche.training.determinism.rng_manager import RNGManager
+
         self.rng_manager_state = RNGManager.__setstate__(self.rng_manager_state)
 
     def step_random_generators(self):
         from avalanche.training.determinism.rng_manager import RNGManager
+
         RNGManager.step_generators()
 
     def __enter__(self):
@@ -70,6 +69,7 @@ class BroadcastSeedContext(object):
 
     This is usually slower than using :class:`RollingSeedContext`.
     """
+
     def __init__(self):
         pass
 
@@ -89,12 +89,12 @@ class _MainProcessFirstContext(object):
     """
 
     def __init__(
-            self,
-            seed_alignment: Literal["rolling", "broadcast"] = 'rolling',
-            final_barrier: bool = False):
-        
+        self,
+        seed_alignment: Literal["rolling", "broadcast"] = "rolling",
+        final_barrier: bool = False,
+    ):
         self._seed_aligner: ContextManager
-        if seed_alignment == 'rolling':
+        if seed_alignment == "rolling":
             self._seed_aligner = RollingSeedContext()
         else:
             self._seed_aligner = BroadcastSeedContext()
@@ -129,41 +129,42 @@ class _DistributedHelperCls(object):
     Only a single object of this class is instantiated
     as the "DistributedHelper" singleton.
 
-            
+
     Note: differently from the original Pytorch API, which requires
-    that input tensor(s) to be moved to the default device (forced to 
+    that input tensor(s) to be moved to the default device (forced to
     CUDA if using NCCL), these functions usually also manage input tensors
     residing on a different devices. The returned elements will
     be moved to the same device of the input tensor. Consider looking at
     the documentation of each method for more details.
     """
+
     __metaclass__ = _Singleton
 
     def __init__(self):
         self.use_cuda = False
-        self._dev_map = _DistributedHelperCls._make_map('cpu')
+        self._dev_map = _DistributedHelperCls._make_map("cpu")
 
     def init_distributed(self, random_seed, backend=None, use_cuda=True):
         if self.is_distributed:
-            raise RuntimeError('Distributed API already initialized')
+            raise RuntimeError("Distributed API already initialized")
 
         use_cuda = use_cuda and torch.cuda.is_available()
 
         if backend is None:
             if use_cuda:
-                backend = 'nccl'
+                backend = "nccl"
             else:
-                backend = 'gloo'
+                backend = "gloo"
 
-        if backend == 'nccl' and not use_cuda:
-            warnings.warn(
-                'Bad configuration: using NCCL, but you set use_cuda=False!')
+        if backend == "nccl" and not use_cuda:
+            warnings.warn("Bad configuration: using NCCL, but you set use_cuda=False!")
 
         could_initialize_distributed = False
-        if os.environ.get('LOCAL_RANK', None) is None:
+        if os.environ.get("LOCAL_RANK", None) is None:
             warnings.warn(
-                'Torch distributed could not be initialized '
-                '(missing environment configuration)')
+                "Torch distributed could not be initialized "
+                "(missing environment configuration)"
+            )
         else:
             init_process_group(backend=backend)
             could_initialize_distributed = True
@@ -218,11 +219,11 @@ class _DistributedHelperCls(object):
             device_id = 0
 
         if self.use_cuda and device_id >= 0:
-            ref_device = torch.device(f'cuda:{device_id}')
+            ref_device = torch.device(f"cuda:{device_id}")
             if set_cuda_device:
                 torch.cuda.set_device(ref_device)
         else:
-            ref_device = torch.device('cpu')
+            ref_device = torch.device("cpu")
         return ref_device
 
     def wrap_model(self, model: Module) -> Module:
@@ -230,7 +231,7 @@ class _DistributedHelperCls(object):
         Wraps a given model to enable distributed training.
 
         The given model will be wrapped using :class:`DistributedDataParallel`.
-        
+
         :return: The model wrapped in :class:`DistributedDataParallel` if
             running a distributed training, or the model itself if running a
             single-process training.
@@ -245,13 +246,10 @@ class _DistributedHelperCls(object):
                 # (an int, a device object or a str)
                 # If not set, output_device defaults to device_ids[0]
                 return DistributedDataParallel(
-                    model,
-                    device_ids=[self.make_device()], 
-                    find_unused_parameters=True)
+                    model, device_ids=[self.make_device()], find_unused_parameters=True
+                )
             else:
-                return DistributedDataParallel(
-                    model,
-                    find_unused_parameters=True)
+                return DistributedDataParallel(model, find_unused_parameters=True)
         else:
             return model
 
@@ -274,6 +272,7 @@ class _DistributedHelperCls(object):
         :param random_seed: The random seed to set.
         """
         from avalanche.training.determinism.rng_manager import RNGManager
+
         RNGManager.set_random_seeds(random_seed)
 
     def align_seeds(self):
@@ -285,7 +284,7 @@ class _DistributedHelperCls(object):
             return
 
         if self.is_main_process:
-            reference_seed = torch.randint(0, 2**32-1, (1,), dtype=torch.int64)
+            reference_seed = torch.randint(0, 2**32 - 1, (1,), dtype=torch.int64)
         else:
             reference_seed = torch.empty((1,), dtype=torch.int64)
 
@@ -295,7 +294,7 @@ class _DistributedHelperCls(object):
 
     def main_process_first(self):
         """
-        Returns an execution context allowing the main process 
+        Returns an execution context allowing the main process
         to complete the section before allowing other processes
         to enter it.
 
@@ -319,18 +318,18 @@ class _DistributedHelperCls(object):
         """
         Broadcasts the given tensor from a source process to all processes.
 
-        Differences with torch.distributed: 
+        Differences with torch.distributed:
             - The input tensor can reside in any device.
             - The input tensor will be transmitted using the current backend.
                 However, the resulting tensor will be moved to the save device
                 as the `tensor` parameter before retutrning it,
-                no matter the backend in use. 
+                no matter the backend in use.
             - No-op if not running a distributed training.
 
         :param tensor: The tensor to be broadcasted.
         :param src: The rank of the source process. Defaults to 0,
             which is the main process.
-        :return: The tensor obtained from the source process, in the same 
+        :return: The tensor obtained from the source process, in the same
             device as the tensor parameter.
         """
 
@@ -342,7 +341,7 @@ class _DistributedHelperCls(object):
         tensor = self._revert_to_original_device(tensor_distrib, orig_data)
 
         return tensor
-    
+
     def broadcast_object(self, obj: BroadcastT, src=0) -> BroadcastT:
         """
         Broadcasts the given object from a source process to all processes.
@@ -350,7 +349,7 @@ class _DistributedHelperCls(object):
         Note: if broadcasting a Tensor, consider using :meth:`broadcast`
         instead.
 
-        Differences with torch.distributed: 
+        Differences with torch.distributed:
             - No-op if not running a distributed training.
 
         :param obj: The object to be broadcasted.
@@ -374,12 +373,12 @@ class _DistributedHelperCls(object):
         The resulting tensor will be concatenated in the order given by the
         rank of each source process.
 
-        Differences with torch.distributed: 
+        Differences with torch.distributed:
             - The input tensor can reside in any device.
             - The input tensor will be transmitted using the current backend.
                 However, the resulting tensor will be moved to the save device
                 as the `tensor` parameter before returning it,
-                no matter the backend in use. 
+                no matter the backend in use.
             - No-op if not running a distributed training.
 
         :param tensor: The tensor from the current process. Tensors across
@@ -401,8 +400,7 @@ class _DistributedHelperCls(object):
 
         return torch.cat(gathered_tensors)
 
-    def gather_tensor_shapes(self, tensor: Tensor, max_shape_len=10) \
-            -> List[List[int]]:
+    def gather_tensor_shapes(self, tensor: Tensor, max_shape_len=10) -> List[List[int]]:
         """
         Gathers the shapes of the tensors from all processes.
 
@@ -419,38 +417,39 @@ class _DistributedHelperCls(object):
         for i in range(len(tensor.shape)):
             tensor_size[i] = tensor.shape[i]
         all_tensors_shape = [
-            self._prepare_for_distributed_comm(
-                torch.zeros_like(tensor_size))[0]
-            for _ in range(self.world_size)]
+            self._prepare_for_distributed_comm(torch.zeros_like(tensor_size))[0]
+            for _ in range(self.world_size)
+        ]
         tensor_size, _ = self._prepare_for_distributed_comm(tensor_size)
 
         torch.distributed.all_gather(all_tensors_shape, tensor_size)
 
         all_tensors_shape = [t.cpu() for t in all_tensors_shape]
-        
+
         # Trim shape
         for i, t in enumerate(all_tensors_shape):
             for x in range(len(t)):
                 if t[x] == 0:
                     if x == 0:
                         # Tensor with 0-length shape
-                        all_tensors_shape[i] = t[:x+1]
+                        all_tensors_shape[i] = t[: x + 1]
                     else:
                         all_tensors_shape[i] = t[:x]
 
                     break
-        
+
         return [t_shape.tolist() for t_shape in all_tensors_shape]
 
     def gather_all(
-            self,
-            tensor: Tensor,
-            same_shape: bool = False,
-            shapes: Optional[List[List[int]]] = None) -> List[Tensor]:
+        self,
+        tensor: Tensor,
+        same_shape: bool = False,
+        shapes: Optional[List[List[int]]] = None,
+    ) -> List[Tensor]:
         """
         Gather all for tensors only.
 
-        Differences with torch.distributed: 
+        Differences with torch.distributed:
             - The input tensor can reside in any device.
             - The input tensor will be transmitted using the current backend.
                 However, the resulting tensors will be moved to the save device
@@ -480,8 +479,7 @@ class _DistributedHelperCls(object):
                 tensor_size = list(tensor.shape)
             else:
                 tensor_size = [0]
-            all_tensors_shape = \
-                [tensor_size for _ in range(self.world_size)]
+            all_tensors_shape = [tensor_size for _ in range(self.world_size)]
         elif shapes is not None:
             # Shapes given by the user
             # make sure it is a list of lists
@@ -489,7 +487,7 @@ class _DistributedHelperCls(object):
         else:
             # Tensor differ by whole shape
             all_tensors_shape = self.gather_tensor_shapes(tensor)
-        
+
         same_shape = all(all_tensors_shape[0] == x for x in all_tensors_shape)
         orig_device = tensor.device
 
@@ -511,36 +509,33 @@ class _DistributedHelperCls(object):
                 all_tensors_numel.append(curr_size)
 
             max_numel = max(all_tensors_numel)
-            out_tensors = [torch.empty((max_numel,), dtype=dtype) 
-                           for _ in all_tensors_shape]
-            
+            out_tensors = [
+                torch.empty((max_numel,), dtype=dtype) for _ in all_tensors_shape
+            ]
+
             tensor = tensor.flatten()
             n_padding = max_numel - tensor.numel()
             if n_padding > 0:
-                padding = torch.zeros((n_padding,), 
-                                      dtype=tensor.dtype,
-                                      device=orig_device)
+                padding = torch.zeros(
+                    (n_padding,), dtype=tensor.dtype, device=orig_device
+                )
                 tensor = torch.cat((tensor, padding), dim=0)
 
         tensor, _ = self._prepare_for_distributed_comm(tensor)
-        out_tensors = [self._prepare_for_distributed_comm(t)[0]
-                       for t in out_tensors]
-                        
+        out_tensors = [self._prepare_for_distributed_comm(t)[0] for t in out_tensors]
+
         torch.distributed.all_gather(out_tensors, tensor)
 
         if not same_shape:
             # The tensors are flat and of the wrong dimension: re-shape them
-            for tensor_idx, (tensor_sz, tensor_numel, out_t) in \
-                    enumerate(zip(all_tensors_shape, 
-                                  all_tensors_numel,
-                                  out_tensors)):
+            for tensor_idx, (tensor_sz, tensor_numel, out_t) in enumerate(
+                zip(all_tensors_shape, all_tensors_numel, out_tensors)
+            ):
                 if tensor_sz[0] == 0:
                     # Tensor with 0-length shape
-                    out_tensors[tensor_idx] = \
-                        out_t[:tensor_numel].reshape(tuple())
+                    out_tensors[tensor_idx] = out_t[:tensor_numel].reshape(tuple())
                 else:
-                    out_tensors[tensor_idx] = \
-                        out_t[:tensor_numel].reshape(tensor_sz)
+                    out_tensors[tensor_idx] = out_t[:tensor_numel].reshape(tensor_sz)
 
         out_tensors = [t.to(orig_device) for t in out_tensors]
         return out_tensors
@@ -551,14 +546,14 @@ class _DistributedHelperCls(object):
         (even the ones nested inside objects) to the correct default device.
 
         Same as torch.distributed:
-            - Tensors nested inside the input object must reside in the 
+            - Tensors nested inside the input object must reside in the
                 default device. Future versions of Avalanche may adopt
                 solutions to circumvent the limitations of
                 orch.distributed.
 
         Differences with torch.distributed:
             - The input object will be transmitted using the current backend.
-                However, the resulting tensors nested inside of it 
+                However, the resulting tensors nested inside of it
                 will be moved to the default device before returning them,
                 no matter the backend in use.
             - No-op if not running a distributed training.
@@ -587,8 +582,7 @@ class _DistributedHelperCls(object):
 
         if len(set(tensors_hashes)) != 1:
             # Equal tensors
-            raise ValueError('Different tensors. Got hashes: {}'.format(
-                tensors_hashes))
+            raise ValueError("Different tensors. Got hashes: {}".format(tensors_hashes))
 
     def check_equal_objects(self, obj: Any):
         """
@@ -610,9 +604,9 @@ class _DistributedHelperCls(object):
             o_bt = _base_typed(o)
             if obj_bt != o_bt:
                 raise ValueError(
-                    'Different objects (ranks this={}, remote={}). '
-                    'Got this={}, remote={}'.format(
-                        self.rank, i, obj, o))
+                    "Different objects (ranks this={}, remote={}). "
+                    "Got this={}, remote={}".format(self.rank, i, obj, o)
+                )
 
     def _prepare_for_distributed_comm(self, tensor: Tensor):
         """
@@ -642,7 +636,7 @@ class _DistributedHelperCls(object):
         (if needed).
 
         :param: The tensor obtained from a torch.distributed API call.
-        :param: The descriptor in the format of 
+        :param: The descriptor in the format of
             :meth:`_prepare_for_distributed_comm`.
         :return: The tensor moved to the appropriate device.
         """
@@ -661,7 +655,7 @@ class _DistributedHelperCls(object):
         """
         The current tank.
 
-        :return: The rank of the current process. 
+        :return: The rank of the current process.
             Returns 0 if not running a distributed training.
         """
         if torch.distributed.is_initialized():
@@ -673,7 +667,7 @@ class _DistributedHelperCls(object):
         """
         The world size.
 
-        :return: The world size of the default group. 
+        :return: The world size of the default group.
             Returns 1 if not running a distributed training.
         """
 
@@ -719,7 +713,7 @@ class _DistributedHelperCls(object):
         :return: True if tensors must be moved to the default cuda device,
             False otherwise.
         """
-        return self.backend == 'nccl'
+        return self.backend == "nccl"
 
     @property
     def device_map(self) -> Dict[str, str]:
@@ -741,9 +735,9 @@ class _DistributedHelperCls(object):
         device = torch.device(device_or_map)
         map_location = dict()
 
-        map_location['cpu'] = 'cpu'
+        map_location["cpu"] = "cpu"
         for cuda_idx in range(100):
-            map_location[f'cuda:{cuda_idx}'] = str(device)
+            map_location[f"cuda:{cuda_idx}"] = str(device)
         return map_location
 
 
@@ -755,14 +749,17 @@ def _base_typed(obj):
     Improved version of https://stackoverflow.com/a/62420097
     """
     T = type(obj)
-    from_numpy = T.__module__ == 'numpy'
-    from_pytorch = T.__module__ == 'torch'
+    from_numpy = T.__module__ == "numpy"
+    from_pytorch = T.__module__ == "torch"
 
     if from_numpy or from_pytorch:
         return obj.tolist()
 
-    if T in BASE_TYPES or callable(obj) or ((from_numpy or from_pytorch)
-                                            and not isinstance(T, Iterable)):
+    if (
+        T in BASE_TYPES
+        or callable(obj)
+        or ((from_numpy or from_pytorch) and not isinstance(T, Iterable))
+    ):
         return obj
 
     if isinstance(obj, Dict):
@@ -777,8 +774,7 @@ def _base_typed(obj):
 
 
 def fix():
-    return lambda b: torch.load(BytesIO(b),
-                                map_location=DistributedHelper.device_map)
+    return lambda b: torch.load(BytesIO(b), map_location=DistributedHelper.device_map)
 
 
 class MappedUnpickler(pickle.Unpickler):
@@ -790,6 +786,7 @@ class MappedUnpickler(pickle.Unpickler):
     This unpickler will we used to replace the
     `torch.distributed.distributed_c10d._unpickler`.
     """
+
     # Based on:
     # https://github.com/pytorch/pytorch/issues/16797#issuecomment-777059657
 
@@ -800,7 +797,7 @@ class MappedUnpickler(pickle.Unpickler):
         super().__init__(*args, **kwargs)
 
     def find_class(self, module, name):
-        if module == 'torch.storage' and name == '_load_from_bytes':
+        if module == "torch.storage" and name == "_load_from_bytes":
             return fix()
         else:
             return super().find_class(module, name)
@@ -812,8 +809,8 @@ DistributedHelper = _DistributedHelperCls()
 
 
 __all__ = [
-    'RollingSeedContext',
-    'BroadcastSeedContext',
-    '_DistributedHelperCls',
-    'DistributedHelper'
+    "RollingSeedContext",
+    "BroadcastSeedContext",
+    "_DistributedHelperCls",
+    "DistributedHelper",
 ]

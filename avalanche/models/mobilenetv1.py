@@ -26,7 +26,6 @@ except Exception:
 
 
 def remove_sequential(network: nn.Module, all_layers: List[nn.Module]):
-
     for layer in network.children():
         # if sequential layer, apply recursively to layers in sequential layer
         if isinstance(layer, nn.Sequential):
@@ -38,7 +37,6 @@ def remove_sequential(network: nn.Module, all_layers: List[nn.Module]):
 
 
 def remove_DwsConvBlock(cur_layers):
-
     all_layers = []
     for layer in cur_layers:
         if isinstance(layer, DwsConvBlock):
@@ -79,7 +77,6 @@ class MobilenetV1(nn.Module):
         self.output = nn.Linear(1024, 50, bias=False)
 
     def forward(self, x, latent_input=None, return_lat_acts=False):
-
         if latent_input is not None:
             with torch.no_grad():
                 orig_acts = self.lat_features(x)
@@ -99,7 +96,6 @@ class MobilenetV1(nn.Module):
 
 
 if __name__ == "__main__":
-
     model = MobilenetV1(pretrained=True)
     for name, param in model.named_parameters():
         print(name)

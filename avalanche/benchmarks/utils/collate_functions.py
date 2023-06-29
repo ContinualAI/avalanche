@@ -42,9 +42,7 @@ ClassificationFeatureT: TypeAlias = Tensor
 
 DetectionExampleT = Tuple[Tensor, Dict, int]
 DetectionBatchT = Tuple[Tuple[Tensor, ...], Tuple[Dict, ...], Tuple[int, ...]]
-DetectionBatchedFeatureT = Union[Tuple[Tensor, ...],
-                                 Tuple[Dict, ...],
-                                 Tuple[int, ...]]
+DetectionBatchedFeatureT = Union[Tuple[Tensor, ...], Tuple[Dict, ...], Tuple[int, ...]]
 DetectionFeatureT = Union[Tensor, Dict, int]
 
 
@@ -124,8 +122,9 @@ def detection_collate_fn(batch: Sequence[DetectionExampleT]) -> DetectionBatchT:
     return tuple(zip(*batch))  # type: ignore
 
 
-def detection_collate_mbatches_fn(mbatches: Sequence[DetectionBatchT]) -> \
-        DetectionBatchT:
+def detection_collate_mbatches_fn(
+    mbatches: Sequence[DetectionBatchT],
+) -> DetectionBatchT:
     """
     Collate function used when loading detection datasets using a DataLoader.
 
@@ -170,5 +169,5 @@ __all__ = [
     "classification_collate_mbatches_fn",
     "classification_single_values_collate_mbatches_fn",
     "detection_collate_fn",
-    "detection_collate_mbatches_fn"
+    "detection_collate_mbatches_fn",
 ]

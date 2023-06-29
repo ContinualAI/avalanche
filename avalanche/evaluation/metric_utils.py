@@ -321,7 +321,6 @@ def generic_get_metric_name(
     value_name_template: Union[str, Callable[[Dict[str, Any]], str]],
     metric_info: Dict[str, Any],
 ):
-
     if isinstance(value_name_template, str):
         name_template = value_name_template
     else:

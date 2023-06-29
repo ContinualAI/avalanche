@@ -128,17 +128,13 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
         if syn_loss is not None:
             strategy.loss += syn_loss.to(strategy.device)
 
-    def before_training_iteration(
-        self, strategy: "SupervisedTemplate", **kwargs
-    ):
+    def before_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
         super().before_training_iteration(strategy, **kwargs)
         SynapticIntelligencePlugin.pre_update(
             strategy.model, self.syn_data, self.excluded_parameters
         )
 
-    def after_training_iteration(
-        self, strategy: "SupervisedTemplate", **kwargs
-    ):
+    def after_training_iteration(self, strategy: "SupervisedTemplate", **kwargs):
         super().after_training_iteration(strategy, **kwargs)
         SynapticIntelligencePlugin.post_update(
             strategy.model, self.syn_data, self.excluded_parameters
@@ -177,20 +173,25 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
         for param_name, param in params:
             if param_name not in ewc_data[0]:
                 # new parameter
-                ewc_data[0][param_name] = ParamData(
-                    param_name, param.flatten().shape)
+                ewc_data[0][param_name] = ParamData(param_name, param.flatten().shape)
                 ewc_data[1][param_name] = ParamData(
-                    f"imp_{param_name}", param.flatten().shape)
+                    f"imp_{param_name}", param.flatten().shape
+                )
                 syn_data["old_theta"][param_name] = ParamData(
-                    f"old_theta_{param_name}", param.flatten().shape)
+                    f"old_theta_{param_name}", param.flatten().shape
+                )
                 syn_data["new_theta"][param_name] = ParamData(
-                    f"new_theta_{param_name}", param.flatten().shape)
+                    f"new_theta_{param_name}", param.flatten().shape
+                )
                 syn_data["grad"][param_name] = ParamData(
-                    f"grad{param_name}", param.flatten().shape)
+                    f"grad{param_name}", param.flatten().shape
+                )
                 syn_data["trajectory"][param_name] = ParamData(
-                    f"trajectory_{param_name}", param.flatten().shape)
+                    f"trajectory_{param_name}", param.flatten().shape
+                )
                 syn_data["cum_trajectory"][param_name] = ParamData(
-                    f"cum_trajectory_{param_name}", param.flatten().shape)
+                    f"cum_trajectory_{param_name}", param.flatten().shape
+                )
             elif ewc_data[0][param_name].shape != param.shape:
                 # parameter expansion
                 ewc_data[0][param_name].expand(param.flatten().shape)
@@ -198,10 +199,8 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
                 syn_data["old_theta"][param_name].expand(param.flatten().shape)
                 syn_data["new_theta"][param_name].expand(param.flatten().shape)
                 syn_data["grad"][param_name].expand(param.flatten().shape)
-                syn_data["trajectory"][param_name]\
-                    .expand(param.flatten().shape)
-                syn_data["cum_trajectory"][param_name]\
-                    .expand(param.flatten().shape)
+                syn_data["trajectory"][param_name].expand(param.flatten().shape)
+                syn_data["cum_trajectory"][param_name].expand(param.flatten().shape)
 
     @staticmethod
     @torch.no_grad()
@@ -250,9 +249,7 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
 
     @staticmethod
     @torch.no_grad()
-    def post_update(
-        model, syn_data: SynDataType, excluded_parameters: Set[str]
-    ):
+    def post_update(model, syn_data: SynDataType, excluded_parameters: Set[str]):
         SynapticIntelligencePlugin.extract_weights(
             model, syn_data["new_theta"], excluded_parameters
         )
@@ -285,9 +282,9 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
             weights = param.to(device).flatten()  # Flat, not detached
             ewc_data0 = ewc_data[0][name].data.to(device)  # Flat, detached
             ewc_data1 = ewc_data[1][name].data.to(device)  # Flat, detached
-            syn_loss: Tensor = torch.dot(
-                ewc_data1, (weights - ewc_data0) ** 2
-            ) * (lambd / 2)
+            syn_loss: Tensor = torch.dot(ewc_data1, (weights - ewc_data0) ** 2) * (
+                lambd / 2
+            )
 
             if loss is None:
                 loss = syn_loss
@@ -336,8 +333,9 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
             ewc_data[1][param_name].data = torch.clamp(
                 ewc_data[1][param_name].data, max=clip_to
             )
-            ewc_data[0][param_name].data = \
-                syn_data["new_theta"][param_name].data.clone()
+            ewc_data[0][param_name].data = syn_data["new_theta"][
+                param_name
+            ].data.clone()
 
     @staticmethod
     def explode_excluded_parameters(excluded: Set[str]) -> Set[str]:
@@ -363,10 +361,8 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
     ) -> Sequence[Tuple[str, Tensor]]:
         # Add wildcards ".*" to all excluded parameter names
         result: List[Tuple[str, Tensor]] = []
-        excluded_parameters = (
-            SynapticIntelligencePlugin.explode_excluded_parameters(
-                excluded_parameters
-            )
+        excluded_parameters = SynapticIntelligencePlugin.explode_excluded_parameters(
+            excluded_parameters
         )
         layers_params = get_layers_and_params(model)
 
@@ -391,7 +387,6 @@ class SynapticIntelligencePlugin(SupervisedPlugin):
     def allowed_parameters(
         model: Module, excluded_parameters: Set[str]
     ) -> List[Tuple[str, Tensor]]:
-
         allow_list = SynapticIntelligencePlugin.not_excluded_parameters(
             model, excluded_parameters
         )

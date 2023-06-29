@@ -90,11 +90,9 @@ class MIRPlugin(SupervisedPlugin):
         with torch.no_grad():
             _old_red_strategy = strategy._criterion.reduction
             strategy._criterion.reduction = "none"
-            old_output = avalanche_forward(strategy.model, 
-                                           samples_x, samples_tid)
+            old_output = avalanche_forward(strategy.model, samples_x, samples_tid)
             old_loss = strategy._criterion(old_output, samples_y)
-            new_output = avalanche_forward(model_updated, 
-                                           samples_x, samples_tid)
+            new_output = avalanche_forward(model_updated, samples_x, samples_tid)
             new_loss = strategy._criterion(new_output, samples_y)
             loss_diff = new_loss - old_loss
             chosen_samples_indexes = torch.argsort(loss_diff)[
@@ -136,6 +134,4 @@ class MIRPlugin(SupervisedPlugin):
             self.replay_loader = None
 
 
-__all__ = [
-    'MIRPlugin'
-]
+__all__ = ["MIRPlugin"]

@@ -14,7 +14,7 @@ from torch.nn import Module
 
 from . import CLScenario, CLExperience, CLStream
 
-TExModelExperience = TypeVar('TExModelExperience', bound='ExModelExperience')
+TExModelExperience = TypeVar("TExModelExperience", bound="ExModelExperience")
 
 
 class ExModelExperience(CLExperience):
@@ -32,8 +32,7 @@ class ExModelExperience(CLExperience):
         classes_in_this_experience=None,
     ):
         super().__init__(
-            current_experience=current_experience,
-            origin_stream=origin_stream
+            current_experience=current_experience, origin_stream=origin_stream
         )
         self.expert_model: Module = expert_model
         self.classes_in_this_experience = classes_in_this_experience
@@ -53,11 +52,7 @@ class ExModelCLScenario(CLScenario[CLStream[TExModelExperience]]):
     https://arxiv.org/abs/2112.06511
     """
 
-    def __init__(
-        self,
-        original_benchmark: CLScenario,
-        expert_models: List[Module]
-    ):
+    def __init__(self, original_benchmark: CLScenario, expert_models: List[Module]):
         """Init.
 
         :param original_benchmark: a reference to the original benchmark
@@ -67,26 +62,23 @@ class ExModelCLScenario(CLScenario[CLStream[TExModelExperience]]):
             `original_benchmark`.
         """
         expert_models_l: List[TExModelExperience] = []
-        for i, (m, e) in enumerate(zip(
-                expert_models,
-                original_benchmark.train_stream)):  # type: ignore
+        for i, (m, e) in enumerate(
+            zip(expert_models, original_benchmark.train_stream)
+        ):  # type: ignore
             cine = e.classes_in_this_experience
             expert_models_l.append(
                 ExModelExperience(
                     expert_model=m,
                     current_experience=i,
                     origin_stream=None,  # type: ignore
-                    classes_in_this_experience=cine)
+                    classes_in_this_experience=cine,
                 )
-
-        expert_stream: CLStream[TExModelExperience] = \
-            CLStream(
-                name="expert_models",
-                exps_iter=expert_models_l,
-                benchmark=self
             )
-        streams: List[CLStream[TExModelExperience]] = \
-            [expert_stream]
+
+        expert_stream: CLStream[TExModelExperience] = CLStream(
+            name="expert_models", exps_iter=expert_models_l, benchmark=self
+        )
+        streams: List[CLStream[TExModelExperience]] = [expert_stream]
 
         self.original_benchmark = original_benchmark
         # for s in original_benchmark.streams.values():
@@ -96,7 +88,4 @@ class ExModelCLScenario(CLScenario[CLStream[TExModelExperience]]):
         super().__init__(streams)
 
 
-__all__ = [
-    'ExModelExperience',
-    'ExModelCLScenario'
-]
+__all__ = ["ExModelExperience", "ExModelCLScenario"]

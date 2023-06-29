@@ -75,9 +75,7 @@ class CSVLogger(BaseLogger, SupervisedPlugin):
         self.training_file = open(
             os.path.join(self.log_folder, "training_results.csv"), "w"
         )
-        self.eval_file = open(
-            os.path.join(self.log_folder, "eval_results.csv"), "w"
-        )
+        self.eval_file = open(os.path.join(self.log_folder, "eval_results.csv"), "w")
         os.makedirs(self.log_folder, exist_ok=True)
 
         # current training experience id
@@ -248,6 +246,4 @@ class CSVLogger(BaseLogger, SupervisedPlugin):
         self.eval_file.close()
 
 
-__all__ = [
-    'CSVLogger'
-]
+__all__ = ["CSVLogger"]
