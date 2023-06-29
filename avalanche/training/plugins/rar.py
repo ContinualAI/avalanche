@@ -12,6 +12,7 @@ from torchvision.models.feature_extraction import (
 
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
+from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 
 if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate
@@ -58,17 +59,17 @@ class RARPlugin(SupervisedPlugin):
         storage_policy: Optional["ReservoirSamplingBuffer"] = None,
     ):
         """
-        batch_size_mem: int    : Size of the batch sampled from
+        :param batch_size_mem: Size of the batch sampled from
                                  the bigger buffer
-        mem_size: int          : Fixed memory size
-        opt_lr : float         : Learning rate of the internal optimizer
-        name_ext_layer: str    : Name of the layer to extract features
-        use_adversarial_replay : Boolean to use or not RAR
-        beta_coef: float       : coef between RAR and Buffer
-        decay_factor_fgsm:     : Decay factor of FGSM
-        epsilon_fgsm:          : Epsilon for FGSM
-        iter_fgsm:             : Number of iterations of FGSM
-        storage_policy:        : Storage Policy used for the buffer                      
+        :param mem_size: Fixed memory size
+        :param opt_lr: Learning rate of the internal optimizer
+        :param name_ext_layer: Name of the layer to extract features
+        :param use_adversarial_replay: Boolean to use or not RAR
+        :param beta_coef: float: coef between RAR and Buffer
+        :param decay_factor_fgsm: Decay factor of FGSM
+        :param epsilon_fgsm: Epsilon for FGSM
+        :param iter_fgsm: Number of iterations of FGSM
+        :param storage_policy: Storage Policy used for the buffer                      
         """
         super().__init__()
         self.mem_size = mem_size
@@ -103,7 +104,9 @@ class RARPlugin(SupervisedPlugin):
     def before_training_exp(
         self,
         strategy: "SupervisedTemplate",
+        num_workers: int = 0,
         shuffle: bool = True,
+        drop_last: bool = False,
         **kwargs
     ):
         """
@@ -126,6 +129,19 @@ class RARPlugin(SupervisedPlugin):
             shuffle=shuffle,
         )
 
+        assert strategy.adapted_dataset is not None
+        strategy.dataloader = ReplayDataLoader(
+            strategy.adapted_dataset,
+            self.storage_policy.buffer,
+            oversample_small_tasks=True,
+            batch_size=batch_size_mem,
+            batch_size_mem=batch_size_mem,
+            task_balanced_dataloader=False,
+            num_workers=num_workers,
+            shuffle=shuffle,
+            drop_last=drop_last,
+        )
+
     def before_backward(self, strategy: "SupervisedTemplate", **kwargs):
         """
         Before the backward function in the training process. We need to update 
@@ -145,9 +161,9 @@ class RARPlugin(SupervisedPlugin):
         mb_x_buff = batch_buff[0].to(strategy.device)
         mb_y_buff = batch_buff[1].to(strategy.device)
 
-        out_buff = strategy.model(mb_x_buff)
-        strategy.loss += (1-self.beta_coef) * \
-            strategy._criterion(out_buff, mb_y_buff)
+        # out_buff = strategy.model(mb_x_buff)
+        # strategy.loss += (1-self.beta_coef) * \
+        #     strategy._criterion(out_buff, mb_y_buff)
 
         if not self.use_adversarial_replay:
             return
@@ -193,7 +209,7 @@ class RARPlugin(SupervisedPlugin):
         mb_x_pert = self.mifgsm_attack(mb_x_buff, mb_x_buff.grad.data)
 
         out_buff = strategy.model(mb_x_pert)
-        strategy.loss += (1-self.beta_coef) * \
+        strategy.loss += (self.beta_coef) * \
             strategy._criterion(out_buff, mb_y_buff)
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
@@ -202,17 +218,26 @@ class RARPlugin(SupervisedPlugin):
     def get_buffer_batch(self):
         """
         Auxiliary function to obtained the next batch
+
+        :return: Batch from the buffer
         """
-        iter_replay = iter(self.replay_loader)
-        b_batch = next(iter_replay)
+        
+        try:
+            b_batch = next(self.iter_replay)
+        except:
+            self.iter_replay = iter(self.replay_loader)
+            b_batch = next(self.iter_replay)
 
         return b_batch
 
     def mifgsm_attack(self, input, data_grad):
         """
         FGSM - This function generate the perturbation to the input.
-        input: Data that we want to apply the perturbation
-        data_grad: Gradient of those samples
+        
+        :param input: Data that we want to apply the perturbation
+        :param data_grad: Gradient of those samples
+
+        :return: Attacked input
         """
         pert_out = input
         alpha = self.epsilon_fgsm/self.iter_fgsm
@@ -227,5 +252,5 @@ class RARPlugin(SupervisedPlugin):
 
 
 __all__ = [
-    'MIRPlugin'
+    'RARPlugin'
 ]
