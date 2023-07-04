@@ -174,13 +174,7 @@ class RARPlugin(SupervisedPlugin):
             copy_model, return_nodes=[self.name_ext_layer]
         )
 
-        params_list = []
-        for param_group in strategy.optimizer.state_dict()["param_groups"]:
-            for i, p in enumerate(copy_model.parameters()):
-                if i in param_group["params"]:
-                    params_list.append(p)
-
-        optimizer = SGD(params_list, lr=self.opt_lr)
+        optimizer = SGD(copy_model.parameters(), lr=self.opt_lr)
 
         optimizer.zero_grad()
         output = copy_model(strategy.mb_x)
