@@ -138,7 +138,6 @@ class MER(SupervisedMetaLearningTemplate):
 
             self.model.load_state_dict(load_dict, strict=False)
 
-
     def _outer_update(self, **kwargs):
         w_aft = self.model.state_dict()
 
