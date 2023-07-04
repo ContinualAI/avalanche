@@ -1,22 +1,20 @@
-from typing import Callable, Sequence, Optional, Union
+from copy import deepcopy
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 import torch.nn.functional as F
-from torch.nn import Module, CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, Module
 from torch.optim import Optimizer
-from copy import deepcopy
 
-from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
-from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates import SupervisedMetaLearningTemplate
 from avalanche.models.utils import avalanche_forward
+from avalanche.training.plugins import EvaluationPlugin, SupervisedPlugin
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
+from avalanche.training.templates import SupervisedMetaLearningTemplate
 
 
 class MERBuffer:
-    def __init__(
-        self, mem_size=100, batch_size_mem=10, device=torch.device("cpu")
-    ):
+    def __init__(self, mem_size=100, batch_size_mem=10, device=torch.device("cpu")):
         self.storage_policy = ReservoirSamplingBuffer(max_size=mem_size)
         self.batch_size_mem = batch_size_mem
         self.device = device
@@ -32,7 +30,7 @@ class MERBuffer:
             return x, y, t
 
         bsize = min(len(self), self.batch_size_mem)
-        rnd_ind = torch.randperm(len(self))[:bsize]
+        rnd_ind = torch.randperm(len(self))[:bsize].tolist()
         buff_x = torch.cat(
             [self.storage_policy.buffer[i][0].unsqueeze(0) for i in rnd_ind]
         ).to(self.device)
@@ -132,21 +130,26 @@ class MER(SupervisedMetaLearningTemplate):
 
             # Within-batch Reptile update
             w_aft_t = self.model.state_dict()
-            self.model.load_state_dict(
-                {
-                    name: w_bef_t[name] + ((w_aft_t[name] - w_bef_t[name]) * self.beta)
-                    for name in w_bef_t
-                }
-            )
+            load_dict = {}
+            for name, param in self.model.named_parameters():
+                load_dict[name] = w_bef_t[name] + (
+                    (w_aft_t[name] - w_bef_t[name]) * self.beta
+                )
+
+            self.model.load_state_dict(load_dict, strict=False)
+
 
     def _outer_update(self, **kwargs):
         w_aft = self.model.state_dict()
-        self.model.load_state_dict(
-            {
-                name: self.w_bef[name] + ((w_aft[name] - self.w_bef[name]) * self.gamma)
-                for name in self.w_bef
-            }
-        )
+
+        load_dict = {}
+        for name, param in self.model.named_parameters():
+            load_dict[name] = self.w_bef[name] + (
+                (w_aft[name] - self.w_bef[name]) * self.gamma
+            )
+
+        self.model.load_state_dict(load_dict, strict=False)
+
         with torch.no_grad():
             pred = self.forward()
             self.loss = self._criterion(pred, self.mb_y)
