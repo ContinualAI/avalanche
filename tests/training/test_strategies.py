@@ -49,6 +49,7 @@ from avalanche.training.supervised import (
     DER,
     LearningToPrompt,
     ExpertGateStrategy,
+    MER,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -410,6 +411,7 @@ class StrategyTest(unittest.TestCase):
 
         # MT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=True)
+
         strategy = Replay(
             model,
             optimizer,
@@ -420,6 +422,38 @@ class StrategyTest(unittest.TestCase):
             eval_mb_size=50,
             train_epochs=2,
         )
+
+        run_strategy(benchmark, strategy)
+
+    def test_mer(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+        strategy = MER(
+            model,
+            optimizer,
+            criterion,
+            mem_size=10,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        run_strategy(benchmark, strategy)
+
+        # MT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=True)
+
+        strategy = MER(
+            model,
+            optimizer,
+            criterion,
+            mem_size=10,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+
         run_strategy(benchmark, strategy)
 
     def test_gdumb(self):

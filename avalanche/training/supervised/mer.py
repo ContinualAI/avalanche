@@ -8,17 +8,17 @@ from copy import deepcopy
 
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates import OnlineSupervisedMetaLearningTemplate
+from avalanche.training.templates import SupervisedMetaLearningTemplate
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
 
 
 class MERBuffer:
     def __init__(
-        self, max_buffer_size=100, buffer_mb_size=10, device=torch.device("cpu")
+        self, mem_size=100, batch_size_mem=10, device=torch.device("cpu")
     ):
-        self.storage_policy = ReservoirSamplingBuffer(max_size=max_buffer_size)
-        self.buffer_mb_size = buffer_mb_size
+        self.storage_policy = ReservoirSamplingBuffer(max_size=mem_size)
+        self.batch_size_mem = batch_size_mem
         self.device = device
 
     def update(self, strategy):
@@ -31,7 +31,7 @@ class MERBuffer:
         if len(self) == 0:
             return x, y, t
 
-        bsize = min(len(self), self.buffer_mb_size)
+        bsize = min(len(self), self.batch_size_mem)
         rnd_ind = torch.randperm(len(self))[:bsize]
         buff_x = torch.cat(
             [self.storage_policy.buffer[i][0].unsqueeze(0) for i in rnd_ind]
@@ -50,19 +50,19 @@ class MERBuffer:
         return mixed_x, mixed_y, mixed_t
 
 
-class MER(OnlineSupervisedMetaLearningTemplate):
+class MER(SupervisedMetaLearningTemplate):
     def __init__(
         self,
         model: Module,
         optimizer: Optimizer,
         criterion=CrossEntropyLoss(),
-        max_buffer_size=200,
-        buffer_mb_size=10,
+        mem_size=200,
+        batch_size_mem=10,
         n_inner_steps=5,
         beta=0.1,
         gamma=0.1,
         train_mb_size: int = 1,
-        train_passes: int = 1,
+        train_epochs: int = 1,
         eval_mb_size: int = 1,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
@@ -78,8 +78,8 @@ class MER(OnlineSupervisedMetaLearningTemplate):
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
-        :param max_buffer_size: maximum size of the buffer.
-        :param buffer_mb_size: number of samples to retrieve from buffer
+        :param mem_size: maximum size of the buffer.
+        :param batch_size_mem: number of samples to retrieve from buffer
             for each sample.
         :param n_inner_steps: number of inner updates per sample.
         :param beta: coefficient for within-batch Reptile update.
@@ -91,7 +91,7 @@ class MER(OnlineSupervisedMetaLearningTemplate):
             optimizer,
             criterion,
             train_mb_size,
-            train_passes,
+            train_epochs,
             eval_mb_size,
             device,
             plugins,
@@ -101,8 +101,8 @@ class MER(OnlineSupervisedMetaLearningTemplate):
         )
 
         self.buffer = MERBuffer(
-            max_buffer_size=max_buffer_size,
-            buffer_mb_size=buffer_mb_size,
+            mem_size=mem_size,
+            batch_size_mem=batch_size_mem,
             device=self.device,
         )
         self.n_inner_steps = n_inner_steps
