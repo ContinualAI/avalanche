@@ -31,11 +31,19 @@ if TYPE_CHECKING:
 
     FFCVParameters = Dict[str, Any]
     EncoderDef = \
-        Optional[Union['FFCVEncodeDef',
-                    Callable[[FFCVParameters], 'FFCVEncodeDef']]]
+        Optional[
+            Union[
+                'FFCVEncodeDef',
+                Callable[[FFCVParameters], 'FFCVEncodeDef']
+            ]
+        ]
     DecoderDef = \
-        Optional[Union['FFCVDecodeDef', 
-                    Callable[[FFCVParameters], 'FFCVDecodeDef']]]
+        Optional[
+            Union[
+                'FFCVDecodeDef', 
+                Callable[[FFCVParameters], 'FFCVDecodeDef']
+            ]
+        ]
 
 
 def _image_encoder(ffcv_parameters: 'FFCVParameters'):
@@ -47,8 +55,10 @@ def _image_encoder(ffcv_parameters: 'FFCVParameters'):
         smart_threshold=ffcv_parameters.get('smart_threshold', None),
         jpeg_quality=ffcv_parameters.get('jpeg_quality', 90),
         compress_probability=ffcv_parameters.get(
-            'compress_probability', 0.5),
+            'compress_probability', 0.5
+        ),
     )
+
 
 def _ffcv_infer_encoder(
     value,

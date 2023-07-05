@@ -10,7 +10,7 @@ automatic pipeline, then start putting your custom pipeline toghether
 by folliwing the FFCV tutorials!
 """
 
-#%%
+# %%
 import time
 from matplotlib import pyplot as plt
 
@@ -18,7 +18,9 @@ import torch
 from avalanche.benchmarks.classic.ccifar100 import SplitCIFAR100
 from avalanche.benchmarks.classic.ctiny_imagenet import SplitTinyImageNet
 from avalanche.benchmarks.utils.ffcv_support import prepare_ffcv_datasets
-from avalanche.benchmarks.utils.ffcv_support.ffcv_components import HybridFfcvLoader
+from avalanche.benchmarks.utils.ffcv_support.ffcv_components import (
+    HybridFfcvLoader,
+)
 from avalanche.training.determinism.rng_manager import RNGManager
 
 from torchvision.transforms.functional import to_pil_image
@@ -26,7 +28,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 
-#%%
+# %%
 def main(cuda: int):
     # --- CONFIG
     device = torch.device(
@@ -52,10 +54,10 @@ def main(cuda: int):
     #     train_transform=train_transform,
     #     eval_transform=eval_transform
     # )
-    # write_dir='./ffcv_manual_test_cifar100'
+    # write_dir = './ffcv_manual_test_cifar100'
 
     benchmark = SplitTinyImageNet()
-    write_dir='./ffcv_manual_test_tiny_imagenet'
+    write_dir = './ffcv_manual_test_tiny_imagenet'
     
     # It is recommended to start with `None`, so that Avalanche can try
     # putting a pipeline together automatically by translating common
@@ -105,7 +107,9 @@ def main(cuda: int):
     )
 
     start_time = time.time()
-    for i, (ffcv_batch, torch_batch) in enumerate(zip(ffcv_data_loader, pytorch_loader)):
+    for i, (ffcv_batch, torch_batch) in enumerate(
+        zip(ffcv_data_loader, pytorch_loader)
+    ):
         print(f'Batch {i} composition (FFCV vs PyTorch)')
         for element in ffcv_batch:
             print(element.shape, 'vs', element.shape)
@@ -116,9 +120,14 @@ def main(cuda: int):
             as_img_torch = to_pil_image(torch_batch[0][idx])
 
             f, axarr = plt.subplots(1, 2)
+            ffcv_label = ffcv_batch[1][idx].item()
+            torch_label = torch_batch[1][idx].item()
+            ffcv_task = ffcv_batch[2][idx].item()
+            torch_task = torch_batch[2][idx].item()
             f.suptitle(
-                f'Label: {ffcv_batch[1][idx].item()}/{torch_batch[1][idx].item()}, '
-                f'Task label: {ffcv_batch[2][idx].item()}/{torch_batch[2][idx].item()}')
+                f'Label: {ffcv_label}/{torch_label}, '
+                f'Task label: {ffcv_task}/{torch_task}'
+            )
 
             axarr[0].set_title('FFCV')
             axarr[0].imshow(as_img_ffcv)
@@ -168,7 +177,7 @@ def main(cuda: int):
 # controls such as "Run Cell", "Run Above", ...
 # The recommended way to use this script
 # is to first "Run Above" and then "Run Cell".
-#%%
+# %%
 main(0)
 
 # %%

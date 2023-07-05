@@ -229,14 +229,22 @@ class MultiDatasetDataLoader:
 
         return loader
     
-    def _make_pytorch_loader(self, datasets: List[AvalancheDataset], batch_sampler):
+    def _make_pytorch_loader(
+        self,
+        datasets: List[AvalancheDataset],
+        batch_sampler: Sampler[List[int]]
+    ):
         return _make_data_loader_with_batched_sampler(
             ConcatDataset(datasets),
             batch_sampler=batch_sampler,
             data_loader_args=self.loader_kwargs
         )
     
-    def _make_ffcv_loader(self, datasets: List[AvalancheDataset], batch_sampler):
+    def _make_ffcv_loader(
+        self,
+        datasets: List[AvalancheDataset],
+        batch_sampler: Sampler[List[int]]
+    ):
         ffcv_args = dict(self.ffcv_args)
         device = ffcv_args.pop('device')
         print_ffcv_summary = ffcv_args.pop('print_ffcv_summary')

@@ -106,7 +106,8 @@ def prepare_ffcv_datasets(
 
             if encoder_dict is None:
                 raise RuntimeError(
-                    'Could not create the encoder pipeline for the given dataset'
+                    'Could not create the encoder pipeline for '
+                    'the given dataset'
                 )
             
             encoder_dict_with_index = OrderedDict()
@@ -115,7 +116,8 @@ def prepare_ffcv_datasets(
 
             if print_summary:
                 print('### Encoder ###')
-                for field_name, encoder_pipeline in encoder_dict_with_index.items():
+                for field_name, encoder_pipeline in \
+                        encoder_dict_with_index.items():
                     print(f'Field "{field_name}"')
                     print('\t', encoder_pipeline)
 
@@ -128,7 +130,8 @@ def prepare_ffcv_datasets(
 
             if decoder_dict is None:
                 raise RuntimeError(
-                    'Could not create the decoder pipeline for the given dataset'
+                    'Could not create the decoder pipeline '
+                    'for the given dataset'
                 )
 
             decoder_dict_with_index = OrderedDict()
@@ -137,7 +140,8 @@ def prepare_ffcv_datasets(
 
             if print_summary:
                 print('### Decoder ###')
-                for field_name, decoder_pipeline in decoder_dict_with_index.items():
+                for field_name, decoder_pipeline in \
+                        decoder_dict_with_index.items():
                     print(f'Field "{field_name}"')
                     for pipeline_element in decoder_pipeline:
                         print('\t', pipeline_element)
@@ -153,10 +157,12 @@ def prepare_ffcv_datasets(
                 
                 writer_kwarg_parameters = dict()
                 if 'page_size' in ffcv_parameters:
-                    writer_kwarg_parameters['page_size'] = ffcv_parameters['page_size']
+                    writer_kwarg_parameters['page_size'] = \
+                        ffcv_parameters['page_size']
 
                 if 'num_workers' in ffcv_parameters:
-                    writer_kwarg_parameters['num_workers'] = ffcv_parameters['num_workers']
+                    writer_kwarg_parameters['num_workers'] = \
+                        ffcv_parameters['num_workers']
 
                 writer = DatasetWriter(
                     str(dataset_ffcv_path), 
@@ -172,16 +178,12 @@ def prepare_ffcv_datasets(
             # Those will be used later in the data loading process and may
             # also be useful for debugging purposes
             dataset.ffcv_info = FFCVInfo(
-                path=dataset_ffcv_path,
-                encoder_dictionary = encoder_dict_with_index,
-                decoder_dictionary = decoder_dict_with_index,
-                decoder_includes_transformations = decoder_includes_transformations,
-                device=torch.device(device)
+                dataset_ffcv_path,
+                encoder_dict_with_index,
+                decoder_dict_with_index,
+                decoder_includes_transformations,
+                torch.device(device)
             )
-            # dataset.ffcv_path = dataset_ffcv_path
-            # dataset.ffcv_encoder_dictionary = encoder_dict_with_index
-            # dataset.ffcv_decoder_dictionary = decoder_dict_with_index
-            # dataset.decoder_includes_transformations = decoder_includes_transformations
     
     if print_summary:
         print('-' * 61)
@@ -336,7 +338,7 @@ class HybridFfcvLoader:
         if print_ffcv_summary:
             print('-' * 15, 'HybridFfcvLoader summary', '-' * 15)
 
-        ffcv_info =  self._extract_ffcv_info(
+        ffcv_info = self._extract_ffcv_info(
             dataset=self.dataset,
             device=device,
             print_summary=print_ffcv_summary
@@ -379,7 +381,10 @@ class HybridFfcvLoader:
         
         leaf_dataset, indices, transforms = flat_set_def
         if print_summary:
-            print('The input AvalancheDataset is a subset of the leaf dataset', leaf_dataset)
+            print(
+                'The input AvalancheDataset is a subset of the leaf dataset',
+                leaf_dataset
+            )
             print('The input dataset contains', len(indices), 'elements')
             print('The original chain of transformations is:')
             for t in transforms:
@@ -412,7 +417,10 @@ class HybridFfcvLoader:
 
         if print_summary:
             if len(get_item_dataset.get_item_data_attributes) > 0:
-                print('The following data attributes are returned in the example tuple:')
+                print(
+                    'The following data attributes are returned in '
+                    'the example tuple:'
+                )
                 for da in get_item_dataset.get_item_data_attributes:
                     print('\t', da.name)
             else:
@@ -430,7 +438,8 @@ class HybridFfcvLoader:
             # num_fields is "|dictionary|-1" as there is an additional 'index' 
             # field that is internally managed by Avalanche and is not being
             # transformed.
-            ffcv_decoder_dictionary_lst = list(ffcv_decoder_dictionary.values())[1:]
+            ffcv_decoder_dictionary_lst = \
+                list(ffcv_decoder_dictionary.values())[1:]
 
             adapted_transforms = adapt_transforms(
                 transforms,
@@ -441,8 +450,6 @@ class HybridFfcvLoader:
             for i, field_name in enumerate(ffcv_decoder_dictionary.keys()):
                 if i == 0:
                     continue
-                #pipeline = list(ffcv_decoder_dictionary[field_name])
-                #pipeline.extend(adapted_transforms[i-1])
                 ffcv_decoder_dictionary[field_name] = adapted_transforms[i-1]
 
         for field_name, field_decoder in ffcv_decoder_dictionary.items():

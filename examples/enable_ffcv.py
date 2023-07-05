@@ -35,9 +35,13 @@ def main(cuda: int):
     # --- BENCHMARK CREATION
     num_workers = 8
     if benchmark_type == 'mnist':
-        input_size = 28* 28
+        input_size = 28 * 28
         num_workers = 4
-        benchmark = SplitMNIST(n_experiences=5, seed=42, class_ids_from_zero_from_first_exp=True)
+        benchmark = SplitMNIST(
+            n_experiences=5,
+            seed=42,
+            class_ids_from_zero_from_first_exp=True
+        )
     elif benchmark_type == 'core50':
         benchmark = CORe50()
         benchmark.n_classes = 50
@@ -75,7 +79,11 @@ def main(cuda: int):
     )
 
     # CREATE THE STRATEGY INSTANCE (NAIVE)
-    replay_plugin = ReplayPlugin(mem_size=100, batch_size=125, batch_size_mem=25)
+    replay_plugin = ReplayPlugin(
+        mem_size=100,
+        batch_size=125,
+        batch_size_mem=25
+    )
     cl_strategy = Naive(
         model,
         Adam(model.parameters()),

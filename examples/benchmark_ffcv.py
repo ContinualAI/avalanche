@@ -38,7 +38,11 @@ def main(cuda: int):
 
     # --- BENCHMARK CREATION
     if benchmark_type == 'mnist':
-        benchmark = SplitMNIST(n_experiences=5, seed=42, class_ids_from_zero_from_first_exp=True)
+        benchmark = SplitMNIST(
+            n_experiences=5,
+            seed=42,
+            class_ids_from_zero_from_first_exp=True
+        )
     elif benchmark_type == 'core50':
         benchmark = CORe50()
         benchmark.n_classes = 50
@@ -68,18 +72,37 @@ def main(cuda: int):
     else:
         raise RuntimeError('Unknown benchmark')
     
-    # Note: when Numba uses TBB, then 20 is the limit
-    # However, this limit does nop apply when using OpenMP
-    # If you want to test using OpenMP, then run this script with the following command:
+    # Note: when Numba uses TBB, then 20 is the limit number of workers
+    # However, this limit does not apply when using OpenMP
+    # (which may be faster...). If you want to test using OpenMP, then 
+    # run this script with the following command:
     # NUMBA_THREADING_LAYER=omp NUMBA_NUM_THREADS=32 python benchmark_ffcv.py
     for num_workers in [8, 16, 32]:
         print('num_workers =', num_workers)
         print('device =', device)
-        benchmark_pytorch_speed(benchmark, device=device, num_workers=num_workers, epochs=4)
-        benchmark_ffcv_speed(benchmark, f'./ffcv_test_{benchmark_type}', device=device, num_workers=num_workers, epochs=4)
+        benchmark_pytorch_speed(
+            benchmark,
+            device=device,
+            num_workers=num_workers,
+            epochs=4
+        )
+        benchmark_ffcv_speed(
+            benchmark,
+            f'./ffcv_test_{benchmark_type}',
+            device=device,
+            num_workers=num_workers,
+            epochs=4
+        )
 
 
-def benchmark_ffcv_speed(benchmark, path, device, batch_size=128, num_workers=1, epochs=1):
+def benchmark_ffcv_speed(
+    benchmark,
+    path,
+    device,
+    batch_size=128,
+    num_workers=1,
+    epochs=1
+):
     print('Testing FFCV Loader speed')
 
     all_train_dataset = [x.dataset for x in benchmark.train_stream]
@@ -118,7 +141,13 @@ def benchmark_ffcv_speed(benchmark, path, device, batch_size=128, num_workers=1,
     print('FFCV time:', end_time - start_time, 'seconds')
 
 
-def benchmark_pytorch_speed(benchmark, device, batch_size=128, num_workers=1, epochs=1):
+def benchmark_pytorch_speed(
+    benchmark,
+    device,
+    batch_size=128,
+    num_workers=1,
+    epochs=1
+):
     print('Testing PyTorch Loader speed')
     
     all_train_dataset = [x.dataset for x in benchmark.train_stream]

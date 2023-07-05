@@ -45,7 +45,8 @@ def dataset_list_from_benchmark(benchmark: CLScenario) -> \
     return list(single_datasets.keys())
 
 
-def flat_datasets_from_benchmark(benchmark: CLScenario):  # TODO: include last transforms option
+# TODO: include last transforms option
+def flat_datasets_from_benchmark(benchmark: CLScenario):
     """
     Obtain a list of flattened datasets from a benchmark.
 

@@ -374,7 +374,8 @@ class BaseSGDTemplate(
         other_dataloader_args = {}
 
         if 'persistent_workers' in kwargs:
-            if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            if parse_version(torch.__version__) >= parse_version("1.7.0") and \
+                    kwargs.get('num_workers', 0) > 0:
                 other_dataloader_args["persistent_workers"] = \
                     kwargs['persistent_workers']
             else:

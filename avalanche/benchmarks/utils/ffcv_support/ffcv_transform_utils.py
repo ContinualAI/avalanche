@@ -1,6 +1,14 @@
-    
-
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 from typing_extensions import Literal
 import warnings
 import numpy as np
@@ -14,7 +22,8 @@ from torchvision.transforms import PILToTensor as PILToTensorTV
 from torchvision.transforms import Normalize as NormalizeTV
 from torchvision.transforms import ConvertImageDtype as ConvertTV
 from torchvision.transforms import RandomResizedCrop as RandomResizedCropTV
-from torchvision.transforms import RandomHorizontalFlip as RandomHorizontalFlipTV
+from torchvision.transforms import RandomHorizontalFlip as \
+    RandomHorizontalFlipTV
 from torchvision.transforms import RandomCrop as RandomCropTV
 from torchvision.transforms import Lambda
 
@@ -94,7 +103,6 @@ def make_transform_defs():
     and source code.
     """
     global FFCV_TRANSFORMS_DEFS
-
 
     FFCV_TRANSFORMS_DEFS[ToDeviceFFCV] = FFCVTransformRegistry(
         numpy_cpu=False,
@@ -177,10 +185,10 @@ def make_transform_defs():
 
 
 def adapt_transforms(
-        transforms_list,
-        ffcv_decoder_list,
-        device: Optional[torch.device] = None
-    ):
+    transforms_list,
+    ffcv_decoder_list,
+    device: Optional[torch.device] = None
+):
 
     result = []
     for field_idx, pipeline_head in enumerate(ffcv_decoder_list):
@@ -368,10 +376,11 @@ def add_to_device_operation(
 
     return transformations
 
+
 def check_transforms_consistency(
-        transformations,
-        warn_gpu_to_cpu: bool = True
-    ):
+    transformations,
+    warn_gpu_to_cpu: bool = True
+):
 
     had_issues = False
 
@@ -397,7 +406,8 @@ def check_transforms_consistency(
 
         if bad_usage_type is not None:
             warnings.warn(
-                f'Transformation {type(t)} cannot be used on {bad_usage_type}.\n'
+                f'Transformation {type(t)} cannot be used on '
+                f'{bad_usage_type}.\n'
                 f'Its registered definition is: {t_def}.\n'
                 f'This may lead to issues with Numba...'
             )
@@ -418,7 +428,6 @@ def check_transforms_consistency(
     return not had_issues
 
 
-
 class SmartModuleWrapper(Operation):
     """Transform using the given torch.nn.Module
 
@@ -428,12 +437,19 @@ class SmartModuleWrapper(Operation):
         The module for transformation
     """
     def __init__(
-            self,
-            module: torch.nn.Module,
-            expected_out_type: Union[np.dtype, torch.dtype, Literal['as_previous']] = 'as_previous',
-            expected_shape: Union[Tuple[int, ...], Literal['as_previous']] = 'as_previous',
-            smart_reshape: bool = True
-        ):
+        self,
+        module: torch.nn.Module,
+        expected_out_type: Union[
+            np.dtype, 
+            torch.dtype,
+            Literal['as_previous']
+        ] = 'as_previous',
+        expected_shape: Union[
+            Tuple[int, ...],
+            Literal['as_previous']
+        ] = 'as_previous',
+        smart_reshape: bool = True
+    ):
         super().__init__()
         self.module = module
         self.expected_out_type = expected_out_type
@@ -499,9 +515,12 @@ class SmartModuleWrapper(Operation):
             ('torch', 'torch', False): apply
         }
 
-        return func_table[(self.input_type, self.output_type, self.smart_reshape)]
+        return func_table[
+            (self.input_type, self.output_type, self.smart_reshape)
+        ]
 
-    def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
+    def declare_state_and_memory(self, previous_state: State) -> \
+            Tuple[State, Optional[AllocationQuery]]:
         if len(previous_state.shape) != 3:
             self.smart_reshape = False
 
@@ -546,7 +565,8 @@ class SmartModuleWrapper(Operation):
 
             patch_shape = True
             if self.expected_shape != 'as_previous':
-                if isinstance(self.expected_shape, int) or len(self.expected_shape) == 1:
+                if isinstance(self.expected_shape, int) or \
+                        len(self.expected_shape) == 1:
                     h = self.expected_shape
                     w = self.expected_shape
                 elif len(self.expected_shape) == 2:
