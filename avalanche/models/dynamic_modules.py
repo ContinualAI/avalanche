@@ -266,7 +266,7 @@ class IncrementalClassifier(DynamicModule):
         out = self.classifier(x)
         if self.masking:
             mask = torch.logical_not(self.active_units)
-            out.masked_fill_(mask=mask, value=self.mask_value)
+            out = out.masked_fill(mask=mask, value=self.mask_value)
         return out
 
 
