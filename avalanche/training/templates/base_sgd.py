@@ -454,8 +454,6 @@ class BaseSGDTemplate(
             **other_dataloader_args
         )
 
-        self.dataloader = DataLoader(self.adapted_dataset, **other_dataloader_args)
-
     def eval_dataset_adaptation(self, **kwargs):
         """Initialize `self.adapted_dataset`."""
         assert self.experience is not None

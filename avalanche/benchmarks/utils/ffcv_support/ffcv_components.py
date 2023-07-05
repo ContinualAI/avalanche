@@ -270,9 +270,12 @@ class GetItemDataset:
     
 
 def has_ffcv_support(datasets: List[AvalancheDataset]):
-    flat_set = single_flat_dataset(
-        concat_datasets(datasets)
-    )
+    try:
+        flat_set = single_flat_dataset(
+            concat_datasets(datasets)
+        )
+    except Exception:
+        return False
 
     if flat_set is None:
         return False
