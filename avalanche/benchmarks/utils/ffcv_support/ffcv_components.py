@@ -199,7 +199,7 @@ class IndexDataset:
         self.dataset = dataset
 
     def __getitem__(self, index):
-        return index, *self.dataset[index]
+        return (index, *self.dataset[index])
 
     def __len__(self):
         return len(self.dataset)
