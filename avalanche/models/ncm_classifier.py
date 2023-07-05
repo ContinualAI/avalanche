@@ -1,6 +1,7 @@
-import torch
-from torch import nn, Tensor
 from typing import Dict
+
+import torch
+from torch import Tensor, nn
 
 
 class NCMClassifier(nn.Module):
@@ -20,22 +21,20 @@ class NCMClassifier(nn.Module):
     than `max_class_id_seen` are associated with a 0-vector.
     """
 
-    def __init__(self,
-                 normalize: bool = True):
+    def __init__(self, normalize: bool = True):
         """
         :param normalize: whether to normalize the input with
             2-norm = 1 before computing the distance.
         """
         super().__init__()
         # vectorized version of class means
-        self.register_buffer('class_means', None)
+        self.register_buffer("class_means", None)
         self.class_means_dict = {}
 
         self.normalize = normalize
 
-    def load_state_dict(self, state_dict,
-                        strict: bool = True):
-        self.class_means = state_dict['class_means']
+    def load_state_dict(self, state_dict, strict: bool = True):
+        self.class_means = state_dict["class_means"]
         super().load_state_dict(state_dict, strict)
         # fill dictionary
         if self.class_means is not None:
@@ -73,18 +72,19 @@ class NCMClassifier(nn.Module):
         with respect to each class.
         """
 
-        assert self.class_means is not None, "no class means available."
+        assert self.class_means_dict != {}, "no class means available."
         if self.normalize:
             # normalize across feature_size
-            x = (x.T / torch.norm(x, dim=1)).T
+            x = (x.T / torch.norm(x.T, dim=0)).T
 
         # (num_classes, batch_size)
         sqd = torch.cdist(self.class_means.to(x.device), x)
         # (batch_size, num_classes)
         return (-sqd).T
 
-    def update_class_means_dict(self,
-                                class_means_dict: Dict[int, Tensor]):
+    def update_class_means_dict(
+        self, class_means_dict: Dict[int, Tensor], momentum: float = 0.5
+    ):
         """
         Update dictionary of class means.
         If class already exists, the average of the two mean vectors
@@ -92,17 +92,33 @@ class NCMClassifier(nn.Module):
 
         :param class_means_dict: a dictionary mapping class id
             to class mean tensor.
+        :param momentum: Weighting of the new means vs old means
+                         in the update. 1 = replace, 0 = don't update
         """
-        assert isinstance(class_means_dict, dict), \
-            "class_means_dict must be a dictionary mapping class_id " \
-            "to mean vector"
+        assert momentum <= 1 and momentum >= 0
+        assert isinstance(class_means_dict, dict), (
+            "class_means_dict must be a dictionary mapping class_id " "to mean vector"
+        )
         for k, v in class_means_dict.items():
             if k not in self.class_means_dict:
                 self.class_means_dict[k] = class_means_dict[k].clone()
             else:
                 device = self.class_means_dict[k].device
-                self.class_means_dict[k] += class_means_dict[k].to(device)
-                self.class_means_dict[k] /= 2
+                self.class_means_dict[k] = (
+                    momentum * class_means_dict[k].to(device)
+                    + (1 - momentum) * self.class_means_dict[k]
+                )
+
+        self._vectorize_means_dict()
+
+    def replace_class_means_dict(self, class_means_dict: Dict[int, Tensor]):
+        """
+        Replace existing dictionary of means with a given dictionary.
+        """
+        assert isinstance(class_means_dict, dict), (
+            "class_means_dict must be a dictionary mapping class_id " "to mean vector"
+        )
+        self.class_means_dict = {k: v.clone() for k, v in class_means_dict.items()}
 
         self._vectorize_means_dict()
 

@@ -38,8 +38,12 @@ from avalanche.benchmarks.classic.clear import CLEAR, CLEARMetric
 
 # For CLEAR dataset setup
 DATASET_NAME = "clear100_cvpr2022"
-NUM_CLASSES = {"clear10_neurips_2021": 11, "clear100_cvpr2022": 100,
-               "clear10": 11, "clear100": 100}
+NUM_CLASSES = {
+    "clear10_neurips_2021": 11,
+    "clear100_cvpr2022": 100,
+    "clear10": 11,
+    "clear100": 100,
+}
 assert DATASET_NAME in NUM_CLASSES.keys()
 
 # please refer to paper for discussion on streaming v.s. iid protocol
@@ -105,20 +109,15 @@ def main():
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=True, epoch=True, experience=True, 
-                         stream=True),
-        loss_metrics(minibatch=True, epoch=True, experience=True, 
-                     stream=True),
+        accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         timing_metrics(epoch=True, epoch_running=True),
         forgetting_metrics(experience=True, stream=True),
         cpu_usage_metrics(experience=True),
         confusion_matrix_metrics(
-            num_classes=NUM_CLASSES[DATASET_NAME], save_image=False, 
-            stream=True
+            num_classes=NUM_CLASSES[DATASET_NAME], save_image=False, stream=True
         ),
-        disk_usage_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
+        disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         loggers=[interactive_logger, text_logger, tb_logger],
     )
 
@@ -174,8 +173,7 @@ def main():
         print("Current Classes: ", experience.classes_in_this_experience)
         res = cl_strategy.train(experience)
         torch.save(
-            model.state_dict(), 
-            str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
+            model.state_dict(), str(MODEL_ROOT / f"model{str(index).zfill(2)}.pth")
         )
         print("Training completed")
         print(

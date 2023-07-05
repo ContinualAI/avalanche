@@ -41,12 +41,8 @@ class ConversionMethodTests(unittest.TestCase):
         modules = [(SimpleMLP(input_size=6), "classifier")]
         for m, name in modules:
             self._test_integration(copy.deepcopy(m), name)
-            self._test_integration(
-                copy.deepcopy(m), name, plugins=[LwFPlugin()]
-            )
-            self._test_integration(
-                copy.deepcopy(m), name, plugins=[EWCPlugin(0.5)]
-            )
+            self._test_integration(copy.deepcopy(m), name, plugins=[LwFPlugin()])
+            self._test_integration(copy.deepcopy(m), name, plugins=[EWCPlugin(0.5)])
 
     def test_initialisation(self):
         module = SimpleMLP()
@@ -61,9 +57,7 @@ class ConversionMethodTests(unittest.TestCase):
         new_classifier_bias = torch.clone(
             module.classifier.classifiers["0"].classifier.bias
         )
-        self.assertTrue(
-            torch.equal(old_classifier_weight, new_classifier_weight)
-        )
+        self.assertTrue(torch.equal(old_classifier_weight, new_classifier_weight))
         self.assertTrue(torch.equal(old_classifier_bias, new_classifier_bias))
 
     def _test_outputs(self, module, clf_name):
@@ -129,9 +123,7 @@ class ConversionMethodTests(unittest.TestCase):
     def _test_integration(self, module, clf_name, plugins=[]):
         module = as_multitask(module, clf_name)
         module = module.to(self.device)
-        optimizer = SGD(
-            module.parameters(), lr=0.05, momentum=0.9, weight_decay=0.0002
-        )
+        optimizer = SGD(module.parameters(), lr=0.05, momentum=0.9, weight_decay=0.0002)
 
         strategy = Naive(
             module,

@@ -114,9 +114,7 @@ class MTSlimResNet18(MultiTaskModule, DynamicModule):
         self.layer2 = self._make_layer(block, nf * 2, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, nf * 4, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, nf * 8, num_blocks[3], stride=2)
-        self.linear = MultiHeadClassifier(
-            nf * 8 * BasicBlock.expansion, nclasses
-        )
+        self.linear = MultiHeadClassifier(nf * 8 * BasicBlock.expansion, nclasses)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)

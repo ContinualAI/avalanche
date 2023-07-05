@@ -13,9 +13,7 @@ from avalanche.evaluation.metrics import (
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.logging import InteractiveLogger
-from avalanche.training.supervised import (
-    Naive
-)
+from avalanche.training.supervised import Naive
 
 
 def main():
@@ -24,16 +22,13 @@ def main():
 
     # create the benchmark
     benchmark = SplitMNIST(
-        n_experiences=5,
-        dataset_root=expanduser("~") + "/.avalanche/data/mnist/"
+        n_experiences=5, dataset_root=expanduser("~") + "/.avalanche/data/mnist/"
     )
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
+        accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         loggers=[interactive_logger],
     )

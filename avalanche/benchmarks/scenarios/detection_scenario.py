@@ -43,57 +43,35 @@ from avalanche.benchmarks.utils.detection_dataset import DetectionDataset
 
 # --- Dataset ---
 # From utils:
-TCLDataset = TypeVar(
-    'TCLDataset',
-    bound='AvalancheDataset',
-    covariant=True)
+TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset", covariant=True)
 
 # --- Scenario ---
 # From dataset_scenario:
-TDatasetScenario = TypeVar(
-    'TDatasetScenario',
-    bound='DatasetScenario')
-TDetectionScenario = TypeVar(
-    'TDetectionScenario',
-    bound='DetectionScenario')
+TDatasetScenario = TypeVar("TDatasetScenario", bound="DatasetScenario")
+TDetectionScenario = TypeVar("TDetectionScenario", bound="DetectionScenario")
 
 # --- Stream ---
 # Defined here:
-TDetectionStream = TypeVar(
-    'TDetectionStream',
-    bound='DetectionStream'
-)
+TDetectionStream = TypeVar("TDetectionStream", bound="DetectionStream")
 
 # --- Experience ---
 # From generic_scenario:
-TDetectionExperience = TypeVar(
-    'TDetectionExperience',
-    bound='DetectionExperience')
+TDetectionExperience = TypeVar("TDetectionExperience", bound="DetectionExperience")
 
 
-def _default_detection_stream_factory(
-        stream_name: str,
-        benchmark: 'DetectionScenario'):
-    return DetectionStream(
-        name=stream_name,
-        benchmark=benchmark
-    )
+def _default_detection_stream_factory(stream_name: str, benchmark: "DetectionScenario"):
+    return DetectionStream(name=stream_name, benchmark=benchmark)
 
 
 def _default_detection_experience_factory(
-        stream: 'DetectionStream',
-        experience_idx: int):
-    return DetectionExperience(
-        origin_stream=stream,
-        current_experience=experience_idx
-    )
+    stream: "DetectionStream", experience_idx: int
+):
+    return DetectionExperience(origin_stream=stream, current_experience=experience_idx)
 
 
 class DetectionScenario(
-    ClassesTimelineCLScenario[
-        TDetectionStream,
-        TDetectionExperience,
-        DetectionDataset]):
+    ClassesTimelineCLScenario[TDetectionStream, TDetectionExperience, DetectionDataset]
+):
     """
     Base implementation of a Continual Learning object detection benchmark.
 
@@ -105,14 +83,12 @@ class DetectionScenario(
         stream_definitions: TStreamsUserDict,
         n_classes: Optional[int] = None,
         stream_factory: Callable[
-            [str, TDetectionScenario],
-            TDetectionStream
-            ] = _default_detection_stream_factory,
+            [str, TDetectionScenario], TDetectionStream
+        ] = _default_detection_stream_factory,
         experience_factory: Callable[
-            [TDetectionStream, int],
-            TDetectionExperience
-            ] = _default_detection_experience_factory,
-        complete_test_set_only: bool = False
+            [TDetectionStream, int], TDetectionExperience
+        ] = _default_detection_experience_factory,
+        complete_test_set_only: bool = False,
     ):
         """
         Creates an instance a Continual Learning object detection benchmark.
@@ -138,7 +114,8 @@ class DetectionScenario(
             stream_definitions=stream_definitions,
             stream_factory=stream_factory,
             experience_factory=experience_factory,
-            complete_test_set_only=complete_test_set_only)
+            complete_test_set_only=complete_test_set_only,
+        )
 
         self.n_classes: Optional[int] = n_classes
         """
@@ -150,16 +127,12 @@ class DetectionScenario(
     @property
     def classes_in_experience(self):
         return _LazyStreamClassesInDetectionExps(self)
-    
+
 
 DetectionCLScenario = DetectionScenario
 
 
-class DetectionStream(
-    FactoryBasedStream[
-        TDetectionExperience
-    ]
-):
+class DetectionStream(FactoryBasedStream[TDetectionExperience]):
     def __init__(
         self,
         name: str,
@@ -173,14 +146,11 @@ class DetectionStream(
             name=name,
             benchmark=benchmark,
             slice_ids=slice_ids,
-            set_stream_info=set_stream_info)
+            set_stream_info=set_stream_info,
+        )
 
 
-class DetectionExperience(
-    AbstractClassTimelineExperience[
-        DetectionDataset
-    ]
-):
+class DetectionExperience(AbstractClassTimelineExperience[DetectionDataset]):
     """
     Definition of a learning experience based on a :class:`DetectionScenario`
     instance.
@@ -192,10 +162,8 @@ class DetectionExperience(
 
     def __init__(
         self: TDetectionExperience,
-        origin_stream: DetectionStream[
-            TDetectionExperience
-        ],
-        current_experience: int
+        origin_stream: DetectionStream[TDetectionExperience],
+        current_experience: int,
     ):
         """
         Creates an instance of an experience given the stream from this
@@ -208,11 +176,9 @@ class DetectionExperience(
 
         self._benchmark: DetectionScenario = origin_stream.benchmark
 
-        dataset: DetectionDataset = (
-            origin_stream.benchmark.stream_definitions[
-                origin_stream.name
-            ].exps_data[current_experience]
-        )
+        dataset: DetectionDataset = origin_stream.benchmark.stream_definitions[
+            origin_stream.name
+        ].exps_data[current_experience]
 
         (
             classes_in_this_exp,
@@ -236,9 +202,7 @@ class DetectionExperience(
     @property  # type: ignore[override]
     def benchmark(self) -> DetectionScenario:
         bench = self._benchmark
-        DetectionExperience._check_unset_attribute(
-            'benchmark', bench
-        )   
+        DetectionExperience._check_unset_attribute("benchmark", bench)
         return bench
 
     @benchmark.setter
@@ -257,13 +221,10 @@ class DetectionExperience(
 GenericDetectionExperience = DetectionExperience
 
 
-class _LazyStreamClassesInDetectionExps(
-        Mapping[str,
-                Sequence[Optional[Set[int]]]]):
+class _LazyStreamClassesInDetectionExps(Mapping[str, Sequence[Optional[Set[int]]]]):
     def __init__(self, benchmark: DetectionScenario):
         self._benchmark = benchmark
-        self._default_lcie = _LazyClassesInDetectionExps(
-            benchmark, stream="train")
+        self._default_lcie = _LazyClassesInDetectionExps(benchmark, stream="train")
 
     def __len__(self):
         return len(self._benchmark.stream_definitions)
@@ -296,11 +257,11 @@ class _LazyClassesInDetectionExps(Sequence[Optional[Set[int]]]):
 
     def __len__(self):
         return len(self._benchmark.streams[self._stream])
-    
+
     @overload
     def __getitem__(self, exp_id: int) -> Optional[Set[int]]:
         ...
-    
+
     @overload
     def __getitem__(self, exp_id: slice) -> Tuple[Optional[Set[int]], ...]:
         ...
@@ -308,17 +269,12 @@ class _LazyClassesInDetectionExps(Sequence[Optional[Set[int]]]):
     def __getitem__(self, exp_id: Union[int, slice]) -> LazyClassesInExpsRet:
         indexing_collate = _LazyClassesInDetectionExps._slice_collate
         result = manage_advanced_indexing(
-            exp_id,
-            self._get_single_exp_classes,
-            len(self),
-            indexing_collate
+            exp_id, self._get_single_exp_classes, len(self), indexing_collate
         )
         return result
 
     def __str__(self):
-        return (
-            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
-        )
+        return "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
 
     def _get_single_exp_classes(self, exp_id) -> Optional[Set[int]]:
         b = self._benchmark.stream_definitions[self._stream]
@@ -330,19 +286,20 @@ class _LazyClassesInDetectionExps(Sequence[Optional[Set[int]]]):
 
         classes_in_exp = set()
         for target in targets:
-            for label in target['labels']:
+            for label in target["labels"]:
                 classes_in_exp.add(int(label))
         return classes_in_exp
 
     @staticmethod
-    def _slice_collate(classes_in_exps: Iterable[Optional[Iterable[int]]]) -> \
-            Optional[Tuple[Set[int], ...]]:
+    def _slice_collate(
+        classes_in_exps: Iterable[Optional[Iterable[int]]],
+    ) -> Optional[Tuple[Set[int], ...]]:
         result: List[Set[int]] = []
         for x in classes_in_exps:
             if x is None:
                 return None
             result.append(set(x))
-        
+
         return tuple(result)
 
 
@@ -351,5 +308,5 @@ __all__ = [
     "DetectionCLScenario",
     "DetectionStream",
     "GenericDetectionExperience",
-    "DetectionExperience"
+    "DetectionExperience",
 ]

@@ -57,7 +57,6 @@ class FrozenTransformGroupsCenterCrop:
 
 
 class AvalancheDatasetTests(unittest.TestCase):
-
     def test_attribute_cat_sub(self):
         # Create a dataset of 100 data points described by 22
         # features + 1 class label
@@ -68,22 +67,25 @@ class AvalancheDatasetTests(unittest.TestCase):
         tls = [0 for _ in range(100)]  # one task label for each sample
         sup_data = make_classification_dataset(torch_data, task_labels=tls)
         print(sup_data.targets.name, len(sup_data.targets._data))
-        print(sup_data.targets_task_labels.name,
-              len(sup_data.targets_task_labels._data))
+        print(
+            sup_data.targets_task_labels.name, len(sup_data.targets_task_labels._data)
+        )
         assert len(sup_data) == 100
 
         # after subsampling
         sub_data = sup_data.subset(range(10))
         print(sub_data.targets.name, len(sub_data.targets._data))
-        print(sub_data.targets_task_labels.name,
-              len(sub_data.targets_task_labels._data))
+        print(
+            sub_data.targets_task_labels.name, len(sub_data.targets_task_labels._data)
+        )
         assert len(sub_data) == 10
 
         # after concat
         cat_data = sup_data.concat(sup_data)
         print(cat_data.targets.name, len(cat_data.targets._data))
-        print(cat_data.targets_task_labels.name,
-              len(cat_data.targets_task_labels._data))
+        print(
+            cat_data.targets_task_labels.name, len(cat_data.targets_task_labels._data)
+        )
         assert len(cat_data) == 200
 
     def test_avldata_subset_size(self):
@@ -113,9 +115,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         dadata = torch.randint(0, 10, (d_sz,))
         da = DataAttribute(torch.zeros(d_sz), "collate_fn")
         with self.assertRaises(ValueError):
-            d = make_avalanche_dataset(
-                TensorDataset(xdata), data_attributes=[da]
-            )
+            d = make_avalanche_dataset(TensorDataset(xdata), data_attributes=[da])
 
     def test_subset_subset_merge(self):
         d_sz, num_permutations = 3, 4
@@ -143,9 +143,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertEqual(len(curr_dataset), d_sz)
 
             print("Check data")
-            x_curr = torch.stack(
-                [curr_dataset[idx][0] for idx in range(d_sz)], dim=0
-            )
+            x_curr = torch.stack([curr_dataset[idx][0] for idx in range(d_sz)], dim=0)
             x_true = torch.stack([xdata[idx] for idx in true_indices], dim=0)
             self.assertTrue(torch.equal(x_curr, x_true))
 
@@ -202,21 +200,15 @@ class AvalancheDatasetTests(unittest.TestCase):
     def test_avalanche_dataset_add(self):
         dataset_mnist = load_image_benchmark()
         tgs = DefaultTransformGroups((CenterCrop(16), None))
-        dataset_mnist = make_avalanche_dataset(
-            dataset_mnist, transform_groups=tgs
-        )
+        dataset_mnist = make_avalanche_dataset(dataset_mnist, transform_groups=tgs)
 
-        taskl = DataAttribute(
-            ConstantSequence(0, len(dataset_mnist)), "task_labels"
-        )
+        taskl = DataAttribute(ConstantSequence(0, len(dataset_mnist)), "task_labels")
         tgs = DefaultTransformGroups((ToTensor(), lambda target: -1))
         dataset1 = make_avalanche_dataset(
             dataset_mnist, data_attributes=[taskl], transform_groups=tgs
         )
 
-        taskl = DataAttribute(
-            ConstantSequence(2, len(dataset_mnist)), "task_labels"
-        )
+        taskl = DataAttribute(ConstantSequence(2, len(dataset_mnist)), "task_labels")
         tgs = DefaultTransformGroups((None, lambda target: -2))
         dataset2 = make_avalanche_dataset(
             dataset_mnist, data_attributes=[taskl], transform_groups=tgs
@@ -248,9 +240,7 @@ class AvalancheDatasetTests(unittest.TestCase):
     def test_avalanche_dataset_radd(self):
         dataset_mnist = load_image_benchmark()
         tgs = DefaultTransformGroups((CenterCrop(16), None))
-        dataset_mnist = make_avalanche_dataset(
-            dataset_mnist, transform_groups=tgs
-        )
+        dataset_mnist = make_avalanche_dataset(dataset_mnist, transform_groups=tgs)
 
         tgs = DefaultTransformGroups((ToTensor(), lambda target: -1))
         dataset1 = make_avalanche_dataset(dataset_mnist, transform_groups=tgs)
@@ -275,14 +265,10 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(len(dataset_mnist) * 2, len(dataset))
 
     def test_avalanche_dataset_uniform_task_labels(self):
-        dataset_mnist = MNIST(
-            root=default_dataset_location("mnist"), download=True
-        )
+        dataset_mnist = MNIST(root=default_dataset_location("mnist"), download=True)
         x, y = dataset_mnist[0]
 
-        dataset = make_classification_dataset(
-            dataset_mnist, transform=ToTensor()
-        )
+        dataset = make_classification_dataset(dataset_mnist, transform=ToTensor())
         x2, y2, t2 = dataset[0]
 
         self.assertIsInstance(x2, Tensor)
@@ -359,14 +345,10 @@ class AvalancheDatasetTests(unittest.TestCase):
             subset_task0 = dataset.task_set[0]
 
     def test_avalanche_dataset_mixed_task_labels(self):
-        dataset_mnist = MNIST(
-            root=default_dataset_location("mnist"), download=True
-        )
+        dataset_mnist = MNIST(root=default_dataset_location("mnist"), download=True)
         x, y = dataset_mnist[0]
 
-        random_task_labels = [
-            random.randint(0, 10) for _ in range(len(dataset_mnist))
-        ]
+        random_task_labels = [random.randint(0, 10) for _ in range(len(dataset_mnist))]
         dataset = make_classification_dataset(
             dataset_mnist, transform=ToTensor(), task_labels=random_task_labels
         )
@@ -379,9 +361,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(torch.equal(ToTensor()(x), x2))
         self.assertEqual(y, y2)
 
-        self.assertListEqual(
-            random_task_labels, list(dataset.targets_task_labels)
-        )
+        self.assertListEqual(random_task_labels, list(dataset.targets_task_labels))
 
         u_labels, counts = np.unique(random_task_labels, return_counts=True)
         for i, task_label in enumerate(u_labels.tolist()):
@@ -390,9 +370,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertEqual(int(counts[i]), len(subset_task))
 
             unique_task_labels = list(subset_task.targets_task_labels)
-            self.assertListEqual(
-                [task_label] * int(counts[i]), unique_task_labels
-            )
+            self.assertListEqual([task_label] * int(counts[i]), unique_task_labels)
 
         with self.assertRaises(KeyError):
             subset_task11 = dataset.task_set[11]
@@ -401,9 +379,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset_orig = load_image_benchmark()
 
         dataset: SupervisedClassificationDataset = make_classification_dataset(
-            dataset_orig,
-            transform=ToTensor(),
-            task_labels=0
+            dataset_orig, transform=ToTensor(), task_labels=0
         )
 
         self.assertIsInstance(dataset, SupervisedClassificationDataset)
@@ -420,35 +396,36 @@ class AvalancheDatasetTests(unittest.TestCase):
         # --- Test add data attribute ---
         plain_attribute = torch.arange(len(dataset))
         get_item_attribute = DataAttribute(
-            data=torch.arange(len(dataset)) + 5,
-            name='gia',
-            use_in_getitem=True
+            data=torch.arange(len(dataset)) + 5, name="gia", use_in_getitem=True
         )
 
         targets_task_labels_not_gia = DataAttribute(
             data=torch.arange(len(dataset)) + 7,
-            name='targets_task_labels',
-            use_in_getitem=False
+            name="targets_task_labels",
+            use_in_getitem=False,
         )
 
         # Test wrong length
-        for wrong_attr in [torch.arange(len(dataset)-1), 
-                           torch.arange(len(dataset)+1)]:
+        for wrong_attr in [
+            torch.arange(len(dataset) - 1),
+            torch.arange(len(dataset) + 1),
+        ]:
             with self.assertRaises(Exception):
-                dataset.update_data_attribute('wrong_attr', wrong_attr)
+                dataset.update_data_attribute("wrong_attr", wrong_attr)
 
         # Add plain attribute
         dataset_plus_plain = dataset.update_data_attribute(
-            'plain_attr', plain_attribute)
+            "plain_attr", plain_attribute
+        )
         # check nothing added from plain attribute
         self.assertEqual(3, len(dataset_plus_plain[0]))
         # check content
-        self.assertTrue(torch.equal(torch.as_tensor(
-            dataset_plus_plain.plain_attr), plain_attribute))
+        self.assertTrue(
+            torch.equal(torch.as_tensor(dataset_plus_plain.plain_attr), plain_attribute)
+        )
 
         # Add get-item attribute
-        dataset_plus_gia = dataset.update_data_attribute(
-            'gia', get_item_attribute)
+        dataset_plus_gia = dataset.update_data_attribute("gia", get_item_attribute)
         # check element added from gia attribute
         elem = dataset_plus_gia[100]
         self.assertEqual(4, len(elem))
@@ -456,42 +433,54 @@ class AvalancheDatasetTests(unittest.TestCase):
         # Name mismatch check
         with self.assertRaises(Exception):
             dataset_plus_gia = dataset.update_data_attribute(
-                'name_mismatch', get_item_attribute)
+                "name_mismatch", get_item_attribute
+            )
 
         # DataAttribute must convert tensors to list
         self.assertIsInstance(elem[3], int)
         self.assertEqual(105, elem[3])
         # check content
-        self.assertTrue(torch.equal(torch.as_tensor(
-            dataset_plus_gia.gia), torch.arange(len(dataset)) + 5))
+        self.assertTrue(
+            torch.equal(
+                torch.as_tensor(dataset_plus_gia.gia), torch.arange(len(dataset)) + 5
+            )
+        )
 
         # Replace attribute (plain)
-        dataset_plus_plain = dataset.update_data_attribute(
-            'targets', plain_attribute)
+        dataset_plus_plain = dataset.update_data_attribute("targets", plain_attribute)
         # check nothing added from plain attribute
         self.assertEqual(3, len(dataset_plus_plain[0]))
         # check content
-        self.assertTrue(torch.equal(torch.as_tensor(
-            dataset_plus_plain.targets), plain_attribute))
+        self.assertTrue(
+            torch.equal(torch.as_tensor(dataset_plus_plain.targets), plain_attribute)
+        )
 
         # Replace attribute (get_item)
         dataset_plus_plain = dataset.update_data_attribute(
-            'targets_task_labels', plain_attribute)
+            "targets_task_labels", plain_attribute
+        )
         # check element no removed
         self.assertEqual(3, len(dataset_plus_plain[0]))
         # check content
-        self.assertTrue(torch.equal(torch.as_tensor(
-            dataset_plus_plain.targets_task_labels), plain_attribute))
+        self.assertTrue(
+            torch.equal(
+                torch.as_tensor(dataset_plus_plain.targets_task_labels), plain_attribute
+            )
+        )
 
         # Replace attribute (remove one from get_item)
         dataset_plus_plain = dataset.update_data_attribute(
-            'targets_task_labels', targets_task_labels_not_gia)
+            "targets_task_labels", targets_task_labels_not_gia
+        )
         # check element removed
         self.assertEqual(2, len(dataset_plus_plain[0]))
         # check content
-        self.assertTrue(torch.equal(torch.as_tensor(
-            dataset_plus_plain.targets_task_labels), 
-            torch.arange(len(dataset)) + 7))
+        self.assertTrue(
+            torch.equal(
+                torch.as_tensor(dataset_plus_plain.targets_task_labels),
+                torch.arange(len(dataset)) + 7,
+            )
+        )
 
 
 if __name__ == "__main__":

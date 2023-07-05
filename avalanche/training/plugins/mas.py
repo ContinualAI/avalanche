@@ -6,8 +6,7 @@ import torch
 
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
-    ParamData
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, ParamData
 
 
 class MASPlugin(SupervisedPlugin):
@@ -29,9 +28,7 @@ class MASPlugin(SupervisedPlugin):
     https://github.com/mmasana/FACIL/blob/master/src/approach/mas.py
     """
 
-    def __init__(
-        self, lambda_reg: float = 1.0, alpha: float = 0.5, verbose=False
-    ):
+    def __init__(self, lambda_reg: float = 1.0, alpha: float = 0.5, verbose=False):
         """
         :param lambda_reg: hyperparameter weighting the penalty term
                in the loss.
@@ -57,7 +54,6 @@ class MASPlugin(SupervisedPlugin):
         self.verbose = verbose
 
     def _get_importance(self, strategy):
-
         # Initialize importance matrix
         importance = dict(zerolike_params_dict(strategy.model))
 
@@ -139,8 +135,8 @@ class MASPlugin(SupervisedPlugin):
         for name, param in strategy.model.named_parameters():
             if name in self.importance.keys():
                 loss_reg += torch.sum(
-                    self.importance[name].expand(param.shape) *
-                    (param - self.params[name].expand(param.shape)).pow(2)
+                    self.importance[name].expand(param.shape)
+                    * (param - self.params[name].expand(param.shape)).pow(2)
                 )
 
         # Update loss
@@ -166,9 +162,11 @@ class MASPlugin(SupervisedPlugin):
             new_shape = curr_importance[name].data.shape
             if name not in self.importance:
                 self.importance[name] = ParamData(
-                    name, curr_importance[name].shape,
+                    name,
+                    curr_importance[name].shape,
                     device=curr_importance[name].device,
-                    init_tensor=curr_importance[name].data.clone())
+                    init_tensor=curr_importance[name].data.clone(),
+                )
             else:
                 self.importance[name].data = (
                     self.alpha * self.importance[name].expand(new_shape)

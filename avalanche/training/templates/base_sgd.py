@@ -25,19 +25,15 @@ from avalanche.training.templates.strategy_mixin_protocol import \
 from avalanche.training.utils import trigger_plugins
 
 
-TDatasetExperience = TypeVar('TDatasetExperience', bound=DatasetExperience)
-TMBInput = TypeVar('TMBInput')
-TMBOutput = TypeVar('TMBOutput')
+TDatasetExperience = TypeVar("TDatasetExperience", bound=DatasetExperience)
+TMBInput = TypeVar("TMBInput")
+TMBOutput = TypeVar("TMBOutput")
 
 
 class BaseSGDTemplate(
-        SGDStrategyProtocol[
-            TDatasetExperience,
-            TMBInput,
-            TMBOutput],
-        BaseTemplate[
-            TDatasetExperience]
-        ):
+    SGDStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
+    BaseTemplate[TDatasetExperience],
+):
     """Base SGD class for continual learning skeletons.
 
     **Training loop**
@@ -67,11 +63,10 @@ class BaseSGDTemplate(
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[BasePlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
-        peval_mode="epoch"
+        peval_mode="epoch",
     ):
         """Init.
 
@@ -94,11 +89,7 @@ class BaseSGDTemplate(
         """
 
         super().__init__()  # type: ignore
-        BaseTemplate.__init__(
-            self=self,
-            model=model,
-            device=device,
-            plugins=plugins)
+        BaseTemplate.__init__(self=self, model=model, device=device, plugins=plugins)
 
         self.optimizer: Optimizer = optimizer
         """ PyTorch optimizer. """
@@ -112,9 +103,7 @@ class BaseSGDTemplate(
         self.train_mb_size: int = train_mb_size
         """ Training mini-batch size. """
 
-        self.eval_mb_size: int = (
-            train_mb_size if eval_mb_size is None else eval_mb_size
-        )
+        self.eval_mb_size: int = train_mb_size if eval_mb_size is None else eval_mb_size
         """ Eval mini-batch size. """
 
         self.retain_graph: bool = False
@@ -170,14 +159,14 @@ class BaseSGDTemplate(
 
         self._stop_training = False
 
-    def train(self,
-              experiences: Union[TDatasetExperience,
-                                 Iterable[TDatasetExperience]],
-              eval_streams: Optional[
-                    Sequence[Union[TDatasetExperience,
-                                   Iterable[TDatasetExperience]]]] = None,
-              **kwargs):
-
+    def train(
+        self,
+        experiences: Union[TDatasetExperience, Iterable[TDatasetExperience]],
+        eval_streams: Optional[
+            Sequence[Union[TDatasetExperience, Iterable[TDatasetExperience]]]
+        ] = None,
+        **kwargs
+    ):
         super().train(experiences, eval_streams, **kwargs)
         return self.evaluator.get_last_metrics()
 
@@ -283,9 +272,7 @@ class BaseSGDTemplate(
         self.mb_output = None
         self.loss = self._make_empty_loss()
 
-    def _train_exp(
-        self, experience: CLExperience, eval_streams=None, **kwargs
-    ):
+    def _train_exp(self, experience: CLExperience, eval_streams=None, **kwargs):
         """Training loop over a single Experience object.
 
         :param experience: CL experience information.
@@ -337,7 +324,6 @@ class BaseSGDTemplate(
         self.dataloader = prev_state["dataloader"]
 
     def _before_eval_exp(self, **kwargs):
-
         # Data Adaptation
         self._before_eval_dataset_adaptation(**kwargs)
         self.eval_dataset_adaptation(**kwargs)
@@ -355,8 +341,8 @@ class BaseSGDTemplate(
         to the train and eval dataloaders.
 
         This function can be useful when in need to customize the data loading
-        parameters but no radical changes are needed. When overriding to 
-        add/customize parameters, it is recommended to first call this 
+        parameters but no radical changes are needed. When overriding to
+        add/customize parameters, it is recommended to first call this
         implementation (super) to obtain a base dictionary of parameters.
 
         However, if a more deep change is needed in the data loading procedure,
@@ -379,13 +365,13 @@ class BaseSGDTemplate(
                 other_dataloader_args["persistent_workers"] = \
                     kwargs['persistent_workers']
             else:
-                del kwargs['persistent_workers']
+                del kwargs["persistent_workers"]
 
         for k, v in kwargs.items():
             other_dataloader_args[k] = v
 
-        if other_dataloader_args.get('pin_memory', None) is None:
-            other_dataloader_args['pin_memory'] = self.device.type == 'cuda'
+        if other_dataloader_args.get("pin_memory", None) is None:
+            other_dataloader_args["pin_memory"] = self.device.type == "cuda"
 
         return other_dataloader_args
 
@@ -424,9 +410,7 @@ class BaseSGDTemplate(
             other_dataloader_args['ffcv_args'] = kwargs['ffcv_args']
 
         self.dataloader = TaskBalancedDataLoader(
-            self.adapted_dataset,
-            oversample_small_groups=True,
-            **other_dataloader_args
+            self.adapted_dataset, oversample_small_groups=True, **other_dataloader_args
         )
 
     def make_eval_dataloader(
@@ -469,6 +453,8 @@ class BaseSGDTemplate(
             self.adapted_dataset,
             **other_dataloader_args
         )
+
+        self.dataloader = DataLoader(self.adapted_dataset, **other_dataloader_args)
 
     def eval_dataset_adaptation(self, **kwargs):
         """Initialize `self.adapted_dataset`."""
@@ -550,11 +536,7 @@ class PeriodicEval(BaseSGDPlugin, supports_distributed=True):
     This plugin is automatically configured and added by the BaseTemplate.
     """
 
-    def __init__(
-            self,
-            eval_every=-1,
-            peval_mode="epoch",
-            do_initial=True):
+    def __init__(self, eval_every=-1, peval_mode="epoch", do_initial=True):
         """Init.
 
         :param eval_every: the frequency of the calls to `eval` inside the
@@ -611,21 +593,17 @@ class PeriodicEval(BaseSGDPlugin, supports_distributed=True):
         if self.eval_every > 0 and counter % self.eval_every == 0:
             self._peval(strategy, **kwargs)
 
-    def after_training_epoch(self, strategy: "BaseSGDTemplate",
-                             **kwargs):
+    def after_training_epoch(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "epoch":
-            self._maybe_peval(strategy, strategy.clock.train_exp_epochs,
-                              **kwargs)
+            self._maybe_peval(strategy, strategy.clock.train_exp_epochs, **kwargs)
 
-    def after_training_iteration(self, strategy: "BaseSGDTemplate",
-                                 **kwargs):
+    def after_training_iteration(self, strategy: "BaseSGDTemplate", **kwargs):
         """Periodic eval controlled by `self.eval_every` and
         `self.peval_mode`."""
         if self.peval_mode == "iteration":
-            self._maybe_peval(strategy, strategy.clock.train_exp_iterations,
-                              **kwargs)
+            self._maybe_peval(strategy, strategy.clock.train_exp_iterations, **kwargs)
 
     # ---> New
     def after_training_exp(self, strategy, **kwargs):

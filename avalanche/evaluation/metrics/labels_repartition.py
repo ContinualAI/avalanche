@@ -40,11 +40,7 @@ class LabelsRepartition(Metric[Dict[int, Dict[int, int]]]):
     def reset(self) -> None:
         self.task2label2count = defaultdict(Counter)
 
-    def update(
-        self,
-        tasks: Sequence[int],
-        labels: Sequence[int]
-    ):
+    def update(self, tasks: Sequence[int], labels: Sequence[int]):
         for task, label in zip(tasks, labels):
             self.task2label2count[task][label] += 1
 
@@ -64,9 +60,7 @@ class LabelsRepartition(Metric[Dict[int, Dict[int, int]]]):
         }
 
 
-LabelsRepartitionImageCreator = Callable[
-    [Dict[int, List[int]], List[int]], Figure
-]
+LabelsRepartitionImageCreator = Callable[[Dict[int, List[int]], List[int]], Figure]
 
 
 class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
@@ -94,7 +88,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
         emit_reset_at: Literal["stream", "experience", "epoch"] = "epoch",
     ):
         ...
-        
+
     @overload
     def __init__(
         self,
@@ -126,9 +120,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
         self.mode = mode
         self.image_creator = image_creator
         self.steps = [0]
-        self.task2label2counts: Dict[int, Dict[int, List[int]]] = defaultdict(
-            dict
-        )
+        self.task2label2counts: Dict[int, Dict[int, List[int]]] = defaultdict(dict)
         self.strategy: Optional[SupervisedTemplate] = None
 
     def before_training(self, strategy: "SupervisedTemplate"):
@@ -147,25 +139,19 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
     def update(self, strategy: "SupervisedTemplate"):
         assert strategy.experience is not None
 
-        if self.mode == 'train':
-            if strategy.clock.train_exp_epochs and \
-                    self.emit_reset_at != "epoch":
+        if self.mode == "train":
+            if strategy.clock.train_exp_epochs and self.emit_reset_at != "epoch":
                 # Do not update after first epoch
                 return
-        
-        self._metric.update(
-            strategy.mb_task_id.tolist(),
-            strategy.mb_y.tolist()
-        )
+
+        self._metric.update(strategy.mb_task_id.tolist(), strategy.mb_y.tolist())
 
         if hasattr(strategy.experience, "classes_order"):
-            self._metric.update_order(
-                strategy.experience.classes_order
-            )
+            self._metric.update_order(strategy.experience.classes_order)
 
     def _package_result(self, strategy: "SupervisedTemplate") -> "MetricResult":
         assert strategy.experience is not None
-        
+
         self.steps.append(strategy.clock.train_iterations)
         task2label2count = self._metric.result()
 
@@ -174,11 +160,11 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
                 self.task2label2counts[task].setdefault(
                     label, [0] * (len(self.steps) - 2)
                 ).extend((count, count))
-        
+
         for task, label2counts in self.task2label2counts.items():
             for label, counts in label2counts.items():
                 counts.extend([0] * (len(self.steps) - len(counts)))
-        
+
         return [
             MetricValue(
                 self,

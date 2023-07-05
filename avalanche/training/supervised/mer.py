@@ -14,8 +14,9 @@ from avalanche.training.storage_policy import ReservoirSamplingBuffer
 
 
 class MERBuffer:
-    def __init__(self, max_buffer_size=100, buffer_mb_size=10,
-                 device=torch.device("cpu")):
+    def __init__(
+        self, max_buffer_size=100, buffer_mb_size=10, device=torch.device("cpu")
+    ):
         self.storage_policy = ReservoirSamplingBuffer(max_size=max_buffer_size)
         self.buffer_mb_size = buffer_mb_size
         self.device = device
@@ -32,12 +33,15 @@ class MERBuffer:
 
         bsize = min(len(self), self.buffer_mb_size)
         rnd_ind = torch.randperm(len(self))[:bsize]
-        buff_x = torch.cat([self.storage_policy.buffer[i][0].unsqueeze(0)
-                            for i in rnd_ind]).to(self.device)
-        buff_y = torch.LongTensor([self.storage_policy.buffer[i][1]
-                                   for i in rnd_ind]).to(self.device)
-        buff_t = torch.LongTensor([self.storage_policy.buffer[i][2]
-                                   for i in rnd_ind]).to(self.device)
+        buff_x = torch.cat(
+            [self.storage_policy.buffer[i][0].unsqueeze(0) for i in rnd_ind]
+        ).to(self.device)
+        buff_y = torch.LongTensor(
+            [self.storage_policy.buffer[i][1] for i in rnd_ind]
+        ).to(self.device)
+        buff_t = torch.LongTensor(
+            [self.storage_policy.buffer[i][2] for i in rnd_ind]
+        ).to(self.device)
 
         mixed_x = torch.cat([x, buff_x], dim=0)
         mixed_y = torch.cat([y, buff_y], dim=0)
@@ -63,8 +67,7 @@ class MER(OnlineSupervisedMetaLearningTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -97,9 +100,11 @@ class MER(OnlineSupervisedMetaLearningTemplate):
             peval_mode,
         )
 
-        self.buffer = MERBuffer(max_buffer_size=max_buffer_size,
-                                buffer_mb_size=buffer_mb_size,
-                                device=self.device)
+        self.buffer = MERBuffer(
+            max_buffer_size=max_buffer_size,
+            buffer_mb_size=buffer_mb_size,
+            device=self.device,
+        )
         self.n_inner_steps = n_inner_steps
         self.beta = beta
         self.gamma = gamma
@@ -128,16 +133,19 @@ class MER(OnlineSupervisedMetaLearningTemplate):
             # Within-batch Reptile update
             w_aft_t = self.model.state_dict()
             self.model.load_state_dict(
-                {name: w_bef_t[name] + ((w_aft_t[name] - w_bef_t[name])
-                                        * self.beta)
-                 for name in w_bef_t}
+                {
+                    name: w_bef_t[name] + ((w_aft_t[name] - w_bef_t[name]) * self.beta)
+                    for name in w_bef_t
+                }
             )
 
     def _outer_update(self, **kwargs):
         w_aft = self.model.state_dict()
         self.model.load_state_dict(
-            {name: self.w_bef[name] + ((w_aft[name] - self.w_bef[name])
-                                       * self.gamma) for name in self.w_bef}
+            {
+                name: self.w_bef[name] + ((w_aft[name] - self.w_bef[name]) * self.gamma)
+                for name in self.w_bef
+            }
         )
         with torch.no_grad():
             pred = self.forward()

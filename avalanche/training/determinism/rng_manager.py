@@ -5,8 +5,13 @@ from typing import Any, Dict, Type
 import numpy as np
 import torch
 
-from avalanche.training.determinism.cuda_rng import cuda_rng_seed, \
-    cuda_rng_save_state, cuda_rng_load_state, cuda_rng_step, cpu_rng_seed
+from avalanche.training.determinism.cuda_rng import (
+    cuda_rng_seed,
+    cuda_rng_save_state,
+    cuda_rng_load_state,
+    cuda_rng_step,
+    cpu_rng_seed,
+)
 
 
 class _Singleton(type):
@@ -14,8 +19,7 @@ class _Singleton(type):
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(_Singleton, cls).__call__(
-                *args, **kwargs)
+            cls._instances[cls] = super(_Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
 
@@ -34,9 +38,7 @@ class _RNGManager:
 
     __metaclass__ = _Singleton
 
-    RNG_DEF_REQUIRED_FIELDS = {
-        'seed', 'save_state', 'load_state', 'step'
-    }
+    RNG_DEF_REQUIRED_FIELDS = {"seed", "save_state", "load_state", "step"}
 
     def __init__(self):
         """
@@ -69,38 +71,50 @@ class _RNGManager:
         """
         rng_def_keys = set(rng_def.keys())
         if not rng_def_keys.issubset(_RNGManager.RNG_DEF_REQUIRED_FIELDS):
-            raise ValueError('Invalid random number generator definition')
+            raise ValueError("Invalid random number generator definition")
 
         self.random_generators[name] = rng_def
 
     def _register_default_generators(self):
-        self.register_random_generator('torch', {
-            'seed': cpu_rng_seed,
-            'save_state': torch.random.get_rng_state,
-            'load_state': torch.random.set_rng_state,
-            'step': lambda: torch.rand(1)
-        })
+        self.register_random_generator(
+            "torch",
+            {
+                "seed": cpu_rng_seed,
+                "save_state": torch.random.get_rng_state,
+                "load_state": torch.random.set_rng_state,
+                "step": lambda: torch.rand(1),
+            },
+        )
 
-        self.register_random_generator('torch.cuda', {
-            'seed': cuda_rng_seed,
-            'save_state': cuda_rng_save_state,
-            'load_state': cuda_rng_load_state,
-            'step': cuda_rng_step
-        })
+        self.register_random_generator(
+            "torch.cuda",
+            {
+                "seed": cuda_rng_seed,
+                "save_state": cuda_rng_save_state,
+                "load_state": cuda_rng_load_state,
+                "step": cuda_rng_step,
+            },
+        )
 
-        self.register_random_generator('numpy', {
-            'seed': np.random.seed,
-            'save_state': np.random.get_state,
-            'load_state': np.random.set_state,
-            'step': lambda: np.random.rand(1)
-        })
+        self.register_random_generator(
+            "numpy",
+            {
+                "seed": np.random.seed,
+                "save_state": np.random.get_state,
+                "load_state": np.random.set_state,
+                "step": lambda: np.random.rand(1),
+            },
+        )
 
-        self.register_random_generator('random', {
-            'seed': random.seed,
-            'save_state': random.getstate,
-            'load_state': random.setstate,
-            'step': random.random
-        })
+        self.register_random_generator(
+            "random",
+            {
+                "seed": random.seed,
+                "save_state": random.getstate,
+                "load_state": random.setstate,
+                "step": random.random,
+            },
+        )
 
     def set_random_seeds(self, random_seed):
         """
@@ -112,7 +126,7 @@ class _RNGManager:
         """
 
         for gen_name, gen_dict in self.random_generators.items():
-            gen_dict['seed'](random_seed)
+            gen_dict["seed"](random_seed)
 
     def align_seeds(self):
         """
@@ -120,8 +134,7 @@ class _RNGManager:
         integer value.
         """
 
-        reference_seed = torch.randint(0, 2 ** 32 - 1, (1,),
-                                       dtype=torch.int64)
+        reference_seed = torch.randint(0, 2**32 - 1, (1,), dtype=torch.int64)
 
         seed = int(reference_seed)
         self.set_random_seeds(seed)
@@ -130,13 +143,13 @@ class _RNGManager:
         all_rngs_state = dict()
         for rng_name, rng_def in self.random_generators.items():
             rng_state = dict()
-            rng_state['current_state'] = rng_def['save_state']()
+            rng_state["current_state"] = rng_def["save_state"]()
             all_rngs_state[rng_name] = rng_state
         return all_rngs_state
 
     def step_generators(self):
         for rng_name, rng_def in self.random_generators.items():
-            rng_def['step']()
+            rng_def["step"]()
 
     def __setstate__(self, rngs):
         # Note on the following:
@@ -157,8 +170,8 @@ class _RNGManager:
         # global number generators registered in the singleton.
         self.random_generators = RNGManager.random_generators
         for rng_name, rng_def in self.random_generators.items():
-            loaded_state = rngs[rng_name]['current_state']
-            rng_def['load_state'](loaded_state)
+            loaded_state = rngs[rng_name]["current_state"]
+            rng_def["load_state"](loaded_state)
 
     def _replace_generators(self, generators):
         """
@@ -170,6 +183,4 @@ class _RNGManager:
 RNGManager = _RNGManager()
 
 
-__all__ = [
-    'RNGManager'
-]
+__all__ = ["RNGManager"]

@@ -3,9 +3,7 @@ import transforms as T
 
 
 class DetectionPresetTrain:
-    def __init__(
-        self, data_augmentation, hflip_prob=0.5, mean=(123.0, 117.0, 104.0)
-    ):
+    def __init__(self, data_augmentation, hflip_prob=0.5, mean=(123.0, 117.0, 104.0)):
         if data_augmentation == "hflip":
             self.transforms = T.Compose(
                 [
@@ -35,9 +33,7 @@ class DetectionPresetTrain:
                 ]
             )
         else:
-            raise ValueError(
-                f'Unknown data augmentation policy "{data_augmentation}"'
-            )
+            raise ValueError(f'Unknown data augmentation policy "{data_augmentation}"')
 
     def __call__(self, img, target):
         return self.transforms(img, target)

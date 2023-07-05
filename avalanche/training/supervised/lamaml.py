@@ -10,10 +10,12 @@ import math
 try:
     import higher
 except ImportError:
-    raise ModuleNotFoundError("higher not found, if you want to use "
-                              "MAML please install avalanche with "
-                              "the extra dependencies: "
-                              "pip install avalanche-lib[extra]")
+    raise ModuleNotFoundError(
+        "higher not found, if you want to use "
+        "MAML please install avalanche with "
+        "the extra dependencies: "
+        "pip install avalanche-lib[extra]"
+    )
 
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -40,8 +42,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -101,7 +102,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
                 alpha_param = nn.Parameter(
                     torch.ones(p.shape) * self.alpha_init, requires_grad=True
                 )
-                self.alpha_params[n.replace('.', '_')] = alpha_param
+                self.alpha_params[n.replace(".", "_")] = alpha_param
             self.alpha_params.to(self.device)
 
             # Create optimizer for the alpha_lr parameters
@@ -111,27 +112,29 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # update alpha-lr parameters
         for n, p in self.model.named_parameters():
-            n = n.replace('.', '_')  # dict does not support names with '.'
+            n = n.replace(".", "_")  # dict does not support names with '.'
             if n in self.alpha_params:
                 if self.alpha_params[n].shape != p.shape:
                     old_shape = self.alpha_params[n].shape
                     # parameter expansion
                     expanded = False
-                    assert len(p.shape) == len(old_shape), \
-                        "Expansion cannot add new dimensions"
+                    assert len(p.shape) == len(
+                        old_shape
+                    ), "Expansion cannot add new dimensions"
                     for i, (snew, sold) in enumerate(zip(p.shape, old_shape)):
                         assert snew >= sold, "Shape cannot decrease."
                         if snew > sold:
-                            assert not expanded, \
-                                "Expansion cannot occur " \
-                                "in more than one dimension."
+                            assert not expanded, (
+                                "Expansion cannot occur " "in more than one dimension."
+                            )
                             expanded = True
                             exp_idx = i
 
                     alpha_param = torch.ones(p.shape) * self.alpha_init
-                    idx = [slice(el) if i != exp_idx else
-                           slice(old_shape[exp_idx])
-                           for i, el in enumerate(p.shape)]
+                    idx = [
+                        slice(el) if i != exp_idx else slice(old_shape[exp_idx])
+                        for i, el in enumerate(p.shape)
+                    ]
                     alpha_param[idx] = self.alpha_params[n].detach().clone()
                     alpha_param = nn.Parameter(alpha_param, requires_grad=True)
                     self.alpha_params[n] = alpha_param
@@ -215,18 +218,15 @@ class LaMAML(SupervisedMetaLearningTemplate):
         self.meta_losses = [0 for _ in range(self.n_inner_updates)]
 
         for i in range(self.n_inner_updates):
-            batch_x_i = batch_x[i * rough_sz: (i + 1) * rough_sz]
-            batch_y_i = batch_y[i * rough_sz: (i + 1) * rough_sz]
-            batch_t_i = batch_t[i * rough_sz: (i + 1) * rough_sz]
+            batch_x_i = batch_x[i * rough_sz : (i + 1) * rough_sz]
+            batch_y_i = batch_y[i * rough_sz : (i + 1) * rough_sz]
+            batch_t_i = batch_t[i * rough_sz : (i + 1) * rough_sz]
 
             # We assume that samples for inner update are from the same task
-            self.inner_update_step(self.fast_model, batch_x_i, batch_y_i,
-                                   batch_t_i)
+            self.inner_update_step(self.fast_model, batch_x_i, batch_y_i, batch_t_i)
 
             # Compute meta-loss with the combination of batch and buffer samples
-            logits_meta = avalanche_forward(
-                self.fast_model, self.mb_x, self.mb_task_id
-            )
+            logits_meta = avalanche_forward(self.fast_model, self.mb_x, self.mb_task_id)
             meta_loss = self._criterion(logits_meta, self.mb_y)
             self.meta_losses[i] = meta_loss
 
@@ -243,9 +243,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
         self.apply_grad(self.model, meta_grad_model)
 
         # Clip gradients
-        torch.nn.utils.clip_grad_norm_(
-            self.model.parameters(), self.grad_clip_norm
-        )
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
 
         if self.learn_lr:
             # Compute meta-gradient for alpha-lr parameters
@@ -266,7 +264,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
             self.optimizer.step()
         else:
             for p, alpha in zip(
-                    self.model.parameters(), self.alpha_params.parameters()
+                self.model.parameters(), self.alpha_params.parameters()
             ):
                 # Use relu on updated LRs to avoid negative values
                 p.data = p.data - p.grad * F.relu(alpha)
@@ -288,6 +286,4 @@ def init_kaiming_normal(m):
             m.bias.data.zero_()
 
 
-__all__ = [
-    'LaMAML'
-]
+__all__ = ["LaMAML"]

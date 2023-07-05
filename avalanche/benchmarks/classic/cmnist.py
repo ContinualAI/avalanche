@@ -26,21 +26,16 @@ from avalanche.benchmarks import NCScenario, nc_benchmark
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets.external_datasets.mnist import \
-    get_mnist_dataset
+from avalanche.benchmarks.datasets.external_datasets.mnist import get_mnist_dataset
 from avalanche.benchmarks.utils import (
     make_classification_dataset,
     DefaultTransformGroups,
 )
 from avalanche.benchmarks.utils.data import make_avalanche_dataset
 
-_default_mnist_train_transform = Compose(
-    [Normalize((0.1307,), (0.3081,))]
-)
+_default_mnist_train_transform = Compose([Normalize((0.1307,), (0.3081,))])
 
-_default_mnist_eval_transform = Compose(
-    [Normalize((0.1307,), (0.3081,))]
-)
+_default_mnist_eval_transform = Compose([Normalize((0.1307,), (0.3081,))])
 
 
 class PixelsPermutation(object):
@@ -60,7 +55,7 @@ class PixelsPermutation(object):
         is_image = isinstance(img, Image)
         if (not is_image) and (not isinstance(img, Tensor)):
             raise ValueError("Invalid input: must be a PIL image or a Tensor")
-    
+
         image_as_tensor: Tensor
         if is_image:
             image_as_tensor = self._to_tensor(img)
@@ -68,7 +63,8 @@ class PixelsPermutation(object):
             image_as_tensor = img
 
         image_as_tensor = image_as_tensor.view(-1)[self.permutation].view(
-            *image_as_tensor.shape)
+            *image_as_tensor.shape
+        )
 
         if is_image:
             img = self._to_image(image_as_tensor)
@@ -235,9 +231,7 @@ def PermutedMNIST(
     # for every incremental experience
     for _ in range(n_experiences):
         # choose a random permutation of the pixels in the image
-        idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(
-            torch.int64
-        )
+        idx_permute = torch.from_numpy(rng_permute.permutation(784)).type(torch.int64)
 
         permutation = PixelsPermutation(idx_permute)
 
@@ -392,21 +386,15 @@ if __name__ == "__main__":
     import sys
 
     print("Split MNIST")
-    benchmark_instance = SplitMNIST(
-        5, train_transform=None, eval_transform=None
-    )
+    benchmark_instance = SplitMNIST(5, train_transform=None, eval_transform=None)
     check_vision_benchmark(benchmark_instance)
 
     print("Permuted MNIST")
-    benchmark_instance = PermutedMNIST(
-        5, train_transform=None, eval_transform=None
-    )
+    benchmark_instance = PermutedMNIST(5, train_transform=None, eval_transform=None)
     check_vision_benchmark(benchmark_instance)
 
     print("Rotated MNIST")
-    benchmark_instance = RotatedMNIST(
-        5, train_transform=None, eval_transform=None
-    )
+    benchmark_instance = RotatedMNIST(5, train_transform=None, eval_transform=None)
     check_vision_benchmark(benchmark_instance)
 
     sys.exit(0)

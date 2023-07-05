@@ -32,9 +32,7 @@ class CocoEvaluator:
         for iou_type in self.iou_types:
             results = self.prepare(predictions, iou_type)
             with redirect_stdout(io.StringIO()):
-                coco_dt = (
-                    COCO.loadRes(self.coco_gt, results) if results else COCO()
-                )
+                coco_dt = COCO.loadRes(self.coco_gt, results) if results else COCO()
             coco_eval = self.coco_eval[iou_type]
 
             coco_eval.cocoDt = coco_dt
@@ -45,9 +43,7 @@ class CocoEvaluator:
 
     def synchronize_between_processes(self):
         for iou_type in self.iou_types:
-            self.eval_imgs[iou_type] = np.concatenate(
-                self.eval_imgs[iou_type], 2
-            )
+            self.eval_imgs[iou_type] = np.concatenate(self.eval_imgs[iou_type], 2)
             create_common_coco_eval(
                 self.coco_eval[iou_type], self.img_ids, self.eval_imgs[iou_type]
             )
@@ -111,9 +107,7 @@ class CocoEvaluator:
 
             rles = [
                 mask_util.encode(
-                    np.array(
-                        mask[0, :, :, np.newaxis], dtype=np.uint8, order="F"
-                    )
+                    np.array(mask[0, :, :, np.newaxis], dtype=np.uint8, order="F")
                 )[0]
                 for mask in masks
             ]

@@ -65,9 +65,7 @@ class OldBaseStrategy:
         self.optimizer = optimizer
         self.train_epochs: int = train_epochs
         self.train_mb_size: int = train_mb_size
-        self.eval_mb_size: int = (
-            train_mb_size if eval_mb_size is None else eval_mb_size
-        )
+        self.eval_mb_size: int = train_mb_size if eval_mb_size is None else eval_mb_size
         self.device = device
         self.plugins = [] if plugins is None else plugins
 
@@ -134,9 +132,7 @@ class OldBaseStrategy:
         ],
         eval_streams: Optional[
             Sequence[
-                Union[
-                    ClassificationExperience, Sequence[ClassificationExperience]
-                ]
+                Union[ClassificationExperience, Sequence[ClassificationExperience]]
             ]
         ] = None,
         **kwargs
@@ -240,9 +236,7 @@ class OldBaseStrategy:
     @torch.no_grad()
     def eval(
         self,
-        exp_list: Union[
-            ClassificationExperience, Sequence[ClassificationExperience]
-        ],
+        exp_list: Union[ClassificationExperience, Sequence[ClassificationExperience]],
         **kwargs
     ):
         """
@@ -560,9 +554,7 @@ class TestStrategyReproducibility(unittest.TestCase):
         print(old_losses)
         print(new_losses)
         np.testing.assert_allclose(old_losses, new_losses)
-        for par_old, par_new in zip(
-            old_model.parameters(), new_model.parameters()
-        ):
+        for par_old, par_new in zip(old_model.parameters(), new_model.parameters()):
             np.testing.assert_allclose(par_old.detach(), par_new.detach())
 
     def test_reproduce_old_cumulative_strategy(self):
@@ -607,9 +599,7 @@ class TestStrategyReproducibility(unittest.TestCase):
         print(old_losses)
         print(new_losses)
         np.testing.assert_allclose(old_losses, new_losses)
-        for par_old, par_new in zip(
-            old_model.parameters(), new_model.parameters()
-        ):
+        for par_old, par_new in zip(old_model.parameters(), new_model.parameters()):
             np.testing.assert_allclose(par_old.detach(), par_new.detach())
 
 

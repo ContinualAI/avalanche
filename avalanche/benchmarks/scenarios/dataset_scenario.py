@@ -27,50 +27,31 @@ from avalanche.benchmarks.scenarios.generic_scenario import (
     SequenceCLStream,
 )
 
-from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
-    LazyDatasetSequence
-)
+from avalanche.benchmarks.scenarios.lazy_dataset_sequence import LazyDatasetSequence
 
-from avalanche.benchmarks.utils import (
-    AvalancheDataset
-)
+from avalanche.benchmarks.utils import AvalancheDataset
 from torch.utils.data.dataset import Dataset
 
 # --- Dataset ---
 # From utils:
-TCLDataset = TypeVar(
-    'TCLDataset',
-    bound='AvalancheDataset',
-    covariant=True)
+TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset", covariant=True)
 
 # --- Scenario ---
 # From generic_scenario:
-TCLScenario = TypeVar(
-    'TCLScenario',
-    bound='CLScenario',
-    covariant=True)
+TCLScenario = TypeVar("TCLScenario", bound="CLScenario", covariant=True)
 # Defined here:
-TDatasetScenario = TypeVar(
-    'TDatasetScenario',
-    bound='DatasetScenario'
-)
+TDatasetScenario = TypeVar("TDatasetScenario", bound="DatasetScenario")
 TClassesTimelineCLScenario = TypeVar(
-    'TClassesTimelineCLScenario',
-    bound='ClassesTimelineCLScenario')
+    "TClassesTimelineCLScenario", bound="ClassesTimelineCLScenario"
+)
 
 # --- Stream ---
 # From generic_scenario:
-TCLStream = TypeVar(
-    'TCLStream',
-    bound='CLStream')
+TCLStream = TypeVar("TCLStream", bound="CLStream")
 
 # --- Experience ---
-TCLExperience = TypeVar(
-    'TCLExperience',
-    bound='CLExperience')
-TDatasetExperience = TypeVar(
-    'TDatasetExperience',
-    bound='DatasetExperience')
+TCLExperience = TypeVar("TCLExperience", bound="CLExperience")
+TDatasetExperience = TypeVar("TDatasetExperience", bound="DatasetExperience")
 
 
 # Definitions (stream)
@@ -88,8 +69,7 @@ TOriginDataset = Optional[Union[Dataset, AvalancheDataset]]
 # mandate setting task labels and the origin dataset
 @dataclass
 class StreamUserDef(Generic[TCLDataset]):
-    exps_data: Union[TCLDataset, Iterable[TCLDataset],
-                     Tuple[Iterable[TCLDataset], int]]
+    exps_data: Union[TCLDataset, Iterable[TCLDataset], Tuple[Iterable[TCLDataset], int]]
     exps_task_labels: TStreamTaskLabels = None
     origin_dataset: TOriginDataset = None
     is_lazy: Optional[bool] = None
@@ -118,8 +98,8 @@ STREAM_NAME_REGEX = re.compile("^[A-Za-z][A-Za-z_\\d]*$")
 
 
 class DatasetScenario(
-        CLScenario[TCLStream],
-        Generic[TCLStream, TDatasetExperience, TCLDataset]):
+    CLScenario[TCLStream], Generic[TCLStream, TDatasetExperience, TCLDataset]
+):
     """
     Base implementation of a Continual Learning benchmark instance.
     A Continual Learning benchmark instance is defined by a set of streams of
@@ -208,22 +188,21 @@ class DatasetScenario(
             [str, TDatasetScenario], TCLStream
         ] = stream_factory
 
-        self.stream_definitions: Dict[str, StreamDef[TCLDataset]] = \
-            DatasetScenario._check_stream_definitions(
-                stream_definitions
-            )
+        self.stream_definitions: Dict[
+            str, StreamDef[TCLDataset]
+        ] = DatasetScenario._check_stream_definitions(stream_definitions)
         """
         A structure containing the definition of the streams.
         """
 
-        self.original_train_dataset: Optional[
-            TOriginDataset
-        ] = self.stream_definitions["train"].origin_dataset
+        self.original_train_dataset: Optional[TOriginDataset] = self.stream_definitions[
+            "train"
+        ].origin_dataset
         """ The original training set. May be None. """
 
-        self.original_test_dataset: Optional[
-            TOriginDataset
-        ] = self.stream_definitions["test"].origin_dataset
+        self.original_test_dataset: Optional[TOriginDataset] = self.stream_definitions[
+            "test"
+        ].origin_dataset
         """ The original test set. May be None. """
 
         self.train_stream: TCLStream = self.stream_factory("train", self)
@@ -265,8 +244,10 @@ class DatasetScenario(
         self._make_stream_fields()
 
         super().__init__(
-            [getattr(self, f"{stream_name}_stream") for 
-             stream_name in self.stream_definitions.keys()]
+            [
+                getattr(self, f"{stream_name}_stream")
+                for stream_name in self.stream_definitions.keys()
+            ]
         )
 
     @property
@@ -364,10 +345,10 @@ class DatasetScenario(
 
     @staticmethod
     def _check_and_adapt_user_stream_def(
-        stream_def: Union[StreamDef[TCLDataset], 
-                          StreamUserDef[TCLDataset],
-                          TStreamUserDef], 
-        stream_name: str
+        stream_def: Union[
+            StreamDef[TCLDataset], StreamUserDef[TCLDataset], TStreamUserDef
+        ],
+        stream_name: str,
     ) -> StreamDef[TCLDataset]:
         if isinstance(stream_def, StreamDef):
             return stream_def
@@ -377,7 +358,8 @@ class DatasetScenario(
                 stream_def.exps_data,
                 stream_def.exps_task_labels,
                 stream_def.origin_dataset,
-                stream_def.is_lazy)
+                stream_def.is_lazy,
+            )
 
         exp_data: TStreamDataOrigin = stream_def[0]
         task_labels: TStreamTaskLabels = None
@@ -385,7 +367,7 @@ class DatasetScenario(
         is_lazy: Optional[bool] = None
 
         if exp_data is None:
-            raise ValueError('Experience data can\'t be None')
+            raise ValueError("Experience data can't be None")
 
         if len(stream_def) > 1:
             task_labels = stream_def[1]  # type: ignore
@@ -403,18 +385,17 @@ class DatasetScenario(
                 # per se (only if is_lazy==True, otherwise is treated as a
                 # standard Sequence)
                 if not isinstance(exp_data, LazyDatasetSequence):
-                    if (not isinstance(exp_data, tuple)) or (
-                        not len(exp_data) == 2
-                    ):
+                    if (not isinstance(exp_data, tuple)) or (not len(exp_data) == 2):
                         raise ValueError(
                             f"The stream {stream_name} was flagged as "
                             f"lazy-generated but its definition is not a "
                             f"2-elements tuple (generator and stream length)."
                         )
             else:
-                if (not isinstance(exp_data, Sequence)) or \
-                    (not len(exp_data) == 2) or (
-                    not isinstance(exp_data[1], int)
+                if (
+                    (not isinstance(exp_data, Sequence))
+                    or (not len(exp_data) == 2)
+                    or (not isinstance(exp_data[1], int))
                 ):
                     raise ValueError(
                         f"The stream {stream_name} was detected "
@@ -461,7 +442,8 @@ class DatasetScenario(
             exp_dataset: AvalancheDataset
             for i, exp_dataset in enumerate(exp_data):  # type: ignore
                 task_labels_list.append(
-                    set(exp_dataset.targets_task_labels))  # type: ignore
+                    set(exp_dataset.targets_task_labels)
+                )  # type: ignore
         else:
             # Standardize task labels structure
             for t_l in task_labels:
@@ -483,30 +465,21 @@ class DatasetScenario(
             if isinstance(exp_data, LazyDatasetSequence):
                 lazy_sequence = exp_data  # type: ignore
             else:
-                lazy_sequence = \
-                    LazyDatasetSequence(
-                        exp_data[0],  # type: ignore
-                        stream_length)  # type: ignore
+                lazy_sequence = LazyDatasetSequence(
+                    exp_data[0], stream_length  # type: ignore
+                )  # type: ignore
         else:
-            lazy_sequence = \
-                LazyDatasetSequence(
-                    exp_data,  # type: ignore
-                    stream_length)  # type: ignore
+            lazy_sequence = LazyDatasetSequence(
+                exp_data, stream_length  # type: ignore
+            )  # type: ignore
             lazy_sequence.load_all_experiences()
 
-        return StreamDef(
-            lazy_sequence,
-            task_labels_list,
-            origin_dataset,
-            is_lazy)
+        return StreamDef(lazy_sequence, task_labels_list, origin_dataset, is_lazy)
 
 
 class ClassesTimelineCLScenario(
-        DatasetScenario[
-            TCLStream,
-            TDatasetExperience,
-            TCLDataset],
-        ABC):
+    DatasetScenario[TCLStream, TDatasetExperience, TCLDataset], ABC
+):
     @property
     @abstractmethod
     def classes_in_experience(
@@ -528,10 +501,11 @@ class ClassesTimelineCLScenario(
     def get_classes_timeline(
         self, current_experience: int, stream: str = "train"
     ) -> Tuple[
-            Optional[List[int]],
-            Optional[List[int]],
-            Optional[List[int]],
-            Optional[List[int]]]:
+        Optional[List[int]],
+        Optional[List[int]],
+        Optional[List[int]],
+        Optional[List[int]],
+    ]:
         """
         Returns the classes timeline given the ID of a experience.
 
@@ -554,9 +528,7 @@ class ClassesTimelineCLScenario(
             experiences. Beware that each of these elements can be None when
             the benchmark is initialized by using a lazy generator.
         """
-        class_set_current_exp = self.classes_in_experience[stream][
-            current_experience
-        ]
+        class_set_current_exp = self.classes_in_experience[stream][current_experience]
 
         if class_set_current_exp is not None:
             # May be None in lazy benchmarks
@@ -579,13 +551,8 @@ class ClassesTimelineCLScenario(
         else:
             previous_classes = None
 
-        if (
-            class_set_current_exp is not None
-            and prev_exps_not_none
-        ):
-            classes_seen_so_far = list(
-                class_set_current_exp.union(class_set_prev_exps)
-            )
+        if class_set_current_exp is not None and prev_exps_not_none:
+            classes_seen_so_far = list(class_set_current_exp.union(class_set_prev_exps))
         else:
             classes_seen_so_far = None
 
@@ -612,9 +579,7 @@ class ClassesTimelineCLScenario(
         )
 
 
-class DatasetStream(
-    SequenceCLStream[TDatasetExperience]
-): 
+class DatasetStream(SequenceCLStream[TDatasetExperience]):
     """
     Base class for all streams connected to a :class:`DatasetScenario`.
 
@@ -622,21 +587,23 @@ class DatasetStream(
     the `drop_previous_experiences` method, which can be used to drop
     references to already processed datasets.
     """
+
     def __init__(
         self,
         name: str,
         benchmark: DatasetScenario,
         *,
         slice_ids: Optional[List[int]] = None,
-        set_stream_info: bool = True
+        set_stream_info: bool = True,
     ):
         self.benchmark: DatasetScenario = benchmark
-        
+
         super().__init__(
             name=name,
             benchmark=benchmark,
             slice_ids=slice_ids,
-            set_stream_info=set_stream_info)
+            set_stream_info=set_stream_info,
+        )
 
     def drop_previous_experiences(self, to_exp: int) -> None:
         """
@@ -673,30 +640,27 @@ class DatasetStream(
         ].exps_data.drop_previous_experiences(to_exp)
 
 
-class FactoryBasedStream(
-    DatasetStream[TDatasetExperience]
-):
+class FactoryBasedStream(DatasetStream[TDatasetExperience]):
     def __init__(
         self,
         name: str,
         benchmark: DatasetScenario,
         *,
         slice_ids: Optional[List[int]] = None,
-        set_stream_info: bool = True
+        set_stream_info: bool = True,
     ):
         super().__init__(
             name=name,
             benchmark=benchmark,
             slice_ids=slice_ids,
-            set_stream_info=set_stream_info)
+            set_stream_info=set_stream_info,
+        )
 
     def _full_length(self) -> int:
         return len(self.benchmark.stream_definitions[self.name].exps_data)
 
     def _make_experience(self, experience_idx: int) -> TDatasetExperience:
-        a = self.benchmark.experience_factory(
-            self,  # type: ignore
-            experience_idx)
+        a = self.benchmark.experience_factory(self, experience_idx)  # type: ignore
         return a
 
 
@@ -707,5 +671,5 @@ __all__ = [
     "StreamDef",
     "DatasetScenario",
     "ClassesTimelineCLScenario",
-    "FactoryBasedStream"
+    "FactoryBasedStream",
 ]

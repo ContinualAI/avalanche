@@ -47,19 +47,19 @@ def split_detection_benchmark(
     remaining = len(train_dataset) % n_experiences
 
     # Note: in future versions of Avalanche, the make_classification_dataset
-    # function will be replaced with a more specific function for object 
+    # function will be replaced with a more specific function for object
     # detection datasets.
     train_dataset_avl = make_detection_dataset(
         train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
-        collate_fn=detection_collate_fn
+        collate_fn=detection_collate_fn,
     )
     test_dataset_avl = make_detection_dataset(
         test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
-        collate_fn=detection_collate_fn
+        collate_fn=detection_collate_fn,
     )
 
     exp_sz = [exp_n_imgs for _ in range(n_experiences)]
@@ -80,7 +80,7 @@ def split_detection_benchmark(
     last_slice_idx = 0
     for exp_id in range(n_experiences):
         n_imgs = exp_sz[exp_id]
-        idx_range = train_indices[last_slice_idx:last_slice_idx + n_imgs]
+        idx_range = train_indices[last_slice_idx : last_slice_idx + n_imgs]
         train_exps_datasets.append(
             detection_subset(train_dataset_avl, indices=idx_range)
         )
@@ -107,6 +107,4 @@ def split_detection_benchmark(
     )
 
 
-__all__ = [
-    "split_detection_benchmark"
-]
+__all__ = ["split_detection_benchmark"]

@@ -25,7 +25,6 @@ def DatasetFolder(*args, **kwargs):
 
 
 if __name__ == "__main__":
-
     mnist = DatasetFolder(".", download=True)
 
 

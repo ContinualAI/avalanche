@@ -8,8 +8,7 @@ from torch.utils.data import DataLoader
 
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
-    ParamData
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, ParamData
 
 
 class EWCPlugin(SupervisedPlugin):
@@ -88,10 +87,10 @@ class EWCPlugin(SupervisedPlugin):
                     saved_param = self.saved_params[experience][k]
                     imp = self.importances[experience][k]
                     new_shape = cur_param.shape
-                    penalty += (imp.expand(new_shape) *
-                                (cur_param -
-                                 saved_param.expand(new_shape))
-                                .pow(2)).sum()
+                    penalty += (
+                        imp.expand(new_shape)
+                        * (cur_param - saved_param.expand(new_shape)).pow(2)
+                    ).sum()
         elif self.mode == "online":  # may need importance and param expansion
             prev_exp = exp_counter - 1
             for k, cur_param in strategy.model.named_parameters():
@@ -101,9 +100,10 @@ class EWCPlugin(SupervisedPlugin):
                 saved_param = self.saved_params[prev_exp][k]
                 imp = self.importances[prev_exp][k]
                 new_shape = cur_param.shape
-                penalty += (imp.expand(new_shape) *
-                            (cur_param - saved_param.expand(new_shape))
-                            .pow(2)).sum()
+                penalty += (
+                    imp.expand(new_shape)
+                    * (cur_param - saved_param.expand(new_shape)).pow(2)
+                ).sum()
         else:
             raise ValueError("Wrong EWC mode.")
 
@@ -152,12 +152,8 @@ class EWCPlugin(SupervisedPlugin):
 
         # list of list
         importances = zerolike_params_dict(model)
-        collate_fn = (
-            dataset.collate_fn if hasattr(dataset, "collate_fn") else None
-        )
-        dataloader = DataLoader(
-            dataset, batch_size=batch_size, collate_fn=collate_fn
-        )
+        collate_fn = dataset.collate_fn if hasattr(dataset, "collate_fn") else None
+        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_fn)
         for i, batch in enumerate(dataloader):
             # get only input, target and task_id from the batch
             x, y, task_labels = batch[0], batch[1], batch[-1]
@@ -194,7 +190,7 @@ class EWCPlugin(SupervisedPlugin):
             self.importances[t] = importances
         elif self.mode == "online":
             for (k1, old_imp), (k2, curr_imp) in itertools.zip_longest(
-                self.importances[t-1].items(),
+                self.importances[t - 1].items(),
                 importances.items(),
                 fillvalue=(None, None),
             ):
@@ -212,10 +208,12 @@ class EWCPlugin(SupervisedPlugin):
 
                 # manage expansion of existing layers
                 self.importances[t][k1] = ParamData(
-                    f'imp_{k1}', curr_imp.shape,
-                    init_tensor=self.decay_factor * old_imp.expand(
-                        curr_imp.shape) + curr_imp.data,
-                    device=curr_imp.device)
+                    f"imp_{k1}",
+                    curr_imp.shape,
+                    init_tensor=self.decay_factor * old_imp.expand(curr_imp.shape)
+                    + curr_imp.data,
+                    device=curr_imp.device,
+                )
 
             # clear previous parameter importances
             if t > 0 and (not self.keep_importance_data):

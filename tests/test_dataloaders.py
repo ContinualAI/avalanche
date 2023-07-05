@@ -29,7 +29,7 @@ from avalanche.benchmarks.utils.data_loader import (
     ReplayDataLoader,
     TaskBalancedDataLoader,
     GroupBalancedDataLoader,
-    GroupBalancedInfiniteDataLoader
+    GroupBalancedInfiniteDataLoader,
 )
 
 
@@ -52,9 +52,7 @@ def get_fast_benchmark():
 
     train_dataset = TensorDataset(train_X, train_y)
     test_dataset = TensorDataset(test_X, test_y)
-    my_nc_benchmark = nc_benchmark(
-        train_dataset, test_dataset, 5, task_labels=True
-    )
+    my_nc_benchmark = nc_benchmark(train_dataset, test_dataset, 5, task_labels=True)
     return my_nc_benchmark
 
 
@@ -159,8 +157,14 @@ class DataLoaderTests(unittest.TestCase):
 
         # Continual learning strategy
         cl_strategy = Naive(
-            model, optimizer, criterion, train_mb_size=32, train_epochs=1,
-            eval_mb_size=32, device=device)
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=32,
+            train_epochs=1,
+            eval_mb_size=32,
+            device=device,
+        )
 
         # test training for one experience
         train_exp = train_stream[0]

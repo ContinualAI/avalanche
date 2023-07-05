@@ -25,24 +25,44 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks import CLExperience, SplitCIFAR100, CLStream51, \
-    SplitOmniglot, SplitMNIST, SplitFMNIST
+from avalanche.benchmarks import (
+    CLExperience,
+    SplitCIFAR100,
+    CLStream51,
+    SplitOmniglot,
+    SplitMNIST,
+    SplitFMNIST,
+)
 from avalanche.benchmarks.classic import SplitCIFAR10
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics, \
-    class_accuracy_metrics
-from avalanche.logging import InteractiveLogger, TensorboardLogger, \
-    WandBLogger, TextLogger
+from avalanche.evaluation.metrics import (
+    accuracy_metrics,
+    loss_metrics,
+    class_accuracy_metrics,
+)
+from avalanche.logging import (
+    InteractiveLogger,
+    TensorboardLogger,
+    WandBLogger,
+    TextLogger,
+)
 from avalanche.models import SimpleMLP, as_multitask
 from avalanche.training.determinism.rng_manager import RNGManager
-from avalanche.training.plugins import EvaluationPlugin, CWRStarPlugin, \
-    ReplayPlugin, GDumbPlugin, LwFPlugin, SynapticIntelligencePlugin, EWCPlugin
+from avalanche.training.plugins import (
+    EvaluationPlugin,
+    CWRStarPlugin,
+    ReplayPlugin,
+    GDumbPlugin,
+    LwFPlugin,
+    SynapticIntelligencePlugin,
+    EWCPlugin,
+)
 from avalanche.training.checkpoint import maybe_load_checkpoint, save_checkpoint
 from avalanche.training.supervised import Naive
 from tests.unit_tests_utils import get_fast_benchmark
 
 
 def main(args):
-    fname = './checkpoint.pkl'
+    fname = "./checkpoint.pkl"
 
     # FIRST CHANGE: SET THE RANDOM SEEDS
     # In fact, you should to this no matter the checkpointing functionality.
@@ -59,53 +79,53 @@ def main(args):
 
     # Nothing new here...
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
-    print('Using device', device)
+    print("Using device", device)
 
     # Code used to select the benchmark: not checkpoint-related
-    use_tasks = 'si' not in args.plugins and 'cwr' not in args.plugins \
-        and args.benchmark != 'Stream51'
-    input_size = 32*32*3
+    use_tasks = (
+        "si" not in args.plugins
+        and "cwr" not in args.plugins
+        and args.benchmark != "Stream51"
+    )
+    input_size = 32 * 32 * 3
     # CL Benchmark Creation
-    if args.benchmark == 'TestBenchmark':
+    if args.benchmark == "TestBenchmark":
         input_size = 28 * 28 * 1
         scenario = get_fast_benchmark(
             use_task_labels=True,
             n_features=input_size,
             n_samples_per_class=256,
-            seed=1337
+            seed=1337,
         )
-    elif args.benchmark == 'SplitMNIST':
+    elif args.benchmark == "SplitMNIST":
         scenario = SplitMNIST(n_experiences=5, return_task_id=True)
-        input_size = 28*28*1
-    elif args.benchmark == 'SplitFMNIST':
+        input_size = 28 * 28 * 1
+    elif args.benchmark == "SplitFMNIST":
         scenario = SplitFMNIST(n_experiences=5, return_task_id=True)
-        input_size = 28*28*1
-    elif args.benchmark == 'SplitCifar100':
+        input_size = 28 * 28 * 1
+    elif args.benchmark == "SplitCifar100":
         scenario = SplitCIFAR100(n_experiences=5, return_task_id=use_tasks)
-    elif args.benchmark == 'SplitCifar10':
+    elif args.benchmark == "SplitCifar10":
         scenario = SplitCIFAR10(n_experiences=5, return_task_id=use_tasks)
-    elif args.benchmark == 'Stream51':
+    elif args.benchmark == "Stream51":
         scenario = CLStream51()
         scenario.n_classes = 51
-        input_size = 224*224*3
-    elif args.benchmark == 'SplitOmniglot':
+        input_size = 224 * 224 * 3
+    elif args.benchmark == "SplitOmniglot":
         scenario = SplitOmniglot(n_experiences=4, return_task_id=use_tasks)
-        input_size = 105*105*1
+        input_size = 105 * 105 * 1
     else:
-        raise ValueError('Unrecognized benchmark name from CLI.')
+        raise ValueError("Unrecognized benchmark name from CLI.")
     train_stream: Sequence[CLExperience] = scenario.train_stream
     test_stream: Sequence[CLExperience] = scenario.test_stream
 
     # Define the model (and load initial weights if necessary)
     # Again, not checkpoint-related
     if use_tasks:
-        model = SimpleMLP(input_size=input_size,
-                          num_classes=scenario.n_classes // 5)
-        model = as_multitask(model, 'classifier')
+        model = SimpleMLP(input_size=input_size, num_classes=scenario.n_classes // 5)
+        model = as_multitask(model, "classifier")
     else:
         model = SimpleMLP(input_size=input_size, num_classes=scenario.n_classes)
 
@@ -116,56 +136,50 @@ def main(args):
     # Create other plugins
     # ...
     plugins = []
-    cli_plugin_names = '_'.join(args.plugins)
+    cli_plugin_names = "_".join(args.plugins)
     for cli_plugin in args.plugins:
-        if cli_plugin == 'cwr':
-            plugin_instance = CWRStarPlugin(
-                model, freeze_remaining_model=False)
-        elif cli_plugin == 'replay':
+        if cli_plugin == "cwr":
+            plugin_instance = CWRStarPlugin(model, freeze_remaining_model=False)
+        elif cli_plugin == "replay":
             plugin_instance = ReplayPlugin(mem_size=500)
-        elif cli_plugin == 'gdumb':
+        elif cli_plugin == "gdumb":
             plugin_instance = GDumbPlugin(mem_size=500)
-        elif cli_plugin == 'lwf':
+        elif cli_plugin == "lwf":
             plugin_instance = LwFPlugin()
-        elif cli_plugin == 'si':
+        elif cli_plugin == "si":
             plugin_instance = SynapticIntelligencePlugin(0.001)
-        elif cli_plugin == 'ewc':
+        elif cli_plugin == "ewc":
             plugin_instance = EWCPlugin(0.001)
         else:
-            raise ValueError('Unrecognized plugin name from CLI.')
-        print('Adding plugin', plugin_instance)
+            raise ValueError("Unrecognized plugin name from CLI.")
+        print("Adding plugin", plugin_instance)
         plugins.append(plugin_instance)
 
     # Create loggers (as usual)
-    os.makedirs(f'./logs/checkpointing_{args.checkpoint_at}',
-                exist_ok=True)
+    os.makedirs(f"./logs/checkpointing_{args.checkpoint_at}", exist_ok=True)
 
     loggers = [
-        TextLogger(
-            open(f'./logs/checkpointing_'
-                 f'{args.checkpoint_at}/log.txt', 'w')),
+        TextLogger(open(f"./logs/checkpointing_" f"{args.checkpoint_at}/log.txt", "w")),
         InteractiveLogger(),
-        TensorboardLogger(f'./logs/checkpointing_{args.checkpoint_at}')
+        TensorboardLogger(f"./logs/checkpointing_{args.checkpoint_at}"),
     ]
 
     if args.wandb:
-        loggers.append(WandBLogger(
-            project_name='AvalancheCheckpointing',
-            run_name=f'checkpointing_{args.benchmark}_'
-                     f'{args.checkpoint_at}_'
-                     f'{cli_plugin_names}'
-        ))
+        loggers.append(
+            WandBLogger(
+                project_name="AvalancheCheckpointing",
+                run_name=f"checkpointing_{args.benchmark}_"
+                f"{args.checkpoint_at}_"
+                f"{cli_plugin_names}",
+            )
+        )
 
     # Create the evaluation plugin (when not using the default one)
     evaluation_plugin = EvaluationPlugin(
-        accuracy_metrics(minibatch=False, epoch=True,
-                         experience=True, stream=True),
-        loss_metrics(minibatch=False, epoch=True,
-                     experience=True, stream=True),
-        class_accuracy_metrics(
-            stream=True
-        ),
-        loggers=loggers
+        accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        loss_metrics(minibatch=False, epoch=True, experience=True, stream=True),
+        class_accuracy_metrics(stream=True),
+        loggers=loggers,
     )
 
     # Create the strategy
@@ -178,7 +192,7 @@ def main(args):
         eval_mb_size=128,
         device=device,
         plugins=plugins,
-        evaluator=evaluation_plugin
+        evaluator=evaluation_plugin,
     )
 
     # THIRD CHANGE: LOAD THE CHECKPOINT IF EXISTS
@@ -203,12 +217,15 @@ def main(args):
         save_checkpoint(strategy, fname)
 
         Path(args.log_metrics_to).mkdir(parents=True, exist_ok=True)
-        with open(Path(args.log_metrics_to) /
-                  f'metrics_exp{train_task.current_experience}.pkl', 'wb') as f:
+        with open(
+            Path(args.log_metrics_to)
+            / f"metrics_exp{train_task.current_experience}.pkl",
+            "wb",
+        ) as f:
             pickle.dump(metrics, f)
 
         if train_task.current_experience == args.checkpoint_at:
-            print('Exiting early')
+            print("Exiting early")
             break
 
 
@@ -218,32 +235,13 @@ if __name__ == "__main__":
         "--cuda",
         type=int,
         default=0,
-        help="Select zero-indexed cuda device. -1 to use CPU."
+        help="Select zero-indexed cuda device. -1 to use CPU.",
     )
     parser.add_argument(
-        "--benchmark",
-        type=str,
-        default='SplitCifar100',
-        help="The benchmark to use."
+        "--benchmark", type=str, default="SplitCifar100", help="The benchmark to use."
     )
-    parser.add_argument(
-        "--checkpoint_at",
-        type=int,
-        default=-1
-    )
-    parser.add_argument(
-        "--log_metrics_to",
-        type=str,
-        default='./metrics'
-    )
-    parser.add_argument(
-        "--wandb",
-        action='store_true'
-    )
-    parser.add_argument(
-        "--plugins",
-        nargs='*',
-        required=False,
-        default=[]
-    )
+    parser.add_argument("--checkpoint_at", type=int, default=-1)
+    parser.add_argument("--log_metrics_to", type=str, default="./metrics")
+    parser.add_argument("--wandb", action="store_true")
+    parser.add_argument("--plugins", nargs="*", required=False, default=[])
     main(parser.parse_args())

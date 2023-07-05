@@ -14,7 +14,7 @@ networks, ...).
 """
 import torch
 from torch.nn import Module
-import numpy as np
+from typing import Optional
 
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 from avalanche.benchmarks.scenarios import CLExperience
@@ -78,7 +78,7 @@ class DynamicModule(Module):
     def _adaptation_device(self):
         """
         The device to use when expanding (or otherwise adapting)
-        the model. Defaults to the current device of the fist 
+        the model. Defaults to the current device of the fist
         parameter listed using :meth:`parameters`.
         """
         return next(self.parameters()).device
@@ -137,9 +137,7 @@ class MultiTaskModule(DynamicModule):
             set(task_labels)
         )
 
-    def forward(
-        self, x: torch.Tensor, task_labels: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, task_labels: torch.Tensor) -> torch.Tensor:
         """compute the output given the input `x` and task labels.
 
         :param x:
@@ -164,16 +162,13 @@ class MultiTaskModule(DynamicModule):
             x_task = x[task_mask]
             out_task = self.forward_single_task(x_task, task.item())
             assert len(out_task.shape) == 2, (
-                "multi-head assumes mini-batches of 2 dimensions "
-                "<batch, classes>"
+                "multi-head assumes mini-batches of 2 dimensions " "<batch, classes>"
             )
             n_labels_head = out_task.shape[1]
             out[task_mask, :n_labels_head] = out_task
         return out
 
-    def forward_single_task(
-        self, x: torch.Tensor, task_label: int
-    ) -> torch.Tensor:
+    def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
         """compute the output given the input `x` and task label.
 
         :param x:
@@ -246,9 +241,8 @@ class IncrementalClassifier(DynamicModule):
             if old_nclasses != new_nclasses:  # expand active_units mask
                 old_act_units = self.active_units
                 self.active_units = torch.zeros(
-                    new_nclasses,
-                    dtype=torch.int8, 
-                    device=device)
+                    new_nclasses, dtype=torch.int8, device=device
+                )
                 self.active_units[: old_act_units.shape[0]] = old_act_units
             # update with new active classes
             if self.training:
@@ -271,7 +265,8 @@ class IncrementalClassifier(DynamicModule):
         """
         out = self.classifier(x)
         if self.masking:
-            out[..., torch.logical_not(self.active_units)] = self.mask_value
+            mask = torch.logical_not(self.active_units)
+            out = out.masked_fill(mask=mask, value=self.mask_value)
         return out
 
 
@@ -369,16 +364,12 @@ class MultiHeadClassifier(MultiTaskModule):
             # head adaptation
             if tid not in self.classifiers:  # create new head
                 new_head = IncrementalClassifier(
-                    self.in_features,
-                    self.starting_out_features,
-                    masking=False
+                    self.in_features, self.starting_out_features, masking=False
                 ).to(device)
                 self.classifiers[tid] = new_head
 
                 au_init = torch.zeros(
-                    self.starting_out_features,
-                    dtype=torch.int8,
-                    device=device
+                    self.starting_out_features, dtype=torch.int8, device=device
                 )
                 self.register_buffer(f"active_units_T{tid}", au_init)
 
@@ -406,13 +397,9 @@ class MultiHeadClassifier(MultiTaskModule):
                 if old_nunits != new_nclasses:  # expand active_units mask
                     old_act_units = self._buffers[au_name]
                     self._buffers[au_name] = torch.zeros(
-                        new_nclasses,
-                        dtype=torch.int8,
-                        device=device
+                        new_nclasses, dtype=torch.int8, device=device
                     )
-                    self._buffers[au_name][
-                        : old_act_units.shape[0]
-                    ] = old_act_units
+                    self._buffers[au_name][: old_act_units.shape[0]] = old_act_units
                 # update with new active classes
                 if self.training:
                     self._buffers[au_name][curr_classes] = 1
@@ -435,9 +422,8 @@ class MultiHeadClassifier(MultiTaskModule):
             if oldsize < nunits:  # we have to update the mask
                 old_mask = self._buffers[au_name]
                 self._buffers[au_name] = torch.zeros(
-                    nunits,
-                    dtype=torch.int8,
-                    device=device)
+                    nunits, dtype=torch.int8, device=device
+                )
                 self._buffers[au_name][:oldsize] = old_mask
                 curr_au = self._buffers[au_name]
             out[..., torch.logical_not(curr_au)] = self.mask_value

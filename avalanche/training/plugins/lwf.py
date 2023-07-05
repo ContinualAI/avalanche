@@ -24,9 +24,7 @@ class LwFPlugin(SupervisedPlugin):
         Add distillation loss
         """
 
-        strategy.loss += self.lwf(
-            strategy.mb_x, strategy.mb_output, strategy.model
-        )
+        strategy.loss += self.lwf(strategy.mb_x, strategy.mb_output, strategy.model)
 
     def after_training_exp(self, strategy, **kwargs):
         """

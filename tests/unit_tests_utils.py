@@ -114,9 +114,14 @@ def load_tensor_benchmark():
 
 
 def get_fast_benchmark(
-    use_task_labels=False, shuffle=True, n_samples_per_class=100,
-    n_classes=10, n_features=6, seed=None,
-    train_transform=None, eval_transform=None,
+    use_task_labels=False,
+    shuffle=True,
+    n_samples_per_class=100,
+    n_classes=10,
+    n_features=6,
+    seed=None,
+    train_transform=None,
+    eval_transform=None,
 ):
     dataset = make_classification(
         n_samples=n_classes * n_samples_per_class,
@@ -124,7 +129,7 @@ def get_fast_benchmark(
         n_features=n_features,
         n_informative=6,
         n_redundant=0,
-        random_state=seed
+        random_state=seed,
     )
 
     X = torch.from_numpy(dataset[0]).float()
@@ -144,7 +149,7 @@ def get_fast_benchmark(
         shuffle=shuffle,
         train_transform=train_transform,
         eval_transform=eval_transform,
-        seed=seed
+        seed=seed,
     )
     return my_nc_benchmark
 
@@ -156,8 +161,7 @@ class DummyImageDataset(Dataset):
         super().__init__()
         self.targets = list(range(n_classes))
         self.targets += [
-            random.randint(0, n_classes-1) for _ 
-            in range(n_elements - n_classes)
+            random.randint(0, n_classes - 1) for _ in range(n_elements - n_classes)
         ]
 
     def __getitem__(self, index):

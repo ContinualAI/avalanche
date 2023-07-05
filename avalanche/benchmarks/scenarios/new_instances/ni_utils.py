@@ -22,14 +22,11 @@ def _exp_structure_from_assignment(
     n_classes: int,
 ):
     n_experiences = len(assignment)
-    exp_structure = [
-        [0 for _ in range(n_classes)] for _ in range(n_experiences)
-    ]
+    exp_structure = [[0 for _ in range(n_classes)] for _ in range(n_experiences)]
 
     for exp_id in range(n_experiences):
         exp_targets = [
-            int(dataset.targets[pattern_idx])
-            for pattern_idx in assignment[exp_id]
+            int(dataset.targets[pattern_idx]) for pattern_idx in assignment[exp_id]
         ]
         cls_ids, cls_counts = torch.unique(
             torch.as_tensor(exp_targets), return_counts=True
@@ -43,6 +40,4 @@ def _exp_structure_from_assignment(
     return exp_structure
 
 
-__all__ = [
-    "_exp_structure_from_assignment"
-]
+__all__ = ["_exp_structure_from_assignment"]

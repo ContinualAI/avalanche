@@ -92,17 +92,13 @@ class AGEMPlugin(SupervisedPlugin):
                 alpha2 = dotg / torch.dot(
                     self.reference_gradients, self.reference_gradients
                 )
-                grad_proj = (
-                    current_gradients - self.reference_gradients * alpha2
-                )
+                grad_proj = current_gradients - self.reference_gradients * alpha2
 
                 count = 0
                 for n, p in strategy.model.named_parameters():
                     n_param = p.numel()
                     if p.grad is not None:
-                        p.grad.copy_(
-                            grad_proj[count : count + n_param].view_as(p)
-                        )
+                        p.grad.copy_(grad_proj[count : count + n_param].view_as(p))
                     count += n_param
 
     def after_training_exp(self, strategy, **kwargs):
@@ -129,7 +125,7 @@ class AGEMPlugin(SupervisedPlugin):
         if removed_els > 0:
             indices = list(range(len(dataset)))
             random.shuffle(indices)
-            dataset = dataset.subset(indices[:self.patterns_per_experience])
+            dataset = dataset.subset(indices[: self.patterns_per_experience])
 
         self.buffers.append(dataset)
 

@@ -105,14 +105,12 @@ def create_multi_dataset_generic_scenario(
     if complete_test_set_only:
         if len(test_dataset_list) != 1:
             raise ValueError(
-                "Test must contain 1 element when"
-                "complete_test_set_only is True"
+                "Test must contain 1 element when" "complete_test_set_only is True"
             )
     else:
         if len(test_dataset_list) != len(train_dataset_list):
             raise ValueError(
-                "Train and test lists must define the same "
-                " amount of experiences"
+                "Train and test lists must define the same " " amount of experiences"
             )
 
     train_t_labels = []
@@ -120,14 +118,14 @@ def create_multi_dataset_generic_scenario(
     for dataset_idx, dataset in enumerate(train_dataset_list):
         dataset = train_dataset_list[dataset_idx]
         train_t_labels.append(task_labels[dataset_idx])
-        train_dataset_list_avl.append(make_classification_dataset(
-            dataset,
-            task_labels=ConstantSequence(
-                task_labels[dataset_idx], len(dataset)
-            ),
-            transform_groups=transform_groups,
-            initial_transform_group="train",
-        ))
+        train_dataset_list_avl.append(
+            make_classification_dataset(
+                dataset,
+                task_labels=ConstantSequence(task_labels[dataset_idx], len(dataset)),
+                transform_groups=transform_groups,
+                initial_transform_group="train",
+            )
+        )
 
     test_t_labels = []
     test_dataset_list_avl = []
@@ -140,12 +138,14 @@ def create_multi_dataset_generic_scenario(
 
         test_t_labels.append(test_t_label)
 
-        test_dataset_list_avl.append(make_classification_dataset(
-            dataset,
-            task_labels=ConstantSequence(test_t_label, len(dataset)),
-            transform_groups=transform_groups,
-            initial_transform_group="eval",
-        ))
+        test_dataset_list_avl.append(
+            make_classification_dataset(
+                dataset,
+                task_labels=ConstantSequence(test_t_label, len(dataset)),
+                transform_groups=transform_groups,
+                initial_transform_group="eval",
+            )
+        )
 
     return GenericCLScenario(
         stream_definitions={
@@ -251,9 +251,7 @@ FileAndLabel = Tuple[Union[str, Path], int]
 
 def create_generic_scenario_from_paths(
     train_list_of_files: Sequence[Sequence[FileAndLabel]],
-    test_list_of_files: Union[
-        Sequence[FileAndLabel], Sequence[Sequence[FileAndLabel]]
-    ],
+    test_list_of_files: Union[Sequence[FileAndLabel], Sequence[Sequence[FileAndLabel]]],
     task_labels: Sequence[int],
     complete_test_set_only: bool = False,
     train_transform=None,
@@ -434,8 +432,7 @@ def create_generic_scenario_from_tensor_lists(
     ]
 
     test_datasets = [
-        make_tensor_classification_dataset(*exp_tensors)
-        for exp_tensors in test_tensors
+        make_tensor_classification_dataset(*exp_tensors) for exp_tensors in test_tensors
     ]
 
     return create_multi_dataset_generic_scenario(
@@ -533,14 +530,11 @@ def create_generic_scenario_from_tensors(
 
     if len(train_data_x) != len(train_data_y):
         raise ValueError(
-            "train_data_x and train_data_y must contain"
-            " the same amount of elements"
+            "train_data_x and train_data_y must contain" " the same amount of elements"
         )
 
     if type(test_data_x) != type(test_data_y):
-        raise ValueError(
-            "test_data_x and test_data_y must be of" " the same type"
-        )
+        raise ValueError("test_data_x and test_data_y must be of" " the same type")
 
     if isinstance(test_data_x, Tensor):
         test_data_x = [test_data_x]

@@ -1,15 +1,17 @@
+import sys
 import unittest
 import random
 
 import torch
 
 from avalanche.benchmarks import fixed_size_experience_split
-from avalanche.benchmarks.utils import AvalancheDataset, \
-    concat_datasets
-from avalanche.benchmarks.utils.classification_dataset import \
-    ClassificationDataset
-from avalanche.benchmarks.utils.flat_data import FlatData, \
-    _flatten_datasets_and_reindex
+from avalanche.benchmarks.utils import AvalancheDataset, concat_datasets
+from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+from avalanche.benchmarks.utils.flat_data import (
+    FlatData,
+    _flatten_datasets_and_reindex,
+    LazyIndices,
+)
 from avalanche.benchmarks.utils.flat_data import (
     _flatdata_depth,
     _flatdata_print,
@@ -55,21 +57,15 @@ class AvalancheDatasetTests(unittest.TestCase):
             # print("CONCAT:")
             # _flatdata_print(curr_dataset)
 
-        self.assertEqual(
-            d_sz * dataset_hierarchy_depth + d_sz, len(curr_dataset)
-        )
+        self.assertEqual(d_sz * dataset_hierarchy_depth + d_sz, len(curr_dataset))
         for idx in range(dataset_hierarchy_depth):
             leaf_range = range(idx * d_sz, (idx + 1) * d_sz)
             permuted = true_indices[idx]
 
-            x_leaf = torch.stack(
-                [curr_dataset[idx] for idx in leaf_range], dim=0
-            )
+            x_leaf = torch.stack([curr_dataset[idx] for idx in leaf_range], dim=0)
             self.assertTrue(torch.equal(x_raw[permuted], x_leaf))
 
-        slice_idxs = list(
-            range(d_sz * dataset_hierarchy_depth, len(curr_dataset))
-        )
+        slice_idxs = list(range(d_sz * dataset_hierarchy_depth, len(curr_dataset)))
         x_slice = torch.stack([curr_dataset[idx] for idx in slice_idxs], dim=0)
         self.assertTrue(torch.equal(x_raw, x_slice))
 
@@ -108,15 +104,19 @@ class FlatteningTests(unittest.TestCase):
         D1 = bm.train_stream[0].dataset
         ds, idxs = _flatten_datasets_and_reindex([D1, D1, D1], None)
 
-        print(f"len-ds: {len(ds)}, max={max(idxs)}, min={min(idxs)}, "
-              f"lens={[len(d) for d in ds]}")
+        print(
+            f"len-ds: {len(ds)}, max={max(idxs)}, min={min(idxs)}, "
+            f"lens={[len(d) for d in ds]}"
+        )
         assert len(ds) == 1
         assert len(idxs) == 3 * len(D1)
         assert max(idxs) == len(D1) - 1
         assert min(idxs) == 0
 
     def test_concat_flattens_same_dataset(self):
-        D = AvalancheDataset([[1, 2, 3]],)
+        D = AvalancheDataset(
+            [[1, 2, 3]],
+        )
         B = concat_datasets([])
         B = B.concat(D)
         print(f"DATA depth={_flatdata_depth(B)}, dsets={len(B._datasets)}")
@@ -212,8 +212,9 @@ class FlatteningTests(unittest.TestCase):
         benchmark = get_fast_benchmark()
         buffer = ReservoirSamplingBuffer(100)
 
-        for t, exp in enumerate(fixed_size_experience_split(
-                benchmark.train_stream[0], 1, None)):
+        for t, exp in enumerate(
+            fixed_size_experience_split(benchmark.train_stream[0], 1, None)
+        ):
             buffer.update_from_dataset(exp.dataset)
             b = buffer.buffer
             # depths = _flatdata_depth(b)
@@ -232,8 +233,9 @@ class FlatteningTests(unittest.TestCase):
         print(f"DATA depth={_flatdata_depth(b)}, dsets={len(b._datasets)}")
         assert len(b._datasets) <= 2
 
-        for t, exp in enumerate(fixed_size_experience_split(
-                benchmark.train_stream[1], 1, None)):
+        for t, exp in enumerate(
+            fixed_size_experience_split(benchmark.train_stream[1], 1, None)
+        ):
             buffer.update_from_dataset(exp.dataset)
             b = buffer.buffer
             # depths = _flatdata_depth(b)
@@ -251,6 +253,33 @@ class FlatteningTests(unittest.TestCase):
                 break
         print(f"DATA depth={_flatdata_depth(b)}, dsets={len(b._datasets)}")
         assert len(b._datasets) <= 2
+
+
+class LazyIndicesTests(unittest.TestCase):
+    def test_basic(self):
+        eager = list(range(10))
+        li = LazyIndices(eager)
+        self.assertListEqual(eager, list(li))
+        self.assertEqual(len(eager), len(li))
+
+        li = LazyIndices(eager, eager)
+        self.assertListEqual(eager + eager, list(li))
+        self.assertEqual(len(eager) * 2, len(li))
+
+        li = LazyIndices(eager, offset=7)
+        self.assertListEqual(list([el + 7 for el in eager]), list(li))
+        self.assertEqual(len(eager), len(li))
+
+    def test_recursion(self):
+        eager = list(range(10))
+
+        li = LazyIndices(eager, offset=0)
+        for i in range(sys.getrecursionlimit() * 2 + 10):
+            li = LazyIndices(li, eager, offset=0)
+
+        self.assertEqual(len(eager) * (i + 2), len(li))
+        for el in li:  # keep this to check recursion error
+            pass
 
 
 if __name__ == "__main__":
