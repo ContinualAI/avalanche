@@ -14,3 +14,4 @@ from .der import DER
 from .l2p import LearningToPrompt
 from .supervised_contrastive_replay import SCR
 from .expert_gate import ExpertGateStrategy
+from .mer import MER

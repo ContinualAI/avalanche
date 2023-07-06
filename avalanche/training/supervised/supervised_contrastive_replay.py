@@ -1,18 +1,18 @@
-from typing import Sequence, Optional
+from typing import Optional, Sequence
 
 import torch
-from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates import SupervisedTemplate
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torchvision.transforms import Compose, Lambda
+
 from avalanche.core import BaseSGDPlugin
-from torchvision.transforms import Compose
-from torchvision.transforms import Lambda
-from avalanche.training.plugins import ReplayPlugin
-from avalanche.training.losses import SCRLoss
-from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.models import SCRModel
+from avalanche.training.losses import SCRLoss
+from avalanche.training.plugins import ReplayPlugin
+from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.storage_policy import ClassBalancedBuffer
+from avalanche.training.templates import SupervisedTemplate
 
 
 class SCR(SupervisedTemplate):
@@ -157,7 +157,9 @@ class SCR(SupervisedTemplate):
     def _after_training_exp(self, **kwargs):
         """Update NCM means"""
         super()._after_training_exp(**kwargs)
+        self.model.eval()
         self.compute_class_means()
+        self.model.train()
 
     @torch.no_grad()
     def compute_class_means(self):
@@ -166,7 +168,10 @@ class SCR(SupervisedTemplate):
         # for each class
         for dataset in self.replay_plugin.storage_policy.buffer_datasets:
             dl = DataLoader(
-                dataset, shuffle=False, batch_size=self.eval_mb_size, drop_last=False
+                dataset.eval(),
+                shuffle=False,
+                batch_size=self.eval_mb_size,
+                drop_last=False,
             )
             num_els = 0
             # for each mini-batch in each class
