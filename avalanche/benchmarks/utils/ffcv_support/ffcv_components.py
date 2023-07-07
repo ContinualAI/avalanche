@@ -94,10 +94,25 @@ def prepare_ffcv_datasets(
         if print_summary:
             print('-' * 25, 'Dataset', idx, '-' * 25)
         
+        # Note: it is appropriate to serialize the dataset in its raw
+        # version (without transformations). Transformations will be
+        # applied at loading time.
         with SuppressTransformations(dataset):
 
             dataset_ffcv_path = write_dir / f'dataset{idx}.beton'
 
+            # Obtain the encoder dictionary
+            # The FFCV encoder is a ordered dictionary mapping each
+            # field (by name) to the field encoder.
+            #
+            # Example:
+            # {
+            #   'image': RGBImageField(),
+            #   'label: IntField()
+            # }
+            #
+            # Some fields (especcially the RGBImageField) accept 
+            # some parameters that are here contained in ffcv_parameters.
             encoder_dict = _make_ffcv_encoder(
                 dataset,
                 encoder_def,
@@ -110,6 +125,8 @@ def prepare_ffcv_datasets(
                     'the given dataset'
                 )
             
+            # Add the `index` field, which is needed to keep the
+            # mapping from the original dataset to the subsets
             encoder_dict_with_index = OrderedDict()
             encoder_dict_with_index['index'] = IntField()
             encoder_dict_with_index.update(encoder_dict)
@@ -121,6 +138,27 @@ def prepare_ffcv_datasets(
                     print(f'Field "{field_name}"')
                     print('\t', encoder_pipeline)
 
+            # Obtain the decoder dictionary
+            # The FFCV decoder is a ordered dictionary mapping each
+            # field (by name) to the field pipeline.
+            # A field pipeline is made of a decoder followed by 
+            # transformations.
+            #
+            # Example:
+            # {
+            #   'image': [
+            #       SimpleRGBImageDecoder(),
+            #       RandomHorizontalFlip(),
+            #       ToTensor(),
+            #       ...
+            #   ],
+            #   'label: [IntDecoder(), ToTensor(), Squeeze(), ...]
+            # }
+            #
+            # However, unless the user specified a full custom decoder 
+            # pipeline, Avalanche will obtain only the decoder for each 
+            # field. The transformations, which may vary, will be added by the
+            # data loader.
             decoder_dict = _make_ffcv_decoder(
                 dataset,
                 decoder_def,
@@ -227,7 +265,7 @@ class SuppressTransformations:
             if hasattr(self.dataset, transform_field):
                 field_content = getattr(self.dataset, transform_field)
                 self._held_out_transforms[transform_field] = field_content
-                setattr(self.dataset, transform_field, field_content)
+                setattr(self.dataset, transform_field, None)
 
     def __exit__(self, *_):
         for transform_field, field_content in self._held_out_transforms.items():

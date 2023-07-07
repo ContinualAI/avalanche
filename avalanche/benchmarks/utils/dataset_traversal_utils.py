@@ -22,6 +22,8 @@ from avalanche.benchmarks.utils.flat_data import FlatData
 from torch.utils.data import Subset, ConcatDataset, Dataset
 
 from avalanche.benchmarks.utils.transform_groups import EmptyTransformGroups
+from avalanche.benchmarks.utils.transforms import TupleTransform
+from torchvision.datasets.vision import StandardTransform
 
 
 def dataset_list_from_benchmark(benchmark: CLScenario) -> \
@@ -45,8 +47,10 @@ def dataset_list_from_benchmark(benchmark: CLScenario) -> \
     return list(single_datasets.keys())
 
 
-# TODO: include last transforms option
-def flat_datasets_from_benchmark(benchmark: CLScenario):
+def flat_datasets_from_benchmark(
+    benchmark: CLScenario,
+    include_leaf_transforms: bool = True
+):
     """
     Obtain a list of flattened datasets from a benchmark.
 
@@ -68,6 +72,8 @@ def flat_datasets_from_benchmark(benchmark: CLScenario):
     and one dataset for test.
 
     :param benchmark: The benchmark to traverse.
+    :param include_leaf_transforms: If True, include the transformations
+        found in the leaf dataset in the transforms list. Defaults to True.
     :return: The list of leaf datasets. Each element in the list is 
         a tuple `(dataset, indices, transforms)`.
     """
@@ -75,7 +81,8 @@ def flat_datasets_from_benchmark(benchmark: CLScenario):
     leaves = leaf_datasets(
         AvalancheDataset(
             single_datasets
-        )
+        ),
+        include_leaf_transforms=include_leaf_transforms
     )
 
     result = []
@@ -251,7 +258,32 @@ def _traverse_supported_dataset_with_intermediate(
     raise ValueError("Error: can't find the needed data in the given dataset")
 
 
-def leaf_datasets(dataset: TraverseT):
+def _extract_transforms_from_standard_dataset(dataset):
+
+    if hasattr(dataset, 'transforms'):
+        # Has torchvision >= v0.3.0 transforms
+        # Ignore transform and target_transform
+        transforms = getattr(dataset, 'transforms')
+        if isinstance(transforms, StandardTransform):
+            if transforms.transform is not None or \
+                    transforms.target_transform is not None:
+                return TupleTransform([
+                    transforms.transform,
+                    transforms.target_transform
+                ])
+    elif hasattr(dataset, 'transform') or hasattr(dataset, 'target_transform'):
+        return TupleTransform([
+            getattr(dataset, 'transform'),
+            getattr(dataset, 'target_transform')
+        ])
+
+    return None
+
+
+def leaf_datasets(
+    dataset: TraverseT,
+    include_leaf_transforms: bool = True
+):
     """
     Obtains the leaf datasets of a Dataset.
 
@@ -259,6 +291,8 @@ def leaf_datasets(dataset: TraverseT):
     :func:`single_flat_dataset` or :func:`flat_datasets_from_benchmark`.
 
     :param dataset: The dataset to traverse.
+    :param include_leaf_transforms: If True, include the transformations
+        found in the leaf dataset in the transforms list. Defaults to True.
     :return: A dictionary mapping each leaf dataset to a list of tuples.
         Each tuple contains two elements: the index and the transformation
         applied to that exemplar.
@@ -268,10 +302,19 @@ def leaf_datasets(dataset: TraverseT):
             subset,
             (AvalancheDataset, FlatData, Subset, ConcatDataset)
         ):
+            # Returning None => continue traversing
             return None
         
         if indices is None:
             indices = range(len(subset))
+
+        if include_leaf_transforms:
+            leaf_transforms = _extract_transforms_from_standard_dataset(
+                subset
+            )
+
+            if leaf_transforms is not None:
+                transforms = list(transforms) + [leaf_transforms]
 
         return [(subset, idx, transforms) for idx in indices]
     
@@ -312,7 +355,10 @@ def leaf_datasets(dataset: TraverseT):
     return leaves_dict
 
 
-def single_flat_dataset(dataset):
+def single_flat_dataset(
+        dataset,
+        include_leaf_transforms: bool = True
+    ):
     """
     Obtains the single leaf dataset of a Dataset.
 
@@ -321,11 +367,16 @@ def single_flat_dataset(dataset):
     dataset and if transformations are the same across all paths.
 
     :param dataset: The dataset to traverse.
+    :param include_leaf_transforms: If True, include the transformations
+        found in the leaf dataset in the transforms list. Defaults to True.
     :return: A tuple containing three elements: the dataset, the list of
         indices, and the list of transformations. If the dataset cannot
         be flattened to a single dataset, None is returned.
     """
-    leaves_dict = leaf_datasets(dataset)
+    leaves_dict = leaf_datasets(
+        dataset,
+        include_leaf_transforms=include_leaf_transforms
+    )
     if len(leaves_dict) != 1:
         return None
     

@@ -62,6 +62,9 @@ class CallableAdapter:
     def __init__(self, callable_obj):
         self.callable_obj = callable_obj
 
+    def __repr__(self) -> str:
+        return f'CallableAdapter({self.callable_obj})'
+
     def __call__(self, batch):
         result = []
         for element in batch:
@@ -77,7 +80,7 @@ class CallableAdapter:
             return result
         
 
-class ScaleFrom255To1(torch.nn.Module):
+class ScaleFrom_0_255_To_0_1(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
@@ -207,7 +210,7 @@ def adapt_transforms(
             elif isinstance(t, ToTensorTV):
                 field_transforms.append(ToTensorFFCV())
                 field_transforms.append(ToTorchImageFFCV())
-                field_transforms.append(ModuleWrapper(ScaleFrom255To1()))
+                field_transforms.append(ModuleWrapper(ScaleFrom_0_255_To_0_1()))
             elif isinstance(t, ConvertTV):
                 field_transforms.append(
                     ConvertFFCV(t.dtype)
@@ -279,7 +282,6 @@ def apply_pre_optimization(  # TODO: support RandomCrop
             # It *may* work with CPU+NDArray...
 
             result[-1] = ToTensorFFCV()
-            # result.append(ToDeviceFFCV(device))  # TODO: re-add
             result.append(ToTorchImageFFCV())
 
             dtype = torch.zeros(
@@ -458,6 +460,9 @@ class SmartModuleWrapper(Operation):
         self.output_type = 'numpy'
         self.smart_reshape = smart_reshape
 
+    def __repr__(self) -> str:
+        return f'SmartModuleWrapper({self.module})'
+    
     def generate_code(self) -> Callable:
 
         def convert_apply_convert_reshape(inp, _):
