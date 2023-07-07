@@ -576,6 +576,7 @@ def _flatdata_repr(dataset, indent=0):
     Shows the underlying dataset tree.
     """
     from avalanche.benchmarks.utils.data import _FlatDataWithTransform
+
     if isinstance(dataset, FlatData):
         ss = dataset._indices is not None
         cc = len(dataset._datasets) != 1

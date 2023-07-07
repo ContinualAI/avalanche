@@ -102,14 +102,15 @@ class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
 
         other_dataloader_args = dict()
 
-        if 'ffcv_args' in kwargs:
-            other_dataloader_args['ffcv_args'] = kwargs['ffcv_args']
+        if "ffcv_args" in kwargs:
+            other_dataloader_args["ffcv_args"] = kwargs["ffcv_args"]
 
-        if 'persistent_workers' in kwargs:
+        if "persistent_workers" in kwargs:
             if parse_version(torch.__version__) >= parse_version("1.7.0"):
-                other_dataloader_args["persistent_workers"] = \
-                    kwargs['persistent_workers']
-        
+                other_dataloader_args["persistent_workers"] = kwargs[
+                    "persistent_workers"
+                ]
+
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             self.storage_policy.buffer,

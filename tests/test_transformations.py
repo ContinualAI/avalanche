@@ -51,7 +51,7 @@ class TransformsTest(unittest.TestCase):
         i = 0
         while len(boxes) == 0:
             x_orig, y_orig, t_orig = dataset[i]
-            boxes = y_orig['boxes']
+            boxes = y_orig["boxes"]
             i += 1
         i -= 1
 
@@ -59,22 +59,18 @@ class TransformsTest(unittest.TestCase):
         x_expect[0][0] += 1
 
         y_expect = copy.deepcopy(y_orig)
-        y_expect['boxes'][0][0] += 1
+        y_expect["boxes"][0][0] += 1
 
         def do_something_xy(img, target):
             img = to_tensor(img)
             img[0][0] += 1
-            target['boxes'][0][0] += 1
+            target["boxes"][0][0] += 1
             return img, target
-        
-        uut = MultiParamTransformCallable(
-            do_something_xy
-        )
+
+        uut = MultiParamTransformCallable(do_something_xy)
 
         # Test __eq__
-        uut_eq = MultiParamTransformCallable(
-            do_something_xy
-        )
+        uut_eq = MultiParamTransformCallable(do_something_xy)
         self.assertTrue(uut == uut_eq)
         self.assertTrue(uut_eq == uut)
 
@@ -89,22 +85,20 @@ class TransformsTest(unittest.TestCase):
         self.assertSetEqual(keys, set(y.keys()))
 
         for k in keys:
-            self.assertTrue(
-                torch.equal(y_expect[k], y[k]),
-                msg=f'Wrong {k}'
-            )
+            self.assertTrue(torch.equal(y_expect[k], y[k]), msg=f"Wrong {k}")
 
     def test_multi_param_compose(self):
         dataset: DetectionDataset
         dataset, _ = get_fast_detection_datasets()
 
         assert_called = 0
+
         def do_something_xy(img: Tensor, target):
             nonlocal assert_called
             assert_called += 1
             img = img.clone()
             img[0][0] += 1
-            target['boxes'][0][0] += 1
+            target["boxes"][0][0] += 1
             return img, target
 
         t_x = lambda x, y: (to_tensor(x), y)
@@ -115,7 +109,7 @@ class TransformsTest(unittest.TestCase):
         i = 0
         while len(boxes) == 0:
             x_orig, y_orig, t_orig = dataset[i]
-            boxes = y_orig['boxes']
+            boxes = y_orig["boxes"]
             i += 1
         i -= 1
 
@@ -123,27 +117,21 @@ class TransformsTest(unittest.TestCase):
         x_expect[0][0] += 1
 
         y_expect = copy.deepcopy(y_orig)
-        y_expect['boxes'][0][0] += 1
+        y_expect["boxes"][0][0] += 1
 
-        uut_2 = MultiParamCompose(
-            [t_x, t_xy]
-        )
+        uut_2 = MultiParamCompose([t_x, t_xy])
 
         # Test __eq__
-        uut_2_eq = MultiParamCompose(
-            [t_x, t_xy]
-        )
+        uut_2_eq = MultiParamCompose([t_x, t_xy])
         self.assertTrue(uut_2 == uut_2_eq)
         self.assertTrue(uut_2_eq == uut_2)
 
         with self.assertWarns(Warning):
             # Assert that the following warn is raised:
             # "Transformations define a different number of parameters. ..."
-            uut_1 = MultiParamCompose(
-                [t_x_1_element, t_xy]
-            )
+            uut_1 = MultiParamCompose([t_x_1_element, t_xy])
 
-        for uut, uut_type in zip((uut_1, uut_2), ('uut_1', 'uut_2')):
+        for uut, uut_type in zip((uut_1, uut_2), ("uut_1", "uut_2")):
             with self.subTest(uut_type=uut_type):
                 initial_assert_called = assert_called
 
@@ -160,36 +148,24 @@ class TransformsTest(unittest.TestCase):
                 self.assertSetEqual(keys, set(y.keys()))
 
                 for k in keys:
-                    self.assertTrue(
-                        torch.equal(y_expect[k], y[k]),
-                        msg=f'Wrong {k}'
-                    )
+                    self.assertTrue(torch.equal(y_expect[k], y[k]), msg=f"Wrong {k}")
 
     def test_tuple_transform(self):
-        dataset = MNIST(
-            root=default_dataset_location("mnist"),
-            download=True
-        )
+        dataset = MNIST(root=default_dataset_location("mnist"), download=True)
 
         t_x = ToTensor()
-        t_y = lambda element: element+1
-        t_bad = lambda element: element-1
-        
-        uut = TupleTransform(
-            [t_x, t_y]
-        )
+        t_y = lambda element: element + 1
+        t_bad = lambda element: element - 1
+
+        uut = TupleTransform([t_x, t_y])
 
         uut_eq = TupleTransform(
             (t_x, t_y)  # Also test with a tuple instead of a list here
         )
 
-        uut_not_x = TupleTransform(
-            [None, t_y]
-        )
+        uut_not_x = TupleTransform([None, t_y])
 
-        uut_bad = TupleTransform(
-            (t_x, t_y, t_bad)
-        )
+        uut_bad = TupleTransform((t_x, t_y, t_bad))
 
         x_orig, y_orig = dataset[0]
 

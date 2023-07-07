@@ -17,11 +17,10 @@ from avalanche.training.templates.base import BaseTemplate
 from avalanche.benchmarks.utils.data_loader import (
     SingleDatasetDataLoader,
     TaskBalancedDataLoader,
-    collate_from_data_or_kwargs
+    collate_from_data_or_kwargs,
 )
 
-from avalanche.training.templates.strategy_mixin_protocol import \
-    SGDStrategyProtocol
+from avalanche.training.templates.strategy_mixin_protocol import SGDStrategyProtocol
 from avalanche.training.utils import trigger_plugins
 
 
@@ -359,11 +358,14 @@ class BaseSGDTemplate(
         """
         other_dataloader_args = {}
 
-        if 'persistent_workers' in kwargs:
-            if parse_version(torch.__version__) >= parse_version("1.7.0") and \
-                    kwargs.get('num_workers', 0) > 0:
-                other_dataloader_args["persistent_workers"] = \
-                    kwargs['persistent_workers']
+        if "persistent_workers" in kwargs:
+            if (
+                parse_version(torch.__version__) >= parse_version("1.7.0")
+                and kwargs.get("num_workers", 0) > 0
+            ):
+                other_dataloader_args["persistent_workers"] = kwargs[
+                    "persistent_workers"
+                ]
             else:
                 del kwargs["persistent_workers"]
 
@@ -406,8 +408,8 @@ class BaseSGDTemplate(
             drop_last=drop_last,
         )
 
-        if 'ffcv_args' in kwargs:
-            other_dataloader_args['ffcv_args'] = kwargs['ffcv_args']
+        if "ffcv_args" in kwargs:
+            other_dataloader_args["ffcv_args"] = kwargs["ffcv_args"]
 
         self.dataloader = TaskBalancedDataLoader(
             self.adapted_dataset, oversample_small_groups=True, **other_dataloader_args
@@ -442,16 +444,13 @@ class BaseSGDTemplate(
             persistent_workers=persistent_workers,
         )
 
-        collate_from_data_or_kwargs(
-            self.adapted_dataset,
-            other_dataloader_args)
-        
-        if 'ffcv_args' in kwargs:
-            other_dataloader_args['ffcv_args'] = kwargs['ffcv_args']
-        
+        collate_from_data_or_kwargs(self.adapted_dataset, other_dataloader_args)
+
+        if "ffcv_args" in kwargs:
+            other_dataloader_args["ffcv_args"] = kwargs["ffcv_args"]
+
         self.dataloader = SingleDatasetDataLoader(
-            self.adapted_dataset,
-            **other_dataloader_args
+            self.adapted_dataset, **other_dataloader_args
         )
 
     def eval_dataset_adaptation(self, **kwargs):

@@ -23,13 +23,12 @@ from avalanche.benchmarks.utils.dataset_traversal_utils import (
 from avalanche.benchmarks.utils.utils import concat_datasets
 
 if TYPE_CHECKING:
-    from avalanche.benchmarks.utils.ffcv_support.ffcv_support_internals \
-        import (
-            FFCVDecodeDef,
-            EncoderDef,
-            DecoderDef
-        )
-    
+    from avalanche.benchmarks.utils.ffcv_support.ffcv_support_internals import (
+        FFCVDecodeDef,
+        EncoderDef,
+        DecoderDef,
+    )
+
 
 FFCV_EXPERIMENTAL_WARNED = False
 
@@ -37,8 +36,8 @@ FFCV_EXPERIMENTAL_WARNED = False
 @dataclass
 class FFCVInfo:
     path: Path
-    encoder_dictionary: 'EncoderDef'
-    decoder_dictionary: 'DecoderDef'
+    encoder_dictionary: "EncoderDef"
+    decoder_dictionary: "DecoderDef"
     decoder_includes_transformations: bool
     device: torch.device
 
@@ -49,33 +48,30 @@ def prepare_ffcv_datasets(
     device: torch.device,
     ffcv_parameters: Dict[str, Any],
     force_overwrite: bool = False,
-    encoder_def: 'EncoderDef' = None,
-    decoder_def: 'DecoderDef' = None,
+    encoder_def: "EncoderDef" = None,
+    decoder_def: "DecoderDef" = None,
     decoder_includes_transformations: Optional[bool] = None,
-    print_summary: bool = True
+    print_summary: bool = True,
 ):
     global FFCV_EXPERIMENTAL_WARNED
 
     if not FFCV_EXPERIMENTAL_WARNED:
-        warnings.warn(
-            'The support for FFCV is experimental. Use at your own risk!'
-        )
+        warnings.warn("The support for FFCV is experimental. Use at your own risk!")
         FFCV_EXPERIMENTAL_WARNED = True
 
     from ffcv.writer import DatasetWriter
     from ffcv.fields import IntField
     from ffcv.fields.decoders import IntDecoder
-    from avalanche.benchmarks.utils.ffcv_support.ffcv_support_internals \
-        import (
-            _make_ffcv_decoder,
-            _make_ffcv_encoder
-        )
-    
+    from avalanche.benchmarks.utils.ffcv_support.ffcv_support_internals import (
+        _make_ffcv_decoder,
+        _make_ffcv_encoder,
+    )
+
     if decoder_def is not None:
         if decoder_includes_transformations is None:
             raise ValueError(
-                'When defining the decoder pipeline, '
-                'please specify `decoder_includes_transformations`'
+                "When defining the decoder pipeline, "
+                "please specify `decoder_includes_transformations`"
             )
         assert isinstance(decoder_includes_transformations, bool)
 
@@ -88,18 +84,17 @@ def prepare_ffcv_datasets(
     flattened_datasets = flat_datasets_from_benchmark(benchmark)
 
     if print_summary:
-        print('FFCV will serialize', len(flattened_datasets), 'datasets')
-    
+        print("FFCV will serialize", len(flattened_datasets), "datasets")
+
     for idx, (dataset, _, _) in enumerate(flattened_datasets):
         if print_summary:
-            print('-' * 25, 'Dataset', idx, '-' * 25)
-        
+            print("-" * 25, "Dataset", idx, "-" * 25)
+
         # Note: it is appropriate to serialize the dataset in its raw
         # version (without transformations). Transformations will be
         # applied at loading time.
         with SuppressTransformations(dataset):
-
-            dataset_ffcv_path = write_dir / f'dataset{idx}.beton'
+            dataset_ffcv_path = write_dir / f"dataset{idx}.beton"
 
             # Obtain the encoder dictionary
             # The FFCV encoder is a ordered dictionary mapping each
@@ -111,37 +106,31 @@ def prepare_ffcv_datasets(
             #   'label: IntField()
             # }
             #
-            # Some fields (especcially the RGBImageField) accept 
+            # Some fields (especcially the RGBImageField) accept
             # some parameters that are here contained in ffcv_parameters.
-            encoder_dict = _make_ffcv_encoder(
-                dataset,
-                encoder_def,
-                ffcv_parameters
-            )
+            encoder_dict = _make_ffcv_encoder(dataset, encoder_def, ffcv_parameters)
 
             if encoder_dict is None:
                 raise RuntimeError(
-                    'Could not create the encoder pipeline for '
-                    'the given dataset'
+                    "Could not create the encoder pipeline for " "the given dataset"
                 )
-            
+
             # Add the `index` field, which is needed to keep the
             # mapping from the original dataset to the subsets
             encoder_dict_with_index = OrderedDict()
-            encoder_dict_with_index['index'] = IntField()
+            encoder_dict_with_index["index"] = IntField()
             encoder_dict_with_index.update(encoder_dict)
 
             if print_summary:
-                print('### Encoder ###')
-                for field_name, encoder_pipeline in \
-                        encoder_dict_with_index.items():
+                print("### Encoder ###")
+                for field_name, encoder_pipeline in encoder_dict_with_index.items():
                     print(f'Field "{field_name}"')
-                    print('\t', encoder_pipeline)
+                    print("\t", encoder_pipeline)
 
             # Obtain the decoder dictionary
             # The FFCV decoder is a ordered dictionary mapping each
             # field (by name) to the field pipeline.
-            # A field pipeline is made of a decoder followed by 
+            # A field pipeline is made of a decoder followed by
             # transformations.
             #
             # Example:
@@ -155,63 +144,58 @@ def prepare_ffcv_datasets(
             #   'label: [IntDecoder(), ToTensor(), Squeeze(), ...]
             # }
             #
-            # However, unless the user specified a full custom decoder 
-            # pipeline, Avalanche will obtain only the decoder for each 
+            # However, unless the user specified a full custom decoder
+            # pipeline, Avalanche will obtain only the decoder for each
             # field. The transformations, which may vary, will be added by the
             # data loader.
             decoder_dict = _make_ffcv_decoder(
-                dataset,
-                decoder_def,
-                ffcv_parameters,
-                encoder_dictionary=encoder_dict
+                dataset, decoder_def, ffcv_parameters, encoder_dictionary=encoder_dict
             )
 
             if decoder_dict is None:
                 raise RuntimeError(
-                    'Could not create the decoder pipeline '
-                    'for the given dataset'
+                    "Could not create the decoder pipeline " "for the given dataset"
                 )
 
             decoder_dict_with_index = OrderedDict()
-            decoder_dict_with_index['index'] = [IntDecoder()]
+            decoder_dict_with_index["index"] = [IntDecoder()]
             decoder_dict_with_index.update(decoder_dict)
 
             if print_summary:
-                print('### Decoder ###')
-                for field_name, decoder_pipeline in \
-                        decoder_dict_with_index.items():
+                print("### Decoder ###")
+                for field_name, decoder_pipeline in decoder_dict_with_index.items():
                     print(f'Field "{field_name}"')
                     for pipeline_element in decoder_pipeline:
-                        print('\t', pipeline_element)
-                
+                        print("\t", pipeline_element)
+
                 if decoder_includes_transformations:
-                    print('This pipeline already includes transformations')
+                    print("This pipeline already includes transformations")
                 else:
-                    print('This pipeline does not include transformations')
+                    print("This pipeline does not include transformations")
 
             if force_overwrite or not dataset_ffcv_path.exists():
                 if print_summary:
-                    print('Serializing dataset to:', str(dataset_ffcv_path))
-                
-                writer_kwarg_parameters = dict()
-                if 'page_size' in ffcv_parameters:
-                    writer_kwarg_parameters['page_size'] = \
-                        ffcv_parameters['page_size']
+                    print("Serializing dataset to:", str(dataset_ffcv_path))
 
-                if 'num_workers' in ffcv_parameters:
-                    writer_kwarg_parameters['num_workers'] = \
-                        ffcv_parameters['num_workers']
+                writer_kwarg_parameters = dict()
+                if "page_size" in ffcv_parameters:
+                    writer_kwarg_parameters["page_size"] = ffcv_parameters["page_size"]
+
+                if "num_workers" in ffcv_parameters:
+                    writer_kwarg_parameters["num_workers"] = ffcv_parameters[
+                        "num_workers"
+                    ]
 
                 writer = DatasetWriter(
-                    str(dataset_ffcv_path), 
+                    str(dataset_ffcv_path),
                     OrderedDict(encoder_dict_with_index),
-                    **writer_kwarg_parameters
+                    **writer_kwarg_parameters,
                 )
                 writer.from_indexed_dataset(IndexDataset(dataset))
 
                 if print_summary:
-                    print('Dataset serialized successfully')
-        
+                    print("Dataset serialized successfully")
+
             # Set the FFCV file path and encoder/decoder dictionaries
             # Those will be used later in the data loading process and may
             # also be useful for debugging purposes
@@ -220,11 +204,11 @@ def prepare_ffcv_datasets(
                 encoder_dict_with_index,
                 decoder_dict_with_index,
                 decoder_includes_transformations,
-                torch.device(device)
+                torch.device(device),
             )
-    
+
     if print_summary:
-        print('-' * 61)
+        print("-" * 61)
 
 
 class IndexDataset:
@@ -247,13 +231,13 @@ class SuppressTransformations:
     """
     Suppress the transformations of a dataset.
 
-    This will act on the transformation fields. 
-    
+    This will act on the transformation fields.
+
     Note: there are no ways to suppress hard coded transformations
     or transformations held in fields with custom names.
     """
 
-    SUPPRESS_FIELDS = ['transform', 'target_transform', 'transforms']
+    SUPPRESS_FIELDS = ["transform", "target_transform", "transforms"]
 
     def __init__(self, dataset):
         self.dataset = dataset
@@ -274,12 +258,11 @@ class SuppressTransformations:
 
 
 class GetItemDataset:
-
     def __init__(
-            self,
-            dataset: AvalancheDataset,
-            reversed_indices: Dict[int, int],
-            collate_fn=None
+        self,
+        dataset: AvalancheDataset,
+        reversed_indices: Dict[int, int],
+        collate_fn=None,
     ):
         self.dataset: AvalancheDataset = dataset
         self.reversed_indices: Dict[int, int] = reversed_indices
@@ -289,11 +272,12 @@ class GetItemDataset:
             filter(lambda x: x.use_in_getitem, all_data_attributes)
         )
 
-        self.collate_fn = collate_fn if collate_fn is not None \
-            else self.dataset.collate_fn
-        
+        self.collate_fn = (
+            collate_fn if collate_fn is not None else self.dataset.collate_fn
+        )
+
         if self.collate_fn is None:
-            raise RuntimeError('Undefined collate function')
+            raise RuntimeError("Undefined collate function")
 
     def __getitem__(self, indices):
         elements_from_attributes = []
@@ -305,51 +289,51 @@ class GetItemDataset:
             elements_from_attributes.append(tuple(values))
 
         return tuple(self.collate_fn(elements_from_attributes))
-    
+
 
 def has_ffcv_support(datasets: List[AvalancheDataset]):
     try:
-        flat_set = single_flat_dataset(
-            concat_datasets(datasets)
-        )
+        flat_set = single_flat_dataset(concat_datasets(datasets))
     except Exception:
         return False
 
     if flat_set is None:
         return False
-    
+
     leaf_dataset = flat_set[0]
-    
-    return hasattr(leaf_dataset, 'ffcv_info')
+
+    return hasattr(leaf_dataset, "ffcv_info")
 
 
 class HybridFfcvLoader:
+    ALREADY_COVERED_PARAMS = set(
+        (
+            "fname",
+            "batch_size",
+            "order" "distributed",
+            "seed",
+            "indices",
+            "pipelines",
+        )
+    )
 
-    ALREADY_COVERED_PARAMS = set((
-        'fname',
-        'batch_size',
-        'order'
-        'distributed',
-        'seed',
-        'indices',
-        'pipelines',
-    ))
-
-    VALID_FFCV_PARAMS = set((
-        'fname',
-        'batch_size',
-        'num_workers',
-        'os_cache',
-        'order',
-        'distributed',
-        'seed',
-        'indices',
-        'pipelines',
-        'custom_fields',
-        'drop_last',
-        'batches_ahead',
-        'recompile'
-    ))
+    VALID_FFCV_PARAMS = set(
+        (
+            "fname",
+            "batch_size",
+            "num_workers",
+            "os_cache",
+            "order",
+            "distributed",
+            "seed",
+            "indices",
+            "pipelines",
+            "custom_fields",
+            "drop_last",
+            "batches_ahead",
+            "recompile",
+        )
+    )
 
     def __init__(
         self,
@@ -360,10 +344,10 @@ class HybridFfcvLoader:
         device: Optional[Union[str, torch.device]] = None,
         persistent_workers: bool = True,
         print_ffcv_summary: bool = True,
-        start_immediately=False
+        start_immediately=False,
     ):
         from ffcv.loader import Loader
-        
+
         self.dataset: AvalancheDataset = dataset
         self.batch_sampler = batch_sampler
         self.batch_size: int = batch_size
@@ -373,25 +357,28 @@ class HybridFfcvLoader:
         for param_name in HybridFfcvLoader.ALREADY_COVERED_PARAMS:
             if param_name in self.ffcv_loader_parameters:
                 warnings.warn(
-                    f'`{param_name}` should not be passed to the ffcv loader!'
+                    f"`{param_name}` should not be passed to the ffcv loader!"
                 )
 
         if print_ffcv_summary:
-            print('-' * 15, 'HybridFfcvLoader summary', '-' * 15)
+            print("-" * 15, "HybridFfcvLoader summary", "-" * 15)
 
         ffcv_info = self._extract_ffcv_info(
-            dataset=self.dataset,
-            device=device,
-            print_summary=print_ffcv_summary
+            dataset=self.dataset, device=device, print_summary=print_ffcv_summary
         )
 
         if print_ffcv_summary:
-            print('-' * 56)
-        
-        self.ffcv_dataset_path, self.ffcv_decoder_dictionary, \
-            self.leaf_indices, self.get_item_dataset, self.device = ffcv_info
-        
-        self._persistent_loader: Optional['Loader'] = None
+            print("-" * 56)
+
+        (
+            self.ffcv_dataset_path,
+            self.ffcv_decoder_dictionary,
+            self.leaf_indices,
+            self.get_item_dataset,
+            self.device,
+        ) = ffcv_info
+
+        self._persistent_loader: Optional["Loader"] = None
 
         if start_immediately:
             # If persistent_workers is False, this loader will be
@@ -402,43 +389,37 @@ class HybridFfcvLoader:
     def _extract_ffcv_info(
         dataset: AvalancheDataset,
         device: Optional[Union[str, torch.device]] = None,
-        print_summary: bool = True
+        print_summary: bool = True,
     ):
-        from avalanche.benchmarks.utils.ffcv_support.ffcv_transform_utils \
-            import (
-                adapt_transforms,
-                check_transforms_consistency,
-            )
-                
+        from avalanche.benchmarks.utils.ffcv_support.ffcv_transform_utils import (
+            adapt_transforms,
+            check_transforms_consistency,
+        )
+
         # Obtain the leaf dataset, the indices,
         # and the transformations to apply
-        flat_set_def = single_flat_dataset(
-            dataset
-        )
+        flat_set_def = single_flat_dataset(dataset)
         if flat_set_def is None:
-            raise RuntimeError(
-                'The dataset cannot be traversed to the leaf dataset.'
-            )
-        
+            raise RuntimeError("The dataset cannot be traversed to the leaf dataset.")
+
         leaf_dataset, indices, transforms = flat_set_def
         if print_summary:
             print(
-                'The input AvalancheDataset is a subset of the leaf dataset',
-                leaf_dataset
+                "The input AvalancheDataset is a subset of the leaf dataset",
+                leaf_dataset,
             )
-            print('The input dataset contains', len(indices), 'elements')
-            print('The original chain of transformations is:')
+            print("The input dataset contains", len(indices), "elements")
+            print("The original chain of transformations is:")
             for t in transforms:
-                print('\t', t)
-            print('Will try to translate those transformations to FFCV')
+                print("\t", t)
+            print("Will try to translate those transformations to FFCV")
 
         ffcv_info: FFCVInfo = leaf_dataset.ffcv_info
 
         ffcv_dataset_path = ffcv_info.path
         ffcv_decoder_dictionary = ffcv_info.decoder_dictionary
-        decoder_includes_transformations = \
-            ffcv_info.decoder_includes_transformations
-        
+        decoder_includes_transformations = ffcv_info.decoder_includes_transformations
+
         if device is None:
             device = ffcv_info.device
         device = torch.device(device)
@@ -451,22 +432,19 @@ class HybridFfcvLoader:
 
         # We will use the GetItemDataset to get those Avalanche-specific
         # dynamic fields that are not loaded by FFCV, such as the task label
-        get_item_dataset = GetItemDataset(
-            dataset,
-            reversed_indices=reversed_indices
-        )
+        get_item_dataset = GetItemDataset(dataset, reversed_indices=reversed_indices)
 
         if print_summary:
             if len(get_item_dataset.get_item_data_attributes) > 0:
                 print(
-                    'The following data attributes are returned in '
-                    'the example tuple:'
+                    "The following data attributes are returned in "
+                    "the example tuple:"
                 )
                 for da in get_item_dataset.get_item_data_attributes:
-                    print('\t', da.name)
+                    print("\t", da.name)
             else:
-                print('No data attributes are returned in the example tuple.')
-        
+                print("No data attributes are returned in the example tuple.")
+
         # Defensive copy
         # Alas, FFCV Loader internally modifies it, so this is also
         # needed when decoder_includes_transformations is True
@@ -474,39 +452,36 @@ class HybridFfcvLoader:
 
         if not decoder_includes_transformations:
             # Adapt the transformations (usually from torchvision) to FFCV.
-            # Most torchvision transformations cannot be mapped to FFCV ones, 
+            # Most torchvision transformations cannot be mapped to FFCV ones,
             # but they still work.
-            # num_fields is "|dictionary|-1" as there is an additional 'index' 
+            # num_fields is "|dictionary|-1" as there is an additional 'index'
             # field that is internally managed by Avalanche and is not being
             # transformed.
-            ffcv_decoder_dictionary_lst = \
-                list(ffcv_decoder_dictionary.values())[1:]
+            ffcv_decoder_dictionary_lst = list(ffcv_decoder_dictionary.values())[1:]
 
             adapted_transforms = adapt_transforms(
-                transforms,
-                ffcv_decoder_dictionary_lst,
-                device=device
+                transforms, ffcv_decoder_dictionary_lst, device=device
             )
-            
+
             for i, field_name in enumerate(ffcv_decoder_dictionary.keys()):
                 if i == 0:
                     continue
-                ffcv_decoder_dictionary[field_name] = adapted_transforms[i-1]
+                ffcv_decoder_dictionary[field_name] = adapted_transforms[i - 1]
 
         for field_name, field_decoder in ffcv_decoder_dictionary.items():
             if print_summary:
                 print(f'Checking pipeline for field "{field_name}"')
             no_issues = check_transforms_consistency(field_decoder)
-            
+
             if print_summary and no_issues:
-                print(f'No issues for this field')
+                print(f"No issues for this field")
 
         if print_summary:
-            print('### The final chain of transformations is: ###')
+            print("### The final chain of transformations is: ###")
             for field_name, field_transforms in ffcv_decoder_dictionary.items():
                 print(f'Field "{field_name}":')
                 for t in field_transforms:
-                    print('\t', t)
+                    print("\t", t)
             print('Note: "index" is an internal field managed by Avalanche')
 
         return (
@@ -514,12 +489,12 @@ class HybridFfcvLoader:
             ffcv_decoder_dictionary,
             indices,
             get_item_dataset,
-            device
+            device,
         )
-    
+
     def _make_loader(self):
         from ffcv.loader import Loader, OrderOption
-        
+
         ffcv_dataset_path = self.ffcv_dataset_path
         ffcv_decoder_dictionary = OrderedDict(self.ffcv_decoder_dictionary)
         leaf_indices = list(self.leaf_indices)
@@ -531,7 +506,7 @@ class HybridFfcvLoader:
             indices=leaf_indices,
             order=OrderOption.SEQUENTIAL,
             pipelines=ffcv_decoder_dictionary,
-            **self.ffcv_loader_parameters
+            **self.ffcv_loader_parameters,
         )
 
     def __iter__(self):
@@ -557,17 +532,17 @@ class HybridFfcvLoader:
             # and add it to the batch.
             # Those are the values not found in the FFCV dataset
             # (and not stored on disk!).
-            # 
+            #
             # A common element is the task label, which is usually returned
             # as the third element.
             #
-            # In practice, those fields are "data attributes" 
+            # In practice, those fields are "data attributes"
             # of the input AvalancheDataset whose `use_in_getitem`
             # field is True.
-            # 
+            #
             # This means in practice:
             # 1. obtain the `batch` from FFCV (usually is a tuple `x, y`).
-            # 2. obtain the Avalanche values such as `t` (or others). 
+            # 2. obtain the Avalanche values such as `t` (or others).
             #   We do this through the `get_item_dataset`.
             # 3. create an overall tuple `x, y, t, ...`.
 
@@ -582,14 +557,9 @@ class HybridFfcvLoader:
                     element = element.to(self.device, non_blocking=True)
                 elements_from_attributes_device.append(element)
 
-            overall_batch = tuple(batch[1:]) + \
-                tuple(elements_from_attributes_device)
-            
+            overall_batch = tuple(batch[1:]) + tuple(elements_from_attributes_device)
+
             yield overall_batch
 
 
-__all__ = [
-    'prepare_ffcv_datasets',
-    'has_ffcv_support',
-    'HybridFfcvLoader'
-]
+__all__ = ["prepare_ffcv_datasets", "has_ffcv_support", "HybridFfcvLoader"]

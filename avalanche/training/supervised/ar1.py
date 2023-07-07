@@ -230,11 +230,7 @@ class AR1(SupervisedTemplate):
             self.cwr_plugin.reset_weights(self.cwr_plugin.cur_class)
 
     def make_train_dataloader(
-        self,
-        num_workers=0,
-        shuffle=True,
-        persistent_workers=True,
-        **kwargs
+        self, num_workers=0, shuffle=True, persistent_workers=True, **kwargs
     ):
         """
         Called after the dataset instantiation. Initialize the data loader.

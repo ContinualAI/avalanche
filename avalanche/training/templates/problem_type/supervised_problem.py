@@ -47,7 +47,7 @@ class SupervisedProblem(SupervisedStrategyProtocol):
         if isinstance(mbatch, tuple):
             mbatch = list(mbatch)
             self.mbatch = mbatch
-        
+
         for i in range(len(mbatch)):
             mbatch[i] = mbatch[i].to(self.device)  # type: ignore
 

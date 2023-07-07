@@ -44,7 +44,7 @@ class MultiParamTransform(ABC):
         Avalanche MultiParamCompose, ...) are removed.
 
         The position parameter is used to control which transformations
-        are to be returned based on the position of the tranformed element. 
+        are to be returned based on the position of the tranformed element.
         Position 0 means transformations on the "x" value,
         1 means "target" (or y) transformations, and so on.
 
@@ -108,14 +108,16 @@ class MultiParamCompose(MultiParamTransform):
     def __eq__(self, other):
         if self is other:
             return True
-        
+
         if not isinstance(other, MultiParamCompose):
             return False
-                
-        return self.transforms == other.transforms and \
-            self.param_def == other.param_def and \
-            self.min_params == other.min_params and \
-            self.max_params == other.max_params
+
+        return (
+            self.transforms == other.transforms
+            and self.param_def == other.param_def
+            and self.min_params == other.min_params
+            and self.max_params == other.max_params
+        )
 
     def __call__(self, *args, force_tuple_output=False):
         if len(self.transforms) > 0:
@@ -138,7 +140,7 @@ class MultiParamCompose(MultiParamTransform):
 
     def __str__(self):
         return self.__repr__()
-    
+
     def flat_transforms(self, position: int):
         all_transforms = []
 
@@ -147,7 +149,7 @@ class MultiParamCompose(MultiParamTransform):
 
             if position < max_params or max_params == -1:
                 all_transforms.append(transform)
-        
+
         return flat_transforms_recursive(all_transforms, position)
 
 
@@ -244,24 +246,24 @@ class MultiParamTransformCallable(MultiParamTransform):
         tc_class = transform_callable.__class__
         tc_module = tc_class.__module__
         return "torchvision.transforms" in tc_module
-    
+
     def flat_transforms(self, position: int):
         if position < self.max_params or self.max_params == -1:
-            return flat_transforms_recursive(
-                self.transform,
-                position)
+            return flat_transforms_recursive(self.transform, position)
         return []
-    
+
     def __eq__(self, other):
         if self is other:
             return True
-        
+
         if not isinstance(other, MultiParamTransformCallable):
             return False
-                
-        return self.transform == other.transform and \
-            self.min_params == other.min_params and \
-            self.max_params == other.max_params
+
+        return (
+            self.transform == other.transform
+            and self.min_params == other.min_params
+            and self.max_params == other.max_params
+        )
 
 
 class TupleTransform(MultiParamTransform):
@@ -279,30 +281,26 @@ class TupleTransform(MultiParamTransform):
 
     def __str__(self):
         return "TupleTransform({})".format(self.transforms)
-    
+
     def __repr__(self):
         return "TupleTransform({})".format(self.transforms)
 
     def __eq__(self, other):
         if self is other:
             return True
-        
+
         if not isinstance(other, TupleTransform):
             return False
-                
+
         return self.transforms == other.transforms
-    
+
     def flat_transforms(self, position: int):
         if position < len(self.transforms):
-            return flat_transforms_recursive(
-                self.transforms[position],
-                position)
+            return flat_transforms_recursive(self.transforms[position], position)
         return []
-    
 
-def flat_transforms_recursive(
-        transforms: Union[List, Any],
-        position: int) -> List[Any]:
+
+def flat_transforms_recursive(transforms: Union[List, Any], position: int) -> List[Any]:
     """
     Flattens a list of transformations.
 
@@ -312,14 +310,14 @@ def flat_transforms_recursive(
     """
     if not isinstance(transforms, Iterable):
         transforms = [transforms]
-    
+
     must_flat = True
     while must_flat:
         must_flat = False
         flattened_list = []
 
         for transform in transforms:
-            flat_strat = getattr(transform, 'flat_transforms', None)
+            flat_strat = getattr(transform, "flat_transforms", None)
             if callable(flat_strat):
                 flattened_list.extend(flat_strat(position))
                 must_flat = True
@@ -333,7 +331,7 @@ def flat_transforms_recursive(
                 pass
             else:
                 flattened_list.append(transform)
-        
+
         transforms = flattened_list
 
     return transforms
@@ -353,5 +351,5 @@ __all__ = [
     "MultiParamTransformCallable",
     "ComposeMaxParamsWarning",
     "TupleTransform",
-    "flat_transforms_recursive"
+    "flat_transforms_recursive",
 ]
