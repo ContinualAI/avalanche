@@ -79,7 +79,7 @@ class MultiParamCompose(MultiParamTransform):
     def __init__(self, transforms: Sequence[Callable]):
         # skip empty transforms
         transforms = list(filter(lambda x: x is not None, transforms))
-        self.transforms = transforms
+        self.transforms = list(transforms)
         self.param_def: List[Tuple[int, int]] = []
 
         self.max_params = -1
@@ -104,6 +104,18 @@ class MultiParamCompose(MultiParamTransform):
             else:
                 self.max_params = max(all_maxes)
             self.min_params = min([min_p for min_p, _ in self.param_def])
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        
+        if not isinstance(other, MultiParamCompose):
+            return False
+                
+        return self.transforms == other.transforms and \
+            self.param_def == other.param_def and \
+            self.min_params == other.min_params and \
+            self.max_params == other.max_params
 
     def __call__(self, *args, force_tuple_output=False):
         if len(self.transforms) > 0:
@@ -239,6 +251,17 @@ class MultiParamTransformCallable(MultiParamTransform):
                 self.transform,
                 position)
         return []
+    
+    def __eq__(self, other):
+        if self is other:
+            return True
+        
+        if not isinstance(other, MultiParamTransformCallable):
+            return False
+                
+        return self.transform == other.transform and \
+            self.min_params == other.min_params and \
+            self.max_params == other.max_params
 
 
 class TupleTransform(MultiParamTransform):
