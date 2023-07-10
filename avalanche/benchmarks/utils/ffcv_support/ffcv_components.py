@@ -11,8 +11,10 @@ from typing import (
 )
 from collections import OrderedDict
 import warnings
+import numpy as np
 
 import torch
+from torch.utils.data.sampler import Sampler
 from avalanche.benchmarks.scenarios.generic_scenario import CLScenario
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_traversal_utils import (
@@ -305,6 +307,28 @@ def has_ffcv_support(datasets: List[AvalancheDataset]):
     return hasattr(leaf_dataset, "ffcv_info")
 
 
+class MappedBatchsampler(Sampler[List[int]]):
+    def __init__(self, batch_sampler: Sampler[List[int]], indices):
+        self.batch_sampler = batch_sampler
+        self.indices = indices
+
+    def __iter__(self):
+        for batch in self.batch_sampler:
+            batch_mapped = [self.indices[int(x)] for x in batch]
+            yield np.array(batch_mapped)
+
+    def __len__(self):
+        return len(self.batch_sampler)
+
+    def set_epoch(self, epoch: int):
+        if hasattr(self.batch_sampler, "set_epoch"):
+            self.batch_sampler.set_epoch(epoch)
+        else:
+            if hasattr(self.batch_sampler, "sampler"):
+                if hasattr(self.batch_sampler.sampler, "set_epoch"):
+                    self.batch_sampler.sampler.set_epoch(epoch)
+
+
 class HybridFfcvLoader:
     ALREADY_COVERED_PARAMS = set(
         (
@@ -339,18 +363,16 @@ class HybridFfcvLoader:
         self,
         dataset: AvalancheDataset,
         batch_sampler: Iterable[List[int]],
-        batch_size: int,
         ffcv_loader_parameters: Dict[str, Any],
         device: Optional[Union[str, torch.device]] = None,
         persistent_workers: bool = True,
         print_ffcv_summary: bool = True,
-        start_immediately=False,
+        start_immediately: bool = False,
     ):
         from ffcv.loader import Loader
 
         self.dataset: AvalancheDataset = dataset
         self.batch_sampler = batch_sampler
-        self.batch_size: int = batch_size
         self.ffcv_loader_parameters = ffcv_loader_parameters
         self.persistent_workers: bool = persistent_workers
 
@@ -493,19 +515,20 @@ class HybridFfcvLoader:
         )
 
     def _make_loader(self):
-        from ffcv.loader import Loader, OrderOption
+        from ffcv.loader import OrderOption
+        from avalanche.benchmarks.utils.ffcv_support.ffcv_loader import Loader
 
         ffcv_dataset_path = self.ffcv_dataset_path
         ffcv_decoder_dictionary = OrderedDict(self.ffcv_decoder_dictionary)
         leaf_indices = list(self.leaf_indices)
 
-        # TODO: batch sampling
         return Loader(
             str(ffcv_dataset_path),
-            self.batch_size,
+            batch_size=len(leaf_indices) // len(self.batch_sampler),  # Not used
             indices=leaf_indices,
             order=OrderOption.SEQUENTIAL,
             pipelines=ffcv_decoder_dictionary,
+            batch_sampler=MappedBatchsampler(self.batch_sampler, leaf_indices),
             **self.ffcv_loader_parameters,
         )
 
@@ -560,6 +583,9 @@ class HybridFfcvLoader:
             overall_batch = tuple(batch[1:]) + tuple(elements_from_attributes_device)
 
             yield overall_batch
+
+    def __len__(self):
+        return len(self.batch_sampler)
 
 
 __all__ = ["prepare_ffcv_datasets", "has_ffcv_support", "HybridFfcvLoader"]
