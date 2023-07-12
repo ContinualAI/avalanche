@@ -254,7 +254,6 @@ class MultiDatasetDataLoader:
         return HybridFfcvLoader(
             dataset=AvalancheDataset(datasets),
             batch_sampler=batch_sampler,
-            batch_size=sum(self.batch_sizes),  # TODO: implement
             ffcv_loader_parameters=ffcv_args,
             device=device,
             persistent_workers=persistent_workers,

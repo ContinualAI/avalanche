@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 IS_CUDA = ch.cuda.is_available()
 
 
-class EpochIterator(FFCVEpochIterator, Thread):
+class _CustomEpochIterator(FFCVEpochIterator, Thread):
     def __init__(self, loader: "Loader", batches: Sequence[List[int]]):
         Thread.__init__(self, daemon=True)
         self.loader: "Loader" = loader
@@ -59,4 +59,4 @@ class EpochIterator(FFCVEpochIterator, Thread):
         self.start()
 
 
-__all__ = ["EpochIterator"]
+__all__ = ["_CustomEpochIterator"]

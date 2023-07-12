@@ -1,5 +1,5 @@
 """
-This example shows how to use FFCV data loading system.
+This example shows how to use FFCV data loading system in Avalanche.
 """
 
 import argparse
@@ -13,7 +13,7 @@ from avalanche.benchmarks import SplitMNIST
 from avalanche.benchmarks.classic.ccifar100 import SplitCIFAR100
 from avalanche.benchmarks.classic.core50 import CORe50
 from avalanche.benchmarks.classic.ctiny_imagenet import SplitTinyImageNet
-from avalanche.benchmarks.utils.ffcv_support import prepare_ffcv_datasets
+from avalanche.benchmarks.utils.ffcv_support import enable_ffcv
 from avalanche.models import SimpleMLP
 from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.supervised import Naive
@@ -50,8 +50,20 @@ def main(cuda: int):
     else:
         raise RuntimeError("Unknown benchmark")
 
+    # Enabling FFCV is as simple as calling `enable_ffcv`.
+    # This functions will
+    # - Prepare an encoder pipeline
+    # - Prepare a decoder pipeline (transformations)
+    # - Write the datasets (usually train and test) on disk
+    # - Enable FFCV in strategies
+    #
+    # Note that Avalanche will make some assumptions regarding the
+    # decoder (loader+transformations) part. If the decoder does not
+    # work as intended (bad outputs, exceptions, crashes), then
+    # it is better to use the `ffcv_io_manual_test.py` example to
+    # prepare a manual pipeline.
     print("Preparing FFCV datasets...")
-    prepare_ffcv_datasets(
+    enable_ffcv(
         benchmark=benchmark,
         write_dir=f"./ffcv_test_{benchmark_type}",
         device=device,
@@ -59,16 +71,24 @@ def main(cuda: int):
     )
     print("FFCV datasets ready")
 
+    # --------------- THAT'S IT!! ------------------------------------
+    # The rest of the script is an usual Avalanche code.
+    #
+    # In certain situations, you may want to pass some custom
+    # parameters to the FFCV Loader. This can be achieved
+    # when calling `train()` and `eval()` (see the main loop).
+    # ----------------------------------------------------------------
+
     # MODEL CREATION
     model = SimpleMLP(input_size=input_size, num_classes=benchmark.n_classes)
 
-    # choose some metrics and evaluation method
+    # METRICS
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(stream=True, experience=True),
         loggers=[TensorboardLogger(f"tb_data/{datetime.now()}"), InteractiveLogger()],
     )
 
-    # CREATE THE STRATEGY INSTANCE (NAIVE)
+    # CREATE THE STRATEGY INSTANCE
     replay_plugin = ReplayPlugin(mem_size=100, batch_size=125, batch_size_mem=25)
     cl_strategy = Naive(
         model,
@@ -82,6 +102,19 @@ def main(cuda: int):
     )
 
     # TRAINING LOOP
+    # For FFCV, you can pass the Loader parameters using ffcv_args
+    # Notice that some parameters like shuffle, num_workers, ...,
+    # which are also found in the PyTorch DataLoader, can be passed
+    # to train() and eval() as usual: they will be passed to the FFCV
+    # Loader as they would be passed to the PyTorch Dataloader.
+    #
+    # In addition to the FFCV Loader parameters, you can pass the
+    # print_ffcv_summary flag (which is managed by Avalanche),
+    # which allows for printing the pipeline and the status of
+    # internal checks made by Avalanche. That flag is very useful
+    # when setting up an FFCV+Avalanche experiment. Once you are sure
+    # that the code works as intended, it is better to remove it as
+    # the logging may be quite verbose...
     start_time = time.time()
     for i, experience in enumerate(benchmark.train_stream):
         cl_strategy.train(

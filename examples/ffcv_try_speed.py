@@ -1,5 +1,9 @@
 """
-This example shows how to use the mean_scores_metrics metrics.
+This scripts can be used to measure the speed of the FFCV dataloader.
+
+Note: this is not the correct way to use FFCV in Avalanche. For a proper
+example, please refer to `ffcv_enable.py`. This script should be used
+to measure speed only.
 """
 
 import argparse
@@ -15,7 +19,7 @@ from avalanche.benchmarks.classic.ctiny_imagenet import SplitTinyImageNet
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.ffcv_support import (
     HybridFfcvLoader,
-    prepare_ffcv_datasets,
+    enable_ffcv,
 )
 from avalanche.training.determinism.rng_manager import RNGManager
 
@@ -98,7 +102,7 @@ def benchmark_ffcv_speed(
     avl_set = avl_set.train()
 
     start_time = time.time()
-    prepare_ffcv_datasets(
+    enable_ffcv(
         benchmark,
         path,
         device,

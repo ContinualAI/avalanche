@@ -114,23 +114,17 @@ def make_transform_defs():
         numpy_cpu=True, pytorch_cpu=False, pytorch_gpu=True
     )
 
-    # TODO: test
-    # FFCV_TRANSFORMS_DEFS[ConvertFFCV] = FFCVTransformRegistry(
-    #     numpy_cpu=True,
-    #     pytorch_cpu=False,
-    #     pytorch_gpu=True
-    # )
-
-    FFCV_TRANSFORMS_DEFS[SqueezeFFCV] = FFCVTransformRegistry(
-        numpy_cpu=False, pytorch_cpu=True, pytorch_gpu=True  # TODO: test
+    FFCV_TRANSFORMS_DEFS[ConvertFFCV] = FFCVTransformRegistry(
+        numpy_cpu=False, pytorch_cpu=True, pytorch_gpu=True
     )
 
-    # TODO: test
-    # FFCV_TRANSFORMS_DEFS[ViewFFCV] = FFCVTransformRegistry(
-    #     numpy_cpu=False,
-    #     pytorch_cpu=True,
-    #     pytorch_gpu=True
-    # )
+    # Note: for some reason, view == convert in FFCV
+    # View should not used to change the shape of the tensor (it does not work)
+    FFCV_TRANSFORMS_DEFS[ViewFFCV] = FFCV_TRANSFORMS_DEFS[ConvertFFCV]
+
+    FFCV_TRANSFORMS_DEFS[SqueezeFFCV] = FFCVTransformRegistry(
+        numpy_cpu=False, pytorch_cpu=True, pytorch_gpu=True
+    )
 
     FFCV_TRANSFORMS_DEFS[MixupToOneHotFFCV] = FFCVTransformRegistry(
         numpy_cpu=False, pytorch_cpu=True, pytorch_gpu=True
@@ -208,7 +202,7 @@ def adapt_transforms(
     return result
 
 
-def apply_pre_optimization(  # TODO: support RandomCrop
+def apply_pre_optimization(
     transformations: List[Any], device: Optional[torch.device] = None
 ):
     if len(transformations) < 2:

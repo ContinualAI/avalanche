@@ -21,10 +21,12 @@ from ffcv.traversal_order.base import TraversalOrder
 from ffcv.pipeline.operation import Operation
 from ffcv.pipeline import Compiler
 
-from avalanche.benchmarks.utils.ffcv_support.ffcv_epoch_iterator import EpochIterator
+from avalanche.benchmarks.utils.ffcv_support.ffcv_epoch_iterator import (
+    _CustomEpochIterator,
+)
 
 
-class TraversalOrderAsSampler(Sampler[int]):
+class _TraversalOrderAsSampler(Sampler[int]):
     def __init__(self, traversal_order: TraversalOrder):
         self.traversal_order: TraversalOrder = traversal_order
         self.current_epoch: int = 0
@@ -39,7 +41,7 @@ class TraversalOrderAsSampler(Sampler[int]):
         self.current_epoch = epoch
 
 
-class Loader(FFCVLoader):
+class _CustomLoader(FFCVLoader):
     """
     Customized FFCV loader class that can be used as a drop-in replacement
     for standard (e.g. PyTorch) data loaders.
@@ -125,7 +127,7 @@ class Loader(FFCVLoader):
 
         if batch_sampler is None:
             batch_sampler = BatchSampler(
-                TraversalOrderAsSampler(self.traversal_order),
+                _TraversalOrderAsSampler(self.traversal_order),
                 batch_size=batch_size,
                 drop_last=drop_last,
             )
@@ -147,7 +149,7 @@ class Loader(FFCVLoader):
         if self.code is None or self.recompile:
             self.generate_code()
 
-        return EpochIterator(self, order)
+        return _CustomEpochIterator(self, order)
 
     def filter(self, field_name: str, condition: Callable[[Any], bool]) -> "FFCVLoader":
         if self._args["batch_sampler"] is not None:

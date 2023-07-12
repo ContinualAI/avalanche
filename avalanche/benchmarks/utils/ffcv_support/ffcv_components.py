@@ -26,7 +26,6 @@ from avalanche.benchmarks.utils.utils import concat_datasets
 
 if TYPE_CHECKING:
     from avalanche.benchmarks.utils.ffcv_support.ffcv_support_internals import (
-        FFCVDecodeDef,
         EncoderDef,
         DecoderDef,
     )
@@ -44,7 +43,7 @@ class FFCVInfo:
     device: torch.device
 
 
-def prepare_ffcv_datasets(
+def enable_ffcv(
     benchmark: CLScenario,
     write_dir: Union[str, Path],
     device: torch.device,
@@ -95,7 +94,7 @@ def prepare_ffcv_datasets(
         # Note: it is appropriate to serialize the dataset in its raw
         # version (without transformations). Transformations will be
         # applied at loading time.
-        with SuppressTransformations(dataset):
+        with _SuppressTransformations(dataset):
             dataset_ffcv_path = write_dir / f"dataset{idx}.beton"
 
             # Obtain the encoder dictionary
@@ -193,7 +192,7 @@ def prepare_ffcv_datasets(
                     OrderedDict(encoder_dict_with_index),
                     **writer_kwarg_parameters,
                 )
-                writer.from_indexed_dataset(IndexDataset(dataset))
+                writer.from_indexed_dataset(_IndexDataset(dataset))
 
                 if print_summary:
                     print("Dataset serialized successfully")
@@ -213,7 +212,7 @@ def prepare_ffcv_datasets(
         print("-" * 61)
 
 
-class IndexDataset:
+class _IndexDataset:
     """
     A dataset implementation that adds the index of the example as the
     first element in the tuple returned by `__getitem__`.
@@ -229,7 +228,7 @@ class IndexDataset:
         return len(self.dataset)
 
 
-class SuppressTransformations:
+class _SuppressTransformations:
     """
     Suppress the transformations of a dataset.
 
@@ -247,7 +246,7 @@ class SuppressTransformations:
 
     def __enter__(self):
         self._held_out_transforms = dict()
-        for transform_field in SuppressTransformations.SUPPRESS_FIELDS:
+        for transform_field in _SuppressTransformations.SUPPRESS_FIELDS:
             if hasattr(self.dataset, transform_field):
                 field_content = getattr(self.dataset, transform_field)
                 self._held_out_transforms[transform_field] = field_content
@@ -259,7 +258,7 @@ class SuppressTransformations:
         self._held_out_transforms.clear()
 
 
-class GetItemDataset:
+class _GetItemDataset:
     def __init__(
         self,
         dataset: AvalancheDataset,
@@ -307,7 +306,7 @@ def has_ffcv_support(datasets: List[AvalancheDataset]):
     return hasattr(leaf_dataset, "ffcv_info")
 
 
-class MappedBatchsampler(Sampler[List[int]]):
+class _MappedBatchsampler(Sampler[List[int]]):
     def __init__(self, batch_sampler: Sampler[List[int]], indices):
         self.batch_sampler = batch_sampler
         self.indices = indices
@@ -454,7 +453,7 @@ class HybridFfcvLoader:
 
         # We will use the GetItemDataset to get those Avalanche-specific
         # dynamic fields that are not loaded by FFCV, such as the task label
-        get_item_dataset = GetItemDataset(dataset, reversed_indices=reversed_indices)
+        get_item_dataset = _GetItemDataset(dataset, reversed_indices=reversed_indices)
 
         if print_summary:
             if len(get_item_dataset.get_item_data_attributes) > 0:
@@ -516,19 +515,19 @@ class HybridFfcvLoader:
 
     def _make_loader(self):
         from ffcv.loader import OrderOption
-        from avalanche.benchmarks.utils.ffcv_support.ffcv_loader import Loader
+        from avalanche.benchmarks.utils.ffcv_support.ffcv_loader import _CustomLoader
 
         ffcv_dataset_path = self.ffcv_dataset_path
         ffcv_decoder_dictionary = OrderedDict(self.ffcv_decoder_dictionary)
         leaf_indices = list(self.leaf_indices)
 
-        return Loader(
+        return _CustomLoader(
             str(ffcv_dataset_path),
             batch_size=len(leaf_indices) // len(self.batch_sampler),  # Not used
             indices=leaf_indices,
             order=OrderOption.SEQUENTIAL,
             pipelines=ffcv_decoder_dictionary,
-            batch_sampler=MappedBatchsampler(self.batch_sampler, leaf_indices),
+            batch_sampler=_MappedBatchsampler(self.batch_sampler, leaf_indices),
             **self.ffcv_loader_parameters,
         )
 
@@ -588,4 +587,4 @@ class HybridFfcvLoader:
         return len(self.batch_sampler)
 
 
-__all__ = ["prepare_ffcv_datasets", "has_ffcv_support", "HybridFfcvLoader"]
+__all__ = ["enable_ffcv", "has_ffcv_support", "HybridFfcvLoader"]
