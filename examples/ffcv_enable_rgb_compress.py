@@ -1,5 +1,13 @@
 """
-This example shows how to use FFCV data loading system in Avalanche.
+This example shows how to use FFCV data loading system in Avalanche
+when compressing RGB images is required.
+
+FFCV allows for various tweaks to be used when manipulating images.
+In particular, FFCV allows storing images as JPGs with custom
+quality. In addition, the max side of the image and other custom
+elements can be set.
+
+This tutorial will show how to set these parameters.
 """
 
 import argparse
@@ -23,11 +31,10 @@ from avalanche.training.plugins import EvaluationPlugin
 
 
 def main(cuda: int):
-    # --- CONFIG
     device = torch.device(f"cuda:{cuda}" if torch.cuda.is_available() else "cpu")
     RNGManager.set_random_seeds(1234)
 
-    benchmark_type = "cifar100"
+    benchmark_type = "tinyimagenet"
 
     # --- BENCHMARK CREATION
     num_workers = 8
@@ -47,27 +54,30 @@ def main(cuda: int):
         raise RuntimeError("Unknown benchmark")
 
     # Enabling FFCV in Avalanche is as simple as calling `enable_ffcv`.
-    # This function will:
-    # - Prepare an encoder pipeline
-    # - Prepare a decoder pipeline (transformations)
-    # - Write the datasets (usually train and test) on disk
-    # - Enable FFCV in strategies
+    # For additional info regarding on how this works, please refer
+    # to the `ffcv_enable.py` example.
+    # In this example, the focus is on the RGB encoder customization.
     #
-    # Note that Avalanche will make some assumptions regarding the
-    # decoder (loader+transformations) part. If the decoder does not
-    # work as intended (bad outputs, exceptions, crashes), then
-    # it is better to use the `ffcv_io_manual_test.py` example to
-    # prepare a manual pipeline.
+    # `ffcv_parameters` is where we pass custom parameters for the RGB encoder
+    # These parameters are listed in the FFCV website:
+    # https://docs.ffcv.io/working_with_images.html
+    # As an example, here we set parameters like
+    # write_mode, compress_probability, and jpeg_quality
     #
-    # Ad-hoc pipelines can be passed as the `encoder_def`
-    # and `decoder_def` parameters.
+    # Note: an alternative way to achieve this is to specify the encoder
+    # dictionary directly by passing the `encoder_def` parameter.
     print("Enabling FFCV support...")
     print("The may include writing the datasets in FFCV format. May take some time...")
     enable_ffcv(
         benchmark=benchmark,
-        write_dir=f"./ffcv_test_{benchmark_type}",
+        write_dir=f"./ffcv_test_compress_{benchmark_type}",
         device=device,
-        ffcv_parameters=dict(num_workers=8),
+        ffcv_parameters=dict(
+            num_workers=8,
+            write_mode="proportion",
+            compress_probability=0.25,
+            jpeg_quality=90,
+        ),
     )
     print("FFCV enabled!")
 
