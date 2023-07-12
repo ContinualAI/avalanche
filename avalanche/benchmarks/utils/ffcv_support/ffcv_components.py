@@ -116,15 +116,9 @@ def enable_ffcv(
                     "Could not create the encoder pipeline for " "the given dataset"
                 )
 
-            # Add the `index` field, which is needed to keep the
-            # mapping from the original dataset to the subsets
-            encoder_dict_with_index = OrderedDict()
-            encoder_dict_with_index["index"] = IntField()
-            encoder_dict_with_index.update(encoder_dict)
-
             if print_summary:
                 print("### Encoder ###")
-                for field_name, encoder_pipeline in encoder_dict_with_index.items():
+                for field_name, encoder_pipeline in encoder_dict.items():
                     print(f'Field "{field_name}"')
                     print("\t", encoder_pipeline)
 
@@ -158,13 +152,9 @@ def enable_ffcv(
                     "Could not create the decoder pipeline " "for the given dataset"
                 )
 
-            decoder_dict_with_index = OrderedDict()
-            decoder_dict_with_index["index"] = [IntDecoder()]
-            decoder_dict_with_index.update(decoder_dict)
-
             if print_summary:
                 print("### Decoder ###")
-                for field_name, decoder_pipeline in decoder_dict_with_index.items():
+                for field_name, decoder_pipeline in decoder_dict.items():
                     print(f'Field "{field_name}"')
                     for pipeline_element in decoder_pipeline:
                         print("\t", pipeline_element)
@@ -189,10 +179,10 @@ def enable_ffcv(
 
                 writer = DatasetWriter(
                     str(dataset_ffcv_path),
-                    OrderedDict(encoder_dict_with_index),
+                    OrderedDict(encoder_dict),
                     **writer_kwarg_parameters,
                 )
-                writer.from_indexed_dataset(_IndexDataset(dataset))
+                writer.from_indexed_dataset(dataset)
 
                 if print_summary:
                     print("Dataset serialized successfully")
@@ -202,30 +192,14 @@ def enable_ffcv(
             # also be useful for debugging purposes
             dataset.ffcv_info = FFCVInfo(
                 dataset_ffcv_path,
-                encoder_dict_with_index,
-                decoder_dict_with_index,
+                encoder_dict,
+                decoder_dict,
                 decoder_includes_transformations,
                 torch.device(device),
             )
 
     if print_summary:
         print("-" * 61)
-
-
-class _IndexDataset:
-    """
-    A dataset implementation that adds the index of the example as the
-    first element in the tuple returned by `__getitem__`.
-    """
-
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-    def __getitem__(self, index):
-        return (index, *self.dataset[index])
-
-    def __len__(self):
-        return len(self.dataset)
 
 
 class _SuppressTransformations:
@@ -368,7 +342,7 @@ class HybridFfcvLoader:
         print_ffcv_summary: bool = True,
         start_immediately: bool = False,
     ):
-        from ffcv.loader import Loader
+        from avalanche.benchmarks.utils.ffcv_support.ffcv_loader import _CustomLoader
 
         self.dataset: AvalancheDataset = dataset
         self.batch_sampler = batch_sampler
@@ -399,7 +373,7 @@ class HybridFfcvLoader:
             self.device,
         ) = ffcv_info
 
-        self._persistent_loader: Optional["Loader"] = None
+        self._persistent_loader: Optional["_CustomLoader"] = None
 
         if start_immediately:
             # If persistent_workers is False, this loader will be
@@ -475,19 +449,14 @@ class HybridFfcvLoader:
             # Adapt the transformations (usually from torchvision) to FFCV.
             # Most torchvision transformations cannot be mapped to FFCV ones,
             # but they still work.
-            # num_fields is "|dictionary|-1" as there is an additional 'index'
-            # field that is internally managed by Avalanche and is not being
-            # transformed.
-            ffcv_decoder_dictionary_lst = list(ffcv_decoder_dictionary.values())[1:]
+            ffcv_decoder_dictionary_lst = list(ffcv_decoder_dictionary.values())
 
             adapted_transforms = adapt_transforms(
                 transforms, ffcv_decoder_dictionary_lst, device=device
             )
 
             for i, field_name in enumerate(ffcv_decoder_dictionary.keys()):
-                if i == 0:
-                    continue
-                ffcv_decoder_dictionary[field_name] = adapted_transforms[i - 1]
+                ffcv_decoder_dictionary[field_name] = adapted_transforms[i]
 
         for field_name, field_decoder in ffcv_decoder_dictionary.items():
             if print_summary:
@@ -503,7 +472,6 @@ class HybridFfcvLoader:
                 print(f'Field "{field_name}":')
                 for t in field_transforms:
                     print("\t", t)
-            print('Note: "index" is an internal field managed by Avalanche')
 
         return (
             ffcv_dataset_path,
@@ -532,6 +500,10 @@ class HybridFfcvLoader:
         )
 
     def __iter__(self):
+        from avalanche.benchmarks.utils.ffcv_support.ffcv_epoch_iterator import (
+            _CustomEpochIterator,
+        )
+
         get_item_dataset = self.get_item_dataset
 
         # Instantiate the FFCV loader
@@ -549,7 +521,9 @@ class HybridFfcvLoader:
             if self.persistent_workers:
                 self._persistent_loader = ffcv_loader
 
-        for batch in ffcv_loader:
+        epoch_iterator: "_CustomEpochIterator" = iter(ffcv_loader)
+
+        for indices, batch in epoch_iterator:
             # Before returning the batch, obtain the custom Avalanche values
             # and add it to the batch.
             # Those are the values not found in the FFCV dataset
@@ -568,8 +542,6 @@ class HybridFfcvLoader:
             #   We do this through the `get_item_dataset`.
             # 3. create an overall tuple `x, y, t, ...`.
 
-            indices = batch[0]
-
             elements_from_attributes = get_item_dataset[indices]
 
             elements_from_attributes_device = []
@@ -579,7 +551,7 @@ class HybridFfcvLoader:
                     element = element.to(self.device, non_blocking=True)
                 elements_from_attributes_device.append(element)
 
-            overall_batch = tuple(batch[1:]) + tuple(elements_from_attributes_device)
+            overall_batch = tuple(batch) + tuple(elements_from_attributes_device)
 
             yield overall_batch
 
