@@ -175,4 +175,4 @@ class _CustomLoader(FFCVLoader):
                     self.batch_sampler.sampler.set_epoch(self.next_epoch)
 
 
-__all__ = ["Loader"]
+__all__ = ["_CustomLoader"]
