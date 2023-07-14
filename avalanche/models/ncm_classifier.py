@@ -3,8 +3,10 @@ from typing import Dict
 import torch
 from torch import Tensor, nn
 
+from avalanche.models import DynamicModule
 
-class NCMClassifier(nn.Module):
+
+class NCMClassifier(DynamicModule):
     """
     NCM Classifier.
     NCMClassifier performs nearest class mean classification
@@ -120,6 +122,16 @@ class NCMClassifier(nn.Module):
         )
         self.class_means_dict = {k: v.clone() for k, v in class_means_dict.items()}
 
+        self._vectorize_means_dict()
+
+    def eval_adaptation(self, experience):
+        if self.class_means is None:
+            return
+        for k in experience.classes_in_this_experience:
+            if k not in self.class_means_dict:
+                self.class_means_dict[k] = torch.zeros(self.class_means.shape[1]).to(
+                    self.class_means.device
+                )
         self._vectorize_means_dict()
 
 
