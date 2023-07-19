@@ -121,7 +121,7 @@ class EWCPlugin(SupervisedPlugin):
             strategy.experience.dataset,
             strategy.device,
             strategy.train_mb_size,
-            num_workers=kwargs.get('num_workers', 0)
+            num_workers=kwargs.get("num_workers", 0),
         )
         self.update_importances(importances, exp_counter)
         self.saved_params[exp_counter] = copy_params_dict(strategy.model)
@@ -154,7 +154,12 @@ class EWCPlugin(SupervisedPlugin):
         # list of list
         importances = zerolike_params_dict(model)
         collate_fn = dataset.collate_fn if hasattr(dataset, "collate_fn") else None
-        dataloader = DataLoader(dataset, batch_size=batch_size, collate_fn=collate_fn, num_workers=num_workers)
+        dataloader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            collate_fn=collate_fn,
+            num_workers=num_workers,
+        )
         for i, batch in enumerate(dataloader):
             # get only input, target and task_id from the batch
             x, y, task_labels = batch[0], batch[1], batch[-1]
