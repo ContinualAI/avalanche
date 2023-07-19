@@ -69,8 +69,8 @@ def main(args):
 
     # train and test loop
     for train_task in train_stream:
-        strategy.train(train_task)
-        strategy.eval(test_stream)
+        strategy.train(train_task, num_workers=4)
+        strategy.eval(test_stream, num_workers=4)
 
 
 if __name__ == "__main__":
