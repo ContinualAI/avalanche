@@ -156,6 +156,20 @@ def CORe50(
         eval_transform=eval_transform,
     )
 
+    if scenario == "nc":
+        n_classes_per_exp = []
+        classes_order = []
+        for exp in benchmark_obj.train_stream:
+            exp_dataset = exp.dataset
+            unique_targets = list(
+                sorted(set(int(x) for x in exp_dataset.targets))  # type: ignore
+            )
+            n_classes_per_exp.append(len(unique_targets))
+            classes_order.extend(unique_targets)
+        setattr(benchmark_obj, "n_classes_per_exp", n_classes_per_exp)
+        setattr(benchmark_obj, "classes_order", classes_order)
+    setattr(benchmark_obj, "n_classes", 50 if object_lvl else 10)
+
     return benchmark_obj
 
 
