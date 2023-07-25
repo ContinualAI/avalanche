@@ -52,6 +52,7 @@ from avalanche.training.supervised import (
     MER,
 )
 from avalanche.training.supervised.cumulative import Cumulative
+from avalanche.training.supervised.er_aml import ER_AML
 from avalanche.training.supervised.icarl import ICaRL
 from avalanche.training.supervised.joint_training import AlreadyTrainedError
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
@@ -989,6 +990,25 @@ class StrategyTest(unittest.TestCase):
             model,
             optimizer,
             criterion,
+            mem_size=1000,
+            batch_size_mem=10,
+            train_mb_size=10,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        run_strategy(benchmark, strategy)
+
+    def test_eraml(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+        strategy = ER_AML(
+            model,
+            model.features,
+            optimizer,
+            criterion,
+            temp=0.1,
+            base_temp=0.07,
             mem_size=1000,
             batch_size_mem=10,
             train_mb_size=10,
