@@ -200,7 +200,7 @@ class AMLCriterion(RegularizationMethod):
         y_in: torch.Tensor,
         x_buffer: torch.Tensor,
         y_buffer: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple:
         """
         Method able to sample positive and negative examples with respect the input minibatch from input and buffer minibatches.
         @param x_in: Input of new minibatch.
