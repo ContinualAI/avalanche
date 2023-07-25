@@ -62,7 +62,7 @@ setuptools.setup(
     ],
     python_requires=">=3.7,<3.11",
     install_requires=[
-        "typing-extensions",
+        "typing-extensions==4.4.0",
         "psutil",
         "gputil",
         "scikit-learn",

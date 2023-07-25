@@ -25,6 +25,7 @@ dependencies:
 - conda-forge::pycocotools
 - conda-forge::torchmetrics
 - pip:
+    - typing-extensions==4.4.0
     - pytorchcv
     - gdown
     - ctrl-benchmark
