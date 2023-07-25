@@ -46,13 +46,13 @@ from avalanche.training.supervised import (
     BiC,
     MIR,
     ER_ACE,
+    ER_AML,
     DER,
     LearningToPrompt,
     ExpertGateStrategy,
     MER,
 )
 from avalanche.training.supervised.cumulative import Cumulative
-from avalanche.training.supervised.er_aml import ER_AML
 from avalanche.training.supervised.icarl import ICaRL
 from avalanche.training.supervised.joint_training import AlreadyTrainedError
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
@@ -213,7 +213,7 @@ class BaseStrategyTest(unittest.TestCase):
     def test_early_stop(self):
         class EarlyStopP(SupervisedPlugin):
             def after_training_iteration(
-                self, strategy: "SupervisedTemplate", **kwargs
+                    self, strategy: "SupervisedTemplate", **kwargs
             ):
                 if strategy.clock.train_epoch_iterations == 10:
                     strategy.stop_training()
@@ -299,7 +299,7 @@ class StrategyTest(unittest.TestCase):
                 self.benchmark = benchmark
 
             def after_train_dataset_adaptation(
-                self, strategy: "SupervisedTemplate", **kwargs
+                    self, strategy: "SupervisedTemplate", **kwargs
             ):
                 """
                 Check that the dataset used for training contains the
@@ -1053,11 +1053,11 @@ class StrategyTest(unittest.TestCase):
         run_strategy(benchmark, strategy)
 
     def load_benchmark(
-        self,
-        use_task_labels=False,
-        train_transform=None,
-        eval_transform=None,
-        shuffle=True,
+            self,
+            use_task_labels=False,
+            train_transform=None,
+            eval_transform=None,
+            shuffle=True,
     ):
         """
         Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,
