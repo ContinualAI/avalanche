@@ -38,7 +38,8 @@ def reset_optimizer(optimizer, model):
         raise ValueError(
             "This function only supports single parameter groups."
             "If you need to use multiple parameter groups, "
-            "you can override `make_optimizer` in the Avalanche strategy.")
+            "you can override `make_optimizer` in the Avalanche strategy."
+        )
     optimizer.state = defaultdict(dict)
 
     parameters = []
