@@ -8,7 +8,7 @@ Welcome to the "_benchmarks_" tutorial of the "_From Zero to Hero_" series. In t
 
 
 ```python
-!pip install avalanche-lib==0.3.1
+!pip install avalanche-lib==0.4
 ```
 
 ## 🎯 Nomenclature

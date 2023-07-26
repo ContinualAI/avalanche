@@ -74,8 +74,3 @@ To contribute to the documentation you need to follow the steps below:
 
 You can run _this chapter_ and play with it on Google Colaboratory:
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/from-zero-to-hero-tutorial/09_contribute-to-avalanche.ipynb)
-
-
-```python
-
-```
