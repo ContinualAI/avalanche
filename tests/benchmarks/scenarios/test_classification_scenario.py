@@ -9,10 +9,135 @@ from avalanche.benchmarks import (
     ClassificationExperience,
     ClassificationScenario,
 )
-from avalanche.benchmarks.utils import make_tensor_classification_dataset
+from avalanche.benchmarks.utils import make_tensor_classification_dataset, DataAttribute
+from torch.utils.data.dataset import TensorDataset
+
+from avalanche.benchmarks.utils.data import AvalancheDataset
 
 
 class ClassificationScenarioTests(unittest.TestCase):
+    def _assert_is_unique_and_int(self, iterable):
+        uniques = set()
+        n_elements = len(iterable)
+        for x in iterable:
+            self.assertIsInstance(x, int)
+            uniques.add(x)
+        self.assertEqual(n_elements, len(uniques))
+
+    def test_classes_in_exp_from_non_classification_dataset(self):
+        train_exps = []
+
+        tensor_x = torch.rand(200, 3, 28, 28)
+        tensor_y = torch.randint(0, 70, (200,))
+        tensor_t = torch.randint(0, 5, (200,))
+        train_exps.append(
+            AvalancheDataset(
+                [TensorDataset(tensor_x)],
+                data_attributes=[
+                    DataAttribute(tensor_y, "targets", use_in_getitem=True),
+                    DataAttribute(tensor_t, "targets_task_labels", use_in_getitem=True),
+                ],
+            )
+        )
+
+        tensor_x = torch.rand(200, 3, 28, 28)
+        tensor_y = torch.randint(0, 100, (200,))
+        tensor_t = torch.randint(0, 5, (200,))
+        train_exps.append(
+            AvalancheDataset(
+                [TensorDataset(tensor_x, tensor_y)],
+                data_attributes=[
+                    DataAttribute(tensor_y, "targets", use_in_getitem=True),
+                    DataAttribute(tensor_t, "targets_task_labels", use_in_getitem=True),
+                ],
+            )
+        )
+
+        test_exps = []
+        test_x = torch.rand(200, 3, 28, 28)
+        test_y = torch.randint(100, 200, (200,))
+        test_t = torch.randint(0, 5, (200,))
+        test_exps.append(
+            AvalancheDataset(
+                [TensorDataset(test_x)],
+                data_attributes=[
+                    DataAttribute(test_y, "targets", use_in_getitem=True),
+                    DataAttribute(test_t, "targets_task_labels", use_in_getitem=True),
+                ],
+            )
+        )
+
+        other_stream_exps = []
+        other_x = torch.rand(200, 3, 28, 28)
+        other_y = torch.randint(400, 600, (200,))
+        other_t = torch.randint(0, 5, (200,))
+        other_stream_exps.append(
+            AvalancheDataset(
+                [TensorDataset(other_x)],
+                data_attributes=[
+                    DataAttribute(other_y, "targets", use_in_getitem=True),
+                    DataAttribute(other_t, "targets_task_labels", use_in_getitem=True),
+                ],
+            )
+        )
+
+        benchmark_instance = dataset_benchmark(
+            train_datasets=train_exps,
+            test_datasets=test_exps,
+            other_streams_datasets={"other": other_stream_exps},
+        )
+
+        train_0_classes = benchmark_instance.classes_in_experience["train"][0]
+        train_1_classes = benchmark_instance.classes_in_experience["train"][1]
+        self._assert_is_unique_and_int(
+            benchmark_instance.classes_in_experience["train"][0]
+        )
+
+        train_0_classes_min = min(train_0_classes)
+        train_1_classes_min = min(train_1_classes)
+        train_0_classes_max = max(train_0_classes)
+        train_1_classes_max = max(train_1_classes)
+        self.assertGreaterEqual(train_0_classes_min, 0)
+        self.assertLess(train_0_classes_max, 70)
+        self.assertGreaterEqual(train_1_classes_min, 0)
+        self.assertLess(train_1_classes_max, 100)
+
+        # Test deprecated behavior
+        train_0_classes = benchmark_instance.classes_in_experience[0]
+        train_1_classes = benchmark_instance.classes_in_experience[1]
+        self._assert_is_unique_and_int(benchmark_instance.classes_in_experience[0])
+        self._assert_is_unique_and_int(benchmark_instance.classes_in_experience[1])
+
+        train_0_classes_min = min(train_0_classes)
+        train_1_classes_min = min(train_1_classes)
+        train_0_classes_max = max(train_0_classes)
+        train_1_classes_max = max(train_1_classes)
+        self.assertGreaterEqual(train_0_classes_min, 0)
+        self.assertLess(train_0_classes_max, 70)
+        self.assertGreaterEqual(train_1_classes_min, 0)
+        self.assertLess(train_1_classes_max, 100)
+        # End test deprecated behavior
+
+        test_0_classes = benchmark_instance.classes_in_experience["test"][0]
+        self._assert_is_unique_and_int(
+            benchmark_instance.classes_in_experience["test"][0]
+        )
+
+        test_0_classes_min = min(test_0_classes)
+        test_0_classes_max = max(test_0_classes)
+        self.assertGreaterEqual(test_0_classes_min, 100)
+        self.assertLess(test_0_classes_max, 200)
+
+        other_0_classes = benchmark_instance.classes_in_experience["other"][0]
+        self._assert_is_unique_and_int(
+            benchmark_instance.classes_in_experience["other"][0]
+        )
+
+        other_0_classes_min = min(other_0_classes)
+        other_0_classes_max = max(other_0_classes)
+        self.assertGreaterEqual(other_0_classes_min, 400)
+        self.assertLess(other_0_classes_max, 600)
+
     def test_classes_in_exp(self):
         train_exps = []
 
@@ -54,6 +179,13 @@ class ClassificationScenarioTests(unittest.TestCase):
 
         train_0_classes = benchmark_instance.classes_in_experience["train"][0]
         train_1_classes = benchmark_instance.classes_in_experience["train"][1]
+        self._assert_is_unique_and_int(
+            benchmark_instance.classes_in_experience["train"][0]
+        )
+        self._assert_is_unique_and_int(
+            benchmark_instance.classes_in_experience["train"][1]
+        )
+
         train_0_classes_min = min(train_0_classes)
         train_1_classes_min = min(train_1_classes)
         train_0_classes_max = max(train_0_classes)
@@ -66,6 +198,9 @@ class ClassificationScenarioTests(unittest.TestCase):
         # Test deprecated behavior
         train_0_classes = benchmark_instance.classes_in_experience[0]
         train_1_classes = benchmark_instance.classes_in_experience[1]
+        self._assert_is_unique_and_int(benchmark_instance.classes_in_experience[0])
+        self._assert_is_unique_and_int(benchmark_instance.classes_in_experience[1])
+
         train_0_classes_min = min(train_0_classes)
         train_1_classes_min = min(train_1_classes)
         train_0_classes_max = max(train_0_classes)
@@ -77,12 +212,20 @@ class ClassificationScenarioTests(unittest.TestCase):
         # End test deprecated behavior
 
         test_0_classes = benchmark_instance.classes_in_experience["test"][0]
+        self._assert_is_unique_and_int(
+            benchmark_instance.classes_in_experience["test"][0]
+        )
+
         test_0_classes_min = min(test_0_classes)
         test_0_classes_max = max(test_0_classes)
         self.assertGreaterEqual(test_0_classes_min, 100)
         self.assertLess(test_0_classes_max, 200)
 
         other_0_classes = benchmark_instance.classes_in_experience["other"][0]
+        self._assert_is_unique_and_int(
+            benchmark_instance.classes_in_experience["other"][0]
+        )
+
         other_0_classes_min = min(other_0_classes)
         other_0_classes_max = max(other_0_classes)
         self.assertGreaterEqual(other_0_classes_min, 400)
@@ -131,10 +274,14 @@ class ClassificationScenarioTests(unittest.TestCase):
         train_exp_1: ClassificationExperience = benchmark_instance.train_stream[1]
         train_0_classes = train_exp_0.classes_in_this_experience
         train_1_classes = train_exp_1.classes_in_this_experience
+        self._assert_is_unique_and_int(train_exp_0.classes_in_this_experience)
+        self._assert_is_unique_and_int(train_exp_1.classes_in_this_experience)
+
         train_0_classes_min = min(train_0_classes)
         train_1_classes_min = min(train_1_classes)
         train_0_classes_max = max(train_0_classes)
         train_1_classes_max = max(train_1_classes)
+
         self.assertGreaterEqual(train_0_classes_min, 0)
         self.assertLess(train_0_classes_max, 70)
         self.assertGreaterEqual(train_1_classes_min, 0)
@@ -142,6 +289,8 @@ class ClassificationScenarioTests(unittest.TestCase):
 
         test_exp_0: ClassificationExperience = benchmark_instance.test_stream[0]
         test_0_classes = test_exp_0.classes_in_this_experience
+        self._assert_is_unique_and_int(test_exp_0.classes_in_this_experience)
+
         test_0_classes_min = min(test_0_classes)
         test_0_classes_max = max(test_0_classes)
         self.assertGreaterEqual(test_0_classes_min, 100)
@@ -149,6 +298,8 @@ class ClassificationScenarioTests(unittest.TestCase):
 
         other_exp_0: ClassificationExperience = benchmark_instance.other_stream[0]
         other_0_classes = other_exp_0.classes_in_this_experience
+        self._assert_is_unique_and_int(other_exp_0.classes_in_this_experience)
+
         other_0_classes_min = min(other_0_classes)
         other_0_classes_max = max(other_0_classes)
         self.assertGreaterEqual(other_0_classes_min, 400)
