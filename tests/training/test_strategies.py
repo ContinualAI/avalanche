@@ -857,7 +857,6 @@ class StrategyTest(unittest.TestCase):
             optimizer,
             20,
             buffer_transform=None,
-            criterion=criterion,
             fixed_memory=True,
             train_mb_size=10,
             train_epochs=2,

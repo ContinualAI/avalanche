@@ -71,14 +71,14 @@ class BatchObservation(SGDStrategyProtocol):
         assert self.experience is not None
 
         if self.optimized_param_id is None:
-            self.make_optimizer(reset_optimizer_state=True)
+            self.make_optimizer(reset_optimizer_state=True, **kwargs)
 
         if at_task_boundary(self.experience):
             self.model = self.model_adaptation()
-            self.make_optimizer(reset_optimizer_state=reset_optimizer_state)
+            self.make_optimizer(reset_optimizer_state=reset_optimizer_state, **kwargs)
         else:
             self.model = self.model_adaptation()
-            self.make_optimizer(reset_optimizer_state=reset_optimizer_state)
+            self.make_optimizer(reset_optimizer_state=reset_optimizer_state, **kwargs)
 
 
 __all__ = ["BatchObservation"]
