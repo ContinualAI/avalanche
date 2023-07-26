@@ -34,7 +34,11 @@ def reset_optimizer(optimizer, model):
     :param model:
     :return:
     """
-    assert len(optimizer.param_groups) == 1
+    if len(optimizer.param_groups) != 1:
+        raise ValueError(
+            "This function only supports single parameter groups."
+            "If you need to use multiple parameter groups, "
+            "you can override `make_optimizer` in the Avalanche strategy.")
     optimizer.state = defaultdict(dict)
 
     parameters = []
