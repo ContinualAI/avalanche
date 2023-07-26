@@ -281,7 +281,7 @@ class AMLCriterion(RegularizationMethod):
         target_in: torch.Tensor,
         output_buffer: torch.Tensor,
         target_buffer: torch.Tensor,
-        buffer_replay_data: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+        buffer_replay_data: tuple,
     ) -> torch.Tensor:
         """
         Method able to compute the ER_AML loss.
