@@ -184,10 +184,10 @@ class AMLCriterion(RegularizationMethod):
     ):
         """
         ER_AML criterion constructor.
-        @param feature_extractor: Model able to map an input in a latent space.
-        @param temp: Supervised contrastive temperature.
-        @param base_temp: Supervised contrastive base temperature.
-        @param device: Accelerator used to speed up the computation.
+        :param feature_extractor: Model able to map an input in a latent space.
+        :param temp: Supervised contrastive temperature.
+        :param base_temp: Supervised contrastive base temperature.
+        :param device: Accelerator used to speed up the computation.
         """
         self.device = device
         self.feature_extractor = feature_extractor
@@ -203,11 +203,11 @@ class AMLCriterion(RegularizationMethod):
     ) -> tuple:
         """
         Method able to sample positive and negative examples with respect the input minibatch from input and buffer minibatches.
-        @param x_in: Input of new minibatch.
-        @param y_in: Output of new minibatch.
-        @param x_buffer: Input of buffer minibatch.
-        @param y_buffer: Output of buffer minibatch.
-        @return: Tuple of positive and negative input and output examples and a mask for identify invalid values.
+        :param x_in: Input of new minibatch.
+        :param y_in: Output of new minibatch.
+        :param x_buffer: Input of buffer minibatch.
+        :param y_buffer: Output of buffer minibatch.
+        :return: Tuple of positive and negative input and output examples and a mask for identify invalid values.
         """
         x_all = torch.cat((x_buffer, x_in))
         y_all = torch.cat((y_buffer, y_in))
@@ -248,11 +248,11 @@ class AMLCriterion(RegularizationMethod):
     ) -> torch.Tensor:
         """
         Method able to compute the supervised contrastive loss of new minibatch.
-        @param anchor_features: Anchor features related to new minibatch duplicated mapped in latent space.
-        @param features: Features related to half positive and half negative examples mapped in latent space.
-        @param anchor_targets: Labels related to anchor features.
-        @param targets: Labels related to features.
-        @return: Supervised contrastive loss.
+        :param anchor_features: Anchor features related to new minibatch duplicated mapped in latent space.
+        :param features: Features related to half positive and half negative examples mapped in latent space.
+        :param anchor_targets: Labels related to anchor features.
+        :param targets: Labels related to features.
+        :return: Supervised contrastive loss.
         """
         pos_mask = (
             (anchor_targets.reshape(-1, 1) == targets.reshape(1, -1))
@@ -269,8 +269,8 @@ class AMLCriterion(RegularizationMethod):
     def __scale_by_norm(self, x: torch.Tensor) -> torch.Tensor:
         """
         Function able to scale by its norm a certain tensor.
-        @param x: Tensor to normalize.
-        @return: Normalized tensor.
+        :param x: Tensor to normalize.
+        :return: Normalized tensor.
         """
         x_norm = torch.norm(x, p=2, dim=1).unsqueeze(1).expand_as(x)
         return x / (x_norm + 1e-05)
@@ -285,12 +285,12 @@ class AMLCriterion(RegularizationMethod):
     ) -> torch.Tensor:
         """
         Method able to compute the ER_AML loss.
-        @param input_in: New inputs examples.
-        @param target_in: Labels of new examples.
-        @param output_buffer: Predictions of samples from buffer.
-        @param target_buffer: Labels of samples from buffer.
-        @param buffer_replay_data: Buffer replay data to compute positive and negative samples.
-        @return: ER_AML computed loss.
+        :param input_in: New inputs examples.
+        :param target_in: Labels of new examples.
+        :param output_buffer: Predictions of samples from buffer.
+        :param target_buffer: Labels of samples from buffer.
+        :param buffer_replay_data: Buffer replay data to compute positive and negative samples.
+        :return: ER_AML computed loss.
         """
         x_buffer, y_buffer, _ = buffer_replay_data
         pos_x, pos_y, neg_x, neg_y, is_invalid = self.__sample_pos_neg(
