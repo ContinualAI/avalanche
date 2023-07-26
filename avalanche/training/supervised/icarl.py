@@ -34,7 +34,6 @@ class ICaRL(SupervisedTemplate):
         memory_size,
         buffer_transform,
         fixed_memory,
-        criterion=ICaRLLossPlugin(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -78,6 +77,7 @@ class ICaRL(SupervisedTemplate):
             eval_classifier=NCMClassifier(normalize=True),
         )
 
+        criterion = ICaRLLossPlugin()  # iCaRL requires this specific loss (#966)
         icarl = _ICaRLPlugin(memory_size, buffer_transform, fixed_memory)
 
         if plugins is None:
