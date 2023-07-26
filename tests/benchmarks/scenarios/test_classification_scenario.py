@@ -45,7 +45,7 @@ class ClassificationScenarioTests(unittest.TestCase):
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
             AvalancheDataset(
-                [TensorDataset(tensor_x, tensor_y)],
+                [TensorDataset(tensor_x)],
                 data_attributes=[
                     DataAttribute(tensor_y, "targets", use_in_getitem=True),
                     DataAttribute(tensor_t, "targets_task_labels", use_in_getitem=True),
@@ -326,7 +326,7 @@ class ClassificationScenarioTests(unittest.TestCase):
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
             AvalancheDataset(
-                [TensorDataset(tensor_x, tensor_y)],
+                [TensorDataset(tensor_x)],
                 data_attributes=[
                     DataAttribute(tensor_y, "targets", use_in_getitem=True),
                     DataAttribute(tensor_t, "targets_task_labels", use_in_getitem=True),
