@@ -96,6 +96,7 @@ class ER_AML(SupervisedTemplate):
             feature_extractor=feature_extractor,
             temp=temp,
             base_temp=base_temp,
+            same_task_neg=same_task_neg,
             device=device,
         )
 
