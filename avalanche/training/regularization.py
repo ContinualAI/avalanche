@@ -180,6 +180,7 @@ class AMLCriterion(RegularizationMethod):
         feature_extractor,
         temp: float = 0.1,
         base_temp: float = 0.07,
+        same_task_neg: bool = True,
         device: str = "cpu",
     ):
         """
@@ -187,19 +188,23 @@ class AMLCriterion(RegularizationMethod):
         :param feature_extractor: Model able to map an input in a latent space.
         :param temp: Supervised contrastive temperature.
         :param base_temp: Supervised contrastive base temperature.
+        :param same_task_neg: Option to remove negative samples of different tasks.
         :param device: Accelerator used to speed up the computation.
         """
         self.device = device
         self.feature_extractor = feature_extractor
         self.temp = temp
         self.base_temp = base_temp
+        self.same_task_neg = same_task_neg
 
     def __sample_pos_neg(
         self,
         x_in: torch.Tensor,
         y_in: torch.Tensor,
+        t_in: torch.Tensor,
         x_buffer: torch.Tensor,
         y_buffer: torch.Tensor,
+        t_buffer: torch.Tensor,
     ) -> tuple:
         """
         Method able to sample positive and negative examples with respect the input minibatch from input and buffer minibatches.
@@ -209,6 +214,7 @@ class AMLCriterion(RegularizationMethod):
         :param y_buffer: Output of buffer minibatch.
         :return: Tuple of positive and negative input and output examples and a mask for identify invalid values.
         """
+
         x_all = torch.cat((x_buffer, x_in))
         y_all = torch.cat((y_buffer, y_in))
         indexes = torch.arange(y_all.shape[0]).to(self.device)
@@ -217,7 +223,13 @@ class AMLCriterion(RegularizationMethod):
         same_y = y_in.reshape(1, -1) == y_all.reshape(-1, 1)
 
         valid_pos = same_y & ~same_x
-        valid_neg = ~same_y
+
+        if self.same_task_neg:
+            t_all = torch.cat((t_buffer, t_in))
+            same_task = t_in.view(1, -1) == t_all.view(-1, 1)
+            valid_neg = ~same_y & same_task
+        else:
+            valid_neg = ~same_y
 
         has_valid_pos = valid_pos.sum(0) > 0
         has_valid_neg = valid_neg.sum(0) > 0
@@ -279,6 +291,7 @@ class AMLCriterion(RegularizationMethod):
         self,
         input_in: torch.Tensor,
         target_in: torch.Tensor,
+        task_in: torch.Tensor,
         output_buffer: torch.Tensor,
         target_buffer: torch.Tensor,
         buffer_replay_data: tuple,
@@ -287,14 +300,15 @@ class AMLCriterion(RegularizationMethod):
         Method able to compute the ER_AML loss.
         :param input_in: New inputs examples.
         :param target_in: Labels of new examples.
+        :param task_in: Task identifiers of new examples.
         :param output_buffer: Predictions of samples from buffer.
         :param target_buffer: Labels of samples from buffer.
         :param buffer_replay_data: Buffer replay data to compute positive and negative samples.
         :return: ER_AML computed loss.
         """
-        x_buffer, y_buffer, _ = buffer_replay_data
+        x_buffer, y_buffer, t_buffer = buffer_replay_data
         pos_x, pos_y, neg_x, neg_y, is_invalid = self.__sample_pos_neg(
-            input_in, target_in, x_buffer, y_buffer
+            input_in, target_in, task_in, x_buffer, y_buffer, t_buffer
         )
         loss_buffer = F.cross_entropy(output_buffer, target_buffer)
 

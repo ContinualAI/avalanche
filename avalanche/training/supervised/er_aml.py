@@ -33,6 +33,7 @@ class ER_AML(SupervisedTemplate):
         criterion=CrossEntropyLoss(),
         temp: float = 0.1,
         base_temp: float = 0.07,
+        same_task_neg: bool = True,
         mem_size: int = 200,
         batch_size_mem: int = 10,
         train_mb_size: int = 1,
@@ -53,6 +54,7 @@ class ER_AML(SupervisedTemplate):
         :param criterion: loss function.
         :param temp: Supervised contrastive temperature.
         :param base_temp: Supervised contrastive base temperature.
+        :param same_task_neg: Option to remove negative samples of different tasks.
         :param mem_size: int       : Fixed memory size
         :param batch_size_mem: int : Size of the batch sampled from the buffer
         :param train_mb_size: mini-batch size for training.
@@ -147,6 +149,7 @@ class ER_AML(SupervisedTemplate):
                 self.loss += self.aml_criterion(
                     self.mb_x,
                     self.mb_y,
+                    self.mb_task_id,
                     self.mb_buffer_out,
                     self.mb_buffer_y,
                     buffer_replay_data,
