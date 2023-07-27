@@ -11,7 +11,6 @@ try:
     skip = False
 except ImportError:
     skip = True
-skip = False
 
 
 class RLScenarioTests(unittest.TestCase):

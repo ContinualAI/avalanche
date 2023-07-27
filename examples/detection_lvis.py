@@ -19,7 +19,7 @@ import logging
 from pathlib import Path
 from typing import Union
 
-from pkg_resources import parse_version
+from packaging.version import parse
 
 from avalanche.benchmarks.datasets.lvis_dataset import LvisDataset
 from avalanche.evaluation.metrics.detection import make_lvis_metrics
@@ -134,9 +134,7 @@ def main(args):
 
 
 def obtain_base_model(segmentation: bool):
-    torchvision_is_old_version = parse_version(torch.__version__) < parse_version(
-        "0.13"
-    )
+    torchvision_is_old_version = parse(torch.__version__) < parse("0.13")
 
     pretrain_argument = dict()
 

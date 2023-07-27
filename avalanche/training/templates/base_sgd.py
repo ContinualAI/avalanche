@@ -1,5 +1,5 @@
 from typing import Any, Callable, Iterable, Sequence, Optional, TypeVar, Union
-from pkg_resources import parse_version
+from packaging.version import parse
 
 import torch
 from torch.nn import Module, CrossEntropyLoss
@@ -358,7 +358,7 @@ class BaseSGDTemplate(
         other_dataloader_args = {}
 
         if "persistent_workers" in kwargs:
-            if parse_version(torch.__version__) >= parse_version("1.7.0"):
+            if parse(torch.__version__) >= parse("1.7.0"):
                 other_dataloader_args["persistent_workers"] = kwargs[
                     "persistent_workers"
                 ]
