@@ -78,7 +78,7 @@ setuptools.setup(
         "gdown",
         "quadprog",
         "dill",
-        "setuptools",
+        "packaging",
     ],
     extras_require=get_extra_requires("extra_dependencies.txt", add_all=True),
     include_package_data=True,

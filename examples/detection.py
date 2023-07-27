@@ -16,7 +16,7 @@ the stream of experiences is obtained by splitting the dataset in equal parts.
 """
 
 import argparse
-from pkg_resources import parse_version
+from packaging.version import parse
 import torch
 import torchvision
 import logging
@@ -152,9 +152,7 @@ def main(args):
 
 
 def obtain_base_model(segmentation: bool):
-    torchvision_is_old_version = parse_version(torch.__version__) < parse_version(
-        "0.13"
-    )
+    torchvision_is_old_version = parse(torch.__version__) < parse("0.13")
 
     pretrain_argument = dict()
 
