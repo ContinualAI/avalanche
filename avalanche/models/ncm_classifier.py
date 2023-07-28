@@ -34,6 +34,7 @@ class NCMClassifier(DynamicModule):
         self.class_means_dict = {}
 
         self.normalize = normalize
+        self.max_class = -1
 
     def load_state_dict(self, state_dict, strict: bool = True):
         self.class_means = state_dict["class_means"]
@@ -43,6 +44,7 @@ class NCMClassifier(DynamicModule):
             for i in range(self.class_means.shape[0]):
                 if (self.class_means[i] != 0).any():
                     self.class_means_dict[i] = self.class_means[i].clone()
+        self.max_class = max(self.class_means_dict.keys())
 
     def _vectorize_means_dict(self):
         """
@@ -55,11 +57,12 @@ class NCMClassifier(DynamicModule):
         if self.class_means_dict == {}:
             return
 
-        max_class = max(self.class_means_dict.keys()) + 1
+        max_class = max(self.class_means_dict.keys())
+        self.max_class = max(max_class, self.max_class)
         first_mean = list(self.class_means_dict.values())[0]
         feature_size = first_mean.size(0)
         device = first_mean.device
-        self.class_means = torch.zeros(max_class, feature_size).to(device)
+        self.class_means = torch.zeros(self.max_class+1, feature_size).to(device)
 
         for k, v in self.class_means_dict.items():
             self.class_means[k] = self.class_means_dict[k].clone()
@@ -73,6 +76,11 @@ class NCMClassifier(DynamicModule):
         negative distance of each element in the mini-batch
         with respect to each class.
         """
+        if self.class_means_dict == {}:
+            self.init_missing_classes(
+                range(self.max_class+1),
+                x.shape[1],
+                x.device)
 
         assert self.class_means_dict != {}, "no class means available."
         if self.normalize:
@@ -124,15 +132,22 @@ class NCMClassifier(DynamicModule):
 
         self._vectorize_means_dict()
 
-    def eval_adaptation(self, experience):
-        if self.class_means is None:
-            return
-        for k in experience.classes_in_this_experience:
+    def init_missing_classes(self, classes, class_size, device):
+        for k in classes:
             if k not in self.class_means_dict:
-                self.class_means_dict[k] = torch.zeros(self.class_means.shape[1]).to(
-                    self.class_means.device
+                self.class_means_dict[k] = torch.zeros(class_size).to(
+                    device
                 )
         self._vectorize_means_dict()
+
+    def eval_adaptation(self, experience):
+        classes = experience.classes_in_this_experience
+        for k in classes:
+            self.max_class = max(k, self.max_class)
+        if self.class_means is not None:
+            self.init_missing_classes(classes,
+                                      self.class_means.shape[1],
+                                      self.class_means.device)
 
 
 __all__ = ["NCMClassifier"]
