@@ -1,9 +1,10 @@
 from typing import Callable, List, Sequence, Optional, Union
 from packaging.version import parse
+import warnings
 import torch
 
 if parse(torch.__version__) < parse("2.0.0"):
-    raise RuntimeError(f"LaMAML requires torch >= 2.0.0.")
+    warnings.warn(f"LaMAML requires torch >= 2.0.0.")
 
 import torch
 import torch.nn as nn

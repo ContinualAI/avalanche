@@ -91,6 +91,10 @@ Experience Metrics
     ExperienceTopkAccuracy
     WeightCheckpoint
     ImagesSamplePlugin
+    CumulativeAccuracyPluginMetric
+    CumulativeForgettingPluginMetric
+    AccuracyPerTaskPluginMetric
+    AccuracyMatrixPluginMetric
 
 Epoch Metrics
 ^^^^^^^^^^^^^^^^^^^^
@@ -184,8 +188,8 @@ Standalone Metrics
     Sum
     TopkAccuracy
     TrainedExperienceTopkAccuracy
-
-
+    CumulativeAccuracy
+    PerClassMeanScores
 
 evaluation.metrics.detection
 ----------------------------------------
