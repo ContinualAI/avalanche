@@ -62,8 +62,7 @@ class NCMClassifier(DynamicModule):
         first_mean = list(self.class_means_dict.values())[0]
         feature_size = first_mean.size(0)
         device = first_mean.device
-        self.class_means = torch.zeros(self.max_class+1,
-                                       feature_size).to(device)
+        self.class_means = torch.zeros(self.max_class + 1, feature_size).to(device)
 
         for k, v in self.class_means_dict.items():
             self.class_means[k] = self.class_means_dict[k].clone()
@@ -78,10 +77,7 @@ class NCMClassifier(DynamicModule):
         with respect to each class.
         """
         if self.class_means_dict == {}:
-            self.init_missing_classes(
-                range(self.max_class+1),
-                x.shape[1],
-                x.device)
+            self.init_missing_classes(range(self.max_class + 1), x.shape[1], x.device)
 
         assert self.class_means_dict != {}, "no class means available."
         if self.normalize:
@@ -108,12 +104,10 @@ class NCMClassifier(DynamicModule):
         """
         assert momentum <= 1 and momentum >= 0
         assert isinstance(class_means_dict, dict), (
-            "class_means_dict must be a dictionary mapping class_id "
-            "to mean vector"
+            "class_means_dict must be a dictionary mapping class_id " "to mean vector"
         )
         for k, v in class_means_dict.items():
-            if (k not in self.class_means_dict or
-                    (self.class_means_dict[k] == 0).all()):
+            if k not in self.class_means_dict or (self.class_means_dict[k] == 0).all():
                 self.class_means_dict[k] = class_means_dict[k].clone()
             else:
                 device = self.class_means_dict[k].device
@@ -129,19 +123,15 @@ class NCMClassifier(DynamicModule):
         Replace existing dictionary of means with a given dictionary.
         """
         assert isinstance(class_means_dict, dict), (
-            "class_means_dict must be a dictionary mapping class_id "
-            "to mean vector"
+            "class_means_dict must be a dictionary mapping class_id " "to mean vector"
         )
-        self.class_means_dict = {k: v.clone()
-                                 for k, v in class_means_dict.items()}
+        self.class_means_dict = {k: v.clone() for k, v in class_means_dict.items()}
         self._vectorize_means_dict()
 
     def init_missing_classes(self, classes, class_size, device):
         for k in classes:
             if k not in self.class_means_dict:
-                self.class_means_dict[k] = torch.zeros(class_size).to(
-                    device
-                )
+                self.class_means_dict[k] = torch.zeros(class_size).to(device)
         self._vectorize_means_dict()
 
     def eval_adaptation(self, experience):
@@ -149,9 +139,9 @@ class NCMClassifier(DynamicModule):
         for k in classes:
             self.max_class = max(k, self.max_class)
         if self.class_means is not None:
-            self.init_missing_classes(classes,
-                                      self.class_means.shape[1],
-                                      self.class_means.device)
+            self.init_missing_classes(
+                classes, self.class_means.shape[1], self.class_means.device
+            )
 
 
 __all__ = ["NCMClassifier"]

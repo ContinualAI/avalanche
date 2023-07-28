@@ -641,8 +641,7 @@ class NCMClassifierTest(unittest.TestCase):
 
     def test_ncm_forward_without_class_means(self):
         classifier = NCMClassifier()
-        classifier.init_missing_classes(list(range(10)),
-                                        7, 'cpu')
+        classifier.init_missing_classes(list(range(10)), 7, "cpu")
         logits = classifier(torch.randn(2, 7))
         assert logits.shape == (2, 10)
 
