@@ -458,5 +458,5 @@ __all__ = [
     "StreamAccuracy",
     "TrainedExperienceAccuracy",
     "accuracy_metrics",
-    "AccuracyPerTaskPluginMetric"
+    "AccuracyPerTaskPluginMetric",
 ]

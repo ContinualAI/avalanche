@@ -413,7 +413,7 @@ undocumented_classes_to_ignore = [
     "TupleTransform",
     "MetaLearningStrategyProtocol",
     "MultiParamTransformCallable",
-    "TqdmUpTo"
+    "TqdmUpTo",
 ]
 undocumented_classes_to_ignore = set(undocumented_classes_to_ignore)
 

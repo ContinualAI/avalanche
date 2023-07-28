@@ -308,5 +308,5 @@ __all__ = [
     "MeanScoresEvalPluginMetric",
     "MeanScores",
     "MeanNewOldScores",
-    "PerClassMeanScores"
+    "PerClassMeanScores",
 ]
