@@ -862,6 +862,7 @@ class StrategyTest(unittest.TestCase):
             train_epochs=2,
             eval_mb_size=50,
             device=self.device,
+            eval_every=1,
         )
 
         run_strategy(benchmark, strategy)

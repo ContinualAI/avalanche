@@ -639,6 +639,12 @@ class NCMClassifierTest(unittest.TestCase):
         classifier.replace_class_means_dict(new_dict)
         assert (classifier.class_means[:, 0] == 2).all()
 
+    def test_ncm_forward_without_class_means(self):
+        classifier = NCMClassifier()
+        classifier.init_missing_classes(list(range(10)), 7, "cpu")
+        logits = classifier(torch.randn(2, 7))
+        assert logits.shape == (2, 10)
+
     def test_ncm_save_load(self):
         classifier = NCMClassifier()
         classifier.update_class_means_dict(
