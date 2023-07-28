@@ -1,6 +1,7 @@
 from typing import Callable, Sequence, Optional, Union
 
 import torch
+import warnings
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Module, CrossEntropyLoss
@@ -10,7 +11,7 @@ import math
 try:
     import higher
 except ImportError:
-    raise ModuleNotFoundError(
+    warnings.warn(
         "higher not found, if you want to use "
         "MAML please install avalanche with "
         "the extra dependencies: "
