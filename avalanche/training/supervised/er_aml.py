@@ -139,12 +139,10 @@ class ER_AML(SupervisedTemplate):
             if self.replay_loader is None:
                 self.loss += self.criterion()
             else:
-                buffer_replay_data = next(
-                    cycle(
-                        torch.utils.data.DataLoader(
-                            self.storage_policy.buffer,
-                            batch_size=len(self.storage_policy.buffer),
-                        )
+                pos_neg_replay = tuple(
+                    torch.cat(samples)
+                    for samples in zip(
+                        *[next(loader) for loader in self.pos_neg_loaders]
                     )
                 )
                 self.loss += self.aml_criterion(
@@ -153,7 +151,7 @@ class ER_AML(SupervisedTemplate):
                     self.mb_task_id,
                     self.mb_buffer_out,
                     self.mb_buffer_y,
-                    buffer_replay_data,
+                    pos_neg_replay,
                 )
 
             self._before_backward(**kwargs)
@@ -183,6 +181,17 @@ class ER_AML(SupervisedTemplate):
                     drop_last=True,
                 )
             )
+            self.pos_neg_loaders = [
+                cycle(
+                    torch.utils.data.DataLoader(
+                        group.buffer,
+                        batch_size=self.train_mb_size,
+                        shuffle=True,
+                        drop_last=True,
+                    )
+                )
+                for group in self.storage_policy.buffer_groups.values()
+            ]
         super()._before_training_exp(**kwargs)
 
     def _train_cleanup(self):

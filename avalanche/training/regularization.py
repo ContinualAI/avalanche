@@ -199,57 +199,38 @@ class AMLCriterion(RegularizationMethod):
 
     def __sample_pos_neg(
         self,
-        x_in: torch.Tensor,
         y_in: torch.Tensor,
         t_in: torch.Tensor,
-        x_buffer: torch.Tensor,
-        y_buffer: torch.Tensor,
-        t_buffer: torch.Tensor,
+        x_memory: torch.Tensor,
+        y_memory: torch.Tensor,
+        t_memory: torch.Tensor,
     ) -> tuple:
         """
         Method able to sample positive and negative examples with respect the input minibatch from input and buffer minibatches.
         :param x_in: Input of new minibatch.
         :param y_in: Output of new minibatch.
-        :param x_buffer: Input of buffer minibatch.
-        :param y_buffer: Output of buffer minibatch.
+        :param t_in: Task ids of new minibatch.
+        :param x_memory: Input of memory.
+        :param y_memory: Output of minibatch.
+        :param t_memory: Task ids of minibatch.
         :return: Tuple of positive and negative input and output examples and a mask for identify invalid values.
         """
-
-        x_all = torch.cat((x_buffer, x_in))
-        y_all = torch.cat((y_buffer, y_in))
-        indexes = torch.arange(y_all.shape[0]).to(self.device)
-
-        same_x = indexes[-x_in.shape[0] :].reshape(1, -1) == indexes.reshape(-1, 1)
-        same_y = y_in.reshape(1, -1) == y_all.reshape(-1, 1)
-
-        valid_pos = same_y & ~same_x
-
+        valid_pos = y_in.reshape(1, -1) == y_memory.reshape(-1, 1)
         if self.same_task_neg:
-            t_all = torch.cat((t_buffer, t_in))
-            same_task = t_in.view(1, -1) == t_all.view(-1, 1)
-            valid_neg = ~same_y & same_task
+            same_task = t_in.view(1, -1) == t_memory.view(-1, 1)
+            valid_neg = ~valid_pos & same_task
         else:
-            valid_neg = ~same_y
-
-        has_valid_pos = valid_pos.sum(0) > 0
-        has_valid_neg = valid_neg.sum(0) > 0
-        invalid_idx = ~has_valid_pos | ~has_valid_neg
-        is_invalid = torch.zeros_like(y_in).bool()
-        is_invalid[invalid_idx] = 1
-        if invalid_idx.sum() > 0:
-            # avoid operand fail
-            valid_pos[:, invalid_idx] = 1
-            valid_neg[:, invalid_idx] = 1
+            valid_neg = ~valid_pos
 
         pos_idx = torch.multinomial(valid_pos.float().T, 1).squeeze(1)
         neg_idx = torch.multinomial(valid_neg.float().T, 1).squeeze(1)
 
-        pos_x = x_all[pos_idx]
-        pos_y = y_all[pos_idx]
-        neg_x = x_all[neg_idx]
-        neg_y = y_all[neg_idx]
+        pos_x = x_memory[pos_idx]
+        pos_y = y_memory[pos_idx]
+        neg_x = x_memory[neg_idx]
+        neg_y = y_memory[neg_idx]
 
-        return pos_x, pos_y, neg_x, neg_y, is_invalid
+        return pos_x, pos_y, neg_x, neg_y
 
     def __sup_con_loss(
         self,
@@ -294,7 +275,7 @@ class AMLCriterion(RegularizationMethod):
         task_in: torch.Tensor,
         output_buffer: torch.Tensor,
         target_buffer: torch.Tensor,
-        buffer_replay_data: tuple,
+        pos_neg_replay: tuple,
     ) -> torch.Tensor:
         """
         Method able to compute the ER_AML loss.
@@ -303,27 +284,22 @@ class AMLCriterion(RegularizationMethod):
         :param task_in: Task identifiers of new examples.
         :param output_buffer: Predictions of samples from buffer.
         :param target_buffer: Labels of samples from buffer.
-        :param buffer_replay_data: Buffer replay data to compute positive and negative samples.
+        :param pos_neg_replay: Replay data to compute positive and negative samples.
         :return: ER_AML computed loss.
         """
-        x_buffer, y_buffer, t_buffer = buffer_replay_data
-        pos_x, pos_y, neg_x, neg_y, is_invalid = self.__sample_pos_neg(
-            input_in, target_in, task_in, x_buffer, y_buffer, t_buffer
+        pos_x, pos_y, neg_x, neg_y = self.__sample_pos_neg(
+            target_in, task_in, *pos_neg_replay
         )
         loss_buffer = F.cross_entropy(output_buffer, target_buffer)
-
-        hidden_in = self.__scale_by_norm(self.feature_extractor(input_in)[~is_invalid])
-
+        hidden_in = self.__scale_by_norm(self.feature_extractor(input_in))
         hidden_pos_neg = self.__scale_by_norm(
             self.feature_extractor(torch.cat((pos_x, neg_x)))
         )
-        pos_h, neg_h = hidden_pos_neg.reshape(2, pos_x.shape[0], -1)[:, ~is_invalid]
-
         loss_in = self.__sup_con_loss(
             anchor_features=hidden_in.repeat(2, 1),
-            features=torch.cat((pos_h, neg_h)),
-            anchor_targets=target_in[~is_invalid].repeat(2),
-            targets=torch.cat((pos_y[~is_invalid], neg_y[~is_invalid])),
+            features=hidden_pos_neg,
+            anchor_targets=target_in.repeat(2),
+            targets=torch.cat((pos_y, neg_y)),
         )
         return loss_in + loss_buffer
 
