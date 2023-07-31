@@ -1,3 +1,7 @@
+"""
+Utilities used to translate torchvision transformations to FFCV.
+"""
+
 from typing import (
     Any,
     Callable,
@@ -95,8 +99,13 @@ FFCV_TRANSFORMS_DEFS: Dict[Type, FFCVTransformRegistry] = {}
 
 def make_transform_defs():
     """
-    Fills a series of definition obtained by the FFCV documentation
-    and source code.
+    Fills a series of definition obtained by the FFCV documentation,
+    source code, and manual attempts.
+
+    These definitions are used to properly arrange the order of transformations.
+    In FFCV, not all transformations support NumPy, PyTorch CPU, and PyTorch GPU
+    inputs. The supported inputs are defined in dictionaries stored in
+    `FFCV_TRANSFORMS_DEFS`.
     """
     global FFCV_TRANSFORMS_DEFS
 
@@ -162,11 +171,26 @@ def make_transform_defs():
 def adapt_transforms(
     transforms_list, ffcv_decoder_list, device: Optional[torch.device] = None
 ):
+    """
+    Adapt the list of torchvision transformations to FFCV.
+
+    This will use hard-coded transformations that will usually
+    make sense for the vast majority of situations. However,
+    in some cases it makes sense to pass an explicit `decoder_def`
+    to the :func:`enable_ffcv` function.
+
+    :param transforms_list: The list of transformations. May include
+        multi-param transformations. Avalanche will usually obtain this
+        list from the AvalancheDatasets.
+    :param ffcv_decoder_list: The list of FFCV decoders.
+    :param device: If passed, the FFCV `ToDevice` operation will be added.
+    :return: The transformations adapted for FFCV.
+    """
     result = []
     for field_idx, pipeline_head in enumerate(ffcv_decoder_list):
         transforms = flat_transforms_recursive(transforms_list, field_idx)
         transforms = pipeline_head + transforms
-        transforms = apply_pre_optimization(transforms, device=device)
+        transforms = _apply_transforms_pre_optimization(transforms, device=device)
 
         field_transforms: List[Operation] = []
         for t in transforms:
@@ -197,14 +221,21 @@ def adapt_transforms(
             else:
                 # Last hope...
                 field_transforms.append(SmartModuleWrapper(CallableAdapter(t)))
-        field_transforms = add_to_device_operation(field_transforms, device=device)
+        field_transforms = _add_to_device_operation(field_transforms, device=device)
         result.append(field_transforms)
     return result
 
 
-def apply_pre_optimization(
+def _apply_transforms_pre_optimization(
     transformations: List[Any], device: Optional[torch.device] = None
 ):
+    """
+    Applies common pre-optimizations to the list of transformations.
+
+    :param transformations: The list of transformations.
+    :param device: If passed, the FFCV `ToDevice` operation will be added.
+    :return: The transformations optimized for FFCV.
+    """
     if len(transformations) < 2:
         # No optimizations to apply if there are less than 2 transformations
         return transformations
@@ -257,7 +288,19 @@ def apply_pre_optimization(
     return result
 
 
-def add_to_device_operation(transformations, device: Optional[torch.device] = None):
+def _add_to_device_operation(transformations, device: Optional[torch.device] = None):
+    """
+    Given a list of FFCV transformations, insert the `ToDevice` operation in the most
+    appropriate place.
+
+    The corrent position of the `ToDevice` operation in FFCV is very hard to infer.
+    Avalanche uses the `FFCV_TRANSFORMS_DEFS` dictionary to infer the correct position
+    based on the kind of input and outputs supported by the transformations.
+
+    :param transformations: The list of transformations (modified in place).
+    :param device: If passed, the FFCV `ToDevice` operation will be added.
+    :return: The transformations with `ToDevice`.
+    """
     if device is None:
         return transformations
 
@@ -317,6 +360,15 @@ def add_to_device_operation(transformations, device: Optional[torch.device] = No
 
 
 def check_transforms_consistency(transformations, warn_gpu_to_cpu: bool = True):
+    """
+    Checks if the list of transformations has issues with input/output formats
+    and devices consistency:
+
+    :param transformations: The list of transformations.
+    :param warn_gpu_to_cpu: Warn if ToDevice is used to move tensors from the
+        gpu to the cpu.
+    :return: True if the list of transformations has no obvious consistency issues.
+    """
     had_issues = False
 
     # All decoders (first operation in the pipeline) return NumPy arrays
@@ -364,7 +416,14 @@ def check_transforms_consistency(transformations, warn_gpu_to_cpu: bool = True):
 
 
 class SmartModuleWrapper(Operation):
-    """Transform using the given torch.nn.Module
+    """
+    Transform using the given torch.nn.Module.
+
+    This covers those transformations implemented as a torch module which
+    are not already translated from torchvision.
+
+    This is a smarter version of the FFCV wrapper as it allows
+    having NumPy inputs and setting explicit shapes for input and outputs.
 
     Parameters
     ----------
@@ -436,7 +495,7 @@ class SmartModuleWrapper(Operation):
             device = inp.device
             return self.module(inp).to(device, non_blocking=True)
 
-        # (input_type, output_type) -> func
+        # (input_type, output_type, smart_reshape) -> func
         func_table = {
             ("numpy", "numpy", True): convert_apply_convert_reshape,
             ("numpy", "torch", True): convert_apply_reshape,

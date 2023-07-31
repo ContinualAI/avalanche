@@ -1,3 +1,12 @@
+"""
+Components used to enable the FFCV dataloading mechanisms.
+
+It is usually sufficient to call `enable_ffcv` on the given
+benchmark to get started with the FFCV support.
+
+Please refer to the examples for more details.
+"""
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import (
@@ -53,7 +62,58 @@ def enable_ffcv(
     decoder_def: "DecoderDef" = None,
     decoder_includes_transformations: Optional[bool] = None,
     print_summary: bool = True,
-):
+) -> None:
+    """
+    Enables the support for FFCV data loading for the given benchmark.
+
+    Once the support is added, the strategies will create FFCV-based dataloaders
+    instead of the usual PyTorch-based ones.
+
+    Please note that FFCV is an optional dependency whose installation process
+    is described in the official FFCV website.
+
+    This function supposes that the benchmark is based on a few base datasets
+    (usually one for train and one for test). This is the case for Split-* benchmarks
+    and is also the usual case for the vast majority of benchmarks. The support for
+    "sparse" datasets such as CORe50 will be added in the near future.
+
+    When this function is first called on a benchmark, the underlying datasets are
+    serialized on disk. If a `encoder_def` is given, that definition is used. Otherwise,
+    a definition is searched in the leaf dataset (`_ffcv_encoder` field, if available).
+    If such a definition is not found, it is created automatically.
+    Refer to the FFCV documentation for more details on the encoder pipeline.
+
+    Please note that the serialized datasets are independent of the benchmark seed,
+    number of experiences, presence of task labels, etcetera. This means that the
+    same folder can be reused for the same benchmark type.
+
+    The definition of the decoder pipeline is created later, if not
+    given using `decoder_def`. However, creating the decoder pipeline is a complex
+    task and not all field types and transformations are fully supported. Consider
+    passing an explicit `decoder_def` in case of unexpected outputs. If a decoder
+    definition is not passed explicitly, Avalanche will try to use the dataset
+    `_ffcv_decoder` field if available before attempting to create one automatically.
+
+    See the `ffcv` examples for more info on how to tune the decoder definitions and for
+    examples of advanced use of the FFCV support.
+
+    :param benchmark: The benchmark for which the support for FFCV loader should be enabled.
+    :param write_dir: Where the datasets should be serialized in FFCV format.
+    :param device: The device used for training.
+    :param ffcv_parameters: Parameters to be passed to FFCV writer and RGB fields.
+    :param force_overwrite: If True, serialized datasets already found in `write_dir` will be
+        overwritten.
+    :param encoder_def: The definition of the dataset fields. See the FFCV guide for more details.
+    :param decoder_def: The definition of the decoder pipeline. If not None, then
+        `decoder_includes_transformations` must be passed.
+    :param decoder_includes_transformations: If True, then Avalanche will treat `decoder_def` as
+        the complete pipeline, transformations included. If False, Avalanche will suppose that only
+        the decoder is passed for each field and transformations will be translated by Avalanche
+        from the torchvision ones.
+    :param print_summary: If True (default), will print some verbose info to stdout regaring the
+        datasets and pipelines. Once you have a complete working FFCV pipeline, you can consider
+        setting this to False.
+    """
     global FFCV_EXPERIMENTAL_WARNED
 
     if not FFCV_EXPERIMENTAL_WARNED:
@@ -61,8 +121,6 @@ def enable_ffcv(
         FFCV_EXPERIMENTAL_WARNED = True
 
     from ffcv.writer import DatasetWriter
-    from ffcv.fields import IntField
-    from ffcv.fields.decoders import IntDecoder
     from avalanche.benchmarks.utils.ffcv_support.ffcv_support_internals import (
         _make_ffcv_decoder,
         _make_ffcv_encoder,
@@ -267,6 +325,19 @@ class _GetItemDataset:
 
 
 def has_ffcv_support(datasets: List[AvalancheDataset]):
+    """
+    Checks if the support for FFCV was enabled for the given
+    dataset list.
+
+    This will 1) check if all the given :class:`AvalancheDataset`
+    point to the same leaf dataset and 2) if the leaf dataset
+    has the proper FFCV info setted by the :func:`enable_ffcv`
+    function.
+
+    :param dataset: The list of datasets.
+    :return: True if FFCV can be used to load the given datasets,
+        False otherwise.
+    """
     try:
         flat_set = single_flat_dataset(concat_datasets(datasets))
     except Exception:
@@ -281,6 +352,14 @@ def has_ffcv_support(datasets: List[AvalancheDataset]):
 
 
 class _MappedBatchsampler(Sampler[List[int]]):
+    """
+    Internal utility to better support the `set_epoch` method in FFCV.
+
+    This is a wrapper of a batch sampler that may be based on a PyTorch
+    :class:`DistributedSampler`. This allows passing the `set_epoch`
+    call to the underlying sampler.
+    """
+
     def __init__(self, batch_sampler: Sampler[List[int]], indices):
         self.batch_sampler = batch_sampler
         self.indices = indices
@@ -303,11 +382,22 @@ class _MappedBatchsampler(Sampler[List[int]]):
 
 
 class HybridFfcvLoader:
+    """
+    A dataloader used to load :class:`AvalancheDataset`s for which
+    the FFCV support was previously enabled by using :func:`enable_ffcv`.
+
+    This is not a pure wrapper of a FFCV loader: this hybrid dataloader
+    is in charge of both creating the FFCV loader and merging
+    the Avalanche-specific info contained in the :class:`DataAttribute`
+    fields of the datasets (such as task labels).
+    """
+
     ALREADY_COVERED_PARAMS = set(
         (
             "fname",
             "batch_size",
-            "order" "distributed",
+            "order",
+            "distributed",
             "seed",
             "indices",
             "pipelines",
@@ -342,6 +432,23 @@ class HybridFfcvLoader:
         print_ffcv_summary: bool = True,
         start_immediately: bool = False,
     ):
+        """
+        Creates an instance of the Avalanche-FFCV hybrid dataloader.
+
+        :param dataset: The dataset to be loaded.
+        :param batch_sampler: The batch sampler to use.
+        :param ffcv_loader_parameters: The FFCV-specific parameters to pass to
+            the FFCV loader. Should not contain the elements such as `fname`,
+            `batch_size`, `order`, and all the parameters listed in the
+            `ALREADY_COVERED_PARAMS` class field, as they are already set by Avalanche.
+        :param device: The target device.
+        :param persistent_workers: If True, this loader will not re-create the FFCV loader
+            between epochs. Defaults to True
+        :param print_ffcv_summary: If True, a summary of the decoder pipeline (and additional
+            useful info) will be printed. Defaults to True.
+        :param start_immediately: If True, the FFCV loader should be started immediately.
+            Defaults to False.
+        """
         from avalanche.benchmarks.utils.ffcv_support.ffcv_loader import _CustomLoader
 
         self.dataset: AvalancheDataset = dataset

@@ -1,3 +1,7 @@
+"""
+Internal utils needed to enable the support for FFCV in Avalanche.
+"""
+
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -41,6 +45,14 @@ if TYPE_CHECKING:
 
 
 def _image_encoder(ffcv_parameters: "FFCVParameters"):
+    """
+    Create a :class:`RGBImageField` given additional
+    parameters passed by the user. Follows the FFCV defaults.
+
+    :param ffcv_parameters: The additional parameters passed
+        to the :func:`enable_ffcv` function.
+    :return: A :class:`RGBImageField` instance.
+    """
     from ffcv.fields import RGBImageField
 
     return RGBImageField(
@@ -53,6 +65,15 @@ def _image_encoder(ffcv_parameters: "FFCVParameters"):
 
 
 def _ffcv_infer_encoder(value, ffcv_parameters: "FFCVParameters") -> Optional["Field"]:
+    """
+    Infers the field encoder definition from a given example.
+
+    :param value: The example obtained from the dataset.
+    :param ffcv_parameters: The additional parameters passed
+        to the :func:`enable_ffcv` function.
+    :return: A :class:`Field` instance or None if it cannot be
+        inferred.
+    """
     from ffcv.fields import (
         IntField,
         FloatField,
@@ -84,6 +105,20 @@ def _ffcv_infer_decoder(
     encoder: Optional["Field"] = None,
     add_common_collate: bool = True,
 ) -> Optional[List["Operation"]]:
+    """
+    Infers the field decoder definition from a given example.
+
+    :param value: The example obtained from the dataset.
+    :param ffcv_parameters: The additional parameters passed
+        to the :func:`enable_ffcv` function.
+    :param encoder: If not None, will try to infer the decoder
+        definition from the field.
+    :param add_common_collate: If True, will apply a PyTorch-alike
+        collate to int and float fields so that they end up being
+        a flat PyTorch tensor instead of a list of int/float.
+    :return: The decoder pipeline as a list of :class:`Operation`
+        or None if the decoder pipeline cannot be inferred.
+    """
     from ffcv.transforms import ToTensor, Squeeze
 
     if encoder is not None:
@@ -123,11 +158,17 @@ def _ffcv_infer_decoder(
 
 
 def _check_dataset_ffcv_encoder(dataset) -> "EncoderDef":
+    """
+    Returns the dataset-specific FFCV encoder definition, if available.
+    """
     encoder_fn_or_def = getattr(dataset, "_ffcv_encoder", None)
     return encoder_fn_or_def
 
 
 def _check_dataset_ffcv_decoder(dataset) -> "DecoderDef":
+    """
+    Returns the dataset-specific FFCV decoder definition, if available.
+    """
     decoder_fn_or_def = getattr(dataset, "_ffcv_decoder", None)
     return decoder_fn_or_def
 
@@ -135,6 +176,15 @@ def _check_dataset_ffcv_decoder(dataset) -> "DecoderDef":
 def _encoder_infer_all(
     dataset, ffcv_parameters: "FFCVParameters"
 ) -> Optional["FFCVEncodeDef"]:
+    """
+    Infer the encoder pipeline from the dataset.
+
+    :param dataset: The dataset to use. Must have at least
+        one example.
+    :param ffcv_parameters: The additional parameters passed
+        to the :func:`enable_ffcv` function.
+    :return: The encoder pipeline or None if it could not be inferred.
+    """
     dataset_item = dataset[0]
 
     types = []
@@ -162,6 +212,17 @@ def _decoder_infer_all(
     ffcv_parameters: "FFCVParameters",
     encoder_dictionary: Optional["FFCVEncodeDef"] = None,
 ) -> Optional["FFCVDecodeDef"]:
+    """
+    Infer the decoder pipeline from the dataset.
+
+    :param dataset: The dataset to use. Must have at least
+        one example.
+    :param ffcv_parameters: The additional parameters passed
+        to the :func:`enable_ffcv` function.
+    :param encoder_dictionary: If not None, will be used as a
+        basis to create the decoder pipeline.
+    :return: The decoder pipeline or None if it could not be inferred.
+    """
     dataset_item: Sequence[Any] = dataset[0]
 
     types: List[List["Operation"]] = []
@@ -202,6 +263,19 @@ def _decoder_infer_all(
 def _make_ffcv_encoder(
     dataset, user_encoder_def: "EncoderDef", ffcv_parameters: "FFCVParameters"
 ) -> Optional["FFCVEncodeDef"]:
+    """
+    Infer the encoder pipeline from either a user definition,
+    the dataset `_ffcv_encoder` field, of from the examples format.
+
+    :param dataset: The dataset to use. Must have at least
+        one example to attempt an inference for data format.
+    :param user_encoder_def: An optional user-given encoder definition.
+        Can be a dictionary or callable that accepts the ffcv parameters
+        and returns the encoder dictionary.
+    :param ffcv_parameters: The additional parameters passed
+        to the :func:`enable_ffcv` function.
+    :return: The encoder pipeline or None if it could not be inferred.
+    """
     encoder_def = None
 
     # Use the user-provided pipeline / pipeline factory
@@ -229,6 +303,21 @@ def _make_ffcv_decoder(
     ffcv_parameters: "FFCVParameters",
     encoder_dictionary: Optional["FFCVEncodeDef"],
 ) -> Optional["FFCVDecodeDef"]:
+    """
+    Infer the decoder pipeline from either a user definition,
+    the dataset `_ffcv_decoder` field, of from the examples format.
+
+    :param dataset: The dataset to use. Must have at least
+        one example to attempt an inference for data format.
+    :param user_decoder_def: An optional user-given decoder definition.
+        Can be a dictionary or callable that accepts the ffcv parameters
+        and returns the decoder dictionary.
+    :param ffcv_parameters: The additional parameters passed
+        to the :func:`enable_ffcv` function.
+    :param encoder_dictionary: If not None, will be used to infer
+        the decoders.
+    :return: The decoder pipeline or None if it could not be inferred.
+    """
     decode_def = None
 
     # Use the user-provided pipeline / pipeline factory
