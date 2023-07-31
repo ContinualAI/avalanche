@@ -26,7 +26,6 @@ from typing import (
 )
 import numpy as np
 
-import torch
 from torch.utils.data import DistributedSampler, Dataset
 from torch.utils.data.dataloader import DataLoader
 
@@ -69,7 +68,6 @@ class MultiDatasetDataLoader:
         oversample_small_datasets: bool = False,
         distributed_sampling: bool = True,
         never_ending: bool = False,
-        use_ffcv: bool = True,
         **kwargs
     ):
         """Custom data loader for loading batches from multiple datasets.
@@ -107,9 +105,6 @@ class MultiDatasetDataLoader:
             never end. In this case, the `termination_dataset` and
             `oversample_small_datasets` parameters are ignored. Defaults to
             False.
-        :param use_ffcv: If True, use FFCV data loading mechanism. Has effect
-            only if the support for FFCV has been explicitly enabled by the
-            user. Defaults to True.
         :param kwargs: data loader arguments used to instantiate the loader for
             each dataset. See PyTorch :class:`DataLoader`.
         """
@@ -136,7 +131,6 @@ class MultiDatasetDataLoader:
         self.termination_dataset: int = termination_dataset
         self.never_ending: bool = never_ending
 
-        self.use_ffcv: bool = use_ffcv
         self.loader_kwargs, self.ffcv_args = self._extract_ffcv_args(self.loader_kwargs)
 
         # Only used if persistent_workers == True in loader kwargs
@@ -220,7 +214,7 @@ class MultiDatasetDataLoader:
             never_ending=self.never_ending,
         )
 
-        if self.use_ffcv and has_ffcv_support(self.datasets):
+        if has_ffcv_support(self.datasets):
             loader = self._make_ffcv_loader(
                 self.datasets,
                 multi_dataset_batch_sampler,
