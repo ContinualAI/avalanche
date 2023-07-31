@@ -440,6 +440,16 @@ class SmartModuleWrapper(Operation):
         expected_shape: Union[Tuple[int, ...], Literal["as_previous"]] = "as_previous",
         smart_reshape: bool = True,
     ):
+        """
+        Creates an instance of a SmartModuleWrapper.
+
+        :param module: The module to use. The module must be able to process
+            the inputs in batches.
+        :param expected_out_type: The expected type of the output. Default to `as_previous`.
+        :param expected_shape: The expected shape of the output. Default to `as_previous`.
+        :param smart_reshape: If True, will try to compute the proper shape conversion
+            when the input is NumPy and the shape suggests that an image is being passed.  
+        """
         super().__init__()
         self.module = module
         self.expected_out_type = expected_out_type
@@ -452,6 +462,12 @@ class SmartModuleWrapper(Operation):
         return f"SmartModuleWrapper({self.module})"
 
     def generate_code(self) -> Callable:
+        """
+        Obtain the correct function for the given input and output
+        definitions.
+
+        :return: The callable to be used as the transformation.
+        """
         def convert_apply_convert_reshape(inp, _):
             inp_as_tensor = torch.from_numpy(inp)
             # N, H, W, C -> N, C, H, W
