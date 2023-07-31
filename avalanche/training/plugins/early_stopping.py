@@ -77,10 +77,9 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         self.best_val = None
         self.best_step: Optional[int] = None
 
-    def before_training(self, strategy, **kwargs):
+    def before_training_exp(self, strategy, **kwargs):
         self.best_state = None
         self.best_val = None
-        self.best_step = None
         self.best_step = None
 
     def before_training_iteration(self, strategy, **kwargs):
