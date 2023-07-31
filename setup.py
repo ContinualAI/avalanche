@@ -62,7 +62,7 @@ setuptools.setup(
     ],
     python_requires=">=3.7,<3.11",
     install_requires=[
-        "typing-extensions",
+        "typing-extensions==4.4.0",
         "psutil",
         "gputil",
         "scikit-learn",
@@ -78,7 +78,7 @@ setuptools.setup(
         "gdown",
         "quadprog",
         "dill",
-        "setuptools<=59.5.0",
+        "packaging",
     ],
     extras_require=get_extra_requires("extra_dependencies.txt", add_all=True),
     include_package_data=True,

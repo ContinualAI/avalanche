@@ -1,12 +1,10 @@
 from typing import Callable, List, Sequence, Optional, Union
+from packaging.version import parse
+import warnings
+import torch
 
-import pkg_resources
-from pkg_resources import DistributionNotFound, VersionConflict
-
-try:
-    pkg_resources.require("torch>=2.0.0")
-except (DistributionNotFound, VersionConflict) as e:
-    raise RuntimeError(f"LaMAML requires torch >= 2.0.0.")
+if parse(torch.__version__) < parse("2.0.0"):
+    warnings.warn(f"LaMAML requires torch >= 2.0.0.")
 
 import torch
 import torch.nn as nn
@@ -20,7 +18,6 @@ from copy import deepcopy
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedMetaLearningTemplate
-from avalanche.models.utils import avalanche_forward
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
 
 

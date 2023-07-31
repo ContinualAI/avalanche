@@ -85,7 +85,7 @@ Current Release
 
 Avalanche is a framework in constant development. Thanks to the support of the [ContinualAI](https://www.continualai.org/) community and its active members we are quickly extending its features and improve its usability based on the demands of our research community!
 
-A the moment, Avalanche is in [**Beta (v0.3.1)**](https://github.com/ContinualAI/avalanche/releases/tag/v0.3.1). We support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
+A the moment, Avalanche is in **Beta**. We support [several *Benchmarks*, *Strategies* and *Metrics*](https://avalanche.continualai.org/getting-started/alpha-version), that make it, we believe, the best tool out there for your continual learning research! 💪
 
 **You can install Avalanche by running `pip install avalanche-lib`.**  
 This will install the core Avalanche package. You can install Avalanche with extra packages to enable more functionalities.  
@@ -128,7 +128,7 @@ Maintained by ContinualAI Lab
 
 *Avalanche* is the flagship open-source collaborative project of [ContinualAI](https://www.continualai.org/): a non-profit research organization and the largest open community on Continual Learning for AI.
 
-Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](https://avalanche.continualai.org/questions-and-issues/ask-your-question) center. Do you want to improve Avalanche yourself? Follow these simple rules on [How to Contribute](https://app.gitbook.com/@continualai/s/avalanche/~/drafts/-MMtZhFEUwjWE4nnEpIX/from-zero-to-hero-tutorial/6.-contribute-to-avalanche).
+Do you have a question, do you want to report an issue or simply ask for a new feature? Check out the [Questions & Issues](https://avalanche.continualai.org/questions-and-issues/ask-your-question) center. Do you want to improve Avalanche yourself? Follow these simple rules on [How to Contribute](https://avalanche.continualai.org/from-zero-to-hero-tutorial/09_contribute-to-avalanche).
 
 The Avalanche project is maintained by the collaborative research team [ContinualAI Lab](https://www.continualai.org/lab/) and used extensively by the Units of the [ContinualAI Research (CLAIR)](https://www.continualai.org/research/) consortium, a research network of the major continual learning stakeholders around the world.
 

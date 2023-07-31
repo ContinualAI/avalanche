@@ -8,7 +8,7 @@ Welcome to the "_Evaluation_" tutorial of the "_From Zero to Hero_" series. In t
 
 
 ```python
-!pip install avalanche-lib==0.3.1
+!pip install avalanche-lib==0.4
 ```
 
 ## 📈 The Evaluation Module
@@ -349,3 +349,5 @@ This completes the "_Evaluation_" tutorial for the "_From Zero to Hero_" series.
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/from-zero-to-hero-tutorial/05_evaluation.ipynb)
+
+

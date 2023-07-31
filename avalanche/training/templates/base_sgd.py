@@ -1,5 +1,5 @@
 from typing import Any, Callable, Iterable, Sequence, Optional, TypeVar, Union
-from pkg_resources import parse_version
+from packaging.version import parse
 
 import torch
 from torch.nn import Module, CrossEntropyLoss

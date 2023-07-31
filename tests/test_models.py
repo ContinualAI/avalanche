@@ -1,6 +1,7 @@
 import sys
 import os
 import copy
+import tempfile
 
 import unittest
 
@@ -638,6 +639,12 @@ class NCMClassifierTest(unittest.TestCase):
         classifier.replace_class_means_dict(new_dict)
         assert (classifier.class_means[:, 0] == 2).all()
 
+    def test_ncm_forward_without_class_means(self):
+        classifier = NCMClassifier()
+        classifier.init_missing_classes(list(range(10)), 7, "cpu")
+        logits = classifier(torch.randn(2, 7))
+        assert logits.shape == (2, 10)
+
     def test_ncm_save_load(self):
         classifier = NCMClassifier()
         classifier.update_class_means_dict(
@@ -650,10 +657,13 @@ class NCMClassifierTest(unittest.TestCase):
                 ),
             }
         )
-        torch.save(classifier.state_dict(), "ncm.pt")
-        del classifier
-        classifier = NCMClassifier()
-        check = torch.load("ncm.pt")
+
+        with tempfile.TemporaryFile() as tmpfile:
+            torch.save(classifier.state_dict(), tmpfile)
+            del classifier
+            classifier = NCMClassifier()
+            tmpfile.seek(0)
+            check = torch.load(tmpfile)
         classifier.load_state_dict(check)
         assert classifier.class_means.shape == (3, 5)
         assert (classifier.class_means[0] == 0).all()

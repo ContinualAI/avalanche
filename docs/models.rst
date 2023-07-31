@@ -54,6 +54,7 @@ Models
     LeNet5
     SlimResNet18
     MTSlimResNet18
+    ExpertGate
 
 
 Progressive Neural Networks

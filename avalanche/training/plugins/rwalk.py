@@ -237,8 +237,8 @@ class RWalkPlugin(SupervisedPlugin):
         max_imp = max(map(lambda x: x.data.max(), self.exp_importance.values()))
 
         for k, score in self.exp_scores.items():
-            if k not in self.exp_scores:
-                continue
+            if k not in self.exp_importance:
+                continue  # some params may not have gradients
             imp = self.exp_importance[k]
             shape = imp.data.shape
             self.exp_penalties[k] = ParamData(

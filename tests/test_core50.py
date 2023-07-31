@@ -38,6 +38,11 @@ class CORe50Test(unittest.TestCase):
         classes_in_test = benchmark_instance.classes_in_experience["test"][0]
         self.assertSetEqual(set(range(50)), set(classes_in_test))
 
+        # Regression tests for issue #774
+        self.assertSequenceEqual([10] + ([5] * 8), benchmark_instance.n_classes_per_exp)
+        self.assertSetEqual(set(range(50)), set(benchmark_instance.classes_order))
+        self.assertEqual(50, len(benchmark_instance.classes_order))
+
 
 if __name__ == "__main__":
     unittest.main()
