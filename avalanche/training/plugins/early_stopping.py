@@ -94,7 +94,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
 
     def before_training_epoch(self, strategy, **kwargs):
         if self.peval_mode == "epoch":
-            ub = self._update_best(strategy)            
+            ub = self._update_best(strategy)
             if ub is None or self.best_step is None:
                 return
             curr_step = self._get_strategy_counter(strategy)
