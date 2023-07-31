@@ -324,7 +324,8 @@ def leaf_datasets(dataset: TraverseT, include_leaf_transforms: bool = True):
 
     leaves_dict: Dict[Any, List[Tuple[int, Any]]] = defaultdict(list)
     for leaf_dataset, idx, transform in leaves:
-        leaves_dict[leaf_dataset].append((idx, transform))
+        transform_reversed = list(reversed(transform))
+        leaves_dict[leaf_dataset].append((idx, transform_reversed))
 
     return leaves_dict
 
