@@ -166,4 +166,147 @@ class ACECriterion(RegularizationMethod):
         return (loss_buffer + loss_current) / 2
 
 
-__all__ = ["RegularizationMethod", "LearningWithoutForgetting", "ACECriterion"]
+class AMLCriterion(RegularizationMethod):
+    """
+    Asymmetric metric learning (AML) Criterion used in
+    "New Insights on Reducing Abrupt Representation
+    Change in Online Continual Learning"
+    by Lucas Caccia et. al.
+    https://openreview.net/forum?id=N8MaByOzUfb
+    """
+
+    def __init__(
+        self,
+        feature_extractor,
+        temp: float = 0.1,
+        base_temp: float = 0.07,
+        same_task_neg: bool = True,
+        device: str = "cpu",
+    ):
+        """
+        ER_AML criterion constructor.
+        :param feature_extractor: Model able to map an input in a latent space.
+        :param temp: Supervised contrastive temperature.
+        :param base_temp: Supervised contrastive base temperature.
+        :param same_task_neg: Option to remove negative samples of different tasks.
+        :param device: Accelerator used to speed up the computation.
+        """
+        self.device = device
+        self.feature_extractor = feature_extractor
+        self.temp = temp
+        self.base_temp = base_temp
+        self.same_task_neg = same_task_neg
+
+    def __sample_pos_neg(
+        self,
+        y_in: torch.Tensor,
+        t_in: torch.Tensor,
+        x_memory: torch.Tensor,
+        y_memory: torch.Tensor,
+        t_memory: torch.Tensor,
+    ) -> tuple:
+        """
+        Method able to sample positive and negative examples with respect the input minibatch from input and buffer minibatches.
+        :param x_in: Input of new minibatch.
+        :param y_in: Output of new minibatch.
+        :param t_in: Task ids of new minibatch.
+        :param x_memory: Input of memory.
+        :param y_memory: Output of minibatch.
+        :param t_memory: Task ids of minibatch.
+        :return: Tuple of positive and negative input and output examples and a mask for identify invalid values.
+        """
+        valid_pos = y_in.reshape(1, -1) == y_memory.reshape(-1, 1)
+        if self.same_task_neg:
+            same_task = t_in.view(1, -1) == t_memory.view(-1, 1)
+            valid_neg = ~valid_pos & same_task
+        else:
+            valid_neg = ~valid_pos
+
+        pos_idx = torch.multinomial(valid_pos.float().T, 1).squeeze(1)
+        neg_idx = torch.multinomial(valid_neg.float().T, 1).squeeze(1)
+
+        pos_x = x_memory[pos_idx]
+        pos_y = y_memory[pos_idx]
+        neg_x = x_memory[neg_idx]
+        neg_y = y_memory[neg_idx]
+
+        return pos_x, pos_y, neg_x, neg_y
+
+    def __sup_con_loss(
+        self,
+        anchor_features: torch.Tensor,
+        features: torch.Tensor,
+        anchor_targets: torch.Tensor,
+        targets: torch.Tensor,
+    ) -> torch.Tensor:
+        """
+        Method able to compute the supervised contrastive loss of new minibatch.
+        :param anchor_features: Anchor features related to new minibatch duplicated mapped in latent space.
+        :param features: Features related to half positive and half negative examples mapped in latent space.
+        :param anchor_targets: Labels related to anchor features.
+        :param targets: Labels related to features.
+        :return: Supervised contrastive loss.
+        """
+        pos_mask = (
+            (anchor_targets.reshape(-1, 1) == targets.reshape(1, -1))
+            .float()
+            .to(self.device)
+        )
+        similarity = anchor_features @ features.T / self.temp
+        similarity -= similarity.max(dim=1)[0].detach()
+        log_prob = similarity - torch.log(torch.exp(similarity).sum(1))
+        mean_log_prob_pos = (pos_mask * log_prob).sum(1) / pos_mask.sum(1)
+        loss = -(self.temp / self.base_temp) * mean_log_prob_pos.mean()
+        return loss
+
+    def __scale_by_norm(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Function able to scale by its norm a certain tensor.
+        :param x: Tensor to normalize.
+        :return: Normalized tensor.
+        """
+        x_norm = torch.norm(x, p=2, dim=1).unsqueeze(1).expand_as(x)
+        return x / (x_norm + 1e-05)
+
+    def __call__(
+        self,
+        input_in: torch.Tensor,
+        target_in: torch.Tensor,
+        task_in: torch.Tensor,
+        output_buffer: torch.Tensor,
+        target_buffer: torch.Tensor,
+        pos_neg_replay: tuple,
+    ) -> torch.Tensor:
+        """
+        Method able to compute the ER_AML loss.
+        :param input_in: New inputs examples.
+        :param target_in: Labels of new examples.
+        :param task_in: Task identifiers of new examples.
+        :param output_buffer: Predictions of samples from buffer.
+        :param target_buffer: Labels of samples from buffer.
+        :param pos_neg_replay: Replay data to compute positive and negative samples.
+        :return: ER_AML computed loss.
+        """
+        pos_x, pos_y, neg_x, neg_y = self.__sample_pos_neg(
+            target_in, task_in, *pos_neg_replay
+        )
+        loss_buffer = F.cross_entropy(output_buffer, target_buffer)
+        hidden_in = self.__scale_by_norm(self.feature_extractor(input_in))
+        hidden_pos_neg = self.__scale_by_norm(
+            self.feature_extractor(torch.cat((pos_x, neg_x)))
+        )
+        loss_in = self.__sup_con_loss(
+            anchor_features=hidden_in.repeat(2, 1),
+            features=hidden_pos_neg,
+            anchor_targets=target_in.repeat(2),
+            targets=torch.cat((pos_y, neg_y)),
+        )
+        return loss_in + loss_buffer
+
+
+__all__ = [
+    "RegularizationMethod",
+    "LearningWithoutForgetting",
+    "ACECriterion",
+    "AMLCriterion",
+]
