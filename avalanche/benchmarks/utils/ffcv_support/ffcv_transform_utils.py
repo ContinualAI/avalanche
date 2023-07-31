@@ -448,7 +448,7 @@ class SmartModuleWrapper(Operation):
         :param expected_out_type: The expected type of the output. Default to `as_previous`.
         :param expected_shape: The expected shape of the output. Default to `as_previous`.
         :param smart_reshape: If True, will try to compute the proper shape conversion
-            when the input is NumPy and the shape suggests that an image is being passed.  
+            when the input is NumPy and the shape suggests that an image is being passed.
         """
         super().__init__()
         self.module = module
@@ -468,6 +468,7 @@ class SmartModuleWrapper(Operation):
 
         :return: The callable to be used as the transformation.
         """
+
         def convert_apply_convert_reshape(inp, _):
             inp_as_tensor = torch.from_numpy(inp)
             # N, H, W, C -> N, C, H, W
