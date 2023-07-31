@@ -77,10 +77,9 @@ class EarlyStoppingPlugin(SupervisedPlugin):
         self.best_val = None
         self.best_step: Optional[int] = None
 
-    def before_training(self, strategy, **kwargs):
+    def before_training_exp(self, strategy, **kwargs):
         self.best_state = None
         self.best_val = None
-        self.best_step = None
         self.best_step = None
 
     def before_training_iteration(self, strategy, **kwargs):
@@ -95,7 +94,7 @@ class EarlyStoppingPlugin(SupervisedPlugin):
 
     def before_training_epoch(self, strategy, **kwargs):
         if self.peval_mode == "epoch":
-            ub = self._update_best(strategy)
+            ub = self._update_best(strategy)            
             if ub is None or self.best_step is None:
                 return
             curr_step = self._get_strategy_counter(strategy)
