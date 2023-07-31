@@ -382,7 +382,7 @@ class BaseSGDTemplate(
         num_workers=0,
         shuffle=True,
         pin_memory=None,
-        persistent_workers=True,
+        persistent_workers=False,
         drop_last=False,
         **kwargs
     ):

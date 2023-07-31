@@ -428,7 +428,7 @@ class HybridFfcvLoader:
         batch_sampler: Iterable[List[int]],
         ffcv_loader_parameters: Dict[str, Any],
         device: Optional[Union[str, torch.device]] = None,
-        persistent_workers: bool = True,
+        persistent_workers: bool = False,
         print_ffcv_summary: bool = True,
         start_immediately: bool = False,
     ):
@@ -443,7 +443,7 @@ class HybridFfcvLoader:
             `ALREADY_COVERED_PARAMS` class field, as they are already set by Avalanche.
         :param device: The target device.
         :param persistent_workers: If True, this loader will not re-create the FFCV loader
-            between epochs. Defaults to True
+            between epochs. Defaults to False.
         :param print_ffcv_summary: If True, a summary of the decoder pipeline (and additional
             useful info) will be printed. Defaults to True.
         :param start_immediately: If True, the FFCV loader should be started immediately.
