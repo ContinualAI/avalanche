@@ -24,13 +24,17 @@ try:
     from pycocotools.coco import COCO
     from pycocotools import mask as coco_mask
 except ImportError:
-    raise ModuleNotFoundError(
+    import warnings
+    warnings.warn(
         "LVIS or PyCocoTools not found, "
         "if you want to use detection "
         "please install avalanche with the "
         "detection dependencies: "
         "pip install avalanche-lib[detection]"
     )
+    LVIS = object
+    COCO = object
+    coco_mask = object
 
 from torch import Tensor
 from json import JSONEncoder

@@ -14,13 +14,16 @@ import os
 
 try:
     import torchaudio
+    from torchaudio.datasets import SPEECHCOMMANDS
 except ImportError:
-    raise ModuleNotFoundError(
-        "TorchAudio package is required to load its dataset. "
+    import warnings
+    warnings.warn(
+        "TorchAudio package is required to load SpeechCommands. "
         "You can install it as extra dependency with "
         "`pip install avalanche-lib[extra]`"
     )
-from torchaudio.datasets import SPEECHCOMMANDS
+    SPEECHCOMMANDS = object
+
 from avalanche.benchmarks.utils import make_classification_dataset
 from avalanche.benchmarks.datasets import default_dataset_location
 import torch
