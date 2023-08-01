@@ -46,8 +46,10 @@ class SupervisedProblem(SupervisedStrategyProtocol):
 
         if isinstance(mbatch, tuple):
             mbatch = list(mbatch)
+            self.mbatch = mbatch
+
         for i in range(len(mbatch)):
-            self.mbatch[i] = mbatch[i].to(self.device)  # type: ignore
+            mbatch[i] = mbatch[i].to(self.device)  # type: ignore
 
 
 __all__ = ["SupervisedProblem"]
