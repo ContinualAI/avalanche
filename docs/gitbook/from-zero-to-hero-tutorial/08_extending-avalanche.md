@@ -6,7 +6,7 @@ description: 'Make it Custom, Make it Yours'
 
 
 ```python
-!pip install avalanche-lib==0.3.1
+!pip install avalanche-lib==0.4
 ```
 
 
@@ -26,8 +26,3 @@ If you think your changes may be interesting for the rest of the _Continual Lear
 
 You can run _this chapter_ and play with it on Google Colaboratory:
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/from-zero-to-hero-tutorial/08_extending-avalanche.ipynb)
-
-
-```python
-
-```

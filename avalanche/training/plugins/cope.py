@@ -58,7 +58,7 @@ class CoPEPlugin(SupervisedPlugin):
 
         # Operational memory: Prototypical memory
         # Scales with nb classes * feature size
-        self.p_mem: Dict[int, Tensor] = {}  
+        self.p_mem: Dict[int, Tensor] = {}
         self.p_size = p_size  # Prototype size determined on runtime
         self.tmp_p_mem = {}  # Intermediate to process batch for multiple times
         self.alpha = alpha
@@ -93,9 +93,7 @@ class CoPEPlugin(SupervisedPlugin):
 
             self.initialized = True
 
-    def before_training_exp(
-        self, strategy, num_workers=0, shuffle=True, **kwargs
-    ):
+    def before_training_exp(self, strategy, num_workers=0, shuffle=True, **kwargs):
         """
         Random retrieval from a class-balanced memory.
         Dataloader builds batches containing examples from both memories and
@@ -170,15 +168,10 @@ class CoPEPlugin(SupervisedPlugin):
             c = y_unique[idx].item()
             idxs = torch.nonzero(strategy.mb_y == c).squeeze(1)
             p_tmp_batch = (
-                strategy.mb_output[idxs]
-                .sum(dim=0)
-                .unsqueeze(0)
-                .to(strategy.device)
+                strategy.mb_output[idxs].sum(dim=0).unsqueeze(0).to(strategy.device)
             )
 
-            p_init, cnt_init = (
-                self.tmp_p_mem[c] if c in self.tmp_p_mem else (0, 0)
-            )
+            p_init, cnt_init = self.tmp_p_mem[c] if c in self.tmp_p_mem else (0, 0)
             self.tmp_p_mem[c] = (p_init + p_tmp_batch, cnt_init + len(idxs))
 
     def after_training_exp(self, strategy, **kwargs):
@@ -284,9 +277,7 @@ class PPPloss(object):
 
         # All prototypes
         p_y = torch.tensor([c for c in self.p_mem.keys()]).to(x.device).detach()
-        p_x = (
-            torch.cat([self.p_mem[c.item()] for c in p_y]).to(x.device).detach()
-        )
+        p_x = torch.cat([self.p_mem[c.item()] for c in p_y]).to(x.device).detach()
 
         for label_idx in range(y_unique.size(0)):  # Per-class operation
             c = y_unique[label_idx]

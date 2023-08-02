@@ -19,7 +19,7 @@ on:
       - '.github/workflows/environment-update.yml'
       - 'environment.yml'
   schedule:
-    - cron: '0 0 * * 0'  # midnight of every sunday
+    - cron: '0 0 * * 0'  # midnight of every Sunday
 
 
 jobs:

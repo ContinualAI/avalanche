@@ -164,14 +164,12 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
 
     def __getstate__(self):
         out = super().__getstate__()
-        del out['_pbar']
+        del out["_pbar"]
         return out
 
     def __setstate__(self, state):
-        state['_pbar'] = None
+        state["_pbar"] = None
         super().__setstate__(state)
 
 
-__all__ = [
-    'InteractiveLogger'
-]
+__all__ = ["InteractiveLogger"]

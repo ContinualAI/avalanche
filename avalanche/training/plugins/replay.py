@@ -1,6 +1,8 @@
 from typing import Optional, TYPE_CHECKING
 
-from avalanche.benchmarks.utils import concat_classification_datasets
+from packaging.version import parse
+import torch
+
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.storage_policy import (
@@ -50,7 +52,7 @@ class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
         batch_size: Optional[int] = None,
         batch_size_mem: Optional[int] = None,
         task_balanced_dataloader: bool = False,
-        storage_policy: Optional["ExemplarsBuffer"] = None
+        storage_policy: Optional["ExemplarsBuffer"] = None,
     ):
         super().__init__()
         self.mem_size = mem_size
@@ -97,6 +99,18 @@ class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
             batch_size_mem = strategy.train_mb_size
 
         assert strategy.adapted_dataset is not None
+
+        other_dataloader_args = dict()
+
+        if "ffcv_args" in kwargs:
+            other_dataloader_args["ffcv_args"] = kwargs["ffcv_args"]
+
+        if "persistent_workers" in kwargs:
+            if parse(torch.__version__) >= parse("1.7.0"):
+                other_dataloader_args["persistent_workers"] = kwargs[
+                    "persistent_workers"
+                ]
+
         strategy.dataloader = ReplayDataLoader(
             strategy.adapted_dataset,
             self.storage_policy.buffer,
@@ -107,6 +121,7 @@ class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
             num_workers=num_workers,
             shuffle=shuffle,
             drop_last=drop_last,
+            **other_dataloader_args
         )
 
     def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):

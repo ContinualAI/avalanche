@@ -34,7 +34,12 @@ def reset_optimizer(optimizer, model):
     :param model:
     :return:
     """
-    assert len(optimizer.param_groups) == 1
+    if len(optimizer.param_groups) != 1:
+        raise ValueError(
+            "This function only supports single parameter groups."
+            "If you need to use multiple parameter groups, "
+            "you can override `make_optimizer` in the Avalanche strategy."
+        )
     optimizer.state = defaultdict(dict)
 
     parameters = []
@@ -48,12 +53,7 @@ def reset_optimizer(optimizer, model):
     return optimized_param_id
 
 
-def update_optimizer(
-        optimizer, 
-        new_params, 
-        optimized_params, 
-        reset_state=False
-):
+def update_optimizer(optimizer, new_params, optimized_params, reset_state=False):
     """Update the optimizer by adding new parameters,
     removing removed parameters, and adding new parameters
     to the optimizer, for instance after model has been adapted
@@ -63,7 +63,7 @@ def update_optimizer(
     Newly added parameters are added by default to parameter group 0
 
     :param new_params: Dict (name, param) of new parameters
-    :param optimized_params: Dict (name, param) of 
+    :param optimized_params: Dict (name, param) of
         currently optimized parameters (returned by reset_optimizer)
     :param reset_state: Wheter to reset the optimizer's state (i.e momentum).
         Defaults to False.
@@ -87,8 +87,9 @@ def update_optimizer(
                         optimizer.state[new_p] = {}
                     break
         if not found:
-            raise Exception(f"Parameter {key} expected but "
-                            "not found in the optimizer")
+            raise Exception(
+                f"Parameter {key} expected but " "not found in the optimizer"
+            )
 
     # Remove parameters that are not here anymore
     # This should not happend in most use case
@@ -105,11 +106,12 @@ def update_optimizer(
                     optimized_params.pop(key)
                     break
         if not found:
-            raise Exception(f"Parameter {key} expected but " 
-                            "not found in the optimizer")
+            raise Exception(
+                f"Parameter {key} expected but " "not found in the optimizer"
+            )
 
     for i, idx_list in enumerate(keys_to_remove):
-        for (j, p) in sorted(idx_list, key=lambda x: x[0], reverse=True):
+        for j, p in sorted(idx_list, key=lambda x: x[0], reverse=True):
             del optimizer.param_groups[i]["params"][j]
             if p in optimizer.state:
                 optimizer.state.pop(p)

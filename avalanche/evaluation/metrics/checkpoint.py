@@ -10,9 +10,11 @@
 ################################################################################
 
 import copy
-from typing import TYPE_CHECKING
+import io
+from typing import TYPE_CHECKING, Optional
 
 from torch import Tensor
+import torch
 
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue, MetricResult
@@ -46,9 +48,9 @@ class WeightCheckpoint(PluginMetric[Tensor]):
         retrieved using the `result` method.
         """
         super().__init__()
-        self.weights = None
+        self.weights: Optional[bytes] = None
 
-    def update(self, weights) -> Tensor:
+    def update(self, weights: bytes):
         """
         Update the weight checkpoint at the current experience.
 
@@ -57,7 +59,7 @@ class WeightCheckpoint(PluginMetric[Tensor]):
         """
         self.weights = weights
 
-    def result(self) -> Tensor:
+    def result(self) -> Optional[bytes]:
         """
         Retrieves the weight checkpoint at the current experience.
 
@@ -75,21 +77,24 @@ class WeightCheckpoint(PluginMetric[Tensor]):
 
     def _package_result(self, strategy) -> "MetricResult":
         weights = self.result()
+        if weights is None:
+            return None
+
         metric_name = get_metric_name(
             self, strategy, add_experience=True, add_task=False
         )
         return [
-            MetricValue(
-                self, metric_name, weights, strategy.clock.train_iterations
-            )
+            MetricValue(self, metric_name, weights, strategy.clock.train_iterations)
         ]
 
-    def after_training_exp(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
-        model_params = copy.deepcopy(strategy.model.parameters())
-        self.update(model_params)
-        return None
+    def after_training_exp(self, strategy: "SupervisedTemplate") -> "MetricResult":
+        buff = io.BytesIO()
+        model_params = copy.deepcopy(strategy.model).to("cpu")
+        torch.save(model_params, buff)
+        buff.seek(0)
+        self.update(buff.read())
+
+        return self._package_result(strategy)
 
     def __str__(self):
         return "WeightCheckpoint"

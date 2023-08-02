@@ -49,9 +49,7 @@ class SITTests(unittest.TestCase):
 
         all_classes = set()
         for batch_id in range(5):
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][batch_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -77,9 +75,7 @@ class SITTests(unittest.TestCase):
 
         all_classes = []
         for batch_id in range(5):
-            all_classes.extend(
-                my_nc_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.extend(my_nc_benchmark.classes_in_experience["train"][batch_id])
 
         self.assertEqual(order, all_classes)
 
@@ -110,9 +106,7 @@ class SITTests(unittest.TestCase):
             self.assertEqual(
                 2, len(my_nc_benchmark.classes_in_experience["train"][batch_id])
             )
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][batch_id])
 
         self.assertEqual(set(order), all_classes)
 
@@ -144,9 +138,7 @@ class SITTests(unittest.TestCase):
             self.assertEqual(
                 2, len(my_nc_benchmark.classes_in_experience["train"][batch_id])
             )
-            all_classes.extend(
-                my_nc_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.extend(my_nc_benchmark.classes_in_experience["train"][batch_id])
         self.assertEqual(list(range(8)), all_classes)
 
         # Regression test for issue #258
@@ -154,9 +146,7 @@ class SITTests(unittest.TestCase):
             unique_dataset_classes = sorted(set(experience.dataset.targets))
             expected_dataset_classes = list(range(2 * i, 2 * (i + 1)))
 
-            self.assertListEqual(
-                expected_dataset_classes, unique_dataset_classes
-            )
+            self.assertListEqual(expected_dataset_classes, unique_dataset_classes)
             self.assertListEqual(
                 sorted(order[2 * i : 2 * (i + 1)]),
                 sorted(my_nc_benchmark.original_classes_in_exp[i]),
@@ -204,9 +194,7 @@ class SITTests(unittest.TestCase):
             self.assertEqual(
                 2, len(my_nc_benchmark.classes_in_experience["train"][batch_id])
             )
-            all_classes.extend(
-                my_nc_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.extend(my_nc_benchmark.classes_in_experience["train"][batch_id])
         self.assertEqual(8, len(all_classes))
         self.assertListEqual([0, 1], sorted(set(all_classes)))
 
@@ -214,9 +202,7 @@ class SITTests(unittest.TestCase):
         for i, experience in enumerate(my_nc_benchmark.train_stream):
             unique_dataset_classes = sorted(set(experience.dataset.targets))
             expected_dataset_classes = [0, 1]
-            self.assertListEqual(
-                expected_dataset_classes, unique_dataset_classes
-            )
+            self.assertListEqual(expected_dataset_classes, unique_dataset_classes)
             self.assertListEqual(
                 sorted(order[2 * i : 2 * (i + 1)]),
                 sorted(my_nc_benchmark.original_classes_in_exp[i]),
@@ -285,20 +271,12 @@ class SITTests(unittest.TestCase):
 
         all_classes = set()
         for batch_id in range(3):
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][batch_id])
         self.assertEqual(10, len(all_classes))
 
-        self.assertEqual(
-            5, len(my_nc_benchmark.classes_in_experience["train"][0])
-        )
-        self.assertEqual(
-            3, len(my_nc_benchmark.classes_in_experience["train"][1])
-        )
-        self.assertEqual(
-            2, len(my_nc_benchmark.classes_in_experience["train"][2])
-        )
+        self.assertEqual(5, len(my_nc_benchmark.classes_in_experience["train"][0]))
+        self.assertEqual(3, len(my_nc_benchmark.classes_in_experience["train"][1]))
+        self.assertEqual(2, len(my_nc_benchmark.classes_in_experience["train"][2]))
 
     def test_sit_multi_dataset_one_batch_per_set(self):
         split_mapping = [0, 1, 2, 0, 1, 2, 3, 4, 5, 6]
@@ -313,25 +291,15 @@ class SITTests(unittest.TestCase):
             download=True,
         )
 
-        train_part1 = make_nc_transformation_subset(
-            mnist_train, None, None, range(3)
-        )
+        train_part1 = make_nc_transformation_subset(mnist_train, None, None, range(3))
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(3, 10)
         )
-        train_part2 = classification_subset(
-            train_part2, class_mapping=split_mapping
-        )
+        train_part2 = classification_subset(train_part2, class_mapping=split_mapping)
 
-        test_part1 = make_nc_transformation_subset(
-            mnist_test, None, None, range(3)
-        )
-        test_part2 = make_nc_transformation_subset(
-            mnist_test, None, None, range(3, 10)
-        )
-        test_part2 = classification_subset(
-            test_part2, class_mapping=split_mapping
-        )
+        test_part1 = make_nc_transformation_subset(mnist_test, None, None, range(3))
+        test_part2 = make_nc_transformation_subset(mnist_test, None, None, range(3, 10))
+        test_part2 = classification_subset(test_part2, class_mapping=split_mapping)
         my_nc_benchmark = nc_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
@@ -347,9 +315,7 @@ class SITTests(unittest.TestCase):
 
         all_classes = set()
         for batch_id in range(2):
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][batch_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -360,10 +326,8 @@ class SITTests(unittest.TestCase):
                 == set(range(3, 10))
             )
             or (
-                my_nc_benchmark.classes_in_experience["train"][0]
-                == set(range(3, 10))
-                and my_nc_benchmark.classes_in_experience["train"][1]
-                == {0, 1, 2}
+                my_nc_benchmark.classes_in_experience["train"][0] == set(range(3, 10))
+                and my_nc_benchmark.classes_in_experience["train"][1] == {0, 1, 2}
             )
         )
 
@@ -380,25 +344,15 @@ class SITTests(unittest.TestCase):
             download=True,
         )
 
-        train_part1 = make_nc_transformation_subset(
-            mnist_train, None, None, range(5)
-        )
+        train_part1 = make_nc_transformation_subset(mnist_train, None, None, range(5))
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(5, 10)
         )
-        train_part2 = classification_subset(
-            train_part2, class_mapping=split_mapping
-        )
+        train_part2 = classification_subset(train_part2, class_mapping=split_mapping)
 
-        test_part1 = make_nc_transformation_subset(
-            mnist_test, None, None, range(5)
-        )
-        test_part2 = make_nc_transformation_subset(
-            mnist_test, None, None, range(5, 10)
-        )
-        test_part2 = classification_subset(
-            test_part2, class_mapping=split_mapping
-        )
+        test_part1 = make_nc_transformation_subset(mnist_test, None, None, range(5))
+        test_part2 = make_nc_transformation_subset(mnist_test, None, None, range(5, 10))
+        test_part2 = classification_subset(test_part2, class_mapping=split_mapping)
         my_nc_benchmark = nc_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
@@ -417,9 +371,7 @@ class SITTests(unittest.TestCase):
 
         all_classes = set()
         for batch_id in range(5):
-            all_classes.update(
-                my_nc_benchmark.classes_in_experience["train"][batch_id]
-            )
+            all_classes.update(my_nc_benchmark.classes_in_experience["train"][batch_id])
 
         self.assertEqual(10, len(all_classes))
 
@@ -459,9 +411,7 @@ class SITTests(unittest.TestCase):
         self.assertEqual("train", sliced_stream.name)
 
         for batch_id, experience in enumerate(sliced_stream):
-            self.assertEqual(
-                iterable_slice[batch_id], experience.current_experience
-            )
+            self.assertEqual(iterable_slice[batch_id], experience.current_experience)
             self.assertIsInstance(experience, NCExperience)
 
         sliced_stream = my_nc_benchmark.test_stream[iterable_slice]
@@ -470,9 +420,7 @@ class SITTests(unittest.TestCase):
         self.assertEqual("test", sliced_stream.name)
 
         for batch_id, experience in enumerate(sliced_stream):
-            self.assertEqual(
-                iterable_slice[batch_id], experience.current_experience
-            )
+            self.assertEqual(iterable_slice[batch_id], experience.current_experience)
             self.assertIsInstance(experience, NCExperience)
 
     def test_nc_benchmark_transformations_basic(self):
@@ -554,13 +502,13 @@ class SITTests(unittest.TestCase):
             fixed_class_order=random_class_order,
             shuffle=False,
         )
-        
+
         cie_data = benchmark_instance.classes_in_exp_range(0, None)
         self.assertEqual(100, len(cie_data))
 
         for i in range(5):
             expected = set(random_class_order[i * 20 : (i + 1) * 20])
-            self.assertSetEqual(expected, set(cie_data[i*20: (i+1)*20]))
+            self.assertSetEqual(expected, set(cie_data[i * 20 : (i + 1) * 20]))
 
 
 if __name__ == "__main__":

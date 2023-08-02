@@ -52,9 +52,7 @@ scen2dirs = {
 
 normalize = Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-_default_train_transform = Compose(
-    [ToTensor(), RandomHorizontalFlip(), normalize]
-)
+_default_train_transform = Compose([ToTensor(), RandomHorizontalFlip(), normalize])
 
 _default_eval_transform = Compose([ToTensor(), normalize])
 
@@ -113,8 +111,7 @@ def CORe50(
     """
 
     assert 0 <= run <= 9, (
-        "Pre-defined run of CORe50 are only 10. Indicate "
-        "a number between 0 and 9."
+        "Pre-defined run of CORe50 are only 10. Indicate " "a number between 0 and 9."
     )
     assert scenario in nbatch.keys(), (
         "The selected scenario is note "
@@ -158,6 +155,20 @@ def CORe50(
         train_transform=train_transform,
         eval_transform=eval_transform,
     )
+
+    if scenario == "nc":
+        n_classes_per_exp = []
+        classes_order = []
+        for exp in benchmark_obj.train_stream:
+            exp_dataset = exp.dataset
+            unique_targets = list(
+                sorted(set(int(x) for x in exp_dataset.targets))  # type: ignore
+            )
+            n_classes_per_exp.append(len(unique_targets))
+            classes_order.extend(unique_targets)
+        setattr(benchmark_obj, "n_classes_per_exp", n_classes_per_exp)
+        setattr(benchmark_obj, "classes_order", classes_order)
+    setattr(benchmark_obj, "n_classes", 50 if object_lvl else 10)
 
     return benchmark_obj
 

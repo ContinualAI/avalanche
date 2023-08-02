@@ -25,8 +25,7 @@ import cProfile
 import pstats
 
 from avalanche.benchmarks import SplitMNIST
-from avalanche.benchmarks.scenarios.online_scenario import \
-    fixed_size_experience_split
+from avalanche.benchmarks.scenarios.online_scenario import fixed_size_experience_split
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
 from avalanche.benchmarks.scenarios import OnlineCLScenario
@@ -59,7 +58,7 @@ def profile_online_naive_no_avl(benchmark, device):
         # Iterate over the dataset and train the model
         dataloader = DataLoader(experience_0.dataset, batch_size=1)
         pbar = tqdm(dataloader)
-        for (x, y, _) in pbar:
+        for x, y, _ in pbar:
             x, y = x.to(device), y.to(device)
             optimizer.zero_grad()
             pred = model(x)
@@ -69,7 +68,7 @@ def profile_online_naive_no_avl(benchmark, device):
             pbar.set_description(f"Loss: {loss.item():0.4f}")
 
     stats = pstats.Stats(pr)
-    stats.sort_stats('tottime').print_stats(15)
+    stats.sort_stats("tottime").print_stats(15)
 
 
 ##################################################
@@ -105,17 +104,14 @@ def profile_online_naive_lazy_stream(benchmark, device):
             optimizer.step()
 
     stats = pstats.Stats(pr)
-    stats.sort_stats('tottime').print_stats(15)
+    stats.sort_stats("tottime").print_stats(15)
 
 
 ##################################################
 #        Online strategy using Avalanche
 ##################################################
 def profile_online_avl(
-        benchmark,
-        device,
-        strategy="naive",
-        use_interactive_logger: bool = True
+    benchmark, device, strategy="naive", use_interactive_logger: bool = True
 ):
     """
     Online strategy using Avalanche.
@@ -145,8 +141,9 @@ def profile_online_avl(
         if strategy == "er":
             # CREATE THE STRATEGY INSTANCE (ONLINE-REPLAY)
             storage_policy = ReservoirSamplingBuffer(max_size=100)
-            replay_plugin = ReplayPlugin(mem_size=100, batch_size=1,
-                                         storage_policy=storage_policy)
+            replay_plugin = ReplayPlugin(
+                mem_size=100, batch_size=1, storage_policy=storage_policy
+            )
             plugins.append(replay_plugin)
 
         # Create OnlineNaive strategy
@@ -158,16 +155,15 @@ def profile_online_avl(
             train_mb_size=1,
             device=device,
             evaluator=eval_plugin,
-            plugins=plugins
+            plugins=plugins,
         )
-        online_cl_scenario = OnlineCLScenario(benchmark.streams.values(),
-                                              experience_0)
+        online_cl_scenario = OnlineCLScenario(benchmark.streams.values(), experience_0)
 
         # Train on the first experience only
         cl_strategy.train(online_cl_scenario.train_stream)
 
     stats = pstats.Stats(pr)
-    stats.sort_stats('tottime').print_stats(40)
+    stats.sort_stats("tottime").print_stats(40)
 
 
 def main(args):

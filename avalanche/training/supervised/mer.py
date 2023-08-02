@@ -1,23 +1,22 @@
-from typing import Callable, Sequence, Optional, Union
+from copy import deepcopy
+from typing import Callable, Optional, Sequence, Union
 
 import torch
 import torch.nn.functional as F
-from torch.nn import Module, CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, Module
 from torch.optim import Optimizer
-from copy import deepcopy
 
-from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
-from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates import OnlineSupervisedMetaLearningTemplate
 from avalanche.models.utils import avalanche_forward
+from avalanche.training.plugins import EvaluationPlugin, SupervisedPlugin
+from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
+from avalanche.training.templates import SupervisedMetaLearningTemplate
 
 
 class MERBuffer:
-    def __init__(self, max_buffer_size=100, buffer_mb_size=10,
-                 device=torch.device("cpu")):
-        self.storage_policy = ReservoirSamplingBuffer(max_size=max_buffer_size)
-        self.buffer_mb_size = buffer_mb_size
+    def __init__(self, mem_size=100, batch_size_mem=10, device=torch.device("cpu")):
+        self.storage_policy = ReservoirSamplingBuffer(max_size=mem_size)
+        self.batch_size_mem = batch_size_mem
         self.device = device
 
     def update(self, strategy):
@@ -30,14 +29,17 @@ class MERBuffer:
         if len(self) == 0:
             return x, y, t
 
-        bsize = min(len(self), self.buffer_mb_size)
-        rnd_ind = torch.randperm(len(self))[:bsize]
-        buff_x = torch.cat([self.storage_policy.buffer[i][0].unsqueeze(0)
-                            for i in rnd_ind]).to(self.device)
-        buff_y = torch.LongTensor([self.storage_policy.buffer[i][1]
-                                   for i in rnd_ind]).to(self.device)
-        buff_t = torch.LongTensor([self.storage_policy.buffer[i][2]
-                                   for i in rnd_ind]).to(self.device)
+        bsize = min(len(self), self.batch_size_mem)
+        rnd_ind = torch.randperm(len(self))[:bsize].tolist()
+        buff_x = torch.cat(
+            [self.storage_policy.buffer[i][0].unsqueeze(0) for i in rnd_ind]
+        ).to(self.device)
+        buff_y = torch.LongTensor(
+            [self.storage_policy.buffer[i][1] for i in rnd_ind]
+        ).to(self.device)
+        buff_t = torch.LongTensor(
+            [self.storage_policy.buffer[i][2] for i in rnd_ind]
+        ).to(self.device)
 
         mixed_x = torch.cat([x, buff_x], dim=0)
         mixed_y = torch.cat([y, buff_y], dim=0)
@@ -46,25 +48,24 @@ class MERBuffer:
         return mixed_x, mixed_y, mixed_t
 
 
-class MER(OnlineSupervisedMetaLearningTemplate):
+class MER(SupervisedMetaLearningTemplate):
     def __init__(
         self,
         model: Module,
         optimizer: Optimizer,
         criterion=CrossEntropyLoss(),
-        max_buffer_size=200,
-        buffer_mb_size=10,
+        mem_size=200,
+        batch_size_mem=10,
         n_inner_steps=5,
         beta=0.1,
         gamma=0.1,
         train_mb_size: int = 1,
-        train_passes: int = 1,
+        train_epochs: int = 1,
         eval_mb_size: int = 1,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -75,8 +76,8 @@ class MER(OnlineSupervisedMetaLearningTemplate):
         :param model: PyTorch model.
         :param optimizer: PyTorch optimizer.
         :param criterion: loss function.
-        :param max_buffer_size: maximum size of the buffer.
-        :param buffer_mb_size: number of samples to retrieve from buffer
+        :param mem_size: maximum size of the buffer.
+        :param batch_size_mem: number of samples to retrieve from buffer
             for each sample.
         :param n_inner_steps: number of inner updates per sample.
         :param beta: coefficient for within-batch Reptile update.
@@ -88,7 +89,7 @@ class MER(OnlineSupervisedMetaLearningTemplate):
             optimizer,
             criterion,
             train_mb_size,
-            train_passes,
+            train_epochs,
             eval_mb_size,
             device,
             plugins,
@@ -97,9 +98,11 @@ class MER(OnlineSupervisedMetaLearningTemplate):
             peval_mode,
         )
 
-        self.buffer = MERBuffer(max_buffer_size=max_buffer_size,
-                                buffer_mb_size=buffer_mb_size,
-                                device=self.device)
+        self.buffer = MERBuffer(
+            mem_size=mem_size,
+            batch_size_mem=batch_size_mem,
+            device=self.device,
+        )
         self.n_inner_steps = n_inner_steps
         self.beta = beta
         self.gamma = gamma
@@ -127,18 +130,25 @@ class MER(OnlineSupervisedMetaLearningTemplate):
 
             # Within-batch Reptile update
             w_aft_t = self.model.state_dict()
-            self.model.load_state_dict(
-                {name: w_bef_t[name] + ((w_aft_t[name] - w_bef_t[name])
-                                        * self.beta)
-                 for name in w_bef_t}
-            )
+            load_dict = {}
+            for name, param in self.model.named_parameters():
+                load_dict[name] = w_bef_t[name] + (
+                    (w_aft_t[name] - w_bef_t[name]) * self.beta
+                )
+
+            self.model.load_state_dict(load_dict, strict=False)
 
     def _outer_update(self, **kwargs):
         w_aft = self.model.state_dict()
-        self.model.load_state_dict(
-            {name: self.w_bef[name] + ((w_aft[name] - self.w_bef[name])
-                                       * self.gamma) for name in self.w_bef}
-        )
+
+        load_dict = {}
+        for name, param in self.model.named_parameters():
+            load_dict[name] = self.w_bef[name] + (
+                (w_aft[name] - self.w_bef[name]) * self.gamma
+            )
+
+        self.model.load_state_dict(load_dict, strict=False)
+
         with torch.no_grad():
             pred = self.forward()
             self.loss = self._criterion(pred, self.mb_y)

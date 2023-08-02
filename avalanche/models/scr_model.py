@@ -11,9 +11,8 @@ class SCRModel(nn.Module):
     The input is passed through a feature extractor and then normalized
     before being fed to the classifier.
     """
-    def __init__(self,
-                 feature_extractor: nn.Module,
-                 projection: nn.Module):
+
+    def __init__(self, feature_extractor: nn.Module, projection: nn.Module):
         """
         :param feature_extractor: a pytorch module that given the input
             examples extracts the hidden features
@@ -21,7 +20,7 @@ class SCRModel(nn.Module):
             of the feature extractor
         """
         super().__init__()
-        self.ncm = NCMClassifier()
+        self.ncm = NCMClassifier(normalize=False)
         self.feature_extractor = feature_extractor
         self.train_classifier = projection
         self.eval_classifier = self.ncm

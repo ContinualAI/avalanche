@@ -80,9 +80,7 @@ class ImagesSamplePlugin(PluginMetric):
     def __str__(self):
         return "images"
 
-    def _make_grid_sample(
-        self, strategy: "SupervisedTemplate"
-    ) -> "MetricResult":
+    def _make_grid_sample(self, strategy: "SupervisedTemplate") -> "MetricResult":
         self._load_sorted_images(strategy)
 
         return [
@@ -95,9 +93,7 @@ class ImagesSamplePlugin(PluginMetric):
                     add_task=True,
                 ),
                 value=TensorImage(
-                    make_grid(
-                        list(self.images), normalize=False, nrow=self.n_cols
-                    )
+                    make_grid(list(self.images), normalize=False, nrow=self.n_cols)
                 ),
                 x_plot=strategy.clock.train_iterations,
             )
@@ -139,9 +135,7 @@ class ImagesSamplePlugin(PluginMetric):
             )
         ]
 
-    def _make_dataloader(
-        self, data: AvalancheDataset, mb_size: int
-    ) -> DataLoader:
+    def _make_dataloader(self, data: AvalancheDataset, mb_size: int) -> DataLoader:
         if self.disable_augmentations:
             data = data.replace_current_transform_group(_MaybeToTensor())
         collate_fn = data.collate_fn if hasattr(data, "collate_fn") else None
@@ -195,15 +189,11 @@ def images_samples_metrics(
     plugins: List[ImagesSamplePlugin] = []
     if on_eval:
         plugins.append(
-            ImagesSamplePlugin(
-                mode="eval", n_rows=n_rows, n_cols=n_cols, group=group
-            )
+            ImagesSamplePlugin(mode="eval", n_rows=n_rows, n_cols=n_cols, group=group)
         )
     if on_train:
         plugins.append(
-            ImagesSamplePlugin(
-                mode="train", n_rows=n_rows, n_cols=n_cols, group=group
-            )
+            ImagesSamplePlugin(mode="train", n_rows=n_rows, n_cols=n_cols, group=group)
         )
     return plugins
 

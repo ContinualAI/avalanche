@@ -62,8 +62,7 @@ class AR1(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
     ):
@@ -107,9 +106,10 @@ class AR1(SupervisedTemplate):
             learning experience.
         """
 
-        assert train_epochs > 0, \
-            'train_epochs must be greater than zero so that latent ' + \
-            'activations can be stored in the replay buffer'
+        assert train_epochs > 0, (
+            "train_epochs must be greater than zero so that latent "
+            + "activations can be stored in the replay buffer"
+        )
 
         warnings.warn(
             "The AR1 strategy implementation is in an alpha stage "
@@ -136,9 +136,7 @@ class AR1(SupervisedTemplate):
             # Synaptic Intelligence is not applied to the last fully
             # connected layer (and implicitly to "freeze below" ones.
             plugins.append(
-                SynapticIntelligencePlugin(
-                    ewc_lambda, excluded_parameters=[fc_name]
-                )
+                SynapticIntelligencePlugin(ewc_lambda, excluded_parameters=[fc_name])
             )
 
         self.cwr_plugin = CWRStarPlugin(
@@ -146,9 +144,7 @@ class AR1(SupervisedTemplate):
         )
         plugins.append(self.cwr_plugin)
 
-        optimizer = SGD(
-            model.parameters(), lr=lr, momentum=momentum, weight_decay=l2
-        )
+        optimizer = SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=l2)
 
         if criterion is None:
             criterion = CrossEntropyLoss()
@@ -229,13 +225,13 @@ class AR1(SupervisedTemplate):
             for class_id, count in examples_per_class(self.rm[1]).items():
                 self.model.cur_j[class_id] += count
             self.cwr_plugin.cur_class = [
-                cls
-                for cls in set(self.model.cur_j.keys())
-                if self.model.cur_j[cls] > 0
+                cls for cls in set(self.model.cur_j.keys()) if self.model.cur_j[cls] > 0
             ]
             self.cwr_plugin.reset_weights(self.cwr_plugin.cur_class)
 
-    def make_train_dataloader(self, num_workers=0, shuffle=True, **kwargs):
+    def make_train_dataloader(
+        self, num_workers=0, shuffle=True, persistent_workers=False, **kwargs
+    ):
         """
         Called after the dataset instantiation. Initialize the data loader.
 
@@ -279,14 +275,13 @@ class AR1(SupervisedTemplate):
             batch_size=current_batch_mb_size,
             num_workers=num_workers,
             shuffle=shuffle,
+            persistent_workers=persistent_workers,
             **kwargs
         )
 
         # AR1 only supports SIT scenarios (no task labels).
         self.dataloader = DataLoader(
-            self.adapted_dataset,
-            collate_fn=collate_fn,
-            **other_dataloader_args
+            self.adapted_dataset, collate_fn=collate_fn, **other_dataloader_args
         )
 
     def training_epoch(self, **kwargs):
@@ -297,15 +292,11 @@ class AR1(SupervisedTemplate):
             self.optimizer.zero_grad()
             if self.clock.train_exp_counter > 0:
                 lat_mb_x = self.rm[0][
-                    mb_it
-                    * self.replay_mb_size : (mb_it + 1)
-                    * self.replay_mb_size
+                    mb_it * self.replay_mb_size : (mb_it + 1) * self.replay_mb_size
                 ]
                 lat_mb_x = lat_mb_x.to(self.device)
                 lat_mb_y = self.rm[1][
-                    mb_it
-                    * self.replay_mb_size : (mb_it + 1)
-                    * self.replay_mb_size
+                    mb_it * self.replay_mb_size : (mb_it + 1) * self.replay_mb_size
                 ]
                 lat_mb_y = lat_mb_y.to(self.device)
                 lat_task_id = torch.zeros(lat_mb_y.shape[0]).to(self.device)
@@ -383,6 +374,4 @@ class AR1(SupervisedTemplate):
         return not isinstance(param_def.layer, (_NormBase, BatchRenorm2D))
 
 
-__all__ = [
-    'AR1'
-]
+__all__ = ["AR1"]

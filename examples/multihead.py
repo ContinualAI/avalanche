@@ -29,12 +29,9 @@ from avalanche.training.plugins import EvaluationPlugin
 
 
 def main(args):
-
     # Config
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     # model
     model = MTSimpleMLP()
@@ -52,9 +49,7 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=False, epoch=True, experience=True, stream=True
-        ),
+        accuracy_metrics(minibatch=False, epoch=True, experience=True, stream=True),
         forgetting_metrics(experience=True),
         loggers=[interactive_logger],
     )
@@ -74,8 +69,8 @@ def main(args):
 
     # train and test loop
     for train_task in train_stream:
-        strategy.train(train_task)
-        strategy.eval(test_stream)
+        strategy.train(train_task, num_workers=4)
+        strategy.eval(test_stream, num_workers=4)
 
 
 if __name__ == "__main__":

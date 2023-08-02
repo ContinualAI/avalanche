@@ -15,15 +15,15 @@ class LearningToPrompt(SupervisedTemplate):
     Learning to Prompt (L2P) strategy.
 
     Technique introduced in:
-    "Wang, Zifeng, et al. "Learning to prompt for continual learning." 
-    Proceedings of the IEEE/CVF Conference on Computer Vision and 
+    "Wang, Zifeng, et al. "Learning to prompt for continual learning."
+    Proceedings of the IEEE/CVF Conference on Computer Vision and
     Pattern Recognition. 2022."
 
     Implementation based on:
     - https://github.com/JH-LEE-KR/l2p-pytorch
     - And implementations by Dario Salvati
 
-    As a model_name, we expect to receive one of the model list in 
+    As a model_name, we expect to receive one of the model list in
     avalanche.models.vit
 
     Those models are based on the library timm.
@@ -39,8 +39,7 @@ class LearningToPrompt(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List["SupervisedPlugin"]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every: int = -1,
         peval_mode: str = "epoch",
@@ -94,7 +93,7 @@ class LearningToPrompt(SupervisedTemplate):
 
         if device is None:
             device = torch.device("cpu")
-        
+
         self.num_classes = num_classes
         self.lr = lr
         self.sim_coefficient = sim_coefficient
@@ -117,10 +116,11 @@ class LearningToPrompt(SupervisedTemplate):
         )
 
         for n, p in model.named_parameters():
-            if n.startswith(tuple(["blocks", "patch_embed", 
-                                   "cls_token", "norm", "pos_embed"])):
+            if n.startswith(
+                tuple(["blocks", "patch_embed", "cls_token", "norm", "pos_embed"])
+            ):
                 p.requires_grad = False
-        
+
         model.head = torch.nn.Linear(768, num_classes).to(device)
 
         optimizer = torch.optim.Adam(
@@ -197,9 +197,7 @@ class LearningToPrompt(SupervisedTemplate):
             mask = self.experience.classes_in_this_experience
             not_mask = np.setdiff1d(np.arange(self.num_classes), mask)
             not_mask = torch.tensor(not_mask, dtype=torch.int64).to(self.device)
-            logits = logits.index_fill(dim=1, 
-                                       index=not_mask, 
-                                       value=float("-inf"))
+            logits = logits.index_fill(dim=1, index=not_mask, value=float("-inf"))
 
         return logits
 

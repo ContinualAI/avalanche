@@ -29,7 +29,6 @@ Templates are defined in the `avalanche.training.templates` module.
     BaseTemplate
     BaseSGDTemplate
     SupervisedTemplate
-    OnlineSupervisedTemplate
 
 
 Plugins ABCs
@@ -77,10 +76,18 @@ Ready-to-use continual learning strategies.
     CoPE
     LFL
     GenerativeReplay
-    LaMAML
     MAS
     BiC
     MIR
+    MER
+    ER_ACE
+    LearningToPrompt
+    SCR
+    FromScratchTraining
+    ExpertGateStrategy
+    DER
+    supervised.lamaml.LaMAML
+    supervised.lamaml_v2.LaMAML
 
 Replay Buffers and Selection Strategies
 ----------------------------------------
@@ -123,6 +130,8 @@ Loss Functions
     ICaRLLossPlugin
     RegularizationMethod
     LearningWithoutForgetting
+    ACECriterion
+    SCRLoss
 
 
 Training Plugins
@@ -160,6 +169,7 @@ Strategy implemented as plugins in `avalanche.training.plugins`.
     CWRStarPlugin
     EWCPlugin
     GDumbPlugin
+    RWalkPlugin
     GEMPlugin
     GSS_greedyPlugin
     LFLPlugin
@@ -172,7 +182,8 @@ Strategy implemented as plugins in `avalanche.training.plugins`.
     GenerativeReplayPlugin
     BiCPlugin
     MIRPlugin
-
+    RARPlugin
+    FromScratchTrainingPlugin
 
 Utilities
 ----------------------------------------

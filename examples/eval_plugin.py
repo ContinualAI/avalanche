@@ -53,9 +53,7 @@ from avalanche.training.supervised import Naive
 def main(args):
     # --- CONFIG
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     # ---------
 
@@ -85,9 +83,7 @@ def main(args):
         download=True,
         transform=test_transform,
     )
-    benchmark = nc_benchmark(
-        mnist_train, mnist_test, 5, task_labels=False, seed=1234
-    )
+    benchmark = nc_benchmark(mnist_train, mnist_test, 5, task_labels=False, seed=1234)
     # ---------
 
     # MODEL CREATION
@@ -156,9 +152,7 @@ def main(args):
             experience=True,
             stream=True,
         ),
-        disk_usage_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
+        disk_usage_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         MAC_metrics(minibatch=True, epoch=True, experience=True),
         labels_repartition_metrics(on_train=True, on_eval=True),
         loggers=[interactive_logger, text_logger, csv_logger, tb_logger],
@@ -187,8 +181,7 @@ def main(args):
 
         # train returns a dictionary containing last recorded value
         # for each metric.
-        res = cl_strategy.train(experience, 
-                                eval_streams=[benchmark.test_stream])
+        res = cl_strategy.train(experience, eval_streams=[benchmark.test_stream])
         print("Training completed")
 
         print("Computing accuracy on the whole test set")

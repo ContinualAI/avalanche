@@ -79,9 +79,7 @@ def get_args_parser(add_help=True):
         type=str,
         help="dataset path",
     )
-    parser.add_argument(
-        "--dataset", default="coco", type=str, help="dataset name"
-    )
+    parser.add_argument("--dataset", default="coco", type=str, help="dataset name")
     parser.add_argument(
         "--model", default="maskrcnn_resnet50_fpn", type=str, help="model name"
     )
@@ -156,18 +154,12 @@ def get_args_parser(add_help=True):
         type=float,
         help="decrease lr by a factor of lr-gamma (multisteplr scheduler only)",
     )
-    parser.add_argument(
-        "--print-freq", default=20, type=int, help="print frequency"
-    )
+    parser.add_argument("--print-freq", default=20, type=int, help="print frequency")
     parser.add_argument(
         "--output-dir", default=".", type=str, help="path to save outputs"
     )
-    parser.add_argument(
-        "--resume", default="", type=str, help="path of checkpoint"
-    )
-    parser.add_argument(
-        "--start_epoch", default=0, type=int, help="start epoch"
-    )
+    parser.add_argument("--resume", default="", type=str, help="path of checkpoint")
+    parser.add_argument("--start_epoch", default=0, type=int, help="start epoch")
     parser.add_argument("--aspect-ratio-group-factor", default=3, type=int)
     parser.add_argument(
         "--rpn-score-thresh",
@@ -274,9 +266,7 @@ def main(args):
     print("Creating data loaders")
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
-        test_sampler = torch.utils.data.distributed.DistributedSampler(
-            dataset_test
-        )
+        test_sampler = torch.utils.data.distributed.DistributedSampler(dataset_test)
     else:
         train_sampler = torch.utils.data.RandomSampler(dataset)
         test_sampler = torch.utils.data.SequentialSampler(dataset_test)
@@ -327,9 +317,7 @@ def main(args):
 
     model_without_ddp = model
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(
-            model, device_ids=[args.gpu]
-        )
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
 
     params = [p for p in model.parameters() if p.requires_grad]

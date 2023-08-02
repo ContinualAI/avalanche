@@ -5,8 +5,7 @@ import torch
 import torch.nn.functional as F
 
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
-    ParamData
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, ParamData
 from avalanche.models.utils import avalanche_forward
 
 
@@ -111,8 +110,9 @@ class RWalkPlugin(SupervisedPlugin):
             p_grad = self.iter_grad[k]
             shape = new_p.shape
             self.checkpoint_loss[k].expand(shape)
-            self.checkpoint_loss[k].data -= p_grad.expand(
-                shape) * (new_p - old_p.expand(shape))
+            self.checkpoint_loss[k].data -= p_grad.expand(shape) * (
+                new_p - old_p.expand(shape)
+            )
 
     # Update parameter importance (EWC++, Eq. 6 of the RWalk paper)
     def _update_importance(self, strategy):
@@ -129,15 +129,16 @@ class RWalkPlugin(SupervisedPlugin):
             for k, new_imp in importance.items():
                 if k not in old_importance:
                     self.iter_importance[k] = ParamData(
-                        k, device=new_imp.device,
-                        init_tensor=new_imp.data)
+                        k, device=new_imp.device, init_tensor=new_imp.data
+                    )
                 else:
                     old_imp = old_importance[k]
                     self.iter_importance[k] = ParamData(
-                        k, device=new_imp.device,
-                        init_tensor=self.ewc_alpha * new_imp.data + (
-                                1 - self.ewc_alpha) * old_imp.expand(
-                            new_imp.shape))
+                        k,
+                        device=new_imp.device,
+                        init_tensor=self.ewc_alpha * new_imp.data
+                        + (1 - self.ewc_alpha) * old_imp.expand(new_imp.shape),
+                    )
 
     # Add scores for a single delta_t (referred to as s_t1^t2 in the paper)
     @torch.no_grad()
@@ -154,9 +155,9 @@ class RWalkPlugin(SupervisedPlugin):
             shape = new_p.shape
             eps = torch.finfo(loss.data.dtype).eps
             self.checkpoint_scores[k].expand(shape)
-            self.checkpoint_scores[k].data += loss.data / \
-                (0.5 * imp.expand(shape) * (new_p - old_p.expand(shape))
-                 .pow(2) + eps)
+            self.checkpoint_scores[k].data += loss.data / (
+                0.5 * imp.expand(shape) * (new_p - old_p.expand(shape)).pow(2) + eps
+            )
 
     # Initialize t_0 checkpoint information
     def before_training(self, strategy, *args, **kwargs):
@@ -184,9 +185,10 @@ class RWalkPlugin(SupervisedPlugin):
                     continue
                 penalty = self.exp_penalties[k]
                 param_exp = self.exp_params[k]
-                ewc_loss += (penalty.expand(param.shape) *
-                             (param - param_exp.expand(param.shape))
-                             .pow(2)).sum()
+                ewc_loss += (
+                    penalty.expand(param.shape)
+                    * (param - param_exp.expand(param.shape)).pow(2)
+                ).sum()
 
             strategy.loss += self.ewc_lambda * ewc_loss
 
@@ -217,9 +219,11 @@ class RWalkPlugin(SupervisedPlugin):
                     continue
                 p_score = self.exp_scores[k]
                 shape = p_cp_score.data.shape
-                exp_scores[k] = ParamData(k, device=p_score.device,
-                                          init_tensor=0.5 * (p_score.expand(
-                                              shape) + p_cp_score.data))
+                exp_scores[k] = ParamData(
+                    k,
+                    device=p_score.device,
+                    init_tensor=0.5 * (p_score.expand(shape) + p_cp_score.data),
+                )
             self.exp_scores = exp_scores
 
         # Compute weight penalties once for all successive iterations
@@ -229,19 +233,19 @@ class RWalkPlugin(SupervisedPlugin):
         # Normalize terms in [0,1] interval, as suggested in the paper
         # (the importance is already > 0, while negative scores are relu-ed
         # out, hence we scale only the max-values of both terms)
-        max_score = max(map(lambda x: x.data.max(),
-                            self.exp_scores.values()))
-        max_imp = max(map(lambda x: x.data.max(),
-                          self.exp_importance.values()))
+        max_score = max(map(lambda x: x.data.max(), self.exp_scores.values()))
+        max_imp = max(map(lambda x: x.data.max(), self.exp_importance.values()))
 
         for k, score in self.exp_scores.items():
-            if k not in self.exp_scores:
-                continue
+            if k not in self.exp_importance:
+                continue  # some params may not have gradients
             imp = self.exp_importance[k]
             shape = imp.data.shape
             self.exp_penalties[k] = ParamData(
-                k, device=imp.device,
-                init_tensor=imp.data / max_imp + F.relu(
-                    score.expand(shape)) / max_score)
+                k,
+                device=imp.device,
+                init_tensor=imp.data / max_imp
+                + F.relu(score.expand(shape)) / max_score,
+            )
 
         self.checkpoint_scores = zerolike_params_dict(strategy.model)

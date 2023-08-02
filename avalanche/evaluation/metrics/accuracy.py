@@ -77,9 +77,7 @@ class Accuracy(Metric[float]):
 
         true_positives = float(torch.sum(torch.eq(predicted_y, true_y)))
         total_patterns = len(true_y)
-        self._mean_accuracy.update(
-            true_positives / total_patterns, total_patterns
-        )
+        self._mean_accuracy.update(true_positives / total_patterns, total_patterns)
 
     def result(self) -> float:
         """Retrieves the running accuracy.
@@ -153,9 +151,7 @@ class TaskAwareAccuracy(Metric[Dict[int, float]]):
             for pred, true, t in zip(predicted_y, true_y, task_labels):
                 if isinstance(t, Tensor):
                     t = t.item()
-                self._mean_accuracy[t].update(
-                    pred.unsqueeze(0), true.unsqueeze(0)
-                )
+                self._mean_accuracy[t].update(pred.unsqueeze(0), true.unsqueeze(0))
         else:
             raise ValueError(
                 f"Task label type: {type(task_labels)}, "
@@ -213,9 +209,7 @@ class AccuracyPluginMetric(GenericPluginMetric[float, Accuracy]):
         :param mode:
         :param split_by_task: whether to compute task-aware accuracy or not.
         """
-        super().__init__(
-            Accuracy(), reset_at=reset_at, emit_at=emit_at, mode=mode
-        )
+        super().__init__(Accuracy(), reset_at=reset_at, emit_at=emit_at, mode=mode)
 
     def reset(self) -> None:
         self._metric.reset()
@@ -228,9 +222,8 @@ class AccuracyPluginMetric(GenericPluginMetric[float, Accuracy]):
 
 
 class AccuracyPerTaskPluginMetric(
-        GenericPluginMetric[
-            Dict[int, float],
-            TaskAwareAccuracy]):
+    GenericPluginMetric[Dict[int, float], TaskAwareAccuracy]
+):
     """
     Base class for all accuracies plugin metrics
     """
@@ -254,9 +247,7 @@ class AccuracyPerTaskPluginMetric(
         return self._metric.result()
 
     def update(self, strategy):
-        self._metric.update(
-            strategy.mb_output, strategy.mb_y, strategy.mb_task_id
-        )
+        self._metric.update(strategy.mb_output, strategy.mb_y, strategy.mb_task_id)
 
 
 class MinibatchAccuracy(AccuracyPluginMetric):
@@ -467,4 +458,5 @@ __all__ = [
     "StreamAccuracy",
     "TrainedExperienceAccuracy",
     "accuracy_metrics",
+    "AccuracyPerTaskPluginMetric",
 ]

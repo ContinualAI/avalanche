@@ -39,22 +39,19 @@ def main_with_checkpointing(args):
 
     # Nothing new here...
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
-    print('Using device', device)
+    print("Using device", device)
 
     # CL Benchmark Creation (as usual)
     benchmark = SplitMNIST(5)
-    model = SimpleMLP(input_size=28*28, num_classes=10)
+    model = SimpleMLP(input_size=28 * 28, num_classes=10)
     optimizer = SGD(model.parameters(), lr=0.01, momentum=0.9)
     criterion = CrossEntropyLoss()
 
     # Create the evaluation plugin (as usual)
     evaluation_plugin = EvaluationPlugin(
-        accuracy_metrics(experience=True, stream=True),
-        loggers=[InteractiveLogger()]
+        accuracy_metrics(experience=True, stream=True), loggers=[InteractiveLogger()]
     )
 
     # Create the strategy (as usual)
@@ -66,14 +63,14 @@ def main_with_checkpointing(args):
         train_epochs=2,
         eval_mb_size=128,
         device=device,
-        evaluator=evaluation_plugin
+        evaluator=evaluation_plugin,
     )
 
     # STEP 2: TRY TO LOAD THE LAST CHECKPOINT
     # if the checkpoint exists, load it into the newly created strategy
     # the method also loads the experience counter, so we know where to
     # resume training
-    fname = './checkpoint.pkl'  # name of the checkpoint file
+    fname = "./checkpoint.pkl"  # name of the checkpoint file
     strategy, initial_exp = maybe_load_checkpoint(strategy, fname)
 
     # STEP 3: USE THE "initial_exp" to resume training
@@ -91,6 +88,6 @@ if __name__ == "__main__":
         "--cuda",
         type=int,
         default=0,
-        help="Select zero-indexed cuda device. -1 to use CPU."
+        help="Select zero-indexed cuda device. -1 to use CPU.",
     )
     main_with_checkpointing(parser.parse_args())

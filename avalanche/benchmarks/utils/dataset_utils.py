@@ -41,18 +41,16 @@ TTargetType = TypeVar("TTargetType")
 TMappableTargetType = TypeVar("TMappableTargetType")
 
 
-TData = TypeVar('TData')
-TIntermediateData = TypeVar('TIntermediateData')
-TSliceSequence = TypeVar('TSliceSequence', bound='SliceSequence')
+TData = TypeVar("TData")
+TIntermediateData = TypeVar("TIntermediateData")
+TSliceSequence = TypeVar("TSliceSequence", bound="SliceSequence")
 
 
 class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
-    def __init__(
-        self,
-        slice_ids: Optional[List[int]]
-    ):
-        self.slice_ids: Optional[List[int]] = \
+    def __init__(self, slice_ids: Optional[List[int]]):
+        self.slice_ids: Optional[List[int]] = (
             list(slice_ids) if slice_ids is not None else None
+        )
         """
         Describes thew indices in the current slice
         (w.r.t. the original sequence). 
@@ -73,16 +71,15 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
     @overload
     def __getitem__(self: TSliceSequence, item: slice) -> TSliceSequence:
         ...
-    
+
     @final
-    def __getitem__(self: TSliceSequence, item: Union[int, slice]) -> \
-            Union[TSliceSequence, TData]:
+    def __getitem__(
+        self: TSliceSequence, item: Union[int, slice]
+    ) -> Union[TSliceSequence, TData]:
         if isinstance(item, (int, np.integer)):
             item = int(item)
             if item >= len(self):
-                raise IndexError(
-                    "Sequence index out of bounds" + str(int(item))
-                )
+                raise IndexError("Sequence index out of bounds" + str(int(item)))
 
             curr_elem = item if self.slice_ids is None else self.slice_ids[item]
 
@@ -105,9 +102,8 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
             return self._full_length()
 
     def _forward_slice(
-            self,
-            *slices: Union[None, slice, Iterable[int]]) -> \
-            Optional[Iterable[int]]:
+        self, *slices: Union[None, slice, Iterable[int]]
+    ) -> Optional[Iterable[int]]:
         any_slice = False
         indices = list(range(self._full_length()))
         for sl in slices:
@@ -116,8 +112,7 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
             any_slice = True
 
             slice_indices = slice_alike_object_to_indices(
-                slice_alike_object=sl,
-                max_length=len(indices)
+                slice_alike_object=sl, max_length=len(indices)
             )
 
             new_indices = [indices[x] for x in slice_indices]
@@ -158,28 +153,29 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
         return element  # type: ignore
 
     def _make_slice(
-            self: TSliceSequence,
-            sequence_slice: Optional[Iterable[int]]) -> TSliceSequence:
+        self: TSliceSequence, sequence_slice: Optional[Iterable[int]]
+    ) -> TSliceSequence:
         """
         Obtain a sub-squence given a list of indices of the elements
         to include.
-        
+
         Element ids are the ones of the originating sequence
         (that is, the non-sliced sequence).
         """
         stream_copy = copy.copy(self)
-        stream_copy.slice_ids = list(sequence_slice) if \
-            sequence_slice is not None else None
-        return stream_copy
-    
-    def __str__(self):
-        return (
-            "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
+        stream_copy.slice_ids = (
+            list(sequence_slice) if sequence_slice is not None else None
         )
+        return stream_copy
+
+    def __str__(self):
+        return "[" + ", ".join([str(self[idx]) for idx in range(len(self))]) + "]"
 
 
-class SubSequence(SliceSequence[TTargetType, TMappableTargetType],
-                  Generic[TTargetType, TMappableTargetType]):
+class SubSequence(
+    SliceSequence[TTargetType, TMappableTargetType],
+    Generic[TTargetType, TMappableTargetType],
+):
     """
     A utility class used to define a lazily evaluated sub-sequence.
     """
@@ -189,23 +185,19 @@ class SubSequence(SliceSequence[TTargetType, TMappableTargetType],
         targets: Sequence[TMappableTargetType],
         *,
         indices: Optional[Sequence[int]] = None,
-        converter: Optional[Callable[[TMappableTargetType], TTargetType]] = None
+        converter: Optional[Callable[[TMappableTargetType], TTargetType]] = None,
     ):
         self._targets = targets
         self.converter = converter
-        super().__init__(
-            slice_ids=list(indices) if indices is not None else None
-        )
+        super().__init__(slice_ids=list(indices) if indices is not None else None)
 
     def _full_length(self) -> int:
         return len(self._targets)
 
     def _make_element(self, element_idx: int) -> TMappableTargetType:
         return self._targets[element_idx]
-    
-    def _post_process_element(
-            self,
-            element: TMappableTargetType) -> TTargetType:
+
+    def _post_process_element(self, element: TMappableTargetType) -> TTargetType:
         if self.converter is None:
             return element  # type: ignore
         return self.converter(element)
@@ -243,9 +235,7 @@ class SequenceDataset(IDatasetWithTargets[T_co, TTargetType]):
     """
 
     def __init__(
-        self,
-        *sequences: Sequence,
-        targets: Union[int, Sequence[TTargetType]] = 1
+        self, *sequences: Sequence, targets: Union[int, Sequence[TTargetType]] = 1
     ):
         """
         Creates a ``SequenceDataset`` instance.
@@ -310,15 +300,15 @@ def find_list_from_index(
     return list_idx, pattern_idx
 
 
-T = TypeVar('T')
-X = TypeVar('X')
+T = TypeVar("T")
+X = TypeVar("X")
 
 
 def manage_advanced_indexing(
     idx: Union[slice, int, Iterable[int]],
     single_element_getter: Callable[[int], X],
     max_length: int,
-    collate_fn: Callable[[Iterable[X]], T]
+    collate_fn: Callable[[Iterable[X]], T],
 ) -> Union[X, T]:
     """
     Utility function used to manage the advanced indexing and slicing.
@@ -337,8 +327,8 @@ def manage_advanced_indexing(
         of the patterns addressed by the idx parameter.
     """
     indexes_iterator: Iterable[int] = slice_alike_object_to_indices(
-        slice_alike_object=idx,
-        max_length=max_length)
+        slice_alike_object=idx, max_length=max_length
+    )
 
     elements: List[X] = []
     for single_idx in indexes_iterator:
@@ -352,16 +342,14 @@ def manage_advanced_indexing(
 
 
 def slice_alike_object_to_indices(
-    slice_alike_object: Union[slice,
-                              int,
-                              Iterable[int],
-                              Tensor,
-                              ndarray], max_length: int) -> Iterable[int]:
+    slice_alike_object: Union[slice, int, Iterable[int], Tensor, ndarray],
+    max_length: int,
+) -> Iterable[int]:
     """
-    Utility function used to obtain the sequence of indices given a slice 
+    Utility function used to obtain the sequence of indices given a slice
     object.
 
-    This fuction offers some additional flexibility by also accepting generic 
+    This fuction offers some additional flexibility by also accepting generic
     Iterable[int], PyTorch Tensor and NumPy ndarray.
 
     Beware that this function only supports 1-D slicing.
@@ -370,7 +358,7 @@ def slice_alike_object_to_indices(
 
     If the input object is a native slice or int, then negative indices will be
     managed as usual (like when used on a native Python list). If a tensor or
-    generic iterable is passed, then indices will be transformed as they where 
+    generic iterable is passed, then indices will be transformed as they where
     int(s).
     """
 
@@ -397,12 +385,10 @@ def slice_alike_object_to_indices(
                     indexes_iterator = []
                 else:
                     # Flat Tensor (NumPy or PyTorch)
-                    indexes_iterator = \
-                        slice_alike_object.tolist()  # type: ignore
+                    indexes_iterator = slice_alike_object.tolist()  # type: ignore
             else:
                 # Last attempt
-                indexes_iterator = \
-                    [slice_alike_object.item()]  # type: ignore
+                indexes_iterator = [slice_alike_object.item()]  # type: ignore
             if len(indexes_iterator) > 0:  # type: ignore
                 assert isinstance(indexes_iterator, int)
     else:
@@ -424,21 +410,21 @@ def slice_alike_object_to_indices(
             if idx >= 0:
                 if idx >= max_length:
                     raise IndexError(
-                        f'Index {idx} out of range for sequence '
-                        f'of length {max_length}'
+                        f"Index {idx} out of range for sequence "
+                        f"of length {max_length}"
                     )
             else:
                 pos_idx = max_length - idx  # Negative to positive
                 if pos_idx < 0:
                     raise IndexError(
-                        f'Index {idx} out of range for sequence '
-                        f'of length {max_length}'
+                        f"Index {idx} out of range for sequence "
+                        f"of length {max_length}"
                     )
                 idx = pos_idx
-            
+
             iterator_as_list.append(idx)
         indexes_iterator = iterator_as_list
-    
+
     return indexes_iterator  # type: ignore
 
 

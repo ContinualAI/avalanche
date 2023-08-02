@@ -19,7 +19,7 @@ import logging
 from pathlib import Path
 from typing import Union
 
-from pkg_resources import parse_version
+from packaging.version import parse
 
 from avalanche.benchmarks.datasets.lvis_dataset import LvisDataset
 from avalanche.evaluation.metrics.detection import make_lvis_metrics
@@ -27,10 +27,7 @@ from avalanche.training.supervised.naive_object_detection import (
     ObjectDetectionTemplate,
 )
 
-from avalanche.evaluation.metrics import (
-    timing_metrics,
-    loss_metrics
-)
+from avalanche.evaluation.metrics import timing_metrics, loss_metrics
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import LRSchedulerPlugin, EvaluationPlugin
 import argparse
@@ -50,9 +47,7 @@ logging.basicConfig(level=logging.NOTSET)
 def main(args):
     # --- CONFIG
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     # ---------
 
@@ -90,9 +85,7 @@ def main(args):
 
     # Define the optimizer and the scheduler
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(
-        params, lr=0.005, momentum=0.9, weight_decay=0.0005
-    )
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
 
     train_mb_size = 5
     warmup_factor = 1.0 / 1000
@@ -141,27 +134,28 @@ def main(args):
 
 
 def obtain_base_model(segmentation: bool):
-    torchvision_is_old_version = \
-        parse_version(torch.__version__) < parse_version("0.13")
+    torchvision_is_old_version = parse(torch.__version__) < parse("0.13")
 
     pretrain_argument = dict()
 
     if torchvision_is_old_version:
-        pretrain_argument['pretrained'] = True
+        pretrain_argument["pretrained"] = True
     else:
         if segmentation:
-            pretrain_argument['weights'] = \
-                torchvision.models.detection.mask_rcnn.\
-                MaskRCNN_ResNet50_FPN_Weights.DEFAULT
+            pretrain_argument[
+                "weights"
+            ] = (
+                torchvision.models.detection.mask_rcnn.MaskRCNN_ResNet50_FPN_Weights.DEFAULT
+            )
         else:
-            pretrain_argument['weights'] = \
-                torchvision.models.detection.faster_rcnn.\
-                FasterRCNN_ResNet50_FPN_Weights.DEFAULT
-    
+            pretrain_argument[
+                "weights"
+            ] = (
+                torchvision.models.detection.faster_rcnn.FasterRCNN_ResNet50_FPN_Weights.DEFAULT
+            )
+
     if segmentation:
-        model = torchvision.models.detection.maskrcnn_resnet50_fpn(
-            **pretrain_argument
-        )
+        model = torchvision.models.detection.maskrcnn_resnet50_fpn(**pretrain_argument)
     else:
         model = torchvision.models.detection.fasterrcnn_resnet50_fpn(
             **pretrain_argument

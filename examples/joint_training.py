@@ -27,12 +27,9 @@ from avalanche.training.supervised import JointTraining
 
 
 def main(args):
-
     # Config
     device = torch.device(
-        f"cuda:{args.cuda}"
-        if torch.cuda.is_available() and args.cuda >= 0
-        else "cpu"
+        f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
     # model
     model = SimpleMLP(num_classes=10)

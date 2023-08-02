@@ -16,6 +16,4 @@ def run_strategy(benchmark, cl_strategy):
         results.append(cl_strategy.eval(benchmark.test_stream[:]))
 
 
-__all__ = [
-    'run_strategy'
-]
+__all__ = ["run_strategy"]

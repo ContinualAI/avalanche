@@ -45,9 +45,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         experience_generator: Iterable[TCLDataset],
         stream_length: int,
     ):
-        self._exp_source: Optional[
-            Iterable[TCLDataset]
-        ] = experience_generator
+        self._exp_source: Optional[Iterable[TCLDataset]] = experience_generator
         """
         The source of the experiences stream, as an Iterable.
         
@@ -64,9 +62,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         The ID of the next experience that will be generated.
         """
 
-        self._loaded_experiences: Dict[
-            int, TCLDataset
-        ] = dict()
+        self._loaded_experiences: Dict[int, TCLDataset] = dict()
         """
         The sequence of experiences obtained from the generator.
         """
@@ -76,9 +72,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         The length of the stream.
         """
         try:
-            self._exp_generator: Optional[
-                Iterator[TCLDataset]
-            ] = iter(self._exp_source)
+            self._exp_generator: Optional[Iterator[TCLDataset]] = iter(self._exp_source)
         except TypeError as e:
             if callable(self._exp_source):
                 # https://stackoverflow.com/a/17092033
@@ -95,9 +89,9 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         This field is None when if all the experiences have been loaded.
         """
 
-        self.targets_field_sequence: Dict[
-            int, Optional[Sequence]
-        ] = defaultdict(lambda: None)
+        self.targets_field_sequence: Dict[int, Optional[Sequence]] = defaultdict(
+            lambda: None
+        )
         """
         A dictionary mapping each experience to its `targets` field.
         
@@ -131,8 +125,9 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
     def __getitem__(self, exp_idx: slice) -> Sequence[TCLDataset]:
         ...
 
-    def __getitem__(self, exp_idx: Union[int, slice]) -> \
-            Union[TCLDataset, Sequence[TCLDataset]]:
+    def __getitem__(
+        self, exp_idx: Union[int, slice]
+    ) -> Union[TCLDataset, Sequence[TCLDataset]]:
         """
         Gets the dataset associated to an experience.
 
@@ -141,19 +136,17 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         """
         # A lot of unuseful lines needed for MyPy -_-
         indexing_collate: Callable[
-            [Iterable[TCLDataset]],
-            Sequence[TCLDataset]] = lambda x: list(x)
+            [Iterable[TCLDataset]], Sequence[TCLDataset]
+        ] = lambda x: list(x)
         result = manage_advanced_indexing(
             exp_idx,
             self._get_experience_and_load_if_needed,
             len(self),
-            indexing_collate
+            indexing_collate,
         )
         return result
 
-    def _get_experience_and_load_if_needed(
-        self, exp_idx: int
-    ) -> TCLDataset:
+    def _get_experience_and_load_if_needed(self, exp_idx: int) -> TCLDataset:
         """
         Gets the dataset associated to an experience.
 
@@ -166,9 +159,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
             raise RuntimeError(f"Experience {exp_idx} has been dropped")
         return self._loaded_experiences[exp_idx]
 
-    def get_experience_if_loaded(
-        self, exp_idx: int
-    ) -> Optional[TCLDataset]:
+    def get_experience_if_loaded(self, exp_idx: int) -> Optional[TCLDataset]:
         """
         Gets the dataset associated to an experience.
 
@@ -181,9 +172,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         """
         exp_idx = int(exp_idx)  # Handle single element tensors
         if exp_idx >= len(self):
-            raise IndexError(
-                f"The stream doesn't contain {exp_idx+1}" f"experiences"
-            )
+            raise IndexError(f"The stream doesn't contain {exp_idx+1}" f"experiences")
 
         return self._loaded_experiences.get(exp_idx, None)
 
@@ -230,9 +219,7 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
             to_exp = int(to_exp)  # Handle single element tensors
 
         if to_exp >= len(self):
-            raise IndexError(
-                f"The stream doesn't contain {to_exp+1}" f"experiences"
-            )
+            raise IndexError(f"The stream doesn't contain {to_exp+1}" f"experiences")
 
         if self._next_exp_id > to_exp:
             # Nothing to do
@@ -253,16 +240,16 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
 
             if not isinstance(generated_exp, AvalancheDataset):
                 raise ValueError(
-                    "All experience datasets must be subclasses of"
-                    " AvalancheDataset"
+                    "All experience datasets must be subclasses of" " AvalancheDataset"
                 )
 
             self._loaded_experiences[exp_id] = generated_exp
-            self.targets_field_sequence[exp_id] = \
-                getattr(generated_exp, 'targets')
-            self.task_labels_field_sequence[
-                exp_id
-            ] = getattr(generated_exp, 'targets_task_labels')
+            self.targets_field_sequence[exp_id] = list(
+                getattr(generated_exp, "targets")
+            )
+            self.task_labels_field_sequence[exp_id] = list(
+                getattr(generated_exp, "targets_task_labels")
+            )
             self._next_exp_id += 1
 
         if self._next_exp_id >= len(self):

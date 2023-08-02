@@ -24,13 +24,18 @@ try:
     from pycocotools.coco import COCO
     from pycocotools import mask as coco_mask
 except ImportError:
-    raise ModuleNotFoundError(
+    import warnings
+
+    warnings.warn(
         "LVIS or PyCocoTools not found, "
         "if you want to use detection "
         "please install avalanche with the "
         "detection dependencies: "
         "pip install avalanche-lib[detection]"
     )
+    LVIS = object
+    COCO = object
+    coco_mask = object
 
 from torch import Tensor
 from json import JSONEncoder
@@ -48,8 +53,8 @@ if TYPE_CHECKING:
     )
 
 
-TDetPredictions_co = TypeVar('TDetPredictions_co', covariant=True)
-TDetModelOutput = TypeVar('TDetModelOutput', contravariant=True)
+TDetPredictions_co = TypeVar("TDetPredictions_co", covariant=True)
+TDetModelOutput = TypeVar("TDetModelOutput", contravariant=True)
 
 TCommonDetectionOutput = Dict[str, Dict[str, Tensor]]
 
@@ -102,9 +107,7 @@ class DetectionEvaluator(Protocol[TDetPredictions_co, TDetModelOutput]):
 
     def evaluate(
         self,
-    ) -> Optional[
-        Union[Dict[str, Any], Tuple[Dict[str, Any], TDetPredictions_co]]
-    ]:
+    ) -> Optional[Union[Dict[str, Any], Tuple[Dict[str, Any], TDetPredictions_co]]]:
         """
         Computes the performance metrics on the outputs previously obtained
         through `update()`.
@@ -138,14 +141,16 @@ DEFAULT_SUPPROTED_DETECTION_DATASETS: Sequence[SupportedDatasetApiDef] = (
 
 
 def coco_evaluator_factory(coco_gt: COCO, iou_types: List[str]):
-    from avalanche.evaluation.metrics.detection_evaluators.coco_evaluator \
-        import CocoEvaluator
+    from avalanche.evaluation.metrics.detection_evaluators.coco_evaluator import (
+        CocoEvaluator,
+    )
+
     return CocoEvaluator(coco_gt=coco_gt, iou_types=iou_types)
 
 
 class DetectionMetrics(
-        PluginMetric[dict],
-        Generic[TDetPredictions_co, TDetModelOutput]):
+    PluginMetric[dict], Generic[TDetPredictions_co, TDetModelOutput]
+):
     """
     Metric used to compute the detection and segmentation metrics using the
     dataset-specific API.
@@ -163,8 +168,7 @@ class DetectionMetrics(
         self,
         *,
         evaluator_factory: Callable[
-            [Any, List[str]], 
-            DetectionEvaluator[TDetPredictions_co, TDetModelOutput]
+            [Any, List[str]], DetectionEvaluator[TDetPredictions_co, TDetModelOutput]
         ] = coco_evaluator_factory,
         gt_api_def: Sequence[
             SupportedDatasetApiDef
@@ -299,7 +303,7 @@ class DetectionMetrics(
         self._check_evaluator()
         if self.save:
             self.current_outputs.append(res)
-        
+
         self.evaluator.update(res)  # type: ignore
 
     def result(self):
@@ -325,20 +329,19 @@ class DetectionMetrics(
             self.current_filename = self._get_filename(strategy)
 
     def after_eval_iteration(  # type: ignore[override]
-            self, strategy: "ObjectDetectionTemplate"):
+        self, strategy: "ObjectDetectionTemplate"
+    ):
         assert strategy.detection_predictions is not None
         self.update(strategy.detection_predictions)
 
     def after_eval_exp(  # type: ignore[override]
-            self, strategy: "ObjectDetectionTemplate"):
+        self, strategy: "ObjectDetectionTemplate"
+    ):
         assert strategy.experience is not None
-        if (
-            self.save
-            and strategy.experience.origin_stream.name == self.save_stream
-        ):
+        if self.save and strategy.experience.origin_stream.name == self.save_stream:
             assert self.current_filename is not None, (
-                'The current_filename field is None, which may happen if the '
-                '`before_eval_exp` was not properly invoked.'
+                "The current_filename field is None, which may happen if the "
+                "`before_eval_exp` was not properly invoked."
             )
 
             with open(self.current_filename, "w") as f:
@@ -362,9 +365,7 @@ class DetectionMetrics(
             for metric_key, metric_value in iou_dict.items():
                 metric_name = base_metric_name + f"/{iou}/{metric_key}"
                 metric_values.append(
-                    MetricValue(
-                        self, metric_name, metric_value, plot_x_position
-                    )
+                    MetricValue(self, metric_name, metric_value, plot_x_position)
                 )
 
         return metric_values
@@ -379,14 +380,14 @@ class DetectionMetrics(
             f"{self.filename_prefix}{middle}"
             f"{strategy.experience.current_experience}.json",
         )
-    
+
     def _check_evaluator(self):
         assert self.evaluator is not None, (
-            'The evaluator was not initialized. This may happen if you try '
-            'to update or obtain results for this metric before the '
-            '`before_eval_exp` callback is invoked. If you are using this '
-            'metric in a standalone way, you can initialize the evaluator '
-            'by calling `initialize_evaluator` instead.'
+            "The evaluator was not initialized. This may happen if you try "
+            "to update or obtain results for this metric before the "
+            "`before_eval_exp` callback is invoked. If you are using this "
+            "metric in a standalone way, you can initialize the evaluator "
+            "by calling `initialize_evaluator` instead."
         )
 
     def __str__(self):
@@ -394,8 +395,10 @@ class DetectionMetrics(
 
 
 def lvis_evaluator_factory(lvis_gt: LVIS, iou_types: List[str]):
-    from avalanche.evaluation.metrics.detection_evaluators.lvis_evaluator \
-        import LvisEvaluator
+    from avalanche.evaluation.metrics.detection_evaluators.lvis_evaluator import (
+        LvisEvaluator,
+    )
+
     return LvisEvaluator(lvis_gt=lvis_gt, iou_types=iou_types)
 
 
@@ -407,9 +410,7 @@ def make_lvis_metrics(
     evaluator_factory: Callable[
         [Any, List[str]], DetectionEvaluator
     ] = lvis_evaluator_factory,
-    gt_api_def: Sequence[
-        SupportedDatasetApiDef
-    ] = DEFAULT_SUPPROTED_DETECTION_DATASETS,
+    gt_api_def: Sequence[SupportedDatasetApiDef] = DEFAULT_SUPPROTED_DETECTION_DATASETS,
 ):
     """
     Returns an instance of :class:`DetectionMetrics` initialized for the LVIS
@@ -511,11 +512,7 @@ def convert_to_coco_api(ds):
     coco_ds = COCO()
     # annotation IDs need to start at 1, not 0, see torchvision issue #1530
     ann_id = 1
-    dataset: Dict[str, List[Any]] = {
-        "images": [],
-        "categories": [],
-        "annotations": []
-    }
+    dataset: Dict[str, List[Any]] = {"images": [], "categories": [], "annotations": []}
     categories = set()
     for img_idx in range(len(ds)):
         img_dict = {}

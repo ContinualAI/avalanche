@@ -52,9 +52,7 @@ class GEMPlugin(SupervisedPlugin):
                 strategy.optimizer.zero_grad()
                 xref = self.memory_x[t].to(strategy.device)
                 yref = self.memory_y[t].to(strategy.device)
-                out = avalanche_forward(
-                    strategy.model, xref, self.memory_tid[t]
-                )
+                out = avalanche_forward(strategy.model, xref, self.memory_tid[t])
                 loss = strategy._criterion(out, yref)
                 loss.backward()
 
@@ -100,9 +98,7 @@ class GEMPlugin(SupervisedPlugin):
             for p in strategy.model.parameters():
                 curr_pars = p.numel()
                 if p.grad is not None:
-                    p.grad.copy_(
-                        v_star[num_pars : num_pars + curr_pars].view(p.size())
-                    )
+                    p.grad.copy_(v_star[num_pars : num_pars + curr_pars].view(p.size()))
                 num_pars += curr_pars
 
             assert num_pars == v_star.numel(), "Error in projecting gradient"
@@ -123,11 +119,9 @@ class GEMPlugin(SupervisedPlugin):
         """
         Update replay memory with patterns from current experience.
         """
-        collate_fn = (
-            dataset.collate_fn if hasattr(dataset, "collate_fn") else None
-        )
+        collate_fn = dataset.collate_fn if hasattr(dataset, "collate_fn") else None
         dataloader = DataLoader(
-            dataset, batch_size=batch_size, collate_fn=collate_fn
+            dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=True
         )
         tot = 0
         for mbatch in dataloader:
@@ -140,9 +134,7 @@ class GEMPlugin(SupervisedPlugin):
                 else:
                     self.memory_x[t] = torch.cat((self.memory_x[t], x), dim=0)
                     self.memory_y[t] = torch.cat((self.memory_y[t], y), dim=0)
-                    self.memory_tid[t] = torch.cat(
-                        (self.memory_tid[t], tid), dim=0
-                    )
+                    self.memory_tid[t] = torch.cat((self.memory_tid[t], tid), dim=0)
 
             else:
                 diff = self.patterns_per_experience - tot
@@ -151,12 +143,8 @@ class GEMPlugin(SupervisedPlugin):
                     self.memory_y[t] = y[:diff].clone()
                     self.memory_tid[t] = tid[:diff].clone()
                 else:
-                    self.memory_x[t] = torch.cat(
-                        (self.memory_x[t], x[:diff]), dim=0
-                    )
-                    self.memory_y[t] = torch.cat(
-                        (self.memory_y[t], y[:diff]), dim=0
-                    )
+                    self.memory_x[t] = torch.cat((self.memory_x[t], x[:diff]), dim=0)
+                    self.memory_y[t] = torch.cat((self.memory_y[t], y[:diff]), dim=0)
                     self.memory_tid[t] = torch.cat(
                         (self.memory_tid[t], tid[:diff]), dim=0
                     )

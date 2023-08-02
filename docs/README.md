@@ -10,7 +10,7 @@ Built with sphinx usig the ReST markup language, autosummary, and a bunch of oth
 
 command to build the documentation (it must be executed in the `docs` folder):
 ```
-sphinx-build . _build
+sphinx-build . _build -j auto
 ```
 
 ### Doc coverage

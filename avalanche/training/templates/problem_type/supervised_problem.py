@@ -1,13 +1,13 @@
 from avalanche.models import avalanche_forward
-from avalanche.training.templates.strategy_mixin_protocol import \
-    SupervisedStrategyProtocol
+from avalanche.training.templates.strategy_mixin_protocol import (
+    SupervisedStrategyProtocol,
+)
 
 
 # Types are perfectly ok for MyPy
 # Also confirmed here: https://stackoverflow.com/a/70907644
 # PyLance just does not understand it
 class SupervisedProblem(SupervisedStrategyProtocol):
-
     @property
     def mb_x(self):
         """Current mini-batch input."""
@@ -43,13 +43,13 @@ class SupervisedProblem(SupervisedStrategyProtocol):
         mbatch = self.mbatch
         assert mbatch is not None
         assert len(mbatch) >= 3
-        
+
         if isinstance(mbatch, tuple):
             mbatch = list(mbatch)
+            self.mbatch = mbatch
+
         for i in range(len(mbatch)):
-            self.mbatch[i] = mbatch[i].to(self.device)  # type: ignore
+            mbatch[i] = mbatch[i].to(self.device)  # type: ignore
 
 
-__all__ = [
-    'SupervisedProblem'
-]
+__all__ = ["SupervisedProblem"]

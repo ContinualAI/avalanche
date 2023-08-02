@@ -1,11 +1,10 @@
 from typing import Callable, List, Sequence, Optional, Union
+from packaging.version import parse
+import warnings
+import torch
 
-import pkg_resources
-from pkg_resources import DistributionNotFound, VersionConflict
-try:
-    pkg_resources.require('torch>=2.0.0')
-except (DistributionNotFound, VersionConflict) as e:
-    raise RuntimeError(f"LaMAML requires torch >= 2.0.0.")
+if parse(torch.__version__) < parse("2.0.0"):
+    warnings.warn(f"LaMAML requires torch >= 2.0.0.")
 
 import torch
 import torch.nn as nn
@@ -19,7 +18,6 @@ from copy import deepcopy
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.templates import SupervisedMetaLearningTemplate
-from avalanche.models.utils import avalanche_forward
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
 
 
@@ -44,8 +42,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -66,9 +63,9 @@ class LaMAML(SupervisedMetaLearningTemplate):
                             learning rate. Mutually exclusive with learn_lr and
                             lr_alpha.
         :param alpha_init: initialization value for learnable LRs.
-        :param max_buffer_size: maximum buffer size. The default storage 
+        :param max_buffer_size: maximum buffer size. The default storage
                policy is reservoir-sampling.
-        :param buffer_mb_size: number of buffer samples in each step. 
+        :param buffer_mb_size: number of buffer samples in each step.
         """
         super().__init__(
             model,
@@ -94,9 +91,11 @@ class LaMAML(SupervisedMetaLearningTemplate):
         self.alpha_params_initialized: bool = False
         self.meta_losses: List[Tensor] = []
 
-        self.buffer = Buffer(max_buffer_size=max_buffer_size,
-                             buffer_mb_size=buffer_mb_size,
-                             device=device)
+        self.buffer = Buffer(
+            max_buffer_size=max_buffer_size,
+            buffer_mb_size=buffer_mb_size,
+            device=device,
+        )
 
         self.model.apply(init_kaiming_normal)
 
@@ -112,7 +111,7 @@ class LaMAML(SupervisedMetaLearningTemplate):
                 alpha_param = nn.Parameter(
                     torch.ones(p.shape) * self.alpha_init, requires_grad=True
                 )
-                self.alpha_params[n.replace('.', '_')] = alpha_param
+                self.alpha_params[n.replace(".", "_")] = alpha_param
             self.alpha_params.to(self.device)
 
             # Create optimizer for the alpha_lr parameters
@@ -122,27 +121,29 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # update alpha-lr parameters
         for n, p in self.model.named_parameters():
-            n = n.replace('.', '_')  # dict does not support names with '.'
+            n = n.replace(".", "_")  # dict does not support names with '.'
             if n in self.alpha_params:
                 if self.alpha_params[n].shape != p.shape:
                     old_shape = self.alpha_params[n].shape
                     # parameter expansion
                     expanded = False
-                    assert len(p.shape) == len(old_shape), \
-                        "Expansion cannot add new dimensions"
+                    assert len(p.shape) == len(
+                        old_shape
+                    ), "Expansion cannot add new dimensions"
                     for i, (snew, sold) in enumerate(zip(p.shape, old_shape)):
                         assert snew >= sold, "Shape cannot decrease."
                         if snew > sold:
-                            assert not expanded, \
-                                "Expansion cannot occur " \
-                                "in more than one dimension."
+                            assert not expanded, (
+                                "Expansion cannot occur " "in more than one dimension."
+                            )
                             expanded = True
                             exp_idx = i
 
                     alpha_param = torch.ones(p.shape) * self.alpha_init
-                    idx = [slice(el) if i != exp_idx else
-                           slice(old_shape[exp_idx])
-                           for i, el in enumerate(p.shape)]
+                    idx = [
+                        slice(el) if i != exp_idx else slice(old_shape[exp_idx])
+                        for i, el in enumerate(p.shape)
+                    ]
                     alpha_param[idx] = self.alpha_params[n].detach().clone()
                     alpha_param = nn.Parameter(alpha_param, requires_grad=True)
                     self.alpha_params[n] = alpha_param
@@ -173,16 +174,21 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # Compute gradient with respect to the current fast weights
         grads = list(
-            torch.autograd.grad(loss, fast_params.values(),
-                                retain_graph=self.second_order, 
-                                create_graph=self.second_order,
-                                allow_unused=True)
+            torch.autograd.grad(
+                loss,
+                fast_params.values(),
+                retain_graph=self.second_order,
+                create_graph=self.second_order,
+                allow_unused=True,
+            )
         )
 
         # Clip grad norms
         grads = [
             torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
-            if g is not None else g for g in grads
+            if g is not None
+            else g
+            for g in grads
         ]
 
         # New fast parameters
@@ -193,18 +199,19 @@ class LaMAML(SupervisedMetaLearningTemplate):
             )
         }
 
-        return new_fast_params 
+        return new_fast_params
 
     def _inner_updates(self, **kwargs):
         # Make a copy of model parameters for fast updates
-        self.initial_fast_params = {n: deepcopy(p) for (n, p) in 
-                                    self.model.named_parameters()}
+        self.initial_fast_params = {
+            n: deepcopy(p) for (n, p) in self.model.named_parameters()
+        }
 
         # Keep reference to the initial fast params
-        fast_params = self.initial_fast_params 
+        fast_params = self.initial_fast_params
 
         # Samples from the current batch
-        batch_x, batch_y, batch_t = self.mb_x, self.mb_y, self.mb_task_id 
+        batch_x, batch_y, batch_t = self.mb_x, self.mb_y, self.mb_task_id
 
         # Get batches from the buffer
         if self.clock.train_exp_counter > 0:
@@ -218,42 +225,38 @@ class LaMAML(SupervisedMetaLearningTemplate):
         # Split the current batch into smaller chuncks
         bsize_data = batch_x.shape[0]
         rough_sz = math.ceil(bsize_data / self.n_inner_updates)
-        self.meta_losses = [
-            torch.empty(0) for _ in range(self.n_inner_updates)
-        ]
+        self.meta_losses = [torch.empty(0) for _ in range(self.n_inner_updates)]
 
         # Iterate through the chunks as inner-loops
         for i in range(self.n_inner_updates):
-            batch_x_i = batch_x[i * rough_sz: (i + 1) * rough_sz]
-            batch_y_i = batch_y[i * rough_sz: (i + 1) * rough_sz]
-            batch_t_i = batch_t[i * rough_sz: (i + 1) * rough_sz]
+            batch_x_i = batch_x[i * rough_sz : (i + 1) * rough_sz]
+            batch_y_i = batch_y[i * rough_sz : (i + 1) * rough_sz]
+            batch_t_i = batch_t[i * rough_sz : (i + 1) * rough_sz]
 
             # We assume that samples for inner update are from the same task
-            fast_params = self.inner_update_step(fast_params, 
-                                                 batch_x_i, 
-                                                 batch_y_i, batch_t_i)
+            fast_params = self.inner_update_step(
+                fast_params, batch_x_i, batch_y_i, batch_t_i
+            )
 
             # Compute meta-loss with the combination of batch and buffer samples
-            logits_meta = torch.func.functional_call(self.model, fast_params, 
-                                                     (mixed_x, mixed_t))
+            logits_meta = torch.func.functional_call(
+                self.model, fast_params, (mixed_x, mixed_t)
+            )
             meta_loss_i = self._criterion(logits_meta, mixed_y)
             self.meta_losses[i] = meta_loss_i
 
     def _outer_update(self, **kwargs):
         self.model.zero_grad()
         self.alpha_params.zero_grad()
-        
+
         # Compute meta-gradient for the main model
         meta_loss = sum(self.meta_losses) / len(self.meta_losses)
         meta_loss.backward()
 
-        self.copy_grads(self.model.parameters(), 
-                        self.initial_fast_params.values())
+        self.copy_grads(self.model.parameters(), self.initial_fast_params.values())
 
         # Clip gradients
-        torch.nn.utils.clip_grad_norm_(
-            self.model.parameters(), self.grad_clip_norm
-        )
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
 
         if self.learn_lr:
             # Update lr for the current batch
@@ -261,29 +264,30 @@ class LaMAML(SupervisedMetaLearningTemplate):
                 self.alpha_params.parameters(), self.grad_clip_norm
             )
             self.optimizer_alpha.step()
-        
+
         # If sync-update: update with self.optimizer
         # o.w: use the learned LRs to update the model
         if self.sync_update:
             self.optimizer.step()
         else:
             for p, alpha in zip(
-                    self.model.parameters(), self.alpha_params.parameters()
+                self.model.parameters(), self.alpha_params.parameters()
             ):
                 # Use relu on updated LRs to avoid negative values
                 if p.grad is not None:
                     p.data = p.data - p.grad * F.relu(alpha)
-        
+
         self.loss = meta_loss
 
     def _after_training_exp(self, **kwargs):
         self.buffer.update(self)
         super()._after_training_exp(**kwargs)
 
-    
+
 class Buffer:
-    def __init__(self, max_buffer_size=100, buffer_mb_size=10,
-                 device=torch.device("cpu")):
+    def __init__(
+        self, max_buffer_size=100, buffer_mb_size=10, device=torch.device("cpu")
+    ):
         self.storage_policy = ReservoirSamplingBuffer(max_size=max_buffer_size)
         self.buffer_mb_size = buffer_mb_size
         self.device = device
@@ -295,13 +299,16 @@ class Buffer:
         return len(self.storage_policy.buffer)
 
     def get_buffer_batch(self):
-        rnd_ind = torch.randperm(len(self))[:self.buffer_mb_size]
-        buff_x = torch.cat([self.storage_policy.buffer[i][0].unsqueeze(0)
-                            for i in rnd_ind]).to(self.device)
-        buff_y = torch.LongTensor([self.storage_policy.buffer[i][1]
-                                   for i in rnd_ind]).to(self.device)
-        buff_t = torch.LongTensor([self.storage_policy.buffer[i][2]
-                                   for i in rnd_ind]).to(self.device)
+        rnd_ind = torch.randperm(len(self))[: self.buffer_mb_size]
+        buff_x = torch.cat(
+            [self.storage_policy.buffer[i][0].unsqueeze(0) for i in rnd_ind]
+        ).to(self.device)
+        buff_y = torch.LongTensor(
+            [self.storage_policy.buffer[i][1] for i in rnd_ind]
+        ).to(self.device)
+        buff_t = torch.LongTensor(
+            [self.storage_policy.buffer[i][2] for i in rnd_ind]
+        ).to(self.device)
 
         return buff_x, buff_y, buff_t
 

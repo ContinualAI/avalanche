@@ -11,14 +11,13 @@ try:
     skip = False
 except ImportError:
     skip = True
-skip = False
 
 
 class RLScenarioTests(unittest.TestCase):
-
     @unittest.skipIf(skip, reason="Need gym to run these tests")
     def test_simple_scenario(self):
         from packaging import version
+
         n_envs = 3
         envs = [gym.make("CartPole-v1")] * n_envs
         rl_scenario = RLScenario(
@@ -35,7 +34,7 @@ class RLScenarioTests(unittest.TestCase):
             assert exp.task_label == 0
             assert isinstance(env, gym.Env)
             obs = env.reset()
-            if version.parse(gym.__version__) >= version.parse('0.26.0'):
+            if version.parse(gym.__version__) >= version.parse("0.26.0"):
                 self.assertIsInstance(obs[0], np.ndarray)
                 self.assertIsInstance(obs[1], dict)
             else:
@@ -53,7 +52,7 @@ class RLScenarioTests(unittest.TestCase):
             n_parallel_envs=1,
             task_labels=True,
             eval_envs=envs[:2],
-            shuffle=True
+            shuffle=True,
         )
         tr_stream = rl_scenario.train_stream
         assert len(tr_stream) == 3
@@ -62,7 +61,7 @@ class RLScenarioTests(unittest.TestCase):
         for i, exp in enumerate(tr_stream):
             assert exp.current_experience == i
             all_t_labels.add(exp.task_label)
-        
+
         self.assertSetEqual(set(range(3)), all_t_labels)
 
         assert len(rl_scenario.eval_stream) == 2

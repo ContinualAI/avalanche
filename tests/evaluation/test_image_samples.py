@@ -11,9 +11,7 @@ from avalanche.evaluation.metrics import ImagesSamplePlugin
 
 class ImageSamplesTests(unittest.TestCase):
     def test_image_samples(args):
-        p_metric = ImagesSamplePlugin(
-            n_cols=5, n_rows=5, group=True, mode="train"
-        )
+        p_metric = ImagesSamplePlugin(n_cols=5, n_rows=5, group=True, mode="train")
 
         scenario = SplitMNIST(5)
         curr_exp = scenario.train_stream[0]
@@ -28,17 +26,13 @@ class ImageSamplesTests(unittest.TestCase):
         # save_image(img_grid, './logs/test_image_grid.png')
 
     def test_tensor_samples(args):
-        p_metric = ImagesSamplePlugin(
-            n_cols=5, n_rows=5, group=True, mode="train"
-        )
+        p_metric = ImagesSamplePlugin(n_cols=5, n_rows=5, group=True, mode="train")
 
         scenario = SplitMNIST(5)
         curr_exp = scenario.train_stream[0]
         for mb in DataLoader(curr_exp.dataset, batch_size=32):
             break
-        curr_dataset = make_tensor_classification_dataset(
-            *mb[:2], targets=mb[1]
-        )
+        curr_dataset = make_tensor_classification_dataset(*mb[:2], targets=mb[1])
 
         strategy_mock = MagicMock(
             eval_mb_size=32, experience=curr_exp, adapted_dataset=curr_dataset

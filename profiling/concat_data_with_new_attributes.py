@@ -8,8 +8,10 @@ import time
 from avalanche.benchmarks import SplitMNIST, SplitCIFAR100
 from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
-from avalanche.training.storage_policy import (BalancedExemplarsBuffer,
-                                               ReservoirSamplingBuffer)
+from avalanche.training.storage_policy import (
+    BalancedExemplarsBuffer,
+    ReservoirSamplingBuffer,
+)
 
 
 class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
@@ -18,14 +20,14 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
     """
 
     def __init__(
-            self,
-            max_size: int,
-            adaptive_size: bool = True,
-            total_num_classes: int = None,
+        self,
+        max_size: int,
+        adaptive_size: bool = True,
+        total_num_classes: int = None,
     ):
         if not adaptive_size:
             assert (
-                    total_num_classes > 0
+                total_num_classes > 0
             ), """When fixed exp mem size, total_num_classes should be > 0."""
 
         super().__init__(max_size, adaptive_size, total_num_classes)
@@ -80,11 +82,10 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
 
         # resize buffers
         for class_id, class_buf in self.buffer_groups.items():
-            self.buffer_groups[class_id].resize(None,
-                                                class_to_len[class_id])
+            self.buffer_groups[class_id].resize(None, class_to_len[class_id])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     benchmark = SplitMNIST(n_experiences=1)
 
     storage_policy = ClassBalancedBufferWithLogits(max_size=2000)

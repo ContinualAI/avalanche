@@ -123,9 +123,7 @@ class OpenLORIS(DownloadableDataset):
 
     def _download_error_message(self) -> str:
         base_url = openloris_data.base_gdrive_url
-        all_urls = [
-            base_url + name_url[1] for name_url in openloris_data.avl_vps_data
-        ]
+        all_urls = [base_url + name_url[1] for name_url in openloris_data.avl_vps_data]
 
         base_msg = (
             "[OpenLoris] Direct download may no longer be supported!\n"
@@ -170,7 +168,6 @@ class OpenLORIS(DownloadableDataset):
 
 
 if __name__ == "__main__":
-
     # this little example script can be used to visualize the first image
     # loaded from the dataset.
     from torch.utils.data.dataloader import DataLoader

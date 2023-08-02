@@ -19,8 +19,7 @@ from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
-from avalanche.benchmarks.datasets.external_datasets.fmnist import \
-    get_fmnist_dataset
+from avalanche.benchmarks.datasets.external_datasets.fmnist import get_fmnist_dataset
 
 _default_fmnist_train_transform = transforms.Compose(
     [transforms.ToTensor(), transforms.Normalize((0.2860,), (0.3530,))]

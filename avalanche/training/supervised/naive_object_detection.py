@@ -11,16 +11,17 @@
 from typing import Callable, Optional, Sequence, Union
 
 import torch
-from pkg_resources import parse_version
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.utils.data_loader import (
     collate_from_data_or_kwargs,
-    detection_collate_fn,
     TaskBalancedDataLoader,
-    detection_collate_mbatches_fn,
+)
+
+from avalanche.benchmarks.utils import (
+    detection_collate_fn,
 )
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins import EvaluationPlugin
@@ -58,8 +59,7 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence["SupervisedPlugin"]] = None,
         evaluator: Union[
-            EvaluationPlugin,
-            Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
@@ -163,19 +163,18 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         )
 
         self.dataloader = TaskBalancedDataLoader(
-            self.adapted_dataset,
-            oversample_small_groups=True,
-            **other_dataloader_args
+            self.adapted_dataset, oversample_small_groups=True, **other_dataloader_args
         )
 
     def make_eval_dataloader(
-            self,
-            num_workers=0,
-            shuffle=False,
-            pin_memory=None,
-            persistent_workers=False,
-            drop_last=False,
-            **kwargs):
+        self,
+        num_workers=0,
+        shuffle=False,
+        pin_memory=None,
+        persistent_workers=False,
+        drop_last=False,
+        **kwargs
+    ):
         """
         Initializes the eval data loader.
         :param num_workers: How many subprocesses to use for data loading.
@@ -199,14 +198,9 @@ class ObjectDetectionTemplate(SupervisedTemplate):
             **kwargs
         )
 
-        collate_from_data_or_kwargs(
-            self.adapted_dataset,
-            other_dataloader_args)
+        collate_from_data_or_kwargs(self.adapted_dataset, other_dataloader_args)
 
-        self.dataloader = DataLoader(
-            self.adapted_dataset,
-            **other_dataloader_args
-        )
+        self.dataloader = DataLoader(self.adapted_dataset, **other_dataloader_args)
 
     def criterion(self):
         """
@@ -254,12 +248,9 @@ class ObjectDetectionTemplate(SupervisedTemplate):
         # Unpack minibatch mainly takes care of moving tensors to devices.
         # In addition, it will prepare the targets in the proper dict format.
         images = list(image.to(self.device) for image in self.mbatch[0])
-        targets = [
-            {k: v.to(self.device) for k, v in t.items()} for t in self.mbatch[1]
-        ]
-        
-        mbatch = [images, targets, 
-                  torch.as_tensor(self.mbatch[2]).to(self.device)]
+        targets = [{k: v.to(self.device) for k, v in t.items()} for t in self.mbatch[1]]
+
+        mbatch = [images, targets, torch.as_tensor(self.mbatch[2]).to(self.device)]
         self.mbatch = tuple(mbatch)
 
     def backward(self):

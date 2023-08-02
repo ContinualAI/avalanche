@@ -12,7 +12,7 @@ class TensorMNIST(MNIST):
         Returns:
             tuple: (image, target) where target is index of the target class.
         """
-        img = self.data[index].float().unsqueeze(0) / 255.
+        img = self.data[index].float().unsqueeze(0) / 255.0
         target = int(self.targets[index])
 
         if self.transform is not None:
@@ -36,17 +36,16 @@ def get_mnist_dataset(dataset_root):
 
 
 def load_MNIST(root, train, transform, target_transform):
-    return TensorMNIST(root=root, train=train, transform=transform,
-                       target_transform=target_transform)
+    return TensorMNIST(
+        root=root, train=train, transform=transform, target_transform=target_transform
+    )
 
 
 @dill.register(TensorMNIST)
 def save_MNIST(pickler, obj: TensorMNIST):
-    pickler.save_reduce(load_MNIST,
-                        (obj.root, obj.train, obj.transform,
-                         obj.target_transform), obj=obj)
+    pickler.save_reduce(
+        load_MNIST, (obj.root, obj.train, obj.transform, obj.target_transform), obj=obj
+    )
 
 
-__all__ = [
-    'get_mnist_dataset'
-]
+__all__ = ["get_mnist_dataset"]

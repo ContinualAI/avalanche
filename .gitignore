@@ -12,6 +12,8 @@ doc_html/*
 tb_data/
 csvlogs/
 docs/generated/
+docs/_build/
 .fleet
 pip-wheel-metadata
 **/.DS_Store
+avalanche_lib.egg-info/

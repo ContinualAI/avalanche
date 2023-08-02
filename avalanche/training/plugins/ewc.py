@@ -8,8 +8,7 @@ from torch.utils.data import DataLoader
 
 from avalanche.models.utils import avalanche_forward
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.utils import copy_params_dict, zerolike_params_dict, \
-    ParamData
+from avalanche.training.utils import copy_params_dict, zerolike_params_dict, ParamData
 
 
 class EWCPlugin(SupervisedPlugin):
@@ -88,10 +87,10 @@ class EWCPlugin(SupervisedPlugin):
                     saved_param = self.saved_params[experience][k]
                     imp = self.importances[experience][k]
                     new_shape = cur_param.shape
-                    penalty += (imp.expand(new_shape) *
-                                (cur_param -
-                                 saved_param.expand(new_shape))
-                                .pow(2)).sum()
+                    penalty += (
+                        imp.expand(new_shape)
+                        * (cur_param - saved_param.expand(new_shape)).pow(2)
+                    ).sum()
         elif self.mode == "online":  # may need importance and param expansion
             prev_exp = exp_counter - 1
             for k, cur_param in strategy.model.named_parameters():
@@ -101,9 +100,10 @@ class EWCPlugin(SupervisedPlugin):
                 saved_param = self.saved_params[prev_exp][k]
                 imp = self.importances[prev_exp][k]
                 new_shape = cur_param.shape
-                penalty += (imp.expand(new_shape) *
-                            (cur_param - saved_param.expand(new_shape))
-                            .pow(2)).sum()
+                penalty += (
+                    imp.expand(new_shape)
+                    * (cur_param - saved_param.expand(new_shape)).pow(2)
+                ).sum()
         else:
             raise ValueError("Wrong EWC mode.")
 
@@ -121,6 +121,7 @@ class EWCPlugin(SupervisedPlugin):
             strategy.experience.dataset,
             strategy.device,
             strategy.train_mb_size,
+            num_workers=kwargs.get("num_workers", 0),
         )
         self.update_importances(importances, exp_counter)
         self.saved_params[exp_counter] = copy_params_dict(strategy.model)
@@ -129,7 +130,7 @@ class EWCPlugin(SupervisedPlugin):
             del self.saved_params[exp_counter - 1]
 
     def compute_importances(
-        self, model, criterion, optimizer, dataset, device, batch_size
+        self, model, criterion, optimizer, dataset, device, batch_size, num_workers=0
     ) -> Dict[str, ParamData]:
         """
         Compute EWC importance matrix for each parameter
@@ -152,11 +153,12 @@ class EWCPlugin(SupervisedPlugin):
 
         # list of list
         importances = zerolike_params_dict(model)
-        collate_fn = (
-            dataset.collate_fn if hasattr(dataset, "collate_fn") else None
-        )
+        collate_fn = dataset.collate_fn if hasattr(dataset, "collate_fn") else None
         dataloader = DataLoader(
-            dataset, batch_size=batch_size, collate_fn=collate_fn
+            dataset,
+            batch_size=batch_size,
+            collate_fn=collate_fn,
+            num_workers=num_workers,
         )
         for i, batch in enumerate(dataloader):
             # get only input, target and task_id from the batch
@@ -179,6 +181,8 @@ class EWCPlugin(SupervisedPlugin):
         for _, imp in importances.items():
             imp.data /= float(len(dataloader))
 
+        model.train()
+
         return importances
 
     @torch.no_grad()
@@ -192,7 +196,7 @@ class EWCPlugin(SupervisedPlugin):
             self.importances[t] = importances
         elif self.mode == "online":
             for (k1, old_imp), (k2, curr_imp) in itertools.zip_longest(
-                self.importances[t-1].items(),
+                self.importances[t - 1].items(),
                 importances.items(),
                 fillvalue=(None, None),
             ):
@@ -210,10 +214,12 @@ class EWCPlugin(SupervisedPlugin):
 
                 # manage expansion of existing layers
                 self.importances[t][k1] = ParamData(
-                    f'imp_{k1}', curr_imp.shape,
-                    init_tensor=self.decay_factor * old_imp.expand(
-                        curr_imp.shape) + curr_imp.data,
-                    device=curr_imp.device)
+                    f"imp_{k1}",
+                    curr_imp.shape,
+                    init_tensor=self.decay_factor * old_imp.expand(curr_imp.shape)
+                    + curr_imp.data,
+                    device=curr_imp.device,
+                )
 
             # clear previous parameter importances
             if t > 0 and (not self.keep_importance_data):

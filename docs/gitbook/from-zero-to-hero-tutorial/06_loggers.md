@@ -8,7 +8,7 @@ Welcome to the _"Logging"_ tutorial of the _"From Zero to Hero"_ series. In this
 
 
 ```python
-!pip install avalanche-lib==0.3.1
+!pip install avalanche-lib==0.4
 ```
 
 ### 📑 The Logging Module
