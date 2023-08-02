@@ -1,0 +1,17 @@
+typing-extensions==4.4.0
+psutil
+gputil
+scikit-learn
+matplotlib
+numpy
+pytorchcv
+wandb
+tensorboard>=1.15
+tqdm
+torch
+torchvision
+torchmetrics
+gdown
+dill
+packaging
+quadprog

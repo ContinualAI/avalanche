@@ -101,21 +101,6 @@ pygments_style = None
 # include __init__ in the class documentation
 autoclass_content = "class"
 
-# autoapi options
-# autoapi_dirs = ['../avalanche']
-# autoapi_options = [
-#     'members',
-#     'undoc-members',
-#     # 'private-members',
-#     'show-inheritance',
-#     # 'show-inheritance-diagram',
-#     'show-module-summary',
-#     'special-members',
-#     'imported-members'
-# ]
-#
-# autoapi_add_toctree_entry = False
-# autoapi_python_class_content = 'both'
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -130,7 +115,8 @@ html_logo = "./_static/img/avalanche_logo.png"
 # documentation.
 #
 html_theme_options = {
-    "collapse_navigation": False,
+    "collapse_navigation": True,  # set to True to speed up build
+    "navigation_depth": 2,  # lower depth to speed up build
     "logo_only": True,
     "display_version": True,
 }
