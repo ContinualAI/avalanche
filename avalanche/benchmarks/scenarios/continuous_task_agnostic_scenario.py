@@ -8,6 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+
 from copy import copy
 from typing import Callable, Iterable, List, Union
 
