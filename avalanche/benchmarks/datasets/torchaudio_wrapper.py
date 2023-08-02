@@ -17,6 +17,7 @@ try:
     from torchaudio.datasets import SPEECHCOMMANDS
 except ImportError:
     import warnings
+
     warnings.warn(
         "TorchAudio package is required to load SpeechCommands. "
         "You can install it as extra dependency with "

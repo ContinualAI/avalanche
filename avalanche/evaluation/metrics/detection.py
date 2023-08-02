@@ -25,6 +25,7 @@ try:
     from pycocotools import mask as coco_mask
 except ImportError:
     import warnings
+
     warnings.warn(
         "LVIS or PyCocoTools not found, "
         "if you want to use detection "
