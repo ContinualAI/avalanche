@@ -21,13 +21,14 @@ https://arxiv.org/pdf/2010.00373.pdf
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
-from avalanche.benchmarks import PermutedMNIST
+from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import \
     OnlineNaive
-from avalanche.benchmarks.scenarios.continuous_task_agnostic_scenario import \
+from avalanche.benchmarks.scenarios.continuous_task_agnostic_scenario import(
     ContinuousTaskAgnosticScenario
+)
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -43,14 +44,14 @@ def main(args):
 
     # Benchmark
     n_tasks = 10
-    benchmark = PermutedMNIST(n_experiences=n_tasks)
+    benchmark = SplitMNIST(n_experiences=10)
 
     # Model
     model = SimpleMLP(num_classes=benchmark.n_classes)
 
     # Loggers and metrics
     interactive_logger = InteractiveLogger()
-
+    
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True
@@ -74,14 +75,14 @@ def main(args):
     
     # Create streams using the continuous task-agnostic scenario
     batch_streams = benchmark.streams.values()
-    gocl_benchmark = ContinuousTaskAgnosticScenario(
+    cta_benchmark = ContinuousTaskAgnosticScenario(
         original_streams=batch_streams,
         experience_size=10)
 
     # Start training
-    cl_strategy.train(gocl_benchmark.train_stream)
+    cl_strategy.train(cta_benchmark.train_stream)
 
-    results = cl_strategy.eval(benchmark.original_test_stream)
+    results = cl_strategy.eval(cta_benchmark.original_test_stream)
 
 
 if __name__ == "__main__":
