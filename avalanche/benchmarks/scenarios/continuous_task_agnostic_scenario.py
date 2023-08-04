@@ -9,6 +9,8 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
+#  Code adapted from: https://github.com/chenzeno/FOO-VB/blob/main/datasets.py
+
 from functools import partial
 from typing import (
 
@@ -95,11 +97,11 @@ def create_sub_exp_from_multi_exps(
 
     # Create sub-sets from each experience's dataset
     all_subsets = []
-    n_samples_from_each_task = [0 for _ in range(len(samplers))]
+    n_samples_from_each_exp = [0 for _ in range(len(samplers))]
 
     for exp_id in exp_per_sample_list.unique():
         n_samples = sum(exp_per_sample_list == exp_id.item()).item()
-        n_samples_from_each_task[exp_id.item()] += n_samples
+        n_samples_from_each_exp[exp_id.item()] += n_samples
         rnd_indices = [next(samplers[exp_id]) for _ in range(n_samples)]
         subset_i = classification_subset(
             original_stream[exp_id.item()].dataset, rnd_indices)
@@ -123,7 +125,9 @@ def create_sub_exp_from_multi_exps(
         access_task_boundaries=False,
     )
 
-    exp.n_samples_from_each_task = n_samples_from_each_task
+    # For visualization purposes only
+    exp.n_samples_from_each_exp = n_samples_from_each_exp
+
     return exp
 
 
@@ -135,12 +139,15 @@ def _fixed_size_linear_decay_stream(
     shuffle: bool,
     original_stream: Iterable[DatasetExperience[TClassificationDataset]],
 ) -> CLStream[DatasetExperience[TClassificationDataset]]:
-    """Creates a stream of sub-experiences from a list of experiences.
+    """Creates a stream of sub-experiences from a list of overlapped 
+        experiences with a lineary decay in the overlapping areas.
 
     :param online_benchmark: The online benchmark.
     :param experience_size: The size of each sub-experience.
-    :param iters_per_virtual_epoch: The number of iterations per virtual epoch.
-    :param beta: The beta parameter for the linear decay function.
+    :param iters_per_virtual_epoch: The number of iterations per virtual epoch
+        for each experience.
+    :param beta: The beta parameter for the linear decay function which
+        indicates the amount of overlap.
     :param shuffle: Whether to shuffle the sub-experiences.
     :param original_stream: The original stream.
 
@@ -162,7 +169,8 @@ def _fixed_size_linear_decay_stream(
             start = peak_start
             end = peak_end
         else:
-            start = max(int(((beta * task_id - 1) * iters) / (beta * tasks)), 0)
+            start = max(int(((beta * task_id - 1) * iters) / (beta * tasks)),
+                        0)
             peak_start = int(((beta * task_id + 1) * iters) / (beta * tasks))
             peak_end = int(((beta * task_id + (beta - 1))
                             * iters) / (beta * tasks))
@@ -208,7 +216,7 @@ def _fixed_size_linear_decay_stream(
     tasks_probs_over_iterations = tasks_probs_over_iterations_lst
 
     # Random cylic samplers over the datasets of all experiences in the stream
-    samplers = [iter(CyclicSampler(len(exp.dataset)))
+    samplers = [iter(CyclicSampler(len(exp.dataset), shuffle=shuffle))
                 for exp in original_stream]
 
     # The main iterator for the stream
@@ -257,7 +265,7 @@ class ContinuousTaskAgnosticScenario(
         experience_size: int = 10,
         iters_per_virtual_epoch: int = 300,
         overlap_factor: float = 4,
-        stream_split_strategy: Literal["fixed_size_split"] = "fixed_size_split",
+        stream_split_strategy: Literal["linear_decay"] = "linear_decay",
         shuffle: bool = True,
     ):
         """Creates an online scenario from an existing CL scenario
@@ -276,11 +284,17 @@ class ContinuousTaskAgnosticScenario(
             A good starting to understand the mechanism is to look at the
             implementation of the standard splitting function
             :func:`fixed_size_experience_split`.
+        :param iters_per_virtual_epoch: The number of iterations per virtual
+            epoch. Defaults to 300.
+        :param overlap_factor: The overlap factor between consecutive
+            experiences. Defaults to 4.
+        :param stream_split_strategy: The strategy used to split the original
+            stream into sub-streams. Defaults to "linear_decay".
         :param shuffle: If True, experiences will be split by first shuffling
             instances in each experience. Defaults to True.
         """
 
-        if stream_split_strategy != "linear_decay":
+        if stream_split_strategy == "linear_decay":
             split_strat = partial(
                 _fixed_size_linear_decay_stream, self, experience_size,
                 iters_per_virtual_epoch, overlap_factor, shuffle

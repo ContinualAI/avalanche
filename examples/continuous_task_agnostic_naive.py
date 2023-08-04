@@ -22,11 +22,12 @@ import argparse
 import torch
 from torch.nn import CrossEntropyLoss
 from avalanche.benchmarks import PermutedMNIST, SplitMNIST
-from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
+from avalanche.benchmarks.datasets.dataset_utils import \
+    default_dataset_location
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import \
     OnlineNaive
-from avalanche.benchmarks.scenarios.continuous_task_agnostic_scenario import(
+from avalanche.benchmarks.scenarios.continuous_task_agnostic_scenario import (
     ContinuousTaskAgnosticScenario
 )
 from avalanche.evaluation.metrics import (
@@ -51,7 +52,7 @@ def main(args):
 
     # Loggers and metrics
     interactive_logger = InteractiveLogger()
-    
+
     eval_plugin = EvaluationPlugin(
         accuracy_metrics(
             minibatch=True, epoch=True, experience=True, stream=True
@@ -72,12 +73,16 @@ def main(args):
         device=device,
         evaluator=eval_plugin,
     )
-    
+
     # Create streams using the continuous task-agnostic scenario
     batch_streams = benchmark.streams.values()
     cta_benchmark = ContinuousTaskAgnosticScenario(
         original_streams=batch_streams,
-        experience_size=10)
+        experience_size=10,
+        iters_per_virtual_epoch=300,
+        overlap_factor=4,
+        stream_split_strategy="linear_decay"
+    )
 
     # Start training
     cl_strategy.train(cta_benchmark.train_stream)
