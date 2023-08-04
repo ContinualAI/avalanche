@@ -15,8 +15,6 @@ from avalanche.core import SupervisedPlugin
 from avalanche.evaluation.metric_results import MetricValue
 from avalanche.logging import TextLogger
 from avalanche.benchmarks.scenarios import OnlineCLExperience
-from avalanche.benchmarks.scenarios.gradual_online_scenario import \
-    GradualOnlineCLExperience
 
 from tqdm import tqdm
 
@@ -62,8 +60,7 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
-        if isinstance(strategy.experience, (OnlineCLExperience, 
-                                            GradualOnlineCLExperience)):
+        if isinstance(strategy.experience, OnlineCLExperience):
             return
         super().before_training_epoch(strategy, metric_values, **kwargs)
         self._progress.total = len(strategy.dataloader)
@@ -74,8 +71,7 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
-        if isinstance(strategy.experience, (OnlineCLExperience, 
-                                            GradualOnlineCLExperience)):
+        if isinstance(strategy.experience, OnlineCLExperience):
             return
         self._end_progress()
         super().after_training_epoch(strategy, metric_values, **kwargs)
@@ -86,8 +82,7 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
-        if isinstance(strategy.experience, (OnlineCLExperience, 
-                                            GradualOnlineCLExperience)):
+        if isinstance(strategy.experience, OnlineCLExperience):
             experience = strategy.experience.logging()
             if experience.is_first_subexp:
                 super().before_training_exp(strategy, metric_values, **kwargs)
@@ -99,8 +94,7 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
-        if isinstance(strategy.experience, (OnlineCLExperience, 
-                                            GradualOnlineCLExperience)):
+        if isinstance(strategy.experience, OnlineCLExperience):
             experience = strategy.experience.logging()
             if experience.is_last_subexp:
                 self._end_progress()
@@ -133,8 +127,7 @@ class InteractiveLogger(TextLogger, SupervisedPlugin):
         metric_values: List["MetricValue"],
         **kwargs
     ):
-        if isinstance(strategy.experience, (OnlineCLExperience, 
-                                            GradualOnlineCLExperience)):
+        if isinstance(strategy.experience, OnlineCLExperience):
             return
 
         self._progress.update()
