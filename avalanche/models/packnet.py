@@ -1,7 +1,7 @@
 """
 Implements (Mallya & Lazebnik, 2018) PackNet algorithm for fixed-network
 parameter isolation. PackNet is a task-incremental learning algorithm that
-uses task identities to isolate parameters.
+uses task identities during testing.
 
 Mallya, A., & Lazebnik, S. (2018). PackNet: Adding Multiple Tasks to a
 Single Network by Iterative Pruning. 2018 IEEE/CVF Conference on Computer
@@ -20,198 +20,262 @@ from enum import Enum
 from avalanche.core import BaseSGDPlugin, Template
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models.simple_mlp import SimpleMLP
+from typing import Union
 from avalanche.training.templates.base_sgd import BaseSGDTemplate
 
 
-class PackNetModule(ABC):
+class PackNetModule(ABC, nn.Module):
+    """Defines the interface for implementing PackNet compatible PyTorch modules.
+
+    The core idea of PackNet is to build a single network containing multiple
+    task-specific subsets. Each subset builds on the previous subset and
+    therefore shares parameters with the previous subset. But only the
+    parameters not shared with the previous subset are mutable. This allows
+    PackNet to isolate parameters for each task.
+
+    Caution should be taken when optimizers with momentum are used, since they
+    can cause parameters to be modified even when no gradient exists.
+
+    PackNet has internal state that changes its behaviour and this class is
+    responsible for ensuring that no invalid state transitions occur. When
+    an invalid state transition occurs a `StateError` is thrown.
+    """
+
     class State(Enum):
         """PackNet requires a procedure to be followed and we model this with
-        the following states
+        the following states.
         """
 
         TRAINING = 0
-        """Train all of the remaining capacity"""
+        """The PackNet module is training all of the unfrozen capacity"""
         POST_PRUNE = 1
-        """Train only the un-pruned weights."""
+        """The PackNet module is training only on the unpruned parameters that
+        will be frozen next"""
         EVAL = 2
-        """Activate a task-specific subset and mask the remaining weights. This
-        state freezes all weights."""
+        """Activate a task-specific subset and mask the remaining parameters.
+        This state freezes all parameters."""
 
-    @abstractmethod
-    def prune(self, prune_proportion: float) -> None:
-        """Prune a proportion of the prunable parameters (parameters on the
-        top of the stack) using the absolute value of the weights as a
-        heuristic for importance.
+    class StateError(RuntimeError):
+        """An invalid state transition occured"""
 
-        Prune may only be called when PackNet is in the TRAINING state. Prune
-        will move PackNet to the POST_PRUNE state.
+    def __init__(self) -> None:
+        super().__init__()
+        init_state = self.State.TRAINING
+        self._state: Tensor
+        """The current state of the PackNet"""
+        self._active_task: Tensor
+        """The id of the task that is currently active"""
+        self._task_count: Tensor
+        """The number of tasks that have been trained"""
+        self.register_buffer("_state", torch.tensor(init_state.value, dtype=torch.int))
+        self.register_buffer("_active_task", torch.tensor(0, dtype=torch.int))
+        self.register_buffer("_task_count", torch.tensor(0, dtype=torch.int))
+
+    def prune(self, prune_proportion: float):
+        """Prune a proportion of the unfrozen parameters from the module.
+
+        The pruned parameters will be reused for the next task, while the
+        remaining will be fine-tuned further on the current task, in the
+        post-pruning phase.
+
+        Prune may only be called when PackNet is in the `State.TRAINING` state.
+        Prune will move PackNet to the `State.POST_PRUNE` state.
 
         :param prune_proportion: A proportion of the prunable parameters to
-            prune
+            prune. Must be between 0 and 1.
         """
+        if not 0 <= prune_proportion <= 1:
+            raise ValueError(
+                f"`prune_proportion` must be between 0 and 1, got "
+                f"{prune_proportion}"
+            )
+        self._state_guard(
+            self.prune.__name__, [self.State.TRAINING], self.State.POST_PRUNE
+        )
+        self._prune(prune_proportion)
 
-    @abstractmethod
-    def freeze_weights(self) -> None:
+    def freeze_pruned(self):
         """
-        Commits the layer by incrementing counters and moving pruned parameters
-        to the top of the stack. Biases are frozen as a side-effect.
+        Freeze the pruned parameters, commiting them to become immutable.
 
-        Freeze may only be called when PackNet is in the POST_PRUNE state.
-        Freeze will move PackNet to the EVAL state.
+        This prevents subsequent tasks from affecting any parameters associated
+        with this task.
+
+        This function can only be called when PackNet is in the
+        `State.POST_PRUNE` state. It will then move PackNet to the `State.EVAL`
+        state.
         """
+        self._state_guard(
+            self.freeze_pruned.__name__, [self.State.POST_PRUNE], self.State.EVAL
+        )
+        self._task_count += 1
+        self._freeze_pruned()
 
-    @abstractmethod
-    def train_uncommitted(self):
-        """Unmasks all weights and freezes the weights belonging to past tasks.
-        This allows the uncommitted layer to be trained without affecting the
-        previous layer. Can only be called when PackNet is in the EVAL state
-        i.e after `freeze_weights`. Moves PackNet to the TRAINING state.
-        """
-
-    @abstractmethod
     def activate_task(self, task_id: int):
-        """Activates a task-specific subset in PackNet, by masking some weights.
-        To avoid forgetting the network becomes immutable. Can only be called
-        when PackNet is in the EVAL or TRAINING state. Moves PackNet to the
-        EVAL state.
+        """Activates a task-specific subset of PackNet.
 
-        :param task_id: The task id of the subset to activate
+        When `task_id` is the active task, the active task can be trained using
+        the remaining capacity. Otherwise, all parameters are frozen and
+        the active task cannot be trained.
+
+        This function can only be called when PackNet is in the `State.EVAL`,
+        `State.TRAINING`, or `State.POST_PRUNE` state. Moving PackNet to the
+        `State.EVAL` state if the `task_id` is not the active task. Otherwise,
+        PackNet remains in the same state.
+
+        :param task_id: The task to activate. Must be between 0 and the number
+            of tasks seen so far.
         """
+        if not (0 <= task_id <= self.task_count):
+            raise ValueError(
+                f"`task_id` must be between 0 and {self.task_count}, " f"got {task_id}"
+            )
+        if task_id != self.task_count:
+            next_state = self.State.EVAL
+        elif self.state == self.State.POST_PRUNE:
+            next_state = self.State.POST_PRUNE
+        else:
+            next_state = self.State.TRAINING
+        # Stop if the task is already active
+        if task_id == self.active_task and self.state == next_state:
+            return
+
+        self._state_guard(
+            self.activate_task.__name__,
+            [self.State.EVAL, self.State.TRAINING],
+            next_state,
+        )
+        self._activate_task(task_id)
+        self._active_task.fill_(task_id)
 
     @abstractmethod
+    def _prune(self, prune_proportion: float) -> None:
+        """Implementation of `prune` once the state has been checked"""
+
+    @abstractmethod
+    def _freeze_pruned(self) -> None:
+        """Implementation of `freeze_pruned` once the state has been checked"""
+
+    @abstractmethod
+    def _activate_task(self, task_id: int) -> None:
+        """Implementation of `activate_task` once the state has been checked"""
+
+    @property
+    def active_task(self) -> int:
+        """Returns the id of the task that is currently active.
+
+        :return: The id of the task that is currently active.
+        """
+        return int(self._active_task.item())
+
+    @property
     def task_count(self) -> int:
         """Counts the number of task-specific subsets in PackNet.
 
         :return: The number of task-specific subsets
         """
+        return int(self._task_count.item())
+
+    @property
+    def state(self) -> State:
+        return self.State(self._state.item())
+
+    def _state_guard(
+        self,
+        func_name: str,
+        previous: t.Sequence[State],
+        next: State,
+    ):
+        """Ensure that the state is in the correct state and transition to the
+        next correct state.
+        """
+        if self.state not in previous:
+            previous_str = ", ".join([str(x) for x in previous])
+            raise self.StateError(
+                f"Calling `{func_name}` is only valid for `{previous_str}` "
+                f"instead PackNet was in the `{self.state}` state"
+            )
+        self._state.fill_(next.value)
 
 
-class _ModuleDecorator(nn.Module):
-    wrappee: nn.Module
+class WeightAndBiasPackNetModule(PackNetModule):
+    """A PackNet module that has a weight and bias. This can be used to wrap
+    many PyTorch modules such as `nn.Linear`, `nn.Conv2d` and `nn.ConvTranspose2d`
+    """
 
-    def forward(self, input: Tensor) -> Tensor:
-        return self.wrappee.forward(input)
-
-    def __init__(self, wrappee: nn.Module):
-        super().__init__()
-        self.add_module("wrappee", wrappee)
-
-
-class StateError(Exception):
-    pass
-
-
-class PackNetDecorator(PackNetModule, _ModuleDecorator):
     def __init__(self, wrappee: nn.Module) -> None:
-        super().__init__(wrappee)
+        super().__init__()
+        self.wrappee: nn.Module = wrappee
+        # The following attributes are used to check that the wrappee is
+        # compatible
+        if not hasattr(wrappee, "weight") or not isinstance(
+            wrappee.weight, nn.Parameter
+        ):
+            raise ValueError(f"weight must be defined in {wrappee}")
+        self.has_bias = hasattr(wrappee, "bias") and isinstance(
+            wrappee.weight, nn.Parameter
+        )
+
         self.PRUNED_CODE: Tensor
-        """Value used to mark pruned weights"""
+        """Value used to code for a pruned weight, during the post-pruning phase"""
         self.register_buffer("PRUNED_CODE", torch.tensor(255, dtype=torch.int))
 
-        self._task_count: Tensor
-        """Index top of the 'stack'. Should only increase"""
-        self.register_buffer("_task_count", torch.tensor(0, dtype=torch.int))
-
         self.task_index: Tensor
-        """Index of the task each weight belongs to"""
+        """Tracks which task each weight belongs to. Of the same shape as the
+        weight tensor."""
         self.register_buffer(
             "task_index",
-            torch.ones(self.weight.shape).byte() * self._task_count,
+            torch.ones_like(self.wrappee.weight).byte() * self._task_count,
         )
 
         self.visible_mask: Tensor
-        """Mask of weights that are visible"""
+        """Mask of weights that are visible. Can be computed from `task_index`"""
         self.register_buffer(
-            "visible_mask", torch.ones_like(self.weight, dtype=torch.bool)
+            "visible_mask", torch.ones_like(self.task_index, dtype=torch.bool)
         )
 
         self.unfrozen_mask: Tensor
-        """Mask of weights that are mutable"""
+        """Mask of weights that are mutable. Can be computed from `task_index`"""
         self.register_buffer(
-            "unfrozen_mask", torch.ones_like(self.weight, dtype=torch.bool)
+            "unfrozen_mask", torch.ones_like(self.task_index, dtype=torch.bool)
         )
 
-        self._state: Tensor
-        """The current state of the PackNet, see `State` for more information"""
-        self.register_buffer(
-            "_state", torch.tensor(self.State.TRAINING.value, dtype=torch.int)
-        )
-
-        self.weight.register_hook(self._remove_gradient_hook)
-
-    @property
-    @abstractmethod
-    def weight(self) -> Tensor:
-        raise NotImplementedError("weight not implemented")
-
-    @property
-    @abstractmethod
-    def bias(self) -> Tensor:
-        raise NotImplementedError("weight not implemented")
+        wrappee.weight.register_hook(self._remove_gradient_hook)
 
     @property
     def pruned_mask(self) -> Tensor:
         """Return a mask of weights that have been pruned"""
         return self.task_index.eq(self.PRUNED_CODE)
 
-    @property
-    def state(self) -> PackNetModule.State:
-        return self.State(self._state.item())
-
-    @state.setter
-    def state(self, state: PackNetModule.State):
-        self._state.fill_(state.value)
-
-    def prune(self, prune_proportion: float):
-        self._state_guard([self.State.TRAINING], self.State.POST_PRUNE)
+    def _prune(self, prune_proportion: float):
         ranked = self._rank_prunable()
         prune_count = int(len(ranked) * prune_proportion)
         self._prune_weights(ranked[:prune_count])
         self.unfrozen_mask = self.task_index.eq(self._task_count)
 
     def available_weights(self) -> Tensor:
-        return self.visible_mask * self.weight
+        return self.visible_mask * self.wrappee.weight
 
-    def train_uncommitted(self):
-        self.activate_task(self.task_count())
-        self._state_guard([self.State.EVAL], self.State.TRAINING)
-
-        self.unfrozen_mask = self.task_index.eq(self.task_count())
-        self.visible_mask = self.visible_mask | self.unfrozen_mask
-
-    def activate_task(self, task_id: int):
-        self._state_guard(
-            [self.State.EVAL, self.State.TRAINING],
-            self.State.EVAL,
-        )
+    def _activate_task(self, task_id: int):
         self.visible_mask.zero_()
-        self._is_subset_id_valid(task_id)
-        self.visible_mask = self.visible_mask | self.task_index.eq(task_id)
-
-    def freeze_weights(self):
-        self._state_guard([self.State.POST_PRUNE], self.State.EVAL)
-        self._task_count += 1
-        self.task_index[self.pruned_mask] = self._task_count.item()
-        # Change the active z_index
         self.unfrozen_mask.zero_()
+        self.visible_mask = self.task_index.less_equal(task_id)
+        if task_id == self.task_count:
+            self.unfrozen_mask = self.task_index.eq(task_id)
 
-        if self.bias is not None:
-            self.bias.requires_grad = False
-
-    def task_count(self) -> int:
-        return int(self._task_count.item())
+    def _freeze_pruned(self):
+        self.task_index[self.pruned_mask] = self.task_count
+        self.unfrozen_mask.zero_()
+        if self.has_bias:
+            self.wrappee.bias.requires_grad = False
 
     @property
     def device(self) -> torch.device:
         return self.weight.device
 
     def _remove_gradient_hook(self, grad: Tensor) -> Tensor:
-        """
-        Only the top layer should be trained. Todo so all other gradients
-        are zeroed. Caution should be taken when optimizers with momentum are
-        used, since they can cause parameters to be modified even when no
-        gradient exists
-        """
+        """Gradients that are frozen are zeroed out. Preventing them from
+        being modifed after they have been frozen."""
         return grad * self.unfrozen_mask
 
     def _rank_prunable(self) -> Tensor:
@@ -221,95 +285,58 @@ class PackNetDecorator(PackNetModule, _ModuleDecorator):
         """
         # "We use the simple heuristic to quantify the importance of the
         # weights using their absolute value." (Han et al., 2017)
-        importance = self.weight.abs()
+        # Han, S., Pool, J., Narang, S., Mao, H., Gong, E., Tang, S., Elsen, E.,
+        # Vajda, P., Paluri, M., Tran, J., Catanzaro, B., & Dally, W. J. (2017).
+        # DSD: Dense-Sparse-Dense Training for Deep Neural Networks.
+        # ArXiv:1607.04381 [Cs]. http://arxiv.org/abs/1607.04381
+        importance = self.wrappee.weight.abs()
         un_prunable = ~self.unfrozen_mask
         # Mark un-prunable weights using -1.0 so they can be cutout after sort
         importance[un_prunable] = -1.0
-        # Rank the importance
         rank = torch.argsort(importance.flatten())
         # Cut out un-prunable weights
         return rank[un_prunable.count_nonzero() :]
 
     def _prune_weights(self, indices: Tensor):
+        """Given a list of indices, prune the weights at those indices.
+
+        Pruning simply marks the weight as pruned in the `task_index` and
+        makes the weight invisible in the `visible_mask`.
+
+        :param indices: A 1D tensor of indices to prune
+        """
         self.task_index.flatten()[indices] = self.PRUNED_CODE.item()
         self.visible_mask.flatten()[indices] = False
 
-    def _is_subset_id_valid(self, subset_id: t.List[int]):
-        assert (
-            0 <= subset_id <= self._task_count
-        ), f"Given Subset ID {subset_id} must be between 0 and {self._task_count}"
 
-    def _state_guard(
-        self,
-        previous: t.Sequence[PackNetModule.State],
-        next: PackNetModule.State,
-    ):
-        """Ensure that the state is in the correct state and transition to the
-        next correct state. If the state is not in the correct state then raise
-        a StateError. This ensures that the correct procedure is followed.
-        """
-        if self.state not in previous:
-            raise StateError(
-                f"Function only valid for {previous} instead PackNet was "
-                + f"in the {self.state} state"
-            )
-        self.state = next
+class _PnLinear(WeightAndBiasPackNetModule):
+    """A decorator for `nn.Linear` module making it PackNet compatible."""
 
-
-class _PnLinear(PackNetDecorator):
     def __init__(self, wrappee: nn.Linear) -> None:
         self.wrappee: nn.Linear
         super().__init__(wrappee)
 
-    @property
-    def bias(self) -> Tensor:
-        return self.wrappee.bias
-
-    @property
-    def weight(self) -> Tensor:
-        return self.wrappee.weight
-
     def forward(self, input: Tensor) -> Tensor:
-        return F.linear(input, self.available_weights(), self.bias)
+        return F.linear(input, self.available_weights(), self.wrappee.bias)
 
 
-class _PnConv2d(PackNetDecorator):
-    def __init__(self, wrappee: nn.Conv2d) -> None:
-        wrappee: nn.Conv2d
+class _PnConvNd(WeightAndBiasPackNetModule):
+    """A decorator for `nn.Linear` module making it PackNet compatible."""
+
+    def __init__(self, wrappee: Union[nn.Conv1d, nn.Conv2d, nn.Conv3d]) -> None:
         super().__init__(wrappee)
 
-    @property
-    def weight(self) -> Tensor:
-        return self.wrappee.weight
-
-    @property
-    def bias(self) -> Tensor:
-        return self.wrappee.bias
-
-    @property
-    def transposed(self) -> bool:
-        return self.wrappee.transposed
-
     def forward(self, input: Tensor) -> Tensor:
-        return self.wrappee._conv_forward(input, self.available_weights(), self.bias)
+        return self.wrappee._conv_forward(
+            input, self.available_weights(), self.wrappee.bias
+        )
 
 
-class _PnConvTransposed2d(PackNetDecorator):
-    def __init__(self, wrappee: nn.ConvTranspose2d) -> None:
-        wrappee: nn.ConvTranspose2d
+class _PnConvTransposedNd(WeightAndBiasPackNetModule):
+    def __init__(
+        self, wrappee: Union[nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d]
+    ) -> None:
         super().__init__(wrappee)
-
-    @property
-    def weight(self) -> Tensor:
-        return self.wrappee.weight
-
-    @property
-    def bias(self) -> Tensor:
-        return self.wrappee.bias
-
-    @property
-    def transposed(self) -> bool:
-        return self.wrappee.transposed
 
     def forward(
         self, input: Tensor, output_size: t.Optional[t.List[int]] = None
@@ -340,24 +367,22 @@ class _PnConvTransposed2d(PackNetDecorator):
         )
 
 
-def PackNetSimpleMLP(
-    num_classes=10,
-    input_size=28 * 28,
-    hidden_size=512,
-    hidden_layers=1,
-    drop_rate=0.5,
-):
-    return PackNet(
-        SimpleMLP(num_classes, input_size, hidden_size, hidden_layers, drop_rate)
-    )
-
-
-class PackNet(_ModuleDecorator, PackNetModule, MultiTaskModule):
+class PackNetModel(PackNetModule, MultiTaskModule):
     """
     PackNet implements the PackNet algorithm for parameter isolation. It
-    can upgrade some PyTorch modules to be PackNet compatible. It currently only
-    supports `nn.Linear`, `nn.Conv2d` and `nn.ConvTranspose2d` modules but
-    can be extended to support other modules.
+    is designed to automatically upgrade most models to support PackNet.
+    But because of the nature of the strategy, it is not possible to use it
+    with every model or PyTorch module. Furthermore, PackNet not everything
+    has been implemented yet. Here are some basic guidelines:
+
+     - Stateless modules like :class:`torch.nn.ReLU`, :class:`torch.nn.Flatten`,
+        or `torch.nn.Dropout` should work fine.
+     - Many normalization layers currently do not work.
+     - Supports: :class:`nn.Linear`, :class:`nn.Conv1d`, :class:`nn.Conv2d`,
+        :class:`nn.Conv3d`, :class:`nn.ConvTranspose1d`, :class:`nn.ConvTranspose2d`,
+        :class:`nn.ConvTranspose3d`
+     - If you want to use a custom module with state or parameters, ensure it
+        implements :class:`PackNetModule`.
 
 
     Mallya, A., & Lazebnik, S. (2018). PackNet: Adding Multiple Tasks to a
@@ -368,85 +393,101 @@ class PackNet(_ModuleDecorator, PackNetModule, MultiTaskModule):
 
     @staticmethod
     def wrap(wrappee: nn.Module):
-        # Remove Weight Norm
+        """Upgrade a PyTorch module and all of its submodules to be PackNet
+        compatible. This is a recursive function that will wrap all submodules
+        in a PackNet compatible module.
+
+        :param wrappee: The module to wrap
+        :raises ValueError: If the module is not supported
+        :return: A PackNet compatible module
+        """
+        # Weight norm is not supported
         if hasattr(wrappee, "weight_g") and hasattr(wrappee, "weight_v"):
-            raise RuntimeError("PackNet does not support weight norm")
+            raise ValueError("PackNet does not support weight norm")
+        # Other norms are not supported
+        if hasattr(wrappee, "running_mean") or hasattr(wrappee, "running_var"):
+            raise ValueError(
+                "The PackNet implementation does not yet support norms "
+                f"{wrappee.__class__.__name__}"
+            )
 
         # Recursive cases
-        if isinstance(wrappee, nn.Linear):
+        if isinstance(wrappee, PackNetModule):
+            return wrappee
+        elif isinstance(wrappee, nn.Linear):
             return _PnLinear(wrappee)
-        elif isinstance(wrappee, nn.Conv2d):
-            return _PnConv2d(wrappee)
-        elif isinstance(wrappee, nn.ConvTranspose2d):
-            return _PnConvTransposed2d(wrappee)
+        elif isinstance(wrappee, (nn.Conv1d, nn.Conv2d, nn.Conv3d)):
+            return _PnConvNd(wrappee)
+        elif isinstance(
+            wrappee, (nn.ConvTranspose1d, nn.ConvTranspose2d, nn.ConvTranspose3d)
+        ):
+            return _PnConvTransposedNd(wrappee)
         elif isinstance(wrappee, nn.Sequential):
             # Wrap each submodule
             for i, x in enumerate(wrappee):
-                wrappee[i] = PackNet.wrap(x)
-        else:
-            for submodule_name, submodule in wrappee.named_children():
-                setattr(wrappee, submodule_name, PackNet.wrap(submodule))
+                wrappee[i] = PackNetModel.wrap(x)
+            return wrappee
+
+        # If the module has parameters and has not been wrapped yet, then it is
+        # not supported
+        if len(list(wrappee.parameters(recurse=False))) != 0:
+            raise ValueError(
+                f"PackNet does not support the module {wrappee.__class__.__name__}"
+            )
+
+        for submodule_name, submodule in wrappee.named_children():
+            setattr(wrappee, submodule_name, PackNetModel.wrap(submodule))
         return wrappee
 
     def __init__(self, wrappee: nn.Module) -> None:
-        super().__init__(PackNet.wrap(wrappee))
-        self._subset_count: Tensor
-        self._active_task_id: Tensor
-        self.register_buffer("_active_task_id", torch.tensor(0))
-        self.register_buffer("_subset_count", torch.tensor(0))
+        """Wrap a PyTorch module to make it PackNet compatible.
 
-    def _pn_apply(self, func: t.Callable[["PackNet"], None]):
+        :param wrappee: The module to wrap
+        """
+        super().__init__()
+        self.wrappee = PackNetModel.wrap(wrappee)
+
+    def _pn_apply(self, func: t.Callable[["PackNetModel"], None]):
+        """Apply a function to all child PackNetModules
+
+        :param func: The function to apply
+        """
+
         @torch.no_grad()
         def __pn_apply(module):
-            # Apply function to all child packnets but not other parents.
-            # If we were to apply to other parents we would duplicate
-            # applications to their children
-            if isinstance(module, PackNetModule) and not isinstance(module, PackNet):
+            # Apply function to all child PackNetModule but not other
+            # parent PackNet modules
+            if isinstance(module, PackNetModule) and not isinstance(
+                module, PackNetModel
+            ):
                 func(module)
 
         self.apply(__pn_apply)
 
-    def prune(self, to_prune_proportion: float) -> None:
-        """
-        Prunes the layer by removing the smallest weights and freezing them.
-        Biases are frozen as a side-effect.
+    def _prune(self, to_prune_proportion: float):
+        """Call `prune` on all child PackNetModules
+
+        :param to_prune_proportion: The proportion of parameters to prune in
+            each child PackNetModule
         """
         self._pn_apply(lambda x: x.prune(to_prune_proportion))
 
-    def freeze_weights(self) -> None:
-        """
-        Pushes the pruned weights to the next layer.
-        """
-        self._pn_apply(lambda x: x.freeze_weights())
-        self._subset_count += 1
+    def _freeze_pruned(self):
+        """Call `freeze_pruned` on all child PackNetModules"""
+        self._pn_apply(lambda x: x.freeze_pruned())
 
-    def train_uncommitted(self):
-        """
-        Activates the subsets given subsets making them visible. The remaining
-        capacity is mutable.
-        """
-        self._pn_apply(lambda x: x.train_uncommitted())
-        self._active_task_id.fill_(self._subset_count)
+    def _activate_task(self, task_id: int):
+        """Call `activate_task` on all child PackNetModules
 
-    def activate_task(self, task_id: int):
+        :param task_id: The task to activate
         """
-        Activates the given subsets in the layer making them visible. The
-        remaining capacity is mutable.
-        """
-        if self._active_task_id.eq(task_id).all():
-            return
-        else:
-            self._active_task_id.fill_(task_id)
-            self._pn_apply(lambda x: x.activate_task(task_id))
-
-    def task_count(self) -> int:
-        return int(self._subset_count)
+        self._pn_apply(lambda x: x.activate_task(task_id))
 
     def forward(self, input: Tensor, task_id: Tensor) -> Tensor:
         task_id_ = task_id[0]
         assert task_id.eq(task_id_).all(), "All task ids must be the same"
-        self.activate_task(min(task_id_, self._subset_count))
-        return super().forward(input)
+        self.activate_task(min(task_id_, self.task_count))
+        return self.wrappee.forward(input)
 
 
 class PackNetPlugin(BaseSGDPlugin):
@@ -459,9 +500,18 @@ class PackNetPlugin(BaseSGDPlugin):
         post_prune_epochs: int,
         prune_proportion: float = 0.5,
     ):
+        """The PackNetPlugin calls PackNet's pruning and freezing procedures at
+        the appropriate times.
+
+        :param post_prune_epochs: The number of epochs to finetune the model
+            after pruning the parameters. Must be less than the number of
+            training epochs.
+        :param prune_proportion: The proportion of parameters to prune each
+            durring each task. Must be between 0 and 1.
+        """
         super().__init__()
         self.post_prune_epochs = post_prune_epochs
-        self.total_epochs: int | None = None
+        self.total_epochs: Union[int, None] = None
         self.prune_proportion = prune_proportion
         assert 0 <= self.prune_proportion <= 1, (
             f"`prune_proportion` must be between 0 and 1, got "
@@ -472,13 +522,6 @@ class PackNetPlugin(BaseSGDPlugin):
         assert isinstance(
             strategy, BaseSGDTemplate
         ), "Strategy must be a `BaseSGDTemplate` or derived class."
-
-        if not isinstance(strategy.model, PackNet):
-            raise ValueError(
-                f"`PackNetPlugin` can only be used with a `PackNet` model, "
-                f"got {type(strategy.model)}. Try wrapping your model with "
-                "`PackNet` before using this plugin."
-            )
 
         if not hasattr(strategy, "train_epochs"):
             raise ValueError(
@@ -511,17 +554,38 @@ class PackNetPlugin(BaseSGDPlugin):
         does not interfere with the previous one.
         """
         model = self._get_model(strategy)
-        model.freeze_weights()
+        model.freeze_pruned()
 
-    def before_training_exp(self, strategy: "Template", *args, **kwargs):
-        """Before each experience, setup to train the uncommitted layers
-        during the training phase.
-        """
-        model = self._get_model(strategy)
-        model.train_uncommitted()
-
-    def _get_model(self, strategy: "BaseSGDTemplate"):
+    def _get_model(self, strategy: "BaseSGDTemplate") -> PackNetModule:
         """Get the model from the strategy."""
         model = strategy.model
-        assert isinstance(model, PackNet), "Model must be a `PackNet`"
+        if not isinstance(strategy.model, PackNetModule):
+            raise ValueError(
+                f"`PackNetPlugin` can only be used with a `PackNet` model, "
+                f"got {type(strategy.model)}. Try wrapping your model with "
+                "`PackNet` before using this plugin."
+            )
         return model
+
+
+def packnet_simple_mlp(
+    num_classes=10,
+    input_size=28 * 28,
+    hidden_size=512,
+    hidden_layers=1,
+    drop_rate=0.5,
+) -> PackNetModel:
+    """
+    Convenience function for creating a PackNet compatible :class:`SimpleMLP`
+    model.
+
+    :param num_classes: output size
+    :param input_size: input size
+    :param hidden_size: hidden layer size
+    :param hidden_layers: number of hidden layers
+    :param drop_rate: dropout rate. 0 to disable
+    :return: A PackNet compatible model
+    """
+    return PackNetModel(
+        SimpleMLP(num_classes, input_size, hidden_size, hidden_layers, drop_rate)
+    )
