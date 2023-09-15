@@ -258,7 +258,6 @@ As an example, the `SupervisedTemplate`, for continual supervised strategies, pr
 
 
 ```python
-from avalanche.benchmarks.utils import AvalancheConcatDataset
 from avalanche.training.templates import SupervisedTemplate
 
 
@@ -273,7 +272,7 @@ class Cumulative(SupervisedTemplate):
         if self.dataset is None:
             self.dataset = curr_data
         else:
-            self.dataset = AvalancheConcatDataset([self.dataset, curr_data])
+            self.dataset = self.dataset.concat(curr_data)
         self.adapted_dataset = self.dataset.train()
 
 strategy = Cumulative(model=model, optimizer=optimizer, criterion=criterion, train_mb_size=128)

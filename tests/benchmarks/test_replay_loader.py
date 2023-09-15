@@ -2,10 +2,8 @@
 import unittest
 
 import numpy as np
-import torch
 
 from avalanche.benchmarks.classic import SplitMNIST
-from avalanche.benchmarks.utils import AvalancheSubset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 
 
@@ -27,9 +25,9 @@ class TestReplayDataLoader(unittest.TestCase):
             np.arange(len(dataset_for_current)), size=100, replace=False
         )
 
-        self.big_task_set = AvalancheSubset(dataset_for_current, indices_big_set)
-        self.small_task_set = AvalancheSubset(dataset_for_current, indices_small_set)
-        self.tiny_task_set = AvalancheSubset(dataset_for_current, indices_tiny_set)
+        self.big_task_set = dataset_for_current.subset(indices_big_set)
+        self.small_task_set = dataset_for_current.subset(indices_small_set)
+        self.tiny_task_set = dataset_for_current.subset(indices_tiny_set)
 
         indices_memory = np.random.choice(
             np.arange(len(dataset_for_memory)), size=2000, replace=False
@@ -39,10 +37,8 @@ class TestReplayDataLoader(unittest.TestCase):
             np.arange(len(dataset_for_memory)), size=100, replace=False
         )
 
-        self.memory_set = AvalancheSubset(dataset_for_memory, indices_memory)
-        self.small_memory_set = AvalancheSubset(
-            dataset_for_memory, indices_memory_small
-        )
+        self.memory_set = dataset_for_memory.subset(indices_memory)
+        self.small_memory_set = dataset_for_memory.subset(indices_memory_small)
 
         self._batch_size = None
         self._task_dataset = None
