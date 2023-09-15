@@ -36,7 +36,7 @@ from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
     ClassificationScenario,
 )
 
-from avalanche.benchmarks.scenarios.dataset_scenario import (
+from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
     DatasetScenario,
     DatasetStream,
     FactoryBasedStream,
@@ -1086,7 +1086,6 @@ __all__ = [
     "paths_benchmark",
     "tensors_benchmark",
     "data_incremental_benchmark",
-    "benchmark_with_validation_stream",
     "random_validation_split_strategy",
     "class_balanced_split_strategy",
 ]

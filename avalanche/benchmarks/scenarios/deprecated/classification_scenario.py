@@ -18,17 +18,12 @@ from avalanche.benchmarks.scenarios.generic_scenario import (
     AbstractClassTimelineExperience,
 )
 
-from avalanche.benchmarks.scenarios.dataset_scenario import (
-    DatasetScenario,
+from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
     ClassesTimelineCLScenario,
     FactoryBasedStream,
     TStreamsUserDict,
 )
 
-from avalanche.benchmarks.utils import AvalancheDataset
-from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
-)
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from avalanche.models import SimpleMLP, MTSimpleMLP
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.regularization import LearningWithoutForgetting
-from tests.test_dataloaders import get_fast_benchmark
+from benchmarks.utils.test_dataloaders import get_fast_benchmark
 import numpy as np
 import random
 

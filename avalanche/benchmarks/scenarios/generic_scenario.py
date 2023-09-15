@@ -139,13 +139,13 @@ class CLExperience:
     def __init__(
         self: TCLExperience,
         current_experience: int,
-        origin_stream: "CLStream[TCLExperience]",
+        origin_stream: "Optional[CLStream[TCLExperience]]",
     ):
         super().__init__()
         self._current_experience: int = current_experience
         """Experience identifier (the position in the origin_stream)."""
 
-        self._origin_stream: "CLStream[TCLExperience]" = origin_stream
+        self._origin_stream: "Optional[CLStream[TCLExperience]]" = origin_stream
         """Stream containing the experience."""
 
         self._exp_mode: ExperienceMode = ExperienceMode.LOGGING
@@ -469,7 +469,7 @@ class CLStream(Generic[TCLExperience]):
         self: TCLStream,
         name: str,
         exps_iter: Iterable[TCLExperience],
-        benchmark: "CLScenario[TCLStream]",
+        benchmark: "Optional[CLScenario[TCLStream]]" = None,
         set_stream_info: bool = True,
     ):
         """
@@ -526,7 +526,7 @@ class SizedCLStream(CLStream[TCLExperience], ABC):
         self: TCLStream,
         name: str,
         exps_iter: Iterable[TCLExperience],
-        benchmark: "CLScenario[TCLStream]",
+        benchmark: "Optional[CLScenario[TCLStream]]" = None,
         set_stream_info: bool = True,
     ):
         super().__init__(
@@ -690,7 +690,7 @@ class EagerCLStream(SequenceCLStream[TCLExperience]):
         self,
         name: str,
         exps: Sequence[TCLExperience],
-        benchmark: "CLScenario",
+        benchmark: "Optional[CLScenario]" = None,
         set_stream_info: bool = True,
         slice_ids: Optional[Iterable[int]] = None,
     ):
@@ -766,6 +766,23 @@ class CLScenario(Generic[TCLStream]):
         return copy(self._streams)
 
 
+def make_stream(name: str, exps: Iterable[CLExperience]) -> CLStream:
+    """Internal utility used to create a stream.
+
+    Uses the correct class for generators, sized generators, and lists.
+
+    :param new_name: The name of the new stream.
+    :param exps: sequence of experiences.
+    """
+    s_wrapped: CLStream
+    if isinstance(exps, List):  # Maintain indexing/slicing functionalities
+        return EagerCLStream(name=name, exps=exps)
+    elif hasattr(exps, '__len__'):  # Sized stream
+        return SizedCLStream(name=name, exps_iter=exps)
+    else:  # Plain iterator
+        return CLStream(name=name, exps_iter=exps)
+
+
 __all__ = [
     "MaskedAttributeError",
     "ExperienceMode",
@@ -777,4 +794,5 @@ __all__ = [
     "SequenceCLStream",
     "EagerCLStream",
     "CLScenario",
+    "make_stream"
 ]

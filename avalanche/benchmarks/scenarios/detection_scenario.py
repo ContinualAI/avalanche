@@ -10,7 +10,6 @@
 ################################################################################
 
 from typing import (
-    Generic,
     Iterable,
     Mapping,
     Optional,
@@ -26,18 +25,14 @@ from typing import (
 import warnings
 
 
-from avalanche.benchmarks.scenarios.dataset_scenario import (
+from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
     ClassesTimelineCLScenario,
-    DatasetScenario,
     FactoryBasedStream,
     TStreamsUserDict,
 )
 from avalanche.benchmarks.scenarios.generic_scenario import (
     AbstractClassTimelineExperience,
-    CLScenario,
-    CLStream,
 )
-from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 from avalanche.benchmarks.utils.detection_dataset import DetectionDataset
 

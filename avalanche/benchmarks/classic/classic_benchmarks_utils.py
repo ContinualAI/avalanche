@@ -1,11 +1,10 @@
 from torchvision.transforms import ToPILImage, ToTensor
-from avalanche.benchmarks.scenarios.dataset_scenario import (
+from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
     DatasetScenario,
     DatasetStream,
 )
 
 from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
-from avalanche.benchmarks.utils.data import AvalancheDataset
 
 
 def check_vision_benchmark(
