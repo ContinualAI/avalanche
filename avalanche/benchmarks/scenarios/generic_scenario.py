@@ -344,16 +344,6 @@ class DatasetExperience(CLExperience, Generic[TCLDataset], ABC):
         self._dataset = d
 
     @property
-    def scenario(self) -> "CLScenario":
-        """This property is DEPRECATED."""
-        warnings.warn(
-            "Using self.scenario is deprecated in Experience. "
-            "Consider using self.benchmark instead.",
-            stacklevel=2,
-        )
-        return self.benchmark
-
-    @property
     def task_label(self) -> int:
         """
         The task label. This value will never have value "None". However,

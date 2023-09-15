@@ -274,7 +274,9 @@ class LazyIndicesTests(unittest.TestCase):
         eager = list(range(10))
 
         li = LazyIndices(eager, offset=0)
-        for i in range(sys.getrecursionlimit() * 2 + 10):
+        # TODO: speed up this test. Can we avoid checking such a high limit?
+        limit = sys.getrecursionlimit() * 2 + 10
+        for i in range(limit):
             li = LazyIndices(li, eager, offset=0)
 
         self.assertEqual(len(eager) * (i + 2), len(li))

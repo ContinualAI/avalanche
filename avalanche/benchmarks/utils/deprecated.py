@@ -21,14 +21,6 @@ from avalanche.benchmarks.utils.classification_dataset import (
 from avalanche.benchmarks.utils.transform_groups import XTransform, YTransform
 
 
-def AvalanceDataset():
-    warnings.warn(
-        "AvalancheDataset has been deprecated and it will be removed in 0.4. "
-        "Use `avalanche.benchmarks.ClassificationDataset` instead.`",
-        DeprecationWarning,
-    )
-
-
 def AvalancheSubset(
     dataset: SupportedDataset,
     indices: Optional[Sequence[int]] = None,
