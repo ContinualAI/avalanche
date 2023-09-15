@@ -9,12 +9,12 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import List, Optional, Union
 
 from typing_extensions import Literal
 
 from avalanche.benchmarks.datasets import Stream51
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import (
     create_generic_benchmark_from_paths,
     FileAndLabel,
 )

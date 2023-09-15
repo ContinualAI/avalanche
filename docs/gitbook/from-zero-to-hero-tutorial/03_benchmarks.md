@@ -262,9 +262,8 @@ for the **New Instances**:
 
 * `ni_benchmark`
 
-
 ```python
-from avalanche.benchmarks.generators import nc_benchmark, ni_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import nc_benchmark, ni_benchmark
 ```
 
 Let's start by creating the MNIST dataset object as we would normally do in Pytorch:
@@ -338,10 +337,9 @@ Finally, if you cannot create your ideal benchmark since it does not fit well in
 * **dataset\_benchmark**
 * **tensors\_benchmark**
 
-
 ```python
-from avalanche.benchmarks.generators import filelist_benchmark, dataset_benchmark, \
-                                            tensors_benchmark, paths_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import filelist_benchmark, dataset_benchmark,
+    tensors_benchmark, paths_benchmark
 ```
 
 Let's start with the `filelist_benchmark` utility. This function is particularly useful when it is important to preserve a particular order of the patterns to be processed \(for example if they are frames of a video\), or in general if we have data scattered around our drive and we want to create a sequence of batches/tasks providing only a txt file containing the list of their paths.

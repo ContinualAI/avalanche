@@ -9,7 +9,7 @@ from avalanche.models import SimpleMLP
 from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from avalanche.training.supervised import Naive
-from avalanche.benchmarks.generators import dataset_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import dataset_benchmark
 import PIL
 import torch
 from PIL import ImageChops
@@ -26,7 +26,7 @@ from torchvision.transforms import (
 )
 from typing import List
 
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import (
     create_generic_benchmark_from_tensor_lists,
 )
 from avalanche.benchmarks.utils import (
@@ -45,7 +45,6 @@ import numpy as np
 
 from avalanche.benchmarks.utils.flat_data import (
     _flatdata_depth,
-    _flatdata_print,
 )
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,

@@ -13,7 +13,7 @@ from typing import Sequence, List, Optional, Dict, Any, Set
 
 import torch
 
-from avalanche.benchmarks.scenarios.classification_scenario import (
+from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
     ClassificationScenario,
     ClassificationStream,
     ClassificationExperience,

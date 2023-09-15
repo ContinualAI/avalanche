@@ -17,7 +17,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import TinyImagenet
-from avalanche.benchmarks.generators import nc_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import nc_benchmark
 
 
 _default_train_transform = transforms.Compose(

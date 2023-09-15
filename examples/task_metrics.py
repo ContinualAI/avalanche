@@ -19,7 +19,7 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.generators.benchmark_generators import (
+from avalanche.benchmarks.scenarios.deprecated.generators.benchmark_generators import (
     create_multi_dataset_generic_benchmark,
 )
 from avalanche.benchmarks.utils import make_tensor_classification_dataset

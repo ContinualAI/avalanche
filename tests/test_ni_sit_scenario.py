@@ -6,7 +6,7 @@ from torchvision.datasets import MNIST
 from avalanche.benchmarks import ni_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios import NIExperience, ClassificationStream
-from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
+from avalanche.benchmarks.scenarios.deprecated.new_classes.nc_utils import (
     make_nc_transformation_subset,
 )
 from avalanche.benchmarks.utils import classification_subset

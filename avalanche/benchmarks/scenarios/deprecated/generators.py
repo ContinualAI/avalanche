@@ -32,7 +32,7 @@ from typing import (
 )
 
 import torch
-from avalanche.benchmarks.scenarios.classification_scenario import (
+from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
     ClassificationScenario,
 )
 
@@ -44,20 +44,18 @@ from avalanche.benchmarks.scenarios.dataset_scenario import (
     TStreamsUserDict,
 )
 from avalanche.benchmarks.scenarios.detection_scenario import DetectionScenario
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import *
+from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import *
 from avalanche.benchmarks.scenarios import (
     StreamUserDef,
 )
 from avalanche.benchmarks.scenarios.generic_scenario import (
-    CLStream,
     DatasetExperience,
-    SizedCLStream,
 )
-from avalanche.benchmarks.scenarios.lazy_dataset_sequence import (
+from avalanche.benchmarks.scenarios.deprecated.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )
-from avalanche.benchmarks.scenarios.new_classes.nc_scenario import NCScenario
-from avalanche.benchmarks.scenarios.new_instances.ni_scenario import NIScenario
+from avalanche.benchmarks.scenarios.deprecated.new_classes.nc_scenario import NCScenario
+from avalanche.benchmarks.scenarios.deprecated.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils.classification_dataset import (
     SupervisedClassificationDataset,
     SupportedDataset,
@@ -65,8 +63,6 @@ from avalanche.benchmarks.utils.classification_dataset import (
     make_classification_dataset,
     concat_classification_datasets_sequentially,
 )
-from avalanche.benchmarks.utils.data import AvalancheDataset
-
 
 TDatasetScenario = TypeVar("TDatasetScenario", bound="DatasetScenario")
 TCLStream = TypeVar("TCLStream", bound="CLStream")

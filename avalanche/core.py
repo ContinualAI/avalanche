@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Optional, Type, TypeVar, Generic
+from typing import TypeVar, Generic
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

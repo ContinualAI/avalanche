@@ -20,10 +20,10 @@ from avalanche.benchmarks import (
     benchmark_with_validation_stream,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.generators.benchmark_generators import (
+from avalanche.benchmarks.scenarios.deprecated.generators import (
     class_balanced_split_strategy,
 )
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import (
     create_lazy_generic_benchmark,
     LazyStreamDefinition,
 )

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import astuple, dataclass
+from dataclasses import dataclass
 import re
 from typing import (
     Generic,
@@ -14,20 +14,16 @@ from typing import (
     List,
     Set,
     Tuple,
-    NamedTuple,
     Mapping,
 )
 
 
 from avalanche.benchmarks.scenarios.generic_scenario import (
-    CLExperience,
-    CLStream,
     CLScenario,
-    DatasetExperience,
     SequenceCLStream,
 )
 
-from avalanche.benchmarks.scenarios.lazy_dataset_sequence import LazyDatasetSequence
+from avalanche.benchmarks.scenarios.deprecated.lazy_dataset_sequence import LazyDatasetSequence
 
 from avalanche.benchmarks.utils import AvalancheDataset
 from torch.utils.data.dataset import Dataset

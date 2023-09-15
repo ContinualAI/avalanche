@@ -8,8 +8,8 @@ from torchvision.transforms import ToTensor
 
 from avalanche.benchmarks import nc_benchmark, ClassificationStream
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.scenarios.new_classes import NCExperience
-from avalanche.benchmarks.scenarios.new_classes.nc_utils import (
+from avalanche.benchmarks.scenarios.deprecated.new_classes import NCExperience
+from avalanche.benchmarks.scenarios.deprecated.new_classes.nc_utils import (
     make_nc_transformation_subset,
 )
 from avalanche.benchmarks.utils import (

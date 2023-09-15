@@ -10,7 +10,7 @@ import torch
 import torch.distributed as dst
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
-from avalanche.benchmarks.generators.benchmark_generators import dataset_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import dataset_benchmark
 from avalanche.benchmarks.utils.classification_dataset import (
     make_tensor_classification_dataset,
 )

@@ -134,9 +134,8 @@ What if we want to create a new benchmark that is not present in the *"Classic"*
 
 The *specific* scenario generators are useful when starting from one or multiple PyTorch datasets and you want to create a **"New Instances"** or **"New Classes"** benchmark: i.e. it supports the easy and flexible creation of a *Domain-Incremental*, *Class-Incremental* or *Task-Incremental* scenarios among others.
 
-
 ```python
-from avalanche.benchmarks.generators import nc_benchmark, ni_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import nc_benchmark, ni_benchmark
 from torchvision.datasets import MNIST
 
 mnist_train = MNIST('.', train=True, download=True)
@@ -158,10 +157,9 @@ Finally, if your ideal benchmark does not fit well in the aforementioned *Domain
 * **dataset_benchmark**
 * **tensors_benchmark**
 
-
 ```python
-from avalanche.benchmarks.generators import filelist_benchmark, dataset_benchmark, \
-                                            tensors_benchmark, paths_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import filelist_benchmark, dataset_benchmark,
+    tensors_benchmark, paths_benchmark
 ```
 
 You can read more about how to use them the full *Benchmarks* module tutorial!

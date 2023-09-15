@@ -40,7 +40,7 @@ from avalanche.benchmarks.utils import (
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
 )
-from .classification_scenario import GenericCLScenario
+from avalanche.benchmarks.scenarios.deprecated.classification_scenario import GenericCLScenario
 
 
 def create_multi_dataset_generic_benchmark(
