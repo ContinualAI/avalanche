@@ -1,11 +1,14 @@
 import unittest
 
 import torch
+from numpy.testing import assert_almost_equal
 from torch.utils.data import TensorDataset, DataLoader
 
 from avalanche.benchmarks import benchmark_from_datasets, benchmark_with_validation_stream, CLScenario, CLStream, \
-    split_dataset_random
+    split_dataset
+from avalanche.benchmarks.scenarios.dataset_scenario import split_dataset_class_balanced
 from avalanche.benchmarks.utils import AvalancheDataset
+from tests.unit_tests_utils import dummy_tensor_dataset, get_fast_benchmark
 
 
 def get_mbatch(data, batch_size=5):
@@ -16,20 +19,91 @@ def get_mbatch(data, batch_size=5):
 
 
 class DatasetScenarioTests(unittest.TestCase):
-    def test_split_dataset_by_attribute(self):
-        return
-        raise NotImplementedError()
-
     def test_benchmark_from_datasets(self):
-        return
-        raise NotImplementedError()
+        d1 = dummy_tensor_dataset()
+        d2 = dummy_tensor_dataset()
+        d3 = dummy_tensor_dataset()
+        d4 = dummy_tensor_dataset()
 
+        bm = benchmark_from_datasets(
+            train=[d1, d2],
+            test=[d3, d4]
+        )
+
+        # train stream
+        train_s = bm.streams["train"]
+        assert len(train_s) == 2
+        for eid, (exp, d_orig) in enumerate(zip(train_s, [d1, d2])):
+            assert exp.current_experience == eid
+            for ii, (x, y) in enumerate(exp.dataset):
+                torch.testing.assert_close(x, d_orig[ii][0])
+                torch.testing.assert_close(y, d_orig[ii][1])
+
+        # test stream
+        train_s = bm.streams["test"]
+        assert len(train_s) == 2
+        for eid, (exp, d_orig) in enumerate(zip(train_s, [d3, d4])):
+            assert exp.current_experience == eid
+            for ii, (x, y) in enumerate(exp.dataset):
+                torch.testing.assert_close(x, d_orig[ii][0])
+                torch.testing.assert_close(y, d_orig[ii][1])
+
+
+class DatasetSplitterTest(unittest.TestCase):
     def test_split_dataset_random(self):
-        return
-        split_dataset_random()
+        x = torch.rand(32, 10)
+        y = torch.arange(32)  # we use ordered labels to reconstruct the order after shuffling
+        dd = AvalancheDataset([TensorDataset(x, y)])
+
+        d1, d2 = split_dataset(validation_size=0.5, shuffle=True, dataset=dd)
+        assert len(d1) + len(d2) == len(dd)
+
+        # check data is shuffled
+        iis = []
+        for x, ii in d1:
+            iis.append(ii)
+        for x, ii in d2:
+            iis.append(ii)
+        assert not all(b >= a for a, b in zip(iis[:-1], iis[1:]))
+
+        # check d1
+        for x, ii in d1:
+            torch.testing.assert_close(x, dd[ii.item()][0])
+            torch.testing.assert_close(ii, dd[ii.item()][1])
+        # check d2
+        for x, ii in d2:
+            torch.testing.assert_close(x, dd[ii.item()][0])
+            torch.testing.assert_close(ii, dd[ii.item()][1])
+
+    def test_split_dataset_class_balanced(self):
+        benchmark = get_fast_benchmark(n_samples_per_class=1000)
+        exp = benchmark.train_stream[0]
+        num_classes = len(exp.classes_in_this_experience)
+
+        train_d, valid_d = split_dataset_class_balanced(0.5, exp.dataset)
+        assert abs(len(train_d) - len(valid_d)) <= num_classes
+        for cid in exp.classes_in_this_experience:
+            train_cnt = (torch.as_tensor(train_d.targets) == cid).sum()
+            valid_cnt = (torch.as_tensor(valid_d.targets) == cid).sum()
+            assert abs(train_cnt - valid_cnt) <= 1
+
+        ratio = 0.123
+        len_data = len(exp.dataset)
+        train_d, valid_d = split_dataset_class_balanced(ratio, exp.dataset)
+        assert_almost_equal(len(valid_d) / len_data, ratio, decimal=2)
+        for cid in exp.classes_in_this_experience:
+            data_cnt = (torch.as_tensor(exp.dataset.targets) == cid).sum()
+            valid_cnt = (torch.as_tensor(valid_d.targets) == cid).sum()
+            assert_almost_equal(valid_cnt / data_cnt, ratio, decimal=2)
+
+    def test_split_dataset_by_attribute(self):
+        raise NotImplementedError()
+
+    def test_fixed_size_experience_split_strategy(self):
         raise NotImplementedError()
 
 
+class DatasetWithValidationStreamTests(unittest.TestCase):
     def test_benchmark_with_validation_stream_fixed_size(self):
         pattern_shape = (3, 32, 32)
 
@@ -38,12 +112,12 @@ class DatasetScenarioTests(unittest.TestCase):
         experience_1_x = torch.zeros(100, *pattern_shape)
         experience_1_y = torch.zeros(100, dtype=torch.long)
         d1 = TensorDataset(experience_1_x, experience_1_y)
-        d1 = AvalancheDataset(d1)
+        d1 = AvalancheDataset([d1])
         # Experience 2
         experience_2_x = torch.zeros(80, *pattern_shape)
         experience_2_y = torch.ones(80, dtype=torch.long)
         d2 = TensorDataset(experience_2_x, experience_2_y)
-        d2 = AvalancheDataset(d2)
+        d2 = AvalancheDataset([d2])
 
         # Test experience
         test_x = torch.zeros(50, *pattern_shape)
@@ -96,18 +170,18 @@ class DatasetScenarioTests(unittest.TestCase):
         experience_1_x = torch.zeros(100, *pattern_shape)
         experience_1_y = torch.zeros(100, dtype=torch.long)
         d1 = TensorDataset(experience_1_x, experience_1_y)
-        d1 = AvalancheDataset(d1)
+        d1 = AvalancheDataset([d1])
         # Experience 2
         experience_2_x = torch.zeros(80, *pattern_shape)
         experience_2_y = torch.ones(80, dtype=torch.long)
         d2 = TensorDataset(experience_2_x, experience_2_y)
-        d2 = AvalancheDataset(d2)
+        d2 = AvalancheDataset([d2])
 
         # Test experience
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
         dtest = TensorDataset(test_x, test_y)
-        dtest = AvalancheDataset(dtest)
+        dtest = AvalancheDataset([dtest])
 
         bm = benchmark_from_datasets(train=[d1, d2], test=[dtest])
         valid_bm = benchmark_with_validation_stream(bm, 0.2, shuffle=False)
@@ -165,18 +239,18 @@ class DatasetScenarioTests(unittest.TestCase):
         experience_1_x = torch.zeros(100, *pattern_shape)
         experience_1_y = torch.zeros(100, dtype=torch.long)
         d1 = TensorDataset(experience_1_x, experience_1_y)
-        d1 = AvalancheDataset(d1)
+        d1 = AvalancheDataset([d1])
         # Experience 2
         experience_2_x = torch.zeros(80, *pattern_shape)
         experience_2_y = torch.ones(80, dtype=torch.long)
         d2 = TensorDataset(experience_2_x, experience_2_y)
-        d2 = AvalancheDataset(d2)
+        d2 = AvalancheDataset([d2])
 
         # Test experience
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
         dtest = TensorDataset(test_x, test_y)
-        dtest = AvalancheDataset(dtest)
+        dtest = AvalancheDataset([dtest])
 
         def train_gen():
             # Lazy generator of the training stream

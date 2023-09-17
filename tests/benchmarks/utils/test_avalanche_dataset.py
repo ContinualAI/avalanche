@@ -34,8 +34,8 @@ from avalanche.benchmarks.utils.classification_dataset import (
     SupervisedClassificationDataset,
 )
 from tests.unit_tests_utils import (
-    load_image_benchmark,
-    load_tensor_benchmark,
+    dummy_image_dataset,
+    dummy_tensor_dataset,
     load_image_data,
 )
 
@@ -100,7 +100,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             AvalancheDataset([data], data_attributes=[attr], indices=[0, 1])
 
     def test_avalanche_dataset_creation_without_list(self):
-        dataset_mnist = load_image_benchmark()
+        dataset_mnist = dummy_image_dataset()
         dataset = AvalancheDataset(dataset_mnist)
         self.assertIsInstance(dataset, AvalancheDataset)
         self.assertEqual(len(dataset_mnist), len(dataset))
@@ -155,14 +155,14 @@ class AvalancheDatasetTests(unittest.TestCase):
 
     def test_mnist_no_transforms(self):
         """check properties we need from the data for testing."""
-        dataset = load_image_benchmark()
+        dataset = dummy_image_dataset()
         x, y = dataset[0]
         self.assertIsInstance(x, Image)
         self.assertEqual([x.width, x.height], [28, 28])
         self.assertIsInstance(y, int)
 
     def test_avalanche_dataset_transform(self):
-        dataset = load_image_benchmark()
+        dataset = dummy_image_dataset()
         x, y = dataset[0]
 
         dataset = make_avalanche_dataset(
@@ -179,7 +179,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(y, y2)
 
     def test_avalanche_dataset_composition(self):
-        dataset_mnist = load_image_benchmark()
+        dataset_mnist = dummy_image_dataset()
         tgs = DefaultTransformGroups((RandomCrop(16), None))
         dataset = make_avalanche_dataset(dataset_mnist, transform_groups=tgs)
 
@@ -198,7 +198,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(y2, -1)
 
     def test_avalanche_dataset_add(self):
-        dataset_mnist = load_image_benchmark()
+        dataset_mnist = dummy_image_dataset()
         tgs = DefaultTransformGroups((CenterCrop(16), None))
         dataset_mnist = make_avalanche_dataset(dataset_mnist, transform_groups=tgs)
 
@@ -238,7 +238,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertTrue(pil_images_equal(x2, x3_2))
 
     def test_avalanche_dataset_radd(self):
-        dataset_mnist = load_image_benchmark()
+        dataset_mnist = dummy_image_dataset()
         tgs = DefaultTransformGroups((CenterCrop(16), None))
         dataset_mnist = make_avalanche_dataset(dataset_mnist, transform_groups=tgs)
 
@@ -258,7 +258,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(len(dataset_mnist) * 3, len(dataset4))
 
     def test_dataset_add_monkey_patch_vanilla_behaviour(self):
-        dataset_mnist = load_image_benchmark()
+        dataset_mnist = dummy_image_dataset()
         dataset = dataset_mnist + dataset_mnist
 
         self.assertIsInstance(dataset, ConcatDataset)
@@ -287,7 +287,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         #     subset_task0 = dataset.task_set[0]
 
     def test_avalanche_dataset_tensor_task_labels(self):
-        data = load_tensor_benchmark()
+        data = dummy_tensor_dataset()
         taskl = torch.ones(32).int()  # Single task
         dataset = make_classification_dataset(data, task_labels=taskl)
 
@@ -376,7 +376,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             subset_task11 = dataset.task_set[11]
 
     def test_avalanche_dataset_update_data_attribute(self):
-        dataset_orig = load_image_benchmark()
+        dataset_orig = dummy_image_dataset()
 
         dataset: SupervisedClassificationDataset = make_classification_dataset(
             dataset_orig, transform=ToTensor(), task_labels=0

@@ -15,7 +15,6 @@ specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
 the generic ones: filelist_benchmark, tensors_benchmark, dataset_benchmark
 and paths_benchmark.
 """
-from itertools import tee
 from typing import (
     Sequence,
     Optional,
@@ -27,11 +26,11 @@ from typing import (
     Callable,
     Set,
     Tuple,
-    Iterable,
-    Generator,
 )
 
 import torch
+
+from avalanche.benchmarks.scenarios.dataset_scenario import split_dataset
 from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
     ClassificationScenario,
 )
@@ -45,9 +44,6 @@ from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
 )
 from avalanche.benchmarks.scenarios.detection_scenario import DetectionScenario
 from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import *
-from avalanche.benchmarks.scenarios import (
-    StreamUserDef,
-)
 from avalanche.benchmarks.scenarios.generic_scenario import (
     DatasetExperience,
 )
@@ -57,7 +53,6 @@ from avalanche.benchmarks.scenarios.deprecated.lazy_dataset_sequence import (
 from avalanche.benchmarks.scenarios.deprecated.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.deprecated.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils.classification_dataset import (
-    SupervisedClassificationDataset,
     SupportedDataset,
     as_supervised_classification_dataset,
     make_classification_dataset,
@@ -459,62 +454,6 @@ def _one_dataset_per_exp_class_order(
     return fixed_class_order, classes_per_exp
 
 
-def fixed_size_experience_split_strategy(
-    experience_size: int,
-    shuffle: bool,
-    drop_last: bool,
-    experience: DatasetExperience[TCLDataset],
-) -> Sequence[TCLDataset]:
-    """
-    The default splitting strategy used by :func:`data_incremental_benchmark`.
-
-    This splitting strategy simply splits the experience in smaller experiences
-    of size `experience_size`.
-
-    When taking inspiration for your custom splitting strategy, please consider
-    that all parameters preceding `experience` are filled by
-    :func:`data_incremental_benchmark` by using `partial` from the `functools`
-    standard library. A custom splitting strategy must have only a single
-    parameter: the experience. Consider wrapping your custom splitting strategy
-    with `partial` if more parameters are needed.
-
-    Also consider that the stream name of the experience can be obtained by
-    using `experience.origin_stream.name`.
-
-    :param experience_size: The experience size (number of instances).
-    :param shuffle: If True, instances will be shuffled before splitting.
-    :param drop_last: If True, the last mini-experience will be dropped if
-        not of size `experience_size`
-    :param experience: The experience to split.
-    :return: The list of datasets that will be used to create the
-        mini-experiences.
-    """
-
-    exp_dataset = experience.dataset
-    exp_indices = list(range(len(exp_dataset)))
-
-    result_datasets = []
-
-    if shuffle:
-        exp_indices = torch.as_tensor(exp_indices)[
-            torch.randperm(len(exp_indices))
-        ].tolist()
-
-    init_idx = 0
-    while init_idx < len(exp_indices):
-        final_idx = init_idx + experience_size  # Exclusive
-        if final_idx > len(exp_indices):
-            if drop_last:
-                break
-
-            final_idx = len(exp_indices)
-
-        result_datasets.append(exp_dataset.subset(exp_indices[init_idx:final_idx]))
-        init_idx = final_idx
-
-    return result_datasets
-
-
 TDatasetStream = TypeVar("TDatasetStream", bound="DatasetStream")
 
 
@@ -560,7 +499,6 @@ def data_incremental_benchmark(
     benchmark_instance: DatasetScenario[TDatasetStream, TDatasetExperience, TCLDataset],
     experience_size: int,
     shuffle: bool = False,
-    drop_last: bool = False,
     split_streams: Sequence[str] = ("train",),
     custom_split_strategy: Optional[
         Callable[[DatasetExperience[TCLDataset]], Sequence[TCLDataset]]
@@ -624,9 +562,6 @@ def data_incremental_benchmark(
         instances in each experience. This will use the default PyTorch
         random number generator at its current state. Defaults to False.
         Ignored if `custom_split_strategy` is used.
-    :param drop_last: If True, if the last experience doesn't contain
-        `experience_size` instances, then the last experience will be dropped.
-        Defaults to False. Ignored if `custom_split_strategy` is used.
     :param split_streams: The list of streams to split. By default only the
         "train" stream will be split.
     :param custom_split_strategy: A function that implements a custom splitting
@@ -636,7 +571,7 @@ def data_incremental_benchmark(
         experiences of size `experience_size`).
         A good starting to understand the mechanism is to look at the
         implementation of the standard splitting function
-        :func:`fixed_size_experience_split_strategy`.
+        :func:`split_dataset`.
     :param benchmark_factory: The scenario factory. Defaults to
         `_smart_experience_factory`, which will try to create a benchmark of the
         same class of the originating one. Can be None, in which case a generic
@@ -652,12 +587,10 @@ def data_incremental_benchmark(
     if custom_split_strategy is None:
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
-        def fixed_size_experience_split_strategy_wrapper(exp):
-            return fixed_size_experience_split_strategy(
-                experience_size, shuffle, drop_last, exp
-            )
+        def split_strategy_wrapper(exp):
+            return split_dataset(experience_size, shuffle, exp)
 
-        split_strategy = fixed_size_experience_split_strategy_wrapper
+        split_strategy = split_strategy_wrapper
     else:
         split_strategy = custom_split_strategy
 
@@ -717,367 +650,6 @@ def data_incremental_benchmark(
     )
 
 
-def random_validation_split_strategy(
-    validation_size: Union[int, float],
-    shuffle: bool,
-    experience: DatasetExperience[TCLDataset],
-) -> Tuple[TCLDataset, TCLDataset]:
-    """
-    The default splitting strategy used by
-    :func:`benchmark_with_validation_stream`.
-
-    This splitting strategy simply splits the experience in two experiences (
-    train and validation) of size `validation_size`.
-
-    When taking inspiration for your custom splitting strategy, please consider
-    that all parameters preceding `experience` are filled by
-    :func:`benchmark_with_validation_stream` by using `partial` from the
-    `functools` standard library. A custom splitting strategy must have only
-    a single parameter: the experience. Consider wrapping your custom
-    splitting strategy with `partial` if more parameters are needed.
-
-    Also consider that the stream name of the experience can be obtained by
-    using `experience.origin_stream.name`.
-
-    :param validation_size: The number of instances to allocate to the
-    validation experience. Can be an int value or a float between 0 and 1.
-    :param shuffle: If True, instances will be shuffled before splitting.
-        Otherwise, the first instances will be allocated to the training
-        dataset by leaving the last ones to the validation dataset.
-    :param experience: The experience to split.
-    :return: A tuple containing 2 elements: the new training and validation
-        datasets.
-    """
-
-    exp_dataset = experience.dataset
-    exp_indices = list(range(len(exp_dataset)))
-
-    if shuffle:
-        exp_indices = torch.as_tensor(exp_indices)[
-            torch.randperm(len(exp_indices))
-        ].tolist()
-
-    if 0.0 <= validation_size <= 1.0:
-        valid_n_instances = int(validation_size * len(exp_dataset))
-    else:
-        valid_n_instances = int(validation_size)
-        if valid_n_instances > len(exp_dataset):
-            raise ValueError(
-                f"Can't create the validation experience: not enough "
-                f"instances. Required {valid_n_instances}, got only"
-                f"{len(exp_dataset)}"
-            )
-
-    train_n_instances = len(exp_dataset) - valid_n_instances
-    result_train_dataset = exp_dataset.subset(exp_indices[:train_n_instances])
-    result_valid_dataset = exp_dataset.subset(exp_indices[train_n_instances:])
-    return result_train_dataset, result_valid_dataset
-
-
-def class_balanced_split_strategy(
-    validation_size: Union[int, float],
-    experience: DatasetExperience[SupervisedClassificationDataset],
-) -> Tuple[SupervisedClassificationDataset, SupervisedClassificationDataset]:
-    """Class-balanced train/validation splits.
-
-    This splitting strategy splits `experience` into two experiences
-    (train and validation) of size `validation_size` using a class-balanced
-    split. Sample of each class are chosen randomly.
-
-    You can use this split strategy to split a benchmark with::
-
-        validation_size = 0.2
-        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
-        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
-
-    :param validation_size: The percentage of samples to allocate to the
-        validation experience as a float between 0 and 1.
-    :param experience: The experience to split.
-    :return: A tuple containing 2 elements: the new training and validation
-        datasets.
-    """
-    if not isinstance(validation_size, float):
-        raise ValueError("validation_size must be an integer")
-    if not 0.0 <= validation_size <= 1.0:
-        raise ValueError("validation_size must be a float in [0, 1].")
-
-    exp_dataset = experience.dataset
-    if validation_size > len(exp_dataset):
-        raise ValueError(
-            f"Can't create the validation experience: not enough "
-            f"instances. Required {validation_size}, got only"
-            f"{len(exp_dataset)}"
-        )
-
-    exp_indices = list(range(len(exp_dataset)))
-    targets_as_tensor = torch.as_tensor(experience.dataset.targets)
-    exp_classes: List[int] = targets_as_tensor.unique().tolist()
-
-    # shuffle exp_indices
-    exp_indices = torch.as_tensor(exp_indices)[torch.randperm(len(exp_indices))]
-    # shuffle the targets as well
-    exp_targets = targets_as_tensor[exp_indices]
-
-    train_exp_indices = []
-    valid_exp_indices = []
-    for cid in exp_classes:  # split indices for each class separately.
-        c_indices = exp_indices[exp_targets == cid]
-        valid_n_instances = int(validation_size * len(c_indices))
-        valid_exp_indices.extend(c_indices[:valid_n_instances])
-        train_exp_indices.extend(c_indices[valid_n_instances:])
-
-    result_train_dataset = exp_dataset.subset(train_exp_indices)
-    result_valid_dataset = exp_dataset.subset(valid_exp_indices)
-    return result_train_dataset, result_valid_dataset
-
-
-def _gen_split(
-    split_generator: Iterable[Tuple[TCLDataset, TCLDataset]]
-) -> Tuple[Generator[TCLDataset, None, None], Generator[TCLDataset, None, None],]:
-    """
-    Internal utility function to split the train-validation generator
-    into two distinct generators (one for the train stream and another one
-    for the valid stream).
-
-    :param split_generator: The lazy stream generator returning tuples of train
-        and valid datasets.
-    :return: Two generators (one for the train, one for the valuid).
-    """
-
-    # For more info: https://stackoverflow.com/a/28030261
-    gen_a, gen_b = tee(split_generator, 2)
-    return (a for a, b in gen_a), (b for a, b in gen_b)
-
-
-def _lazy_train_val_split(
-    split_strategy: Callable[
-        [DatasetExperience[TCLDataset]],
-        Tuple[TCLDataset, TCLDataset],
-    ],
-    experiences: Iterable[DatasetExperience[TCLDataset]],
-) -> Generator[Tuple[TCLDataset, TCLDataset], None, None]:
-    """
-    Creates a generator operating around the split strategy and the
-    experiences stream.
-
-    :param split_strategy: The strategy used to split each experience in train
-        and validation datasets.
-    :return: A generator returning a 2 elements tuple (the train and validation
-        datasets).
-    """
-
-    for new_experience in experiences:
-        yield split_strategy(new_experience)
-
-
-def benchmark_with_validation_stream(
-    benchmark_instance: DatasetScenario[TDatasetStream, TDatasetExperience, TCLDataset],
-    validation_size: Union[int, float] = 0.5,
-    shuffle: bool = False,
-    input_stream: str = "train",
-    output_stream: str = "valid",
-    custom_split_strategy: Optional[
-        Callable[
-            [DatasetExperience[TCLDataset]],
-            Tuple[TCLDataset, TCLDataset],
-        ]
-    ] = None,
-    *,
-    benchmark_factory: Optional[
-        Callable[
-            [
-                DatasetScenario[TDatasetStream, TDatasetExperience, TCLDataset],
-                TStreamsUserDict,
-                bool,
-            ],
-            DatasetScenario[
-                DatasetStream[DatasetExperience[TCLDataset]],
-                DatasetExperience[TCLDataset],
-                TCLDataset,
-            ],
-        ]
-    ] = _smart_benchmark_factory,
-    experience_factory: Optional[
-        Callable[
-            [DatasetStream[DatasetExperience[TCLDataset]], int],
-            DatasetExperience[TCLDataset],
-        ]
-    ] = _make_plain_experience,
-    lazy_splitting: Optional[bool] = None,
-) -> DatasetScenario[
-    DatasetStream[DatasetExperience[TCLDataset]],
-    DatasetExperience[TCLDataset],
-    TCLDataset,
-]:
-    """
-    Helper that can be used to obtain a benchmark with a validation stream.
-
-    This generator accepts an existing benchmark instance and returns a version
-    of it in which a validation stream has been added.
-
-    In its base form this generator will split train experiences to extract
-    validation experiences of a fixed (by number of instances or relative
-    size), configurable, size. The split can be also performed on other
-    streams if needed and the name of the resulting validation stream can
-    be configured too.
-
-    Each validation experience will be extracted directly from a single training
-    experience. Patterns selected for the validation experience will be removed
-    from the training one.
-
-    If shuffle is True, the validation stream will be created randomly.
-    Beware that no kind of class balancing is done.
-
-    The `custom_split_strategy` parameter can be used if a more specific
-    splitting is required.
-
-    Please note that the resulting experiences will have a task labels field
-    equal to the one of the originating experience.
-
-    Experience splitting can be executed in a lazy way. This behavior can be
-    controlled using the `lazy_splitting` parameter. By default, experiences
-    are split in a lazy way only when the input stream is lazily generated.
-
-    The default splitting strategy is a random split. A class-balanced split
-    is also available using `class_balanced_split_strategy`::
-
-        validation_size = 0.2
-        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
-        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
-
-    :param benchmark_instance: The benchmark to split.
-    :param validation_size: The size of the validation experience, as an int
-        or a float between 0 and 1. Ignored if `custom_split_strategy` is used.
-    :param shuffle: If True, patterns will be allocated to the validation
-        stream randomly. This will use the default PyTorch random number
-        generator at its current state. Defaults to False. Ignored if
-        `custom_split_strategy` is used. If False, the first instances will be
-        allocated to the training  dataset by leaving the last ones to the
-        validation dataset.
-    :param input_stream: The name of the input stream. Defaults to 'train'.
-    :param output_stream: The name of the output stream. Defaults to 'valid'.
-    :param custom_split_strategy: A function that implements a custom splitting
-        strategy. The function must accept an experience and return a tuple
-        containing the new train and validation dataset. Defaults to None,
-        which means that the standard splitting strategy will be used (which
-        creates experiences according to `validation_size` and `shuffle`).
-        A good starting to understand the mechanism is to look at the
-        implementation of the standard splitting function
-        :func:`random_validation_split_strategy`.
-    :param benchmark_factory: The scenario factory. Defaults to
-        `_smart_experience_factory`, which will try to create a benchmark of the
-        same class of the originating one. Can be None, in which case a generic
-        :class:`DatasetScenario` will be used coupled with the factory defined
-        by the `experience_factory` parameter.
-    :param experience_factory: The experience factory. Ignored if
-        `scenario_factory` is not None. Otherwise, defaults to
-        :class:`DatasetExperience`.
-    :param lazy_splitting: If True, the stream will be split in a lazy way.
-        If False, the stream will be split immediately. Defaults to None, which
-        means that the stream will be split in a lazy or non-lazy way depending
-        on the laziness of the `input_stream`.
-    :return: A benchmark instance in which the validation stream has been added.
-    """
-
-    split_strategy: Callable[
-        [DatasetExperience[TCLDataset]],
-        Tuple[TCLDataset, TCLDataset],
-    ]
-    if custom_split_strategy is None:
-        # functools.partial is a more compact option
-        # However, MyPy does not understand what a partial is -_-
-        def random_validation_split_strategy_wrapper(exp):
-            return random_validation_split_strategy(validation_size, shuffle, exp)
-
-        split_strategy = random_validation_split_strategy_wrapper
-    else:
-        split_strategy = custom_split_strategy
-
-    original_stream_definitions: Dict[
-        str, StreamDef[TCLDataset]
-    ] = benchmark_instance.stream_definitions
-    streams = benchmark_instance.streams
-
-    if input_stream not in streams:
-        raise ValueError(
-            f"Stream {input_stream} could not be found in the " f"benchmark instance"
-        )
-
-    if output_stream in streams:
-        raise ValueError(
-            f"Stream {output_stream} already exists in the " f"benchmark instance"
-        )
-
-    stream: TDatasetStream = streams[input_stream]
-
-    if lazy_splitting is None:
-        split_lazily = original_stream_definitions[input_stream].is_lazy
-    else:
-        split_lazily = lazy_splitting
-
-    exps_tasks_labels = list(original_stream_definitions[input_stream].exps_task_labels)
-
-    train_exps_source: Union[Iterable[TCLDataset], Tuple[Iterable[TCLDataset], int]]
-    valid_exps_source: Union[Iterable[TCLDataset], Tuple[Iterable[TCLDataset], int]]
-    if not split_lazily:
-        # Classic static splitting
-        train_exps_source = []
-        valid_exps_source = []
-
-        exp: DatasetExperience[TCLDataset]
-        for exp in stream:
-            train_exp, valid_exp = split_strategy(exp)
-            train_exps_source.append(train_exp)
-            valid_exps_source.append(valid_exp)
-    else:
-        # Lazy splitting (based on a generator)
-        split_generator = _lazy_train_val_split(split_strategy, stream)
-        train_exps_gen, valid_exps_gen = _gen_split(split_generator)
-        train_exps_source = (train_exps_gen, len(stream))
-        valid_exps_source = (valid_exps_gen, len(stream))
-
-    stream_definitions: Dict[
-        str, Union[StreamUserDef[TCLDataset], StreamDef[TCLDataset]]
-    ] = dict(original_stream_definitions)
-
-    train_stream_def: StreamUserDef[TCLDataset] = StreamUserDef(
-        train_exps_source,
-        exps_tasks_labels,
-        stream_definitions[input_stream].origin_dataset,
-        split_lazily,
-    )
-
-    valid_stream_def: StreamUserDef[TCLDataset] = StreamUserDef(
-        valid_exps_source,
-        exps_tasks_labels,
-        stream_definitions[input_stream].origin_dataset,
-        split_lazily,
-    )
-
-    stream_definitions[input_stream] = train_stream_def
-    stream_definitions[output_stream] = valid_stream_def
-
-    complete_test_set_only = benchmark_instance.complete_test_set_only
-
-    if benchmark_factory is not None:
-        # Try to create a benchmark of the same class of the
-        # initial benchmark.
-        return benchmark_factory(
-            benchmark_instance, stream_definitions, complete_test_set_only
-        )
-
-    # Generic benchmark class
-    if experience_factory is None:
-        experience_factory = _make_plain_experience
-
-    return DatasetScenario(
-        stream_definitions=stream_definitions,
-        complete_test_set_only=complete_test_set_only,
-        stream_factory=FactoryBasedStream,
-        experience_factory=experience_factory,
-    )
-
-
 __all__ = [
     "nc_benchmark",
     "ni_benchmark",
@@ -1086,6 +658,4 @@ __all__ = [
     "paths_benchmark",
     "tensors_benchmark",
     "data_incremental_benchmark",
-    "random_validation_split_strategy",
-    "class_balanced_split_strategy",
 ]

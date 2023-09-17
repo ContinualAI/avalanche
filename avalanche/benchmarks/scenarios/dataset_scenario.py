@@ -20,33 +20,19 @@ from typing import (
     Generator,
     List,
     Sequence,
-    TypeVar,
     Union,
     Tuple,
-    Dict,
     Optional,
     Iterable,
 )
+
 from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
 from .experience_decorators import TaskAwareExperience
-
-
-TDatasetStream = TypeVar("TDatasetStream", bound="DatasetStream")
-TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
-TDatasetScenario = TypeVar("TDatasetScenario", bound="DatasetScenario")
-TDatasetExperience = TypeVar("TDatasetExperience", bound="DatasetExperience")
-
-
-def split_dataset_by_attribute(data: AvalancheDataset, attr_name: str,
-                               attrs_per_exp: List[List[int]]):
-    # TODO: implement and test
-    # 1 - split by attribute
-    # 2 - make DatasetExperience stream
-    raise NotImplementedError()
+from ..utils import SupervisedClassificationDataset
 
 
 def benchmark_from_datasets(
-    **dataset_streams: Dict[str, Sequence[AvalancheDataset]]
+    **dataset_streams: Sequence[AvalancheDataset]
 ) -> CLScenario:
     """Creates a benchmark given a list of datasets for each stream.
 
@@ -141,7 +127,15 @@ class TaskAwareDatasetExperience(DatasetExperience, TaskAwareExperience, ABC):
         return list(set(task_labels))
 
 
-def split_dataset_random(
+def split_dataset_by_attribute(data: AvalancheDataset, attr_name: str,
+                               attrs_per_exp: List[List[int]]):
+    # TODO: implement and test
+    # 1 - split by attribute
+    # 2 - make DatasetExperience stream
+    raise NotImplementedError()
+
+
+def split_dataset(
     validation_size: Union[int, float],
     shuffle: bool,
     dataset: AvalancheDataset,
@@ -160,6 +154,14 @@ def split_dataset_random(
     `functools` standard library. A custom splitting strategy must have only
     a single parameter: the experience. Consider wrapping your custom
     splitting strategy with `partial` if more parameters are needed.
+
+    You can use this split strategy with methdos that require a custom
+    split strategy such as :func:`benchmark_with_validation_stream`to split
+    a benchmark with::
+
+        validation_size = 0.2
+        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
+        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
 
     :param validation_size: The number of instances to allocate to the
     validation experience. Can be an int value or a float between 0 and 1.
@@ -182,7 +184,7 @@ def split_dataset_random(
         valid_n_instances = int(validation_size)
         if valid_n_instances > len(dataset):
             raise ValueError(
-                f"Can't create the validation experience: not enough "
+                f"Can't split the dataset: not enough "
                 f"instances. Required {valid_n_instances}, got only"
                 f"{len(dataset)}"
             )
@@ -191,6 +193,111 @@ def split_dataset_random(
     d1 = dataset.subset(exp_indices[:train_n_instances])
     d2 = dataset.subset(exp_indices[train_n_instances:])
     return d1, d2
+
+
+def split_dataset_class_balanced(
+    validation_size: Union[int, float],
+    dataset: SupervisedClassificationDataset,
+) -> Tuple[SupervisedClassificationDataset, SupervisedClassificationDataset]:
+    """Class-balanced dataset split.
+
+    This splitting strategy splits `dataset` into train and validation data of
+    size `validation_size` using a class-balanced split.
+    Samples of each class are chosen randomly.
+
+    You can use this split strategy to split a benchmark with::
+
+        validation_size = 0.2
+        foo = lambda data: split_dataset_class_balanced(validation_size, data)
+        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
+
+    :param validation_size: The percentage of samples to allocate to the
+        validation experience as a float between 0 and 1.
+    :param dataset: The dataset to split.
+    :return: A tuple containing 2 elements: the new training and validation
+        datasets.
+    """
+    if not isinstance(validation_size, float):
+        raise ValueError("validation_size must be an integer")
+    if not 0.0 <= validation_size <= 1.0:
+        raise ValueError("validation_size must be a float in [0, 1].")
+
+    if validation_size > len(dataset):
+        raise ValueError(
+            f"Can't create the validation experience: not enough "
+            f"instances. Required {validation_size}, got only"
+            f"{len(dataset)}"
+        )
+    exp_indices = list(range(len(dataset)))
+    targets_as_tensor = torch.as_tensor(dataset.targets)
+    exp_classes: List[int] = targets_as_tensor.unique().tolist()
+
+    # shuffle exp_indices
+    exp_indices = torch.as_tensor(exp_indices)[torch.randperm(len(exp_indices))]
+    # shuffle the targets as well
+    exp_targets = targets_as_tensor[exp_indices]
+
+    train_exp_indices = []
+    valid_exp_indices = []
+    for cid in exp_classes:  # split indices for each class separately.
+        c_indices = exp_indices[exp_targets == cid]
+        valid_n_instances = int(validation_size * len(c_indices))
+        valid_exp_indices.extend(c_indices[:valid_n_instances])
+        train_exp_indices.extend(c_indices[valid_n_instances:])
+
+    result_train_dataset = dataset.subset(train_exp_indices)
+    result_valid_dataset = dataset.subset(valid_exp_indices)
+    return result_train_dataset, result_valid_dataset
+
+
+# TODO: deprecate in favor of split_dataset_random
+def fixed_size_experience_split_strategy(
+    split_size: int,
+    shuffle: bool,
+    drop_last: bool,
+    dataset: AvalancheDataset,
+) -> List[AvalancheDataset]:
+    """The default splitting strategy used by :func:`data_incremental_benchmark`.
+
+    This splitting strategy simply splits the dataset in smaller dataset
+    of size `split_size`.
+
+    When taking inspiration for your custom splitting strategy, please consider
+    that all parameters preceding `experience` are filled by
+    :func:`data_incremental_benchmark` by using `partial` from the `functools`
+    standard library. A custom splitting strategy must have only a single
+    parameter: the experience. Consider wrapping your custom splitting strategy
+    with `partial` if more parameters are needed.
+
+    :param split_size: The experience size (number of instances).
+    :param shuffle: If True, instances will be shuffled before splitting.
+    :param drop_last: If True, the last mini-experience will be dropped if
+        not of size `experience_size`
+    :param dataset: The dataset to split.
+    :return: The list of datasets that will be used to create the
+        mini-experiences.
+    """
+    exp_indices = list(range(len(dataset)))
+
+    result_datasets = []
+
+    if shuffle:
+        exp_indices = torch.as_tensor(exp_indices)[
+            torch.randperm(len(exp_indices))
+        ].tolist()
+
+    init_idx = 0
+    while init_idx < len(exp_indices):
+        final_idx = init_idx + split_size  # Exclusive
+        if final_idx > len(exp_indices):
+            if drop_last:
+                break
+            final_idx = len(exp_indices)
+
+        result_datasets.append(dataset.subset(exp_indices[init_idx:final_idx]))
+        init_idx = final_idx
+
+    return result_datasets
 
 
 def _lazy_train_val_split(
@@ -232,15 +339,15 @@ def _gen_split(
     return (DatasetExperience(dataset=a) for a, b in gen_a), \
         (DatasetExperience(dataset=b) for a, b in gen_b)
 
-# TODO: update `class_balanced_split_strategy`
+
 def benchmark_with_validation_stream(
-    benchmark: CLScenario[TDatasetStream],
+    benchmark: CLScenario,
     validation_size: Union[int, float] = 0.5,
     shuffle: bool = False,
     split_strategy: Optional[
         Callable[[AvalancheDataset], Tuple[AvalancheDataset, AvalancheDataset]]
     ] = None,
-) -> CLScenario[TDatasetStream]:
+) -> CLScenario:
     """Helper to obtain a benchmark with a validation stream.
 
     This generator accepts an existing benchmark instance and returns a version
@@ -255,10 +362,10 @@ def benchmark_with_validation_stream(
     Beware that the default splitting strategy does not use class balancing.
     A custom `split_strategy` can be used if needed.
     A class-balanced split
-    is also available using `class_balanced_split_strategy`::
+    is also available using `split_dataset_class_balanced`::
 
         validation_size = 0.2
-        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
+        foo = lambda exp: split_dataset_class_balanced(validation_size, exp)
         bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
 
     :param benchmark: The benchmark to split.
@@ -288,7 +395,7 @@ def benchmark_with_validation_stream(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def random_validation_split_strategy_wrapper(data):
-            return split_dataset_random(validation_size, shuffle, data)
+            return split_dataset(validation_size, shuffle, data)
 
         split_strategy = random_validation_split_strategy_wrapper
     else:
@@ -298,7 +405,7 @@ def benchmark_with_validation_stream(
     if isinstance(stream, EagerCLStream):  # eager split
         train_exps, valid_exps = [], []
 
-        exp: DatasetExperience[TCLDataset]
+        exp: DatasetExperience
         for exp in stream:
             train_data, valid_data = split_strategy(exp.dataset)
             train_exps.append(DatasetExperience(dataset=train_data))
@@ -320,6 +427,6 @@ __all__ = [
     "benchmark_from_datasets",
     "DatasetExperience",
     "TaskAwareDatasetExperience",
-    "split_dataset_random",
+    "split_dataset",
     "benchmark_with_validation_stream"
 ]
