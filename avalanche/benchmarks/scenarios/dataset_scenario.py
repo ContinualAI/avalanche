@@ -27,7 +27,7 @@ from typing import (
 )
 
 from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
-from .experience_decorators import TaskAwareExperience
+from .experience_decorators import TaskAware
 from ..utils import SupervisedClassificationDataset
 
 
@@ -77,7 +77,7 @@ class DatasetExperience(CLExperience):
         return data
 
 
-class TaskAwareDatasetExperience(DatasetExperience, TaskAwareExperience, ABC):
+class TaskAwareDatasetExperience(DatasetExperience, TaskAware, ABC):
     """A Task-aware DatasetExperience, which provides task labels.
 
     The attribute `task_label` is available is an experience has data from

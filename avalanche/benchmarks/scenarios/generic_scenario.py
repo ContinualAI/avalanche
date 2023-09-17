@@ -196,6 +196,7 @@ class CLExperience:
         Check that ExperienceAttribute are available in train/eval mode.
         """
         v = super().__getattribute__(item)
+
         if isinstance(v, ExperienceAttribute):
             if not self.are_attributes_masked:
                 return v.value
