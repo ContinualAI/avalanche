@@ -15,7 +15,7 @@ from avalanche.evaluation.metrics import (
 )
 from avalanche.logging import InteractiveLogger
 from avalanche.training.plugins import EvaluationPlugin
-from avalanche.models.dualnet_model import MaskNet18
+from avalanche.models.dualnet_resnet import MaskNet18
 from avalanche.benchmarks.datasets.external_datasets.cifar import \
     get_cifar100_dataset
 
@@ -45,8 +45,8 @@ def main(args):
     benchmark = nc_benchmark(
         train_dataset=cifar_train,
         test_dataset=cifar_test,
-        n_experiences=20, 
-        task_labels=False,
+        n_experiences=50, 
+        task_labels=True,
         seed=1234,
         train_transform=transform,
         eval_transform=transform,
@@ -86,7 +86,6 @@ def main(args):
         memory_strength=10.0,
         temperature=2.0,
         beta=0.05,
-        task_agnostic_fast_updates=True,
         img_size=img_size,
         train_epochs=1,
         train_mb_size=10,
@@ -107,8 +106,8 @@ def main(args):
         ocl_benchmark = OnlineCLScenario(original_streams=batch_streams,
                                          experiences=exp,
                                          experience_size=10,
-                                         access_task_boundaries=False)
-
+                                         access_task_boundaries=True)
+        
         # Train on the online train stream of the scenario
         cl_strategy.train(ocl_benchmark.train_stream)
 

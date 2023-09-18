@@ -12,6 +12,9 @@ from itertools import chain
 from copy import deepcopy
 import torch.nn.functional as F
 from copy import deepcopy
+from avalanche.models.dynamic_modules import (
+        MultiTaskModule, MultiHeadClassifier)
+from avalanche.models.utils import avalanche_forward
 
 
 def Xavier(m):
@@ -338,8 +341,50 @@ class MaskNet(nn.Module):
         return loss
 
 
-def MaskNet18(num_classes, nf=20):
-    return MaskNet(BasicBlock, [2, 2, 2, 2], num_classes, nf)
+class MTMaskNet(MaskNet, MultiTaskModule):
+    def __init__(self, block, num_blocks, num_classes, nf):
+        super().__init__(block, num_blocks, num_classes, nf)
+        self.linear = MultiHeadClassifier(nf * 8 * block.expansion)
+
+    def BarlowTwins(self, y1, y2, t):
+        z1 = self.projector(self(y1, t, True))
+        z2 = self.projector(self(y2, t, True))
+
+        z_a = (z1 - z1.mean(0)) / z1.std(0)
+        z_b = (z2 - z2.mean(0)) / z2.std(0)
+        N, D = z_a.size(0), z_a.size(1)
+        c_ = torch.mm(z_a.T, z_b) / N
+        c_diff = (c_ - torch.eye(D).to(c_.device)).pow(2)
+        c_diff[~torch.eye(D, dtype=bool)] *= 2e-3
+        loss = c_diff.sum()   
+        return loss
+
+    def forward(self, x, task_labels, return_feat=False):
+        h0 = self.conv1(x)
+        h0 = relu(self.bn1(h0))
+        h0 = self.maxpool(h0)
+        h1 = self.layer1(h0)
+        h2 = self.layer2(h1)
+        h3 = self.layer3(h2)
+        h4 = self.layer4(h3)
+
+        if return_feat:
+            feat = self.avgpool(h4)
+            return feat.view(feat.size(0), -1)
+
+        m1_ = self.f_conv1(x)
+        m1 = m1_ * h1
+        m2_ = self.f_conv2(m1)
+        m2 = m2_ * h2
+        m3_ = self.f_conv3(m2)
+        m3 = m3_ * h3
+        m4_ = self.f_conv4(m3)
+        m4 = m4_ * h4
+        out = self.avgpool(m4)
+        out = out.view(out.size(0), -1)
+        y = self.linear(out, task_labels)
+
+        return y
 
 
 class SlowNet(nn.Module):
@@ -449,4 +494,4 @@ def SlowNet18(num_classes, nf=20):
 
 
 def MaskNet18(num_classes, nf=20):
-    return MaskNet(BasicBlock, [2, 2, 2, 2], num_classes, nf)
+    return MTMaskNet(BasicBlock, [2, 2, 2, 2], num_classes, nf)

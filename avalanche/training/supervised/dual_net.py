@@ -11,6 +11,7 @@ from avalanche.training.storage_policy import ReservoirSamplingBuffer
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.models.utils import avalanche_forward
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
 from avalanche.training.plugins.evaluation import (
     EvaluationPlugin,
@@ -22,11 +23,8 @@ class DualNet(SupervisedTemplate):
     """
     DualNet strategy as proposed in
     "DualNet: Continual Learning, Fast and Slow" by Quang Pham et. al.
-    When task_agnostic_fast_updates is False, the strategy is equivalent to 
-    "task-agnostic" version of the strategy proposed in the paper where only 
-    the slow-updates are task-agnostic and the fast-updates are task-aware. 
-    When task_agnostic_fast_updates is True, the strategy becomes fully 
-    task-agnostic without the need fot task-identity labels during training.
+    In the strategy the slow-updates are task-agnostic and the 
+    fast-updates are task-aware.
     https://arxiv.org/abs/2110.00175
     """
 
@@ -43,7 +41,6 @@ class DualNet(SupervisedTemplate):
         memory_strength: float = 10.0,
         temperature: float = 2.0,
         beta: float = 0.05,
-        task_agnostic_fast_updates: bool = False,
         img_size: int = 84,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -69,8 +66,6 @@ class DualNet(SupervisedTemplate):
         :param temperature: Temperature for the KLDiv loss.
             mode.
         :param beta: Update rate for the slow updates.
-        :param task_agnostic_fast_updates: whether to perform the fast updates 
-            in task-agnostic mode or task-aware mode.
         :param img_size: Dataset image size.
         :param batch_size_mem: int : Size of the batch sampled from the buffer
         :param train_mb_size: mini-batch size for training.
@@ -112,7 +107,6 @@ class DualNet(SupervisedTemplate):
         self.batch_size_mem = batch_size_mem
         self.inner_steps = inner_steps
         self.n_outer = n_outer
-        self.task_agnostic_fast_updates = task_agnostic_fast_updates
 
         # Optimizer
         self.optimizer = optimizer
@@ -133,7 +127,7 @@ class DualNet(SupervisedTemplate):
         self.rng = torch.Generator()
         self.rng.manual_seed(0)
 
-    def sample_from_buffer(self, ssl=False):
+    def sample_from_buffer(self, t, ssl=False):
         """ Sample from buffer and return a batch of samples. """
         if ssl:
             n_samples = 32
@@ -153,34 +147,48 @@ class DualNet(SupervisedTemplate):
 
         # Create buffer batch
         samples = [buffer[i.item()] for i in indices]
+
+        # Filter by task
+        samples = [s for s in samples if s[2] < t]
+
         x_b = torch.stack([s[0] for s in samples])
         y_b = torch.LongTensor([s[1] for s in samples])
+        t_b = torch.LongTensor([s[2] for s in samples])
         l_b = torch.stack([s[3] for s in samples])
 
-        return x_b.to(self.device), y_b.to(self.device), l_b.to(self.device)
+        return x_b.to(self.device), y_b.to(self.device), t_b.to(self.device), \
+            l_b.to(self.device)
 
     def kl(self, y1, y2, temp): 
+        if y2.shape[1] < y1.shape[1]:
+            # expand y2 to match y1
+            row_mins = y2.min(dim=1).values
+            expanded_mins = row_mins.unsqueeze(-1).expand(
+                y2.shape[0], y1.shape[1] - y2.shape[1])
+            y2 = torch.cat([y2, expanded_mins], dim=1)
+
         return F.kl_div(
                 F.log_softmax(y1 / temp, dim=-1),
                 F.softmax(y2 / temp, dim=-1), reduce=True) * y1.shape[0]
-    
+
     def slow_update(self):
         # Performs slow updates to the model's representation backbone
+        current_task = self.mb_task_id[0].item()
         for j in range(self.n_outer):
             w_before = deepcopy(self.model.state_dict())
             for _ in range(self.inner_steps):
                 self.optimizer_bt.zero_grad()
-                if self.task_agnostic_fast_updates:
-                    if len(self.storage_policy.buffer) > 0:
-                        x_, y_, l_ = self.sample_from_buffer(ssl=True)
-                    else:
-                        x_ = self.mb_x.to(self.device)
-                    x1, x2 = self.transforms_1(x_), self.transforms_2(x_)
-                    loss = self.model.BarlowTwins(x1, x2)
-                    loss.backward()
-                    self.optimizer_bt.step()
+                if current_task > 0:
+                    x_, _, t_, _ = self.sample_from_buffer(current_task,
+                                                             ssl=True)
                 else:
-                    raise NotImplementedError()
+                    x_ = self.mb_x.to(self.device)
+                    t_ = self.mb_task_id.to(self.device)
+                x1, x2 = self.transforms_1(x_), self.transforms_2(x_)
+                loss = self.model.BarlowTwins(x1, x2, t_)
+                loss.backward()
+                self.optimizer_bt.step()
+
             w_after = self.model.state_dict()
             new_params = {
                 k : w_before[k] + ((w_after[k] - w_before[k]) * self.beta) 
@@ -190,22 +198,22 @@ class DualNet(SupervisedTemplate):
 
     def fast_update(self):
         # Performs fast updates to the adaptor model
-        x, y = self.mb_x.to(self.device), self.mb_y.to(self.device)
+        x, y, t = self.mb_x.to(self.device), self.mb_y.to(self.device),\
+                self.mb_task_id.to(self.device) 
+        current_task = self.mb_task_id[0].item()
 
         for _ in range(self.inner_steps):
             self.optimizer.zero_grad()
 
-            if self.task_agnostic_fast_updates:
-                pred = self.model(self.transforms_0(x))
-                loss = self.bce(pred, y)
+            pred = avalanche_forward(self.model, self.transforms_0(x), t)
+            loss = self.bce(pred, y)
 
-                if len(self.storage_policy.buffer) > 0:
-                    x_, y_, l_ = self.sample_from_buffer()
-                    pred = self.model(self.transforms_0(x_))
-                    loss += self.bce(pred, y_)
-                    loss += self.reg * self.kl(pred , l_ , self.temp)
-            else:
-                raise NotImplementedError()
+            if current_task > 0:
+                x_, y_, t_, l_ = self.sample_from_buffer(current_task,
+                                                         ssl=False)
+                pred = avalanche_forward(self.model, self.transforms_0(x_), t_)
+                loss += self.bce(pred, y_)
+                loss += self.reg * self.kl(pred, l_ , self.temp)
 
             loss.backward()
             self.optimizer.step()
@@ -241,9 +249,6 @@ class DualNet(SupervisedTemplate):
         self._update_buffer()
 
     def _update_buffer(self):
-        if not self.task_agnostic_fast_updates:
-            raise NotImplementedError()
-
         # Get dataset from the current experience
         new_data: AvalancheDataset = self.experience.dataset
 
@@ -257,9 +262,10 @@ class DualNet(SupervisedTemplate):
             shuffle=False,
         )
 
-        for x, _, _ in loader:
+        for x, _, t in loader:
             x = x.to(self.device)
-            out = self.model(self.transforms_0(x))
+            t = t.to(self.device)
+            out = avalanche_forward(self.model, self.transforms_0(x), t)
             logits.extend(list(out.detach().cpu()))
 
         # Add logits to the dataset
