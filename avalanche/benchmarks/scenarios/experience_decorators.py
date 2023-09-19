@@ -191,9 +191,12 @@ def with_classes_timeline(obj):
 def with_task_labels(obj):
     """Add `TaskAware` attributes.
 
+    The dataset must already have task labels.
+
     `obj` must be a scenario, stream, or experience.
     """
     # TODO: doc, test
+    # TODO: if data doesn't have task labels, add them (possibly under flag)
     def _add_task_labels(exp):
         tls = exp.dataset.targets_task_labels.uniques
         if len(tls) == 1:

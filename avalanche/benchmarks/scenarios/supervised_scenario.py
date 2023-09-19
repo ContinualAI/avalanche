@@ -140,14 +140,10 @@ def _class_balanced_indices(data: AvalancheDataset, num_experiences: int,
             "parameter): must be greater than 0"
         )
 
-    # TODO: test balancing
-    # TODO: test all patterns are assigned
-    # TODO: test no repetitions in pattern assignment
-    # TODO: test both branches of (balance_experiences)
-
     # experience -> idxs assignment
     exps_idxs: List[List[int]] = [[] for _ in range(num_experiences)]
-    for class_id, class_idxs in data.targets.val_to_idx():
+    # TODO: fix pycharm type hints
+    for class_id, class_idxs in data.targets.val_to_idx.items():
         # INVARIANT: class_idxs keeps only indices that are not assigned yet.
         # Whenever we add idxs to an experience, we remove them from class_idxs
 
@@ -162,7 +158,7 @@ def _class_balanced_indices(data: AvalancheDataset, num_experiences: int,
             class_idxs = class_idxs[npats:]
 
         # distribute remainder if not divisible by num_experiences
-        if len(class_idxs > 0):
+        if len(class_idxs) > 0:
             if shuffle:
                 exps_remaining = torch.randperm(num_experiences).tolist()[:len(class_idxs)]
             else:
@@ -203,9 +199,9 @@ def _random_indices(
     ##############################
     # patterns -> experience assignment for train stream
     ##############################
-    idxs_per_class = data.targets.val_to_idx()
+    idxs_per_class = data.targets.val_to_idx
 
-    # experience->idxs assignment split by class
+    # experience->idxs assignment
     exps_idxs: List[List[int]] = [[] for _ in range(num_experiences)]
 
     # validate `min_class_patterns_in_exp` argument
@@ -213,7 +209,7 @@ def _random_indices(
     if min_class_patterns < num_experiences * min_class_patterns_in_exp:
         raise ValueError("min_class_patterns_in_exp constraint " "can't be satisfied")
 
-    for class_id, class_idxs in idxs_per_class:
+    for class_id, class_idxs in idxs_per_class.items():
         # INVARIANT: class_idxs keeps only indices that are not assigned yet. Whenever we add idxs to an experience, we remove them from class_idxs
 
         # first assign exactly min_class_patterns_in_exp.
@@ -239,8 +235,8 @@ def _random_indices(
                 class_idxs = class_idxs[1:]
 
     # sort to keep original order instead of class-order
-    for class_id in exps_idxs.keys():
-        exps_idxs[class_id].sort()
+    for ii in range(len(exps_idxs)):
+        exps_idxs[ii].sort()
     return exps_idxs
 
 
@@ -280,10 +276,6 @@ def new_instances_benchmark(
 
     :return: A properly initialized :class:`NIScenario` instance.
     """
-    # TODO: test balancing
-    # TODO: test all patterns are assigned
-    # TODO: test no repetitions in pattern assignment
-    # TODO: test both branches of (balance_experiences)
     if balance_experiences:  # class-balanced split
         exps_idxs = _class_balanced_indices(
             data=train_dataset, num_experiences=num_experiences,
