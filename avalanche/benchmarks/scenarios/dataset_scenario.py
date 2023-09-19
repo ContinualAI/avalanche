@@ -10,7 +10,6 @@
 ################################################################################
 
 """Generic definitions for CL benchmarks defined via list of datasets."""
-# TODO: module doc
 
 from abc import ABC
 
@@ -32,16 +31,6 @@ from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stre
 from .task_aware import TaskAware
 from ..utils import SupervisedClassificationDataset
 
-
-def task_incremental_benchmark(
-    **dataset_streams: Sequence[AvalancheDataset]
-) -> CLScenario:
-    # TODO: implement and test
-    # use task labels if possible
-    # add task labels if not existing
-    # should it override them ever?
-    # when/how to do label_remapping?
-    raise NotImplementedError()
 
 def benchmark_from_datasets(
     **dataset_streams: Sequence[AvalancheDataset]
@@ -89,56 +78,6 @@ class DatasetExperience(CLExperience):
         return data
 
 
-class TaskAwareDatasetExperience(DatasetExperience, TaskAware, ABC):
-    """A Task-aware DatasetExperience, which provides task labels.
-
-    The attribute `task_label` is available is an experience has data from
-    a single task. Otherwise, `task_labels` must be used, which provides the
-    list of task labels for the current experience.
-    """
-
-    @property
-    def task_label(self) -> int:
-        """The task label.
-
-        This value will never be "None". Single task scenario will have a
-        constant value like 0. In a DatasetExperience, this field is
-        directly computed via the task labels provided by the dataset.
-
-        This field must be used only if the experience contains data from
-        a single task. If this experience contains patterns from
-        multiple tasks, accessing this property will raise a `ValueError`.
-        """
-        if len(self.task_labels) != 1:
-            raise ValueError(
-                "The task_label property can only be accessed "
-                "when the experience contains a single task label"
-            )
-
-        return self.task_labels[0]
-
-    @property
-    def task_labels(self) -> List[int]:
-        """The list of task labels.
-
-        Provides the list of task labels for the experience.
-
-        This value will never be "None". Single task scenario will have a
-        constant value like 0. In a DatasetExperience, this field is
-        directly computed via the task labels provided by the dataset.
-        """
-        task_labels = getattr(self.dataset, "targets_task_labels", None)
-
-        assert task_labels is not None, (
-            "In its default implementation, DatasetExperience will use the "
-            "the dataset `targets_task_labels` field to compute the "
-            "content of the `task_label(s)` field. The given does not "
-            "contain such field."
-        )
-
-        return list(set(task_labels))
-
-
 def _split_dataset_by_attribute(data: AvalancheDataset, attr_name: str) -> Dict[int, AvalancheDataset]:
     """Helper to split a dataset by attribute.
 
@@ -153,7 +92,7 @@ def _split_dataset_by_attribute(data: AvalancheDataset, attr_name: str) -> Dict[
     return dds
 
 
-def split_dataset(
+def split_validation_random(
     validation_size: Union[int, float],
     shuffle: bool,
     dataset: AvalancheDataset,
@@ -178,8 +117,8 @@ def split_dataset(
     a benchmark with::
 
         validation_size = 0.2
-        foo = lambda exp: class_balanced_split_strategy(validation_size, exp)
-        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
+        foo = lambda exp: split_validation_class_balanced(validation_size, exp)
+        bm = benchmark_with_validation_stream(bm, split_strategy=foo)
 
     :param validation_size: The number of instances to allocate to the
     validation experience. Can be an int value or a float between 0 and 1.
@@ -213,7 +152,7 @@ def split_dataset(
     return d1, d2
 
 
-def split_dataset_class_balanced(
+def split_validation_class_balanced(
     validation_size: Union[int, float],
     dataset: SupervisedClassificationDataset,
 ) -> Tuple[SupervisedClassificationDataset, SupervisedClassificationDataset]:
@@ -226,8 +165,8 @@ def split_dataset_class_balanced(
     You can use this split strategy to split a benchmark with::
 
         validation_size = 0.2
-        foo = lambda data: split_dataset_class_balanced(validation_size, data)
-        bm = benchmark_with_validation_stream(bm, custom_split_strategy=foo)
+        foo = lambda data: split_validation_class_balanced(validation_size, data)
+        bm = benchmark_with_validation_stream(bm, split_strategy=foo)
 
     :param validation_size: The percentage of samples to allocate to the
         validation experience as a float between 0 and 1.
@@ -266,56 +205,6 @@ def split_dataset_class_balanced(
     result_train_dataset = dataset.subset(train_exp_indices)
     result_valid_dataset = dataset.subset(valid_exp_indices)
     return result_train_dataset, result_valid_dataset
-
-
-# TODO: deprecate in favor of split_dataset_random
-def fixed_size_experience_split_strategy(
-    split_size: int,
-    shuffle: bool,
-    drop_last: bool,
-    dataset: AvalancheDataset,
-) -> List[AvalancheDataset]:
-    """The default splitting strategy used by :func:`data_incremental_benchmark`.
-
-    This splitting strategy simply splits the dataset in smaller dataset
-    of size `split_size`.
-
-    When taking inspiration for your custom splitting strategy, please consider
-    that all parameters preceding `experience` are filled by
-    :func:`data_incremental_benchmark` by using `partial` from the `functools`
-    standard library. A custom splitting strategy must have only a single
-    parameter: the experience. Consider wrapping your custom splitting strategy
-    with `partial` if more parameters are needed.
-
-    :param split_size: The experience size (number of instances).
-    :param shuffle: If True, instances will be shuffled before splitting.
-    :param drop_last: If True, the last mini-experience will be dropped if
-        not of size `experience_size`
-    :param dataset: The dataset to split.
-    :return: The list of datasets that will be used to create the
-        mini-experiences.
-    """
-    exp_indices = list(range(len(dataset)))
-
-    result_datasets = []
-
-    if shuffle:
-        exp_indices = torch.as_tensor(exp_indices)[
-            torch.randperm(len(exp_indices))
-        ].tolist()
-
-    init_idx = 0
-    while init_idx < len(exp_indices):
-        final_idx = init_idx + split_size  # Exclusive
-        if final_idx > len(exp_indices):
-            if drop_last:
-                break
-            final_idx = len(exp_indices)
-
-        result_datasets.append(dataset.subset(exp_indices[init_idx:final_idx]))
-        init_idx = final_idx
-
-    return result_datasets
 
 
 def _lazy_train_val_split(
@@ -376,11 +265,9 @@ def benchmark_with_validation_stream(
     experiences. Patterns selected for the validation experience will be removed
     from the training experiences.
 
-    The default splitting strategy is a random split.
-    Beware that the default splitting strategy does not use class balancing.
-    A custom `split_strategy` can be used if needed.
-    A class-balanced split
-    is also available using `split_dataset_class_balanced`::
+    The default splitting strategy is a random split as implemented by `split_validation_random`.
+    If you want to use class balancing you can use `split_validation_class_balanced`, or
+    use a custom `split_strategy`, as shown in the following example::
 
         validation_size = 0.2
         foo = lambda exp: split_dataset_class_balanced(validation_size, exp)
@@ -413,7 +300,7 @@ def benchmark_with_validation_stream(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def random_validation_split_strategy_wrapper(data):
-            return split_dataset(validation_size, shuffle, data)
+            return split_validation_random(validation_size, shuffle, data)
 
         split_strategy = random_validation_split_strategy_wrapper
     else:
@@ -444,7 +331,6 @@ __all__ = [
     "_split_dataset_by_attribute",
     "benchmark_from_datasets",
     "DatasetExperience",
-    "TaskAwareDatasetExperience",
-    "split_dataset",
+    "split_validation_random",
     "benchmark_with_validation_stream"
 ]

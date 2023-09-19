@@ -30,7 +30,7 @@ from typing import (
 
 import torch
 
-from avalanche.benchmarks.scenarios.dataset_scenario import split_dataset
+from avalanche.benchmarks.scenarios.dataset_scenario import split_validation_random
 from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
     ClassificationScenario,
 )
@@ -588,7 +588,7 @@ def data_incremental_benchmark(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def split_strategy_wrapper(exp):
-            return split_dataset(experience_size, shuffle, exp)
+            return split_validation_random(experience_size, shuffle, exp)
 
         split_strategy = split_strategy_wrapper
     else:

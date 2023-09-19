@@ -108,6 +108,7 @@ class ClassificationDataset(AvalancheDataset[T_co]):
 
 
 class SupervisedClassificationDataset(ClassificationDataset[T_co]):
+    # TODO: remove? ClassificationDataset should have targets
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         assert "targets" in self._data_attributes, (

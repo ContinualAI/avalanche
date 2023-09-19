@@ -404,17 +404,30 @@ __all__ = [
 class BoundaryAware(Protocol):
     """Boundary-aware experiences have attributes with task boundary knowledge.
 
+    Task boundaries denote changes of the underlying data distribution used
+    to sample the data for the experiences.
     """
-    # TODO: add doc
 
     @property
-    def is_first_subexp(self) -> bool: ...
+    def is_first_subexp(self) -> bool:
+        """True if this is the first experience after a drift."""
+        return False
 
     @property
-    def is_last_subexp(self) -> bool: ...
+    def is_last_subexp(self) -> bool:
+        """True if this is the last experience before a drift."""
+        return False
 
     @property
-    def sub_stream_length(self) -> int: ...
+    def sub_stream_length(self) -> int:
+        """Number of experiences with the same distribution of the current experience."""
+        return 0
 
     @property
-    def access_task_boundaries(self) -> int: ...
+    def access_task_boundaries(self) -> bool:
+        """True if the model has access to task boundaries.
+
+        If the model is boundary-agnostic, task boundaries are available only
+        for logging by setting the experience in logging mode `experience.logging()`.
+        """
+        return False

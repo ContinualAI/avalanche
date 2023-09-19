@@ -9,13 +9,7 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-# TODO: module doc
-""" In this module the high-level benchmark generators are listed. They are
-based on the methods already implemented in the "scenario" module. For the
-specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
-the generic ones: filelist_benchmark, tensors_benchmark, dataset_benchmark
-and paths_benchmark.
-"""
+"""High-level benchmark generators for supervised scenarios such as class-incremental."""
 import warnings
 from copy import copy
 from typing import (
@@ -28,7 +22,7 @@ from typing import (
 import torch
 
 from avalanche.benchmarks.utils.classification_dataset import (
-    as_supervised_classification_dataset,
+    as_supervised_classification_dataset, SupervisedClassificationDataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
@@ -131,7 +125,15 @@ def class_incremental_benchmark(
 
 def _class_balanced_indices(data: AvalancheDataset, num_experiences: int,
                             shuffle: bool = True, seed: Optional[int] = None) -> List[List[int]]:
-    # TODO: add DOC
+    """class-balanced indices.
+
+    Internal helper for `new_instances_benchmark`.
+
+    :param data: the `AvalancheDataset` to split
+    :param num_experiences: length of the stream
+    :param shuffle: -
+    :param seed: -
+    """
     if seed is not None:
         torch.random.manual_seed(seed)
 
@@ -180,7 +182,16 @@ def _random_indices(
         seed: Optional[int] = None,
         min_class_patterns_in_exp: int = 0
     ) -> List[List[int]]:
-    # TODO: add docstring
+    """Random indices splitter.
+
+    Internal helper for `new_instances_benchmark.
+
+    :param min_class_patterns_in_exp: the random split must respect the
+        constraint of having at least `min_min_class_patterns_in_exp`
+        samples per class.
+
+    :return: a list of indices for each experience.
+    """
     if seed is not None:
         torch.random.manual_seed(seed)
 
@@ -243,7 +254,7 @@ def _random_indices(
 
 
 def new_instances_benchmark(
-    train_dataset: AvalancheDataset,
+    train_dataset: SupervisedClassificationDataset,
     test_dataset: AvalancheDataset,
     *,
     num_experiences: int = None,
@@ -283,7 +294,6 @@ def new_instances_benchmark(
             data=train_dataset, num_experiences=num_experiences,
             shuffle=shuffle, seed=seed)
     else:
-        # TODO: fix typing
         exps_idxs = _random_indices(
             data=train_dataset, num_experiences=num_experiences,
             shuffle=shuffle, seed=seed,
@@ -308,29 +318,27 @@ __all__ = [
 class ClassesTimeline(Protocol):
     """Experience decorator that provides info about classes occurrence over time."""
 
-    # TODO: is the indent correct in the doc here?
     @property
-    def classes_in_this_experience(self) -> list[int]: ...
-
-    """ The list of classes in this experience. """
-
-    @property
-    def previous_classes(self) -> list[int]: ...
-
-    """ The list of classes in previous experiences. """
+    def classes_in_this_experience(self) -> list[int]:
+        """ The list of classes in this experience. """
+        ...
 
     @property
-    def classes_seen_so_far(self) -> list[int]: ...
-
-    """ List of classes of current and previous experiences. """
+    def previous_classes(self) -> list[int]:
+        """ The list of classes in previous experiences. """
+        ...
 
     @property
-    def future_classes(self) -> list[int]: ...
+    def classes_seen_so_far(self) -> list[int]:
+        """ List of classes of current and previous experiences. """
+        ...
 
-    """ The list of classes of next experiences. """
+    @property
+    def future_classes(self) -> list[int]:
+        """ The list of classes of next experiences. """
+        ...
 
 
-# TODO: test
 def with_classes_timeline(obj):
     """Add `ClassesTimeline` attributes.
 

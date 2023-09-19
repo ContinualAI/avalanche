@@ -8,12 +8,13 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-# TODO: module doc
+"""Task-aware scenario. Everything that provides task labels at each experience."""
 import warnings
 from copy import copy
-from typing import Protocol, List
+from typing import Protocol, List, Sequence
 
 from .generic_scenario import CLScenario, CLStream, EagerCLStream, CLExperience
+from ..utils import AvalancheDataset
 
 
 class TaskAware(Protocol):
@@ -39,9 +40,6 @@ class TaskAware(Protocol):
         return [0]
 
 
-# TODO: doc, test
-# TODO: respect stream generators. Should return a new generators which applies
-#  foo_decorate_exp every time a new experience is generated.
 def _decorate_generic(obj, exp_decorator):
     """Call `exp_decorator` on each experience in `obj`.
 
@@ -52,6 +50,9 @@ def _decorate_generic(obj, exp_decorator):
     streams must be eager! internal use only.
     `exp_decorator` will receive a copy of the experience.
     """
+
+    # TODO: respect stream generators. Should return a new generators which applies
+    #  foo_decorate_exp every time a new experience is generated.
     # IMPLEMENTATION NOTE: first, we check the type of `obj`. Then, for
     # benchmarks and streams we call `exp_decorator` on each experience.
     def _decorate_exp(obj, exp_decorator):
@@ -99,3 +100,14 @@ def with_task_labels(obj):
         return exp
 
     return _decorate_generic(obj, _add_task_labels)
+
+
+def task_incremental_benchmark(
+    **dataset_streams: Sequence[AvalancheDataset]
+) -> CLScenario:
+    # TODO: implement and test
+    # use task labels if possible
+    # add task labels if not existing
+    # should it override them ever?
+    # when/how to do label_remapping?
+    raise NotImplementedError()

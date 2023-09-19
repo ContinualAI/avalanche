@@ -5,8 +5,8 @@ from numpy.testing import assert_almost_equal
 from torch.utils.data import TensorDataset, DataLoader
 
 from avalanche.benchmarks import benchmark_from_datasets, benchmark_with_validation_stream, CLScenario, CLStream, \
-    split_dataset
-from avalanche.benchmarks.scenarios.dataset_scenario import split_dataset_class_balanced, task_incremental_benchmark
+    split_validation_random, task_incremental_benchmark
+from avalanche.benchmarks.scenarios.dataset_scenario import split_validation_class_balanced
 from avalanche.benchmarks.utils import AvalancheDataset
 from tests.unit_tests_utils import dummy_tensor_dataset, get_fast_benchmark, DummyImageDataset
 
@@ -77,7 +77,7 @@ class DatasetSplitterTest(unittest.TestCase):
         y = torch.arange(32)  # we use ordered labels to reconstruct the order after shuffling
         dd = AvalancheDataset([TensorDataset(x, y)])
 
-        d1, d2 = split_dataset(validation_size=0.5, shuffle=True, dataset=dd)
+        d1, d2 = split_validation_random(validation_size=0.5, shuffle=True, dataset=dd)
         assert len(d1) + len(d2) == len(dd)
 
         # check data is shuffled
@@ -102,7 +102,7 @@ class DatasetSplitterTest(unittest.TestCase):
         exp = benchmark.train_stream[0]
         num_classes = len(exp.classes_in_this_experience)
 
-        train_d, valid_d = split_dataset_class_balanced(0.5, exp.dataset)
+        train_d, valid_d = split_validation_class_balanced(0.5, exp.dataset)
         assert abs(len(train_d) - len(valid_d)) <= num_classes
         for cid in exp.classes_in_this_experience:
             train_cnt = (torch.as_tensor(train_d.targets) == cid).sum()
@@ -111,7 +111,7 @@ class DatasetSplitterTest(unittest.TestCase):
 
         ratio = 0.123
         len_data = len(exp.dataset)
-        train_d, valid_d = split_dataset_class_balanced(ratio, exp.dataset)
+        train_d, valid_d = split_validation_class_balanced(ratio, exp.dataset)
         assert_almost_equal(len(valid_d) / len_data, ratio, decimal=2)
         for cid in exp.classes_in_this_experience:
             data_cnt = (torch.as_tensor(exp.dataset.targets) == cid).sum()
