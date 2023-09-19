@@ -14,9 +14,7 @@ from typing import (
 
 import warnings
 
-from avalanche.benchmarks.scenarios.generic_scenario import (
-    AbstractClassTimelineExperience,
-)
+from avalanche.benchmarks.scenarios.deprecated import AbstractClassTimelineExperience
 
 from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
     ClassesTimelineCLScenario,

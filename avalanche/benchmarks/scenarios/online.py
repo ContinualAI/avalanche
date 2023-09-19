@@ -25,10 +25,9 @@ from avalanche.benchmarks.scenarios.deprecated.benchmark_wrapper_utils import wr
 
 from avalanche.benchmarks.scenarios.generic_scenario import (
     CLStream,
-    DatasetExperience,
     CLScenario,
 )
-
+from avalanche.benchmarks import DatasetExperience
 
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
 TClassificationDataset = TypeVar(

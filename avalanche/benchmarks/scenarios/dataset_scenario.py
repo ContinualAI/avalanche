@@ -11,8 +11,6 @@
 
 """Generic definitions for CL benchmarks defined via list of datasets."""
 
-from abc import ABC
-
 from avalanche.benchmarks.utils.data import AvalancheDataset
 import torch
 from itertools import tee
@@ -28,7 +26,6 @@ from typing import (
 )
 
 from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
-from .task_aware import TaskAware
 from ..utils import SupervisedClassificationDataset
 
 

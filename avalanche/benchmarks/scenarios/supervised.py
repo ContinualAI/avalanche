@@ -26,7 +26,6 @@ from avalanche.benchmarks.utils.classification_dataset import (
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
-from .generic_scenario import CLScenario, CLStream, EagerCLStream
 from .. import CLScenario, CLStream, EagerCLStream
 
 

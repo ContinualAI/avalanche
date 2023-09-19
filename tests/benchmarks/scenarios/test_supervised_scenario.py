@@ -2,7 +2,6 @@ import unittest
 
 import torch
 
-from avalanche.benchmarks import ni_benchmark
 from avalanche.benchmarks.scenarios import _split_dataset_by_attribute
 from avalanche.benchmarks.scenarios.supervised import class_incremental_benchmark, new_instances_benchmark, \
     with_classes_timeline
@@ -110,7 +109,6 @@ class NewInstancesTests(unittest.TestCase):
         for k, v in data_by_class.items():
             nums_per_class[k] = len(v)
 
-        # TODO: fix pycharm types?
         self.assertEqual(5, len(list(bm.train_stream)))
         for exp in bm.train_stream:
             self.assertEqual(10, len(exp.classes_in_this_experience))

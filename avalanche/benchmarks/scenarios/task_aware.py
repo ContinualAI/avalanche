@@ -14,7 +14,9 @@ from copy import copy
 from typing import Protocol, List, Sequence
 
 from .generic_scenario import CLScenario, CLStream, EagerCLStream, CLExperience
-from ..utils import AvalancheDataset
+from .dataset_scenario import DatasetExperience
+from ..utils import AvalancheDataset, TaskLabels, ConstantSequence
+from ..utils.data_attribute import has_task_labels
 
 
 class TaskAware(Protocol):
@@ -89,8 +91,6 @@ def with_task_labels(obj):
 
     `obj` must be a scenario, stream, or experience.
     """
-    # TODO: doc, test
-    # TODO: if data doesn't have task labels, add them (possibly under flag)
     def _add_task_labels(exp):
         tls = exp.dataset.targets_task_labels.uniques
         if len(tls) == 1:
@@ -103,11 +103,46 @@ def with_task_labels(obj):
 
 
 def task_incremental_benchmark(
-    **dataset_streams: Sequence[AvalancheDataset]
+    bm: CLScenario, reset_task_labels=False
 ) -> CLScenario:
-    # TODO: implement and test
-    # use task labels if possible
-    # add task labels if not existing
-    # should it override them ever?
-    # when/how to do label_remapping?
-    raise NotImplementedError()
+    """Creates a task-incremental benchmark from a dataset scenario.
+
+    Adds progressive task labels to each stream (experience $i$ has task label $i$).
+    Task labels are also added to each `AvalancheDataset` and will be returned by the `__getitem__`.
+    For example, if your datasets have `<x, y>` samples (input, class),
+    the new datasets will return `<x, y, t>` triplets, where `t` is the task label.
+
+    Example of usage - SplitMNIST with task labels::
+
+        bm = SplitMNIST(2)  # create class-incremental splits
+        bm = task_incremental_benchmark(bm)  # adds task labels to the benchmark
+
+    If `reset_task_labels is False` (default) the datasets *must not have task labels
+    already set*. If the dataset have task labels, use::
+
+        with_task_labels(benchmark_from_datasets(**dataset_streams)
+
+    :param **dataset_streams: keys are stream names, values are list of datasets.
+    :param reset_task_labels: whether existing task labels should be ignored.
+        If False (default) if any dataset has task labels the function will raise
+        a ValueError. If `True`, it will reset task labels.
+
+    :return: a CLScenario in the task-incremental setting.
+    """
+    # TODO: test
+    # TODO: when/how to do label_remapping?
+
+    new_streams = {}
+    for name, stream in bm.items():
+        new_stream = []
+        for eid, exp in enumerate(stream):
+            if has_task_labels(exp.dataset) and (not reset_task_labels):
+                raise ValueError("AvalancheDataset already has task labels. Use `benchmark_from_datasets` "
+                                 "instead or set `reset_task_labels=True`.")
+            tls = TaskLabels(ConstantSequence(eid, len(exp.dataset)))
+            new_dd = exp.dataset.update_data_attribute(tls)
+            new_exp = DatasetExperience(dataset=new_dd, current_experience=eid)
+            new_stream.append(new_exp)
+        s = EagerCLStream(name, new_stream)
+        new_streams.append(s)
+    return with_task_labels(CLScenario(new_streams))

@@ -44,9 +44,7 @@ from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
 )
 from avalanche.benchmarks.scenarios.detection_scenario import DetectionScenario
 from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import *
-from avalanche.benchmarks.scenarios.generic_scenario import (
-    DatasetExperience,
-)
+from avalanche.benchmarks.scenarios.deprecated import DatasetExperience
 from avalanche.benchmarks.scenarios.deprecated.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )

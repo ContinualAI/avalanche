@@ -7,7 +7,7 @@ from torch.optim import Optimizer
 from torch import Tensor
 
 from avalanche.benchmarks import CLExperience, CLStream
-from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
+from avalanche.benchmarks.scenarios.deprecated import DatasetExperience
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.core import BasePlugin, BaseSGDPlugin
 from avalanche.training.plugins import EvaluationPlugin
