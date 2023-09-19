@@ -7,7 +7,7 @@ from torch.optim import SGD
 
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
-from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
+from avalanche.benchmarks.scenarios.online import OnlineCLScenario
 from avalanche.training import OnlineNaive
 from tests.unit_tests_utils import get_fast_benchmark
 from avalanche.training.plugins.evaluation import default_evaluator

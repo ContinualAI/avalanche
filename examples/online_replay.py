@@ -27,7 +27,7 @@ from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
-from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
+from avalanche.benchmarks.scenarios.online import OnlineCLScenario
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,

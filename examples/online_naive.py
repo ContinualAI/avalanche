@@ -25,7 +25,7 @@ from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
-from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
+from avalanche.benchmarks.scenarios.online import OnlineCLScenario
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,

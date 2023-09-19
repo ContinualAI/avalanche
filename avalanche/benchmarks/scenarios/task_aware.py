@@ -39,64 +39,6 @@ class TaskAware(Protocol):
         return [0]
 
 
-# TODO: add doc
-class BoundaryAware(Protocol):
-    """Boundary-aware experiences have attributes with task boundary knowledge.
-
-    """
-
-    @property
-    def is_first_subexp(self) -> bool: ...
-
-    @property
-    def is_last_subexp(self) -> bool: ...
-
-    @property
-    def sub_stream_length(self) -> int: ...
-
-    @property
-    def access_task_boundaries(self) -> int: ...
-
-
-# TODO: deprecate? do we need it?
-class ChildExperience(Protocol):
-    """A child experience is an experience that has been created by splitting
-    or manipulating an original experience.
-
-    (e.g. a single task can be split into multiple experiences).
-    It provides an `origin_experience` attributes for logging purposes.
-    """
-
-    @property
-    def origin_experience(self): ...
-
-
-# TODO: doc
-class ClassesTimeline(Protocol):
-    """Experience decorator that provides info about classes occurrence over time."""
-
-    # TODO: is the indent correct in the doc here?
-    @property
-    def classes_in_this_experience(self) -> list[int]: ...
-
-    """ The list of classes in this experience. """
-
-    @property
-    def previous_classes(self) -> list[int]: ...
-
-    """ The list of classes in previous experiences. """
-
-    @property
-    def classes_seen_so_far(self) -> list[int]: ...
-
-    """ List of classes of current and previous experiences. """
-
-    @property
-    def future_classes(self) -> list[int]: ...
-
-    """ The list of classes of next experiences. """
-
-
 # TODO: doc, test
 # TODO: respect stream generators. Should return a new generators which applies
 #  foo_decorate_exp every time a new experience is generated.
@@ -137,55 +79,6 @@ def _decorate_generic(obj, exp_decorator):
         return _decorate_exp(obj, exp_decorator)
     else:
         raise ValueError("Unsupported object type: must be one of {CLScenario, CLStream, CLExperience}")
-
-
-# TODO: test
-def with_classes_timeline(obj):
-    """Add `ClassesTimeline` attributes.
-
-    `obj` must be a scenario or a stream.
-    """
-
-    def _decorate_benchmark(obj: CLScenario):
-        new_streams = []
-        for s in obj.streams.values():
-            new_streams.append(_decorate_stream(s))
-        return CLScenario(new_streams)
-
-    def _decorate_stream(obj: CLStream):
-        # TODO: support stream generators. Should return a new generators which applies
-        #  foo_decorate_exp every time a new experience is generated.
-        new_stream = []
-        if not isinstance(obj, EagerCLStream):
-            warnings.warn("stream generator will be converted to a list.")
-
-        # compute set of all classes in the stream
-        all_cls = set()
-        for exp in obj:
-            all_cls = all_cls.union(exp.dataset.targets.uniques)
-
-        prev_cls = set()
-        for exp in obj:
-            new_exp = copy(exp)
-            curr_cls = exp.dataset.targets.uniques
-
-            new_exp.classes_in_this_experience = curr_cls
-            new_exp.previous_classes = set(prev_cls)
-            new_exp.classes_seen_so_far = curr_cls.union(prev_cls)
-            # TODO: future_classes ignores repetitions right now...
-            #  implement and test scenario with repetitions
-            new_exp.future_classes = all_cls.difference(new_exp.classes_seen_so_far)
-            new_stream.append(new_exp)
-
-            prev_cls = prev_cls.union(curr_cls)
-        return EagerCLStream(obj.name, new_stream)
-
-    if isinstance(obj, CLScenario):
-        return _decorate_benchmark(obj)
-    elif isinstance(obj, CLStream):
-        return _decorate_stream(obj)
-    else:
-        raise ValueError("Unsupported object type: must be one of {CLScenario, CLStream}")
 
 
 def with_task_labels(obj):

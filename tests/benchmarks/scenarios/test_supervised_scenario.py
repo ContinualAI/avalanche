@@ -2,9 +2,10 @@ import unittest
 
 import torch
 
-from avalanche.benchmarks import with_classes_timeline, ni_benchmark
+from avalanche.benchmarks import ni_benchmark
 from avalanche.benchmarks.scenarios import _split_dataset_by_attribute
-from avalanche.benchmarks.scenarios.supervised_scenario import class_incremental_benchmark, new_instances_benchmark
+from avalanche.benchmarks.scenarios.supervised import class_incremental_benchmark, new_instances_benchmark, \
+    with_classes_timeline
 from avalanche.benchmarks.utils import make_tensor_classification_dataset
 from tests.unit_tests_utils import dummy_classification_datasets
 

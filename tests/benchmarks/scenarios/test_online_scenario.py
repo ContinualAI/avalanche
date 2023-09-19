@@ -1,6 +1,6 @@
 import unittest
 
-from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
+from avalanche.benchmarks.scenarios.online import OnlineCLScenario
 from tests.unit_tests_utils import get_fast_benchmark
 
 

@@ -16,7 +16,7 @@ from typing import (
     List,
     Optional,
     TypeVar,
-    Union,
+    Union, Protocol,
 )
 from typing_extensions import Literal
 
@@ -399,3 +399,22 @@ __all__ = [
     "split_online_stream",
     "OnlineCLScenario",
 ]
+
+
+class BoundaryAware(Protocol):
+    """Boundary-aware experiences have attributes with task boundary knowledge.
+
+    """
+    # TODO: add doc
+
+    @property
+    def is_first_subexp(self) -> bool: ...
+
+    @property
+    def is_last_subexp(self) -> bool: ...
+
+    @property
+    def sub_stream_length(self) -> int: ...
+
+    @property
+    def access_task_boundaries(self) -> int: ...

@@ -25,7 +25,7 @@ import cProfile
 import pstats
 
 from avalanche.benchmarks import SplitMNIST
-from avalanche.benchmarks.scenarios.online_scenario import fixed_size_experience_split
+from avalanche.benchmarks.scenarios.online import fixed_size_experience_split
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
 from avalanche.benchmarks.scenarios import OnlineCLScenario

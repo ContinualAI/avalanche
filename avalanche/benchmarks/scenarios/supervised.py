@@ -16,11 +16,13 @@ specific generators we have: "New Classes" (NC) and "New Instances" (NI); For
 the generic ones: filelist_benchmark, tensors_benchmark, dataset_benchmark
 and paths_benchmark.
 """
+import warnings
+from copy import copy
 from typing import (
     Sequence,
     Optional,
     Dict,
-    List,
+    List, Protocol,
 )
 
 import torch
@@ -31,7 +33,7 @@ from avalanche.benchmarks.utils.classification_dataset import (
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
 from .generic_scenario import CLScenario, CLStream, EagerCLStream
-from .. import with_classes_timeline
+from .. import CLScenario, CLStream, EagerCLStream
 
 
 def class_incremental_benchmark(
@@ -301,3 +303,77 @@ __all__ = [
     "class_incremental_benchmark",
     "new_instances_benchmark",
 ]
+
+
+class ClassesTimeline(Protocol):
+    """Experience decorator that provides info about classes occurrence over time."""
+
+    # TODO: is the indent correct in the doc here?
+    @property
+    def classes_in_this_experience(self) -> list[int]: ...
+
+    """ The list of classes in this experience. """
+
+    @property
+    def previous_classes(self) -> list[int]: ...
+
+    """ The list of classes in previous experiences. """
+
+    @property
+    def classes_seen_so_far(self) -> list[int]: ...
+
+    """ List of classes of current and previous experiences. """
+
+    @property
+    def future_classes(self) -> list[int]: ...
+
+    """ The list of classes of next experiences. """
+
+
+# TODO: test
+def with_classes_timeline(obj):
+    """Add `ClassesTimeline` attributes.
+
+    `obj` must be a scenario or a stream.
+    """
+
+    def _decorate_benchmark(obj: CLScenario):
+        new_streams = []
+        for s in obj.streams.values():
+            new_streams.append(_decorate_stream(s))
+        return CLScenario(new_streams)
+
+    def _decorate_stream(obj: CLStream):
+        # TODO: support stream generators. Should return a new generators which applies
+        #  foo_decorate_exp every time a new experience is generated.
+        new_stream = []
+        if not isinstance(obj, EagerCLStream):
+            warnings.warn("stream generator will be converted to a list.")
+
+        # compute set of all classes in the stream
+        all_cls = set()
+        for exp in obj:
+            all_cls = all_cls.union(exp.dataset.targets.uniques)
+
+        prev_cls = set()
+        for exp in obj:
+            new_exp = copy(exp)
+            curr_cls = exp.dataset.targets.uniques
+
+            new_exp.classes_in_this_experience = curr_cls
+            new_exp.previous_classes = set(prev_cls)
+            new_exp.classes_seen_so_far = curr_cls.union(prev_cls)
+            # TODO: future_classes ignores repetitions right now...
+            #  implement and test scenario with repetitions
+            new_exp.future_classes = all_cls.difference(new_exp.classes_seen_so_far)
+            new_stream.append(new_exp)
+
+            prev_cls = prev_cls.union(curr_cls)
+        return EagerCLStream(obj.name, new_stream)
+
+    if isinstance(obj, CLScenario):
+        return _decorate_benchmark(obj)
+    elif isinstance(obj, CLStream):
+        return _decorate_stream(obj)
+    else:
+        raise ValueError("Unsupported object type: must be one of {CLScenario, CLStream}")

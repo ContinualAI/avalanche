@@ -29,7 +29,7 @@ from typing import (
 )
 
 from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
-from .experience_decorators import TaskAware
+from .task_aware import TaskAware
 from ..utils import SupervisedClassificationDataset
 
 
