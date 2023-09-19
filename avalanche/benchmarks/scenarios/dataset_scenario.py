@@ -10,6 +10,8 @@
 ################################################################################
 
 """Generic definitions for CL benchmarks defined via list of datasets."""
+# TODO: module doc
+
 from abc import ABC
 
 from avalanche.benchmarks.utils.data import AvalancheDataset
@@ -23,13 +25,23 @@ from typing import (
     Union,
     Tuple,
     Optional,
-    Iterable,
+    Iterable, Dict,
 )
 
 from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
 from .experience_decorators import TaskAware
 from ..utils import SupervisedClassificationDataset
 
+
+def task_incremental_benchmark(
+    **dataset_streams: Sequence[AvalancheDataset]
+) -> CLScenario:
+    # TODO: implement and test
+    # use task labels if possible
+    # add task labels if not existing
+    # should it override them ever?
+    # when/how to do label_remapping?
+    raise NotImplementedError()
 
 def benchmark_from_datasets(
     **dataset_streams: Sequence[AvalancheDataset]
@@ -127,12 +139,18 @@ class TaskAwareDatasetExperience(DatasetExperience, TaskAware, ABC):
         return list(set(task_labels))
 
 
-def split_dataset_by_attribute(data: AvalancheDataset, attr_name: str,
-                               attrs_per_exp: List[List[int]]):
-    # TODO: implement and test
-    # 1 - split by attribute
-    # 2 - make DatasetExperience stream
-    raise NotImplementedError()
+def _split_dataset_by_attribute(data: AvalancheDataset, attr_name: str) -> Dict[int, AvalancheDataset]:
+    """Helper to split a dataset by attribute.
+
+    :param data: an Avalanche dataset.
+    :param attr_name: the name of the attribute of `data` to use for splitting `data`.
+    """
+    da = getattr(data, attr_name)
+    dds = {}
+    for el in da.uniques:
+        idxs = da.val_to_idx[el]
+        dds[el] = data.subset(idxs)
+    return dds
 
 
 def split_dataset(
@@ -423,7 +441,7 @@ def benchmark_with_validation_stream(
 
 
 __all__ = [
-    "split_dataset_by_attribute",
+    "_split_dataset_by_attribute",
     "benchmark_from_datasets",
     "DatasetExperience",
     "TaskAwareDatasetExperience",

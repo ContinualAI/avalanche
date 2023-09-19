@@ -6,9 +6,9 @@ from torch.utils.data import TensorDataset, DataLoader
 
 from avalanche.benchmarks import benchmark_from_datasets, benchmark_with_validation_stream, CLScenario, CLStream, \
     split_dataset
-from avalanche.benchmarks.scenarios.dataset_scenario import split_dataset_class_balanced
+from avalanche.benchmarks.scenarios.dataset_scenario import split_dataset_class_balanced, task_incremental_benchmark
 from avalanche.benchmarks.utils import AvalancheDataset
-from tests.unit_tests_utils import dummy_tensor_dataset, get_fast_benchmark
+from tests.unit_tests_utils import dummy_tensor_dataset, get_fast_benchmark, DummyImageDataset
 
 
 def get_mbatch(data, batch_size=5):
@@ -47,6 +47,28 @@ class DatasetScenarioTests(unittest.TestCase):
             for ii, (x, y) in enumerate(exp.dataset):
                 torch.testing.assert_close(x, d_orig[ii][0])
                 torch.testing.assert_close(y, d_orig[ii][1])
+
+    def test_benchmark_from_dataset_heterogeneous_data(self):
+        d1 = dummy_tensor_dataset()
+        d2 = dummy_tensor_dataset()
+
+        d1b = DummyImageDataset(n_classes=10)
+        d2b = DummyImageDataset(n_classes=10)
+
+        bm = benchmark_from_datasets(
+            train=[d1, d1b],
+            test=[d2, d2b]
+        )
+
+
+class TaskIncrementalScenarioTests(unittest.TestCase):
+    def test_task_incremental_bm_basic(self):
+        d1 = dummy_tensor_dataset()
+        d2 = dummy_tensor_dataset()
+        # TODO: add task labels
+        bm = task_incremental_benchmark(train=[d1,d2])
+        # TODO: check task labels attributes
+        # TODO: test dataset length
 
 
 class DatasetSplitterTest(unittest.TestCase):

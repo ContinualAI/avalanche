@@ -8,6 +8,7 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
+# TODO: module doc
 import warnings
 from copy import copy
 from typing import Protocol, List

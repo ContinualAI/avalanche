@@ -33,59 +33,6 @@ class HighLevelGeneratorTests(unittest.TestCase):
     def setUp(self):
         common_setups()
 
-    def test_dataset_benchmark(self):
-        train_MNIST = MNIST(
-            root=default_dataset_location("mnist"), train=True, download=True
-        )
-        test_MNIST = MNIST(
-            root=default_dataset_location("mnist"), train=False, download=True
-        )
-
-        train_cifar10 = DummyImageDataset(n_classes=10)
-        test_cifar10 = DummyImageDataset(n_classes=10)
-
-        generic_benchmark = dataset_benchmark(
-            [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
-        )
-
-    def test_dataset_benchmark_avalanche_dataset(self):
-        train_MNIST = make_classification_dataset(
-            MNIST(
-                root=default_dataset_location("mnist"),
-                train=True,
-                download=True,
-            ),
-            task_labels=0,
-        )
-
-        test_MNIST = make_classification_dataset(
-            MNIST(
-                root=default_dataset_location("mnist"),
-                train=False,
-                download=True,
-            ),
-            task_labels=0,
-        )
-
-        train_cifar10 = make_classification_dataset(
-            DummyImageDataset(n_classes=10),
-            task_labels=1,
-        )
-
-        test_cifar10 = make_classification_dataset(
-            DummyImageDataset(n_classes=10),
-            task_labels=1,
-        )
-
-        generic_benchmark = dataset_benchmark(
-            [train_MNIST, train_cifar10], [test_MNIST, test_cifar10]
-        )
-
-        self.assertEqual(0, generic_benchmark.train_stream[0].task_label)
-        self.assertEqual(1, generic_benchmark.train_stream[1].task_label)
-        self.assertEqual(0, generic_benchmark.test_stream[0].task_label)
-        self.assertEqual(1, generic_benchmark.test_stream[1].task_label)
-
     def test_filelist_benchmark(self):
         download_url(
             "https://storage.googleapis.com/mledu-datasets/"

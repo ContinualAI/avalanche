@@ -17,6 +17,7 @@ from torchvision.transforms import Compose, ToTensor
 
 from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.utils import as_supervised_classification_dataset, make_tensor_classification_dataset
 from avalanche.benchmarks.utils.detection_dataset import (
     make_detection_dataset,
 )
@@ -129,27 +130,10 @@ def get_fast_benchmark(
     train_transform=None,
     eval_transform=None,
 ):
-    dataset = make_classification(
-        n_samples=n_classes * n_samples_per_class,
-        n_classes=n_classes,
-        n_features=n_features,
-        n_informative=6,
-        n_redundant=0,
-        random_state=seed,
-    )
-
-    X = torch.from_numpy(dataset[0]).float()
-    y = torch.from_numpy(dataset[1]).long()
-
-    train_X, test_X, train_y, test_y = train_test_split(
-        X, y, train_size=0.6, shuffle=True, stratify=y, random_state=seed
-    )
-
-    train_dataset = TensorDataset(train_X, train_y)
-    test_dataset = TensorDataset(test_X, test_y)
+    train, test = dummy_classification_datasets(n_classes, n_features, n_samples_per_class, seed)
     my_nc_benchmark = nc_benchmark(
-        train_dataset,
-        test_dataset,
+        train,
+        test,
         5,
         task_labels=use_task_labels,
         shuffle=shuffle,
@@ -158,6 +142,26 @@ def get_fast_benchmark(
         seed=seed,
     )
     return my_nc_benchmark
+
+
+def dummy_classification_datasets(n_classes=10, n_features=7,
+                                  n_samples_per_class=20, seed=42):
+    dataset = make_classification(
+        n_samples=n_classes * n_samples_per_class,
+        n_classes=n_classes,
+        n_features=n_features,
+        n_informative=6,
+        n_redundant=0,
+        random_state=seed,
+    )
+    X = torch.from_numpy(dataset[0]).float()
+    y = torch.from_numpy(dataset[1]).long()
+    train_X, test_X, train_y, test_y = train_test_split(
+        X, y, train_size=0.6, shuffle=True, stratify=y, random_state=seed
+    )
+    train = make_tensor_classification_dataset(train_X, train_y)
+    test = make_tensor_classification_dataset(test_X, test_y)
+    return train, test
 
 
 class DummyImageDataset(Dataset):
