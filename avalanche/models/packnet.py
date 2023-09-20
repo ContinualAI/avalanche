@@ -445,7 +445,7 @@ class PackNetModel(PackNetModule, MultiTaskModule):
         :param wrappee: The module to wrap
         """
         super().__init__()
-        self.wrappee = PackNetModel.wrap(wrappee)
+        self.wrappee: nn.Module = PackNetModel.wrap(wrappee)
 
     def _pn_apply(self, func: t.Callable[["PackNetModel"], None]):
         """Apply a function to all child PackNetModules
@@ -498,7 +498,7 @@ class PackNetPlugin(BaseSGDPlugin):
     def __init__(
         self,
         post_prune_epochs: int,
-        prune_proportion: float = 0.5,
+        prune_proportion: t.Union[float, t.Callable[[int], float], t.List[float]] = 0.5,
     ):
         """The PackNetPlugin calls PackNet's pruning and freezing procedures at
         the appropriate times.
@@ -506,17 +506,30 @@ class PackNetPlugin(BaseSGDPlugin):
         :param post_prune_epochs: The number of epochs to finetune the model
             after pruning the parameters. Must be less than the number of
             training epochs.
-        :param prune_proportion: The proportion of parameters to prune each
-            durring each task. Must be between 0 and 1.
+        :param prune_proportion: The proportion of parameters to prune
+            during each task. Can be a float, a list of floats, or a function
+            that takes the task id and returns a float. Each value must be
+            between 0 and 1.
         """
         super().__init__()
         self.post_prune_epochs = post_prune_epochs
         self.total_epochs: Union[int, None] = None
-        self.prune_proportion = prune_proportion
-        assert 0 <= self.prune_proportion <= 1, (
-            f"`prune_proportion` must be between 0 and 1, got "
-            f"{self.prune_proportion}"
-        )
+
+        self.prune_proportion: t.Callable[[int], float]
+        if isinstance(prune_proportion, float):
+            assert 0 <= self.prune_proportion <= 1, (
+                f"`prune_proportion` must be between 0 and 1, got "
+                f"{self.prune_proportion}"
+            )
+            self.prune_proportion = lambda _: prune_proportion
+        elif isinstance(prune_proportion, list):
+            assert all(0 <= x <= 1 for x in prune_proportion), (
+                "all values in `prune_proportion` must be between 0 and 1,"
+                f" got {prune_proportion}"
+            )
+            self.prune_proportion = lambda i: prune_proportion[i]
+        else:
+            self.prune_proportion = prune_proportion
 
     def before_training(self, strategy: "BaseSGDTemplate", *args, **kwargs):
         assert isinstance(
@@ -539,6 +552,13 @@ class PackNetPlugin(BaseSGDPlugin):
                 f"Strategy has only {self.total_epochs} training epochs."
             )
 
+    def before_training_exp(self, strategy: "BaseSGDTemplate", *args, **kwargs):
+        # Reset the optimizer to prevent momentum from affecting the pruned
+        # parameters
+        strategy.optimizer = strategy.optimizer.__class__(
+            strategy.model.parameters(), **strategy.optimizer.defaults
+        )
+
     def before_training_epoch(self, strategy: "BaseSGDTemplate", *args, **kwargs):
         """When the initial training phase is over, prune the model and
         transition to the post-pruning phase.
@@ -547,7 +567,7 @@ class PackNetPlugin(BaseSGDPlugin):
         model = self._get_model(strategy)
 
         if epoch == (self.total_epochs - self.post_prune_epochs):
-            model.prune(self.prune_proportion)
+            model.prune(self.prune_proportion(strategy.clock.train_exp_counter))
 
     def after_training_exp(self, strategy: "Template", *args, **kwargs):
         """After each experience, commit the model so that the next experience

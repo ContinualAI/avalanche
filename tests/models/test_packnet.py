@@ -1,7 +1,7 @@
 import unittest
 from avalanche.models.packnet import PackNetModel, packnet_simple_mlp
 from avalanche.training.supervised.strategy_wrappers import PackNet
-from torch.optim import SGD
+from torch.optim import SGD, Adam
 import torch
 import os
 
@@ -10,15 +10,7 @@ from functools import partial
 
 
 class TestPackNet(unittest.TestCase):
-    _EXPECTATIONS = {
-        "Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000": 0.75,
-        "Top1_Acc_Exp/eval_phase/test_stream/Task001/Exp001": 0.45,
-        "Top1_Acc_Exp/eval_phase/test_stream/Task002/Exp002": 0.33,
-        "Top1_Acc_Exp/eval_phase/test_stream/Task003/Exp003": 0.0886,
-        "Top1_Acc_Exp/eval_phase/test_stream/Task004/Exp004": 0.0,
-    }
-
-    def test_PackNetPlugin(self):
+    def _test_PackNetPlugin(self, expectations, optimizer_constructor, lr):
         torch.manual_seed(0)
         if "USE_GPU" in os.environ:
             use_gpu = os.environ["USE_GPU"].lower() in ["true"]
@@ -33,7 +25,7 @@ class TestPackNet(unittest.TestCase):
             hidden_size=20,
         )
         model = construct_model()
-        optimizer = SGD(model.parameters(), lr=0.1)
+        optimizer = optimizer_constructor(model.parameters(), lr=lr)
         strategy = PackNet(
             model,
             prune_proportion=0.5,
@@ -51,11 +43,15 @@ class TestPackNet(unittest.TestCase):
         # Train
         for i, experience in enumerate(scenario.train_stream):
             strategy.train(experience)
+            # Assert that the model achieves the expected accuracy for each task
+            # the model has trained on so far. PackNet should not degrade
+            # performance on previous tasks.
+            self.assert_eval(expectations, strategy.eval(scenario.test_stream), i)
             # Store the model output for each task
             task_ouputs.append(model.forward(x_test, t_test * i))
 
         # Check that the model achieves the expected accuracy
-        self.assert_eval(strategy.eval(scenario.test_stream))
+        self.assert_eval(expectations, strategy.eval(scenario.test_stream), 5)
 
         # Verify the model can be saved and loaded from a state dict
         new_model = construct_model()
@@ -67,12 +63,38 @@ class TestPackNet(unittest.TestCase):
         strategy.model = new_model
 
         # Check that the loaded model achieves the expected accuracy
-        self.assert_eval(strategy.eval(scenario.test_stream))
+        self.assert_eval(expectations, strategy.eval(scenario.test_stream), 5)
 
         # Ensure that given the same inputs, the model produces the same outputs
         for i, task_out in enumerate(task_ouputs):
             out = model.forward(x_test, t_test * i)
             self.assertTrue(torch.allclose(out, task_out))
+
+    def test_PackNet_adam(self):
+        self._test_PackNetPlugin(
+            [
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000", 0.500),
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task001/Exp001", 0.410),
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task002/Exp002", 0.134),
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task003/Exp003", 0.240),
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task004/Exp004", 0.163),
+            ],
+            optimizer_constructor=Adam,
+            lr=0.2,
+        )
+
+    def test_PackNet_sgd(self):
+        self._test_PackNetPlugin(
+            [
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task000/Exp000", 0.75),
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task001/Exp001", 0.49),
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task002/Exp002", 0.099),
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task003/Exp003", 0.14),
+                ("Top1_Acc_Exp/eval_phase/test_stream/Task004/Exp004", 0.0),
+            ],
+            optimizer_constructor=SGD,
+            lr=0.1,
+        )
 
     def test_unsupported_exception(self):
         """Expect an exception when trying to wrap an unsupported module"""
@@ -88,8 +110,8 @@ class TestPackNet(unittest.TestCase):
         with self.assertRaises(ValueError):
             PackNetModel(torch.nn.BatchNorm2d(10))
 
-    def assert_eval(self, last_eval):
-        for metric, value in self._EXPECTATIONS.items():
+    def assert_eval(self, expectations, last_eval, task_id):
+        for metric, value in expectations[:task_id]:
             self.assertAlmostEqual(last_eval[metric], value, places=2)
 
 
