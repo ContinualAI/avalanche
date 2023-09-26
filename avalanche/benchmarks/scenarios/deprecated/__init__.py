@@ -1,8 +1,8 @@
 from abc import ABC
 from typing import Generic, List, Optional, Sequence
 
-from avalanche.benchmarks import CLExperience, CLStream, CLScenario
-from avalanche.benchmarks.scenarios.generic_scenario import TCLDataset, TDatasetExperience
+from .. import CLExperience, CLStream, CLScenario
+from ..generic_scenario import TCLDataset, TDatasetExperience
 
 
 class DatasetExperience(CLExperience, Generic[TCLDataset], ABC):

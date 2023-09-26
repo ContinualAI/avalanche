@@ -50,6 +50,9 @@ def benchmark_from_datasets(
     """
     exps_streams = []
     for stream_name, data_s in dataset_streams.items():
+        for dd in data_s:
+            if not isinstance(dd, AvalancheDataset):
+                raise ValueError("datasets must be AvalancheDatasets")
         des = [DatasetExperience(dataset=dd, current_experience=eid) for eid, dd in enumerate(data_s)]
         s = EagerCLStream(stream_name, des)
         exps_streams.append(s)

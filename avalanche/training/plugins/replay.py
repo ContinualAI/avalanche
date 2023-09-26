@@ -68,11 +68,6 @@ class ReplayPlugin(SupervisedPlugin, supports_distributed=True):
                 max_size=self.mem_size, adaptive_size=True
             )
 
-    # TODO: remove ext_mem
-    # @property
-    # def ext_mem(self):
-    #     return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
-
     def before_training_exp(
         self,
         strategy: "SupervisedTemplate",

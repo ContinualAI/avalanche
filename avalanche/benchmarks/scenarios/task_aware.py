@@ -129,20 +129,19 @@ def task_incremental_benchmark(
 
     :return: a CLScenario in the task-incremental setting.
     """
-    # TODO: test
     # TODO: when/how to do label_remapping?
 
-    new_streams = {}
-    for name, stream in bm.items():
+    streams = []
+    for name, stream in bm.streams.items():
         new_stream = []
         for eid, exp in enumerate(stream):
             if has_task_labels(exp.dataset) and (not reset_task_labels):
                 raise ValueError("AvalancheDataset already has task labels. Use `benchmark_from_datasets` "
                                  "instead or set `reset_task_labels=True`.")
             tls = TaskLabels(ConstantSequence(eid, len(exp.dataset)))
-            new_dd = exp.dataset.update_data_attribute(tls)
+            new_dd = exp.dataset.update_data_attribute(name="targets_task_labels", new_value=tls)
             new_exp = DatasetExperience(dataset=new_dd, current_experience=eid)
             new_stream.append(new_exp)
         s = EagerCLStream(name, new_stream)
-        new_streams.append(s)
-    return with_task_labels(CLScenario(new_streams))
+        streams.append(s)
+    return with_task_labels(CLScenario(streams))

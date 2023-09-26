@@ -63,12 +63,16 @@ class DatasetScenarioTests(unittest.TestCase):
 
 class TaskIncrementalScenarioTests(unittest.TestCase):
     def test_task_incremental_bm_basic(self):
-        d1 = dummy_tensor_dataset()
-        d2 = dummy_tensor_dataset()
-        # TODO: add task labels
-        bm = task_incremental_benchmark(train=[d1,d2])
-        # TODO: check task labels attributes
-        # TODO: test dataset length
+        d1 = AvalancheDataset(dummy_tensor_dataset())
+        d2 = AvalancheDataset(dummy_tensor_dataset())
+        bm = benchmark_from_datasets(train=[d1, d2])
+        bm = task_incremental_benchmark(bm)
+        # check task labels attributes and dataset lengths
+        s = bm.train_stream
+        assert s[0].task_label == 0
+        assert len(s[0].dataset) == len(d1)
+        assert s[1].task_label == 1
+        assert len(s[1].dataset) == len(d2)
 
 
 class DatasetSplitterTest(unittest.TestCase):

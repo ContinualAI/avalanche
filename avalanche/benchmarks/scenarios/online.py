@@ -21,13 +21,13 @@ from typing import (
 from typing_extensions import Literal
 
 import torch
-from avalanche.benchmarks.scenarios.deprecated.benchmark_wrapper_utils import wrap_stream
+from .deprecated.benchmark_wrapper_utils import wrap_stream
 
-from avalanche.benchmarks.scenarios.generic_scenario import (
+from .generic_scenario import (
     CLStream,
     CLScenario,
 )
-from avalanche.benchmarks import DatasetExperience
+from .deprecated import DatasetExperience
 
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
 TClassificationDataset = TypeVar(
