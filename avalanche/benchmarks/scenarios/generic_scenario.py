@@ -36,39 +36,13 @@ from avalanche.benchmarks.utils.dataset_utils import (
     slice_alike_object_to_indices,
 )
 
+
+# Typing
 T = TypeVar("T")
 TCov = TypeVar("TCov", covariant=True)
-E = TypeVar("E")
-
-# Dataset
-TCLDataset = TypeVar(
-    "TCLDataset", bound="AvalancheDataset"
-)  # Implementation, defined in utils
-TCLDatasetCov = TypeVar(
-    "TCLDatasetCov", bound="AvalancheDataset", covariant=True
-)  # Implementation, defined in utils
-
-# Scenario
-TCLScenario = TypeVar("TCLScenario", bound="CLScenario")  # Implementation, defined here
-TCLScenarioCov = TypeVar(
-    "TCLScenarioCov", bound="CLScenario", covariant=True
-)  # Implementation, defined here
-
-# Stream
-TCLStream = TypeVar("TCLStream", bound="CLStream")  # Implementation, defined here
-TCLStreamCov = TypeVar(
-    "TCLStreamCov", bound="CLStream", covariant=True
-)  # Implementation, defined here
+TCLStream = TypeVar("TCLStream", bound="CLStream")
 TSequenceCLStream = TypeVar("TSequenceCLStream", bound="SequenceCLStream")
-
-
-# Experience
-TCLExperience = TypeVar(
-    "TCLExperience", bound="CLExperience"
-)  # Implementation, defined here
-TDatasetExperience = TypeVar(
-    "TDatasetExperience", bound="DatasetExperience"
-)  # Implementation, defined here
+TCLExperience = TypeVar("TCLExperience", bound="CLExperience")
 
 
 class MaskedAttributeError(ValueError):

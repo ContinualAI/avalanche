@@ -391,15 +391,6 @@ class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
         super().__init__(streams=streams)
 
 
-__all__ = [
-    "OnlineCLExperience",
-    "OnlineClassificationExperience",
-    "fixed_size_experience_split",
-    "split_online_stream",
-    "OnlineCLScenario",
-]
-
-
 class BoundaryAware(Protocol):
     """Boundary-aware experiences have attributes with task boundary knowledge.
 
@@ -430,3 +421,12 @@ class BoundaryAware(Protocol):
         for logging by setting the experience in logging mode `experience.logging()`.
         """
         return False
+
+
+__all__ = [
+    "OnlineCLExperience",
+    "OnlineClassificationExperience",
+    "fixed_size_experience_split",
+    "split_online_stream",
+    "OnlineCLScenario",
+]

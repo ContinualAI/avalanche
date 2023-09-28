@@ -1,8 +1,10 @@
 from abc import ABC
-from typing import Generic, List, Optional, Sequence
+from typing import Generic, List, Optional, Sequence, TypeVar
 
 from .. import CLExperience, CLStream, CLScenario
-from ..generic_scenario import TCLDataset, TDatasetExperience
+
+TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
+TDatasetExperience = TypeVar("TDatasetExperience", bound="DatasetExperience")  # Implementation, defined here
 
 
 class DatasetExperience(CLExperience, Generic[TCLDataset], ABC):

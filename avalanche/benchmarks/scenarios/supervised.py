@@ -31,6 +31,7 @@ from .. import CLScenario, CLStream, EagerCLStream
 
 def class_incremental_benchmark(
     datasets_dict: Dict[str, AvalancheDataset],
+    *,
     class_order: Optional[Sequence[int]] = None,
     num_experiences: int = None,
     num_classes_per_exp: Optional[Sequence[int]] = None,
