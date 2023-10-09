@@ -1,7 +1,9 @@
 import unittest
 
 import torch
-from avalanche.training.losses import ICaRLLossPlugin
+import torch.nn as nn
+
+from avalanche.training.losses import ICaRLLossPlugin, NewClassesCrossEntropy
 
 
 class TestICaRLLossPlugin(unittest.TestCase):
@@ -32,6 +34,24 @@ class TestICaRLLossPlugin(unittest.TestCase):
         loss3 = criterion(new_pred, mb_y)
 
         assert loss3 == loss1
+
+
+class TestNewClassesCrossEntropy(unittest.TestCase):
+    def test_loss(self):
+        cross_entropy = nn.CrossEntropyLoss()
+
+        criterion = NewClassesCrossEntropy()
+        criterion.current_classes = [5, 6, 7]
+
+        mb_y = torch.tensor([5, 5, 6, 7, 6])
+
+        new_pred = torch.rand(5, 8)
+        new_pred_new = new_pred[:, criterion.current_classes]
+
+        loss1 = criterion(new_pred, mb_y)
+        loss2 = cross_entropy(new_pred_new, mb_y - 5)
+
+        assert float(loss1) == float(loss2)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,13 @@
 import copy
 
-import torch
-from torch import nn
-from avalanche.training.plugins import SupervisedPlugin
-from torch.nn import BCELoss
 import numpy as np
+import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.nn import BCELoss
+
+from avalanche.training.plugins import SupervisedPlugin
+from avalanche.training.regularization import cross_entropy_with_oh_targets
 
 
 class ICaRLLossPlugin(SupervisedPlugin):
@@ -161,4 +164,32 @@ class SCRLoss(torch.nn.Module):
         return loss
 
 
-__all__ = ["ICaRLLossPlugin", "SCRLoss"]
+class NewClassesCrossEntropy(SupervisedPlugin):
+    """
+    CrossEntropy only on current classes
+
+    This criterion can be used for instance
+    in Class Incremental Learning Problems
+    when no examplars are used (i.e LwF in Class Incremental Learning).
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.current_classes = None
+
+    def __call__(self, logits, targets):
+        oh_targets = F.one_hot(targets, num_classes=logits.shape[1])
+
+        oh_targets = oh_targets[:, self.current_classes]
+        logits = logits[:, self.current_classes]
+
+        return cross_entropy_with_oh_targets(
+            logits,
+            oh_targets.float(),
+        )
+
+    def before_training_exp(self, strategy, **kwargs):
+        self.current_classes = strategy.experience.classes_in_this_experience
+
+
+__all__ = ["ICaRLLossPlugin", "SCRLoss", "NewClassesCrossEntropy"]
