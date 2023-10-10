@@ -41,8 +41,8 @@ def _at_task_boundary(training_experience, before=True) -> bool:
 
     - If the experience is not an online experience, returns True
 
-    :param before: If used in before_training_exp, 
-                   set to True, otherwise set 
+    :param before: If used in before_training_exp,
+                   set to True, otherwise set
                    to False
 
     """
