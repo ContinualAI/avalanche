@@ -168,16 +168,15 @@ class MaskedCrossEntropy(SupervisedPlugin):
     """
     Masked Cross Entropy
 
-    This criterion can be used for instance
-    in Class Incremental Learning Problems
-    when no examplars are used (i.e LwF in Class Incremental Learning 
-    would need to use mask="new").
+    This criterion can be used for instance in Class Incremental
+    Learning Problems when no examplars are used
+    (i.e LwF in Class Incremental Learning would need to use mask="new").
     """
 
     def __init__(self, classes=None, mask="all", reduction="mean"):
         """
         param: classes: Initial value for current classes
-        param: mask: "all" normal cross entropy, uses all the classes seen so far 
+        param: mask: "all" normal cross entropy, uses all the classes seen so far
                      "old" cross entropy only on the old classes
                      "new" cross entropy only on the new classes
         param: reduction: "mean" or "none", average or per-sample loss
