@@ -26,7 +26,7 @@ from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.batch_renorm import BatchRenorm2D
 
 
-def at_task_boundary(training_experience) -> bool:
+def _at_task_boundary(training_experience, before=True) -> bool:
     """
     Given a training experience,
     returns true if the experience is at the task boundary
@@ -41,14 +41,17 @@ def at_task_boundary(training_experience) -> bool:
 
     - If the experience is not an online experience, returns True
 
+    :param before: If used in before_training_exp, 
+                   set to True, otherwise set 
+                   to False
+
     """
 
     if isinstance(training_experience, OnlineCLExperience):
         if training_experience.access_task_boundaries:
-            if (
-                training_experience.is_first_subexp
-                or training_experience.is_last_subexp
-            ):
+            if before and training_experience.is_first_subexp:
+                return True
+            elif (not before) and training_experience.is_last_subexp:
                 return True
         else:
             return True
@@ -484,5 +487,4 @@ __all__ = [
     "examples_per_class",
     "ParamData",
     "cycle",
-    "at_task_boundary",
 ]

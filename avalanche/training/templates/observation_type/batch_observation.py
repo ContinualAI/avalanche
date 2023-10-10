@@ -8,7 +8,7 @@ from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.templates.strategy_mixin_protocol import SGDStrategyProtocol
 from avalanche.models.dynamic_optimizers import reset_optimizer, update_optimizer
-from avalanche.training.utils import at_task_boundary
+from avalanche.training.utils import _at_task_boundary
 
 
 class BatchObservation(SGDStrategyProtocol):
@@ -73,7 +73,7 @@ class BatchObservation(SGDStrategyProtocol):
         if self.optimized_param_id is None:
             self.make_optimizer(reset_optimizer_state=True, **kwargs)
 
-        if at_task_boundary(self.experience):
+        if _at_task_boundary(self.experience, before=True):
             self.model = self.model_adaptation()
             self.make_optimizer(reset_optimizer_state=reset_optimizer_state, **kwargs)
 
