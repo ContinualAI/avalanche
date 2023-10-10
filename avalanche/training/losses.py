@@ -164,32 +164,62 @@ class SCRLoss(torch.nn.Module):
         return loss
 
 
-class NewClassesCrossEntropy(SupervisedPlugin):
+class MaskedCrossEntropy(SupervisedPlugin):
     """
-    CrossEntropy only on current classes
+    Masked Cross Entropy
 
     This criterion can be used for instance
     in Class Incremental Learning Problems
-    when no examplars are used (i.e LwF in Class Incremental Learning).
+    when no examplars are used (i.e LwF in Class Incremental Learning 
+    would need to use mask="new").
     """
 
-    def __init__(self):
+    def __init__(self, classes=None, mask="all", reduction="mean"):
+        """
+        param: classes: Initial value for current classes
+        param: mask: "all" normal cross entropy, uses all the classes seen so far 
+                     "old" cross entropy only on the old classes
+                     "new" cross entropy only on the new classes
+        param: reduction: "mean" or "none", average or per-sample loss
+        """
         super().__init__()
-        self.current_classes = None
+        assert mask in ["all", "new", "old"]
+        if classes is not None:
+            self.current_classes = set(classes)
+        else:
+            self.current_classes = set()
+
+        self.old_classes = set()
+        self.reduction = reduction
+        self.mask = mask
 
     def __call__(self, logits, targets):
         oh_targets = F.one_hot(targets, num_classes=logits.shape[1])
 
-        oh_targets = oh_targets[:, self.current_classes]
-        logits = logits[:, self.current_classes]
+        oh_targets = oh_targets[:, self.current_mask]
+        logits = logits[:, self.current_mask]
 
         return cross_entropy_with_oh_targets(
             logits,
             oh_targets.float(),
+            reduction=self.reduction,
         )
 
+    @property
+    def current_mask(self):
+        if self.mask == "all":
+            return list(self.current_classes.union(self.old_classes))
+        if self.mask == "new":
+            return list(self.current_classes)
+        if self.mask == "old":
+            return list(self.old_classes)
+
+    def adaptation(self, new_classes):
+        self.old_classes = self.old_classes.union(self.current_classes)
+        self.current_classes = set(new_classes)
+
     def before_training_exp(self, strategy, **kwargs):
-        self.current_classes = strategy.experience.classes_in_this_experience
+        self.adaptation(strategy.experience.classes_in_this_experience)
 
 
-__all__ = ["ICaRLLossPlugin", "SCRLoss", "NewClassesCrossEntropy"]
+__all__ = ["ICaRLLossPlugin", "SCRLoss", "MaskedCrossEntropy"]

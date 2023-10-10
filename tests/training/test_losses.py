@@ -1,9 +1,8 @@
 import unittest
-
 import torch
 import torch.nn as nn
 
-from avalanche.training.losses import ICaRLLossPlugin, NewClassesCrossEntropy
+from avalanche.training.losses import ICaRLLossPlugin, MaskedCrossEntropy
 
 
 class TestICaRLLossPlugin(unittest.TestCase):
@@ -36,22 +35,27 @@ class TestICaRLLossPlugin(unittest.TestCase):
         assert loss3 == loss1
 
 
-class TestNewClassesCrossEntropy(unittest.TestCase):
+class TestMaskedCrossEntropy(unittest.TestCase):
     def test_loss(self):
         cross_entropy = nn.CrossEntropyLoss()
 
-        criterion = NewClassesCrossEntropy()
-        criterion.current_classes = [5, 6, 7]
+        criterion = MaskedCrossEntropy(mask="new")
+        criterion.adaptation([1, 2, 3, 4])
+        criterion.adaptation([5, 6, 7])
 
         mb_y = torch.tensor([5, 5, 6, 7, 6])
 
         new_pred = torch.rand(5, 8)
-        new_pred_new = new_pred[:, criterion.current_classes]
+        new_pred_new = new_pred[:, criterion.current_mask]
 
         loss1 = criterion(new_pred, mb_y)
         loss2 = cross_entropy(new_pred_new, mb_y - 5)
 
-        assert float(loss1) == float(loss2)
+        criterion.mask = "all"
+        loss3 = criterion(new_pred, mb_y)
+
+        self.assertAlmostEqual(float(loss1), float(loss2), places=5)
+        self.assertNotAlmostEqual(float(loss1), float(loss3), places=5)
 
 
 if __name__ == "__main__":
