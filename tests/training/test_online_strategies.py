@@ -99,7 +99,7 @@ class StrategyTest(unittest.TestCase):
         print("Starting experiment (with boundaries) ...")
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
-        for exp_idx, train_batch_info in enumerate(benchmark.train_stream):
+        for exp_idx, train_batch_info in enumerate(benchmark.train_online_stream):
             print("Start of experience ", exp_idx)
 
             cl_strategy.train(train_batch_info, num_workers=0)
