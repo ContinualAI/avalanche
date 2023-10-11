@@ -50,6 +50,7 @@ from avalanche.benchmarks.scenarios.deprecated.lazy_dataset_sequence import (
 )
 from avalanche.benchmarks.scenarios.deprecated.new_classes.nc_scenario import NCScenario
 from avalanche.benchmarks.scenarios.deprecated.new_instances.ni_scenario import NIScenario
+from avalanche.benchmarks.scenarios.online import FixedSizeExperienceSplitter
 from avalanche.benchmarks.utils.classification_dataset import (
     SupportedDataset,
     _as_taskaware_supervised_classification_dataset,
@@ -586,8 +587,12 @@ def data_incremental_benchmark(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def split_strategy_wrapper(exp):
-            return split_validation_random(experience_size, shuffle, exp.dataset)
-
+            ss = FixedSizeExperienceSplitter(
+                experience=exp, 
+                experience_size=experience_size, 
+                shuffle=shuffle
+            )
+            return [e.dataset for e in ss]
         split_strategy = split_strategy_wrapper
     else:
         split_strategy = custom_split_strategy

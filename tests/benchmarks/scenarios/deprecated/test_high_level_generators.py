@@ -170,7 +170,7 @@ class HighLevelGeneratorTests(unittest.TestCase):
             initial_benchmark_instance, 12, shuffle=False
         )
 
-        self.assertEqual(16, len(data_incremental_instance.train_stream))
+        self.assertEqual(16, len(list(data_incremental_instance.train_stream)))
         self.assertEqual(1, len(data_incremental_instance.test_stream))
         self.assertTrue(data_incremental_instance.complete_test_set_only)
 
