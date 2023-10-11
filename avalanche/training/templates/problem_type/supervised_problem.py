@@ -49,7 +49,7 @@ class SupervisedProblem(SupervisedStrategyProtocol):
             self.mbatch = mbatch
 
         for i in range(len(mbatch)):
-            mbatch[i] = mbatch[i].to(self.device)  # type: ignore
+            mbatch[i] = mbatch[i].to(self.device, non_blocking=True)  # type: ignore
 
 
 __all__ = ["SupervisedProblem"]
