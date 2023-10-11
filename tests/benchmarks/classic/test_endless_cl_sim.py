@@ -16,6 +16,7 @@ import unittest
 import os
 
 from avalanche.benchmarks.classic import EndlessCLSim
+from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
 from tests.unit_tests_utils import FAST_TEST, is_github_action
 
 
@@ -76,7 +77,7 @@ class EndlessCLSimTest(unittest.TestCase):
                 sequence_order=None,
                 task_order=None,
                 semseg=True,
-                dataset_root="/data/avalanche",
+                dataset_root=default_dataset_location("endless_cl_sim"),
             )
             for experience in scenario.train_stream:
                 pass
