@@ -4,7 +4,7 @@ import random
 
 import torch
 
-from avalanche.benchmarks import fixed_size_experience_split
+from avalanche.benchmarks import FixedSizeExperienceSplitter
 from avalanche.benchmarks.utils import AvalancheDataset, concat_datasets
 from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 from avalanche.benchmarks.utils.flat_data import (
@@ -213,7 +213,7 @@ class FlatteningTests(unittest.TestCase):
         buffer = ReservoirSamplingBuffer(100)
 
         for t, exp in enumerate(
-            fixed_size_experience_split(benchmark.train_stream[0], 1, None)
+            FixedSizeExperienceSplitter(benchmark.train_stream[0], 1, None)
         ):
             buffer.update_from_dataset(exp.dataset)
             b = buffer.buffer
@@ -234,7 +234,7 @@ class FlatteningTests(unittest.TestCase):
         assert len(b._datasets) <= 2
 
         for t, exp in enumerate(
-            fixed_size_experience_split(benchmark.train_stream[1], 1, None)
+            FixedSizeExperienceSplitter(benchmark.train_stream[1], 1, None)
         ):
             buffer.update_from_dataset(exp.dataset)
             b = buffer.buffer

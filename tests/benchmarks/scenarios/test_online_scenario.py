@@ -26,7 +26,7 @@ class OCLTests(unittest.TestCase):
         num_exp, num_classes = 5, 10
         d1, d2 = dummy_classification_datasets(n_classes=num_classes)
         bm = class_incremental_benchmark({'train': d1, 'test': d2}, num_experiences=num_exp)
-        online_train_stream = split_online_stream(bm.train_stream, experience_size=10)
+        online_train_stream = split_online_stream(bm.train_stream, experience_size=10, drop_last=True)
         for exp in online_train_stream:
             assert len(exp.dataset) == 10
 

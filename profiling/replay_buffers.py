@@ -4,7 +4,7 @@ import time
 from tqdm import tqdm
 
 from avalanche.benchmarks import (
-    fixed_size_experience_split,
+    FixedSizeExperienceSplitter,
     SplitMNIST,
     split_online_stream,
 )

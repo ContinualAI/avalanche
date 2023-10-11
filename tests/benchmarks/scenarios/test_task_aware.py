@@ -6,7 +6,7 @@ from tests.unit_tests_utils import dummy_classification_datasets
 
 
 class TestsTaskAware(unittest.TestCase):
-    def test_something(self):
+    def test_taskaware(self):
         """Common use case: add tas labels to class-incremental benchmark."""        
         num_classes = 10
         d1, d2 = dummy_classification_datasets(n_classes=num_classes)

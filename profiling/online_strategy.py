@@ -25,7 +25,7 @@ import cProfile
 import pstats
 
 from avalanche.benchmarks import SplitMNIST
-from avalanche.benchmarks.scenarios.online import fixed_size_experience_split
+from avalanche.benchmarks.scenarios.online import FixedSizeExperienceSplitter
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
 from avalanche.benchmarks.scenarios import OnlineCLScenario
@@ -93,7 +93,7 @@ def profile_online_naive_lazy_stream(benchmark, device):
         optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
         criterion = torch.nn.CrossEntropyLoss()
 
-        for exp in tqdm(fixed_size_experience_split(experience_0, 1)):
+        for exp in tqdm(FixedSizeExperienceSplitter(experience_0, 1)):
             x, y, _ = load_all_data(exp.dataset)
             x, y = x.to(device), torch.tensor([y]).to(device)
 
