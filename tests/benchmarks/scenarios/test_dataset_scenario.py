@@ -6,7 +6,7 @@ from torch.utils.data import TensorDataset, DataLoader
 
 from avalanche.benchmarks import benchmark_from_datasets, benchmark_with_validation_stream, CLScenario, CLStream, \
     split_validation_random, task_incremental_benchmark
-from avalanche.benchmarks.scenarios.dataset_scenario import split_validation_class_balanced
+from avalanche.benchmarks.scenarios.dataset_scenario import DatasetExperience, split_validation_class_balanced
 from avalanche.benchmarks.utils import AvalancheDataset
 from tests.unit_tests_utils import dummy_tensor_dataset, get_fast_benchmark, DummyImageDataset
 
@@ -20,10 +20,10 @@ def get_mbatch(data, batch_size=5):
 
 class DatasetScenarioTests(unittest.TestCase):
     def test_benchmark_from_datasets(self):
-        d1 = dummy_tensor_dataset()
-        d2 = dummy_tensor_dataset()
-        d3 = dummy_tensor_dataset()
-        d4 = dummy_tensor_dataset()
+        d1 = AvalancheDataset(dummy_tensor_dataset())
+        d2 = AvalancheDataset(dummy_tensor_dataset())
+        d3 = AvalancheDataset(dummy_tensor_dataset())
+        d4 = AvalancheDataset(dummy_tensor_dataset())
 
         bm = benchmark_from_datasets(
             train=[d1, d2],
@@ -49,11 +49,11 @@ class DatasetScenarioTests(unittest.TestCase):
                 torch.testing.assert_close(y, d_orig[ii][1])
 
     def test_benchmark_from_dataset_heterogeneous_data(self):
-        d1 = dummy_tensor_dataset()
-        d2 = dummy_tensor_dataset()
+        d1 = AvalancheDataset(dummy_tensor_dataset())
+        d2 = AvalancheDataset(dummy_tensor_dataset())
 
-        d1b = DummyImageDataset(n_classes=10)
-        d2b = DummyImageDataset(n_classes=10)
+        d1b = AvalancheDataset(DummyImageDataset(n_classes=10))
+        d2b = AvalancheDataset(DummyImageDataset(n_classes=10))
 
         bm = benchmark_from_datasets(
             train=[d1, d1b],
@@ -122,11 +122,30 @@ class DatasetSplitterTest(unittest.TestCase):
             valid_cnt = (torch.as_tensor(valid_d.targets) == cid).sum()
             assert_almost_equal(valid_cnt / data_cnt, ratio, decimal=2)
 
-    def test_split_dataset_by_attribute(self):
-        raise NotImplementedError()
-
     def test_fixed_size_experience_split_strategy(self):
-        raise NotImplementedError()
+        x = torch.rand(32, 10)
+        y = torch.arange(32)  # we use ordered labels to reconstruct the order after shuffling
+        dd = AvalancheDataset([TensorDataset(x, y)])
+
+        d1, d2 = split_validation_random(validation_size=10, shuffle=True, dataset=dd)
+        assert len(d1) + len(d2) == len(dd)
+
+        # check data is shuffled
+        iis = []
+        for x, ii in d1:
+            iis.append(ii)
+        for x, ii in d2:
+            iis.append(ii)
+        assert not all(b >= a for a, b in zip(iis[:-1], iis[1:]))
+
+        # check d1
+        for x, ii in d1:
+            torch.testing.assert_close(x, dd[ii.item()][0])
+            torch.testing.assert_close(ii, dd[ii.item()][1])
+        # check d2
+        for x, ii in d2:
+            torch.testing.assert_close(x, dd[ii.item()][0])
+            torch.testing.assert_close(ii, dd[ii.item()][1])
 
 
 class DatasetWithValidationStreamTests(unittest.TestCase):
@@ -281,12 +300,12 @@ class DatasetWithValidationStreamTests(unittest.TestCase):
         def train_gen():
             # Lazy generator of the training stream
             for dataset in [d1, d2]:
-                yield dataset
+                yield DatasetExperience(dataset=dataset)
 
         def test_gen():
             # Lazy generator of the test stream
             for dataset in [dtest]:
-                yield dataset
+                yield DatasetExperience(dataset=dataset)
 
         bm = CLScenario([
             CLStream("train", train_gen()),
@@ -295,11 +314,11 @@ class DatasetWithValidationStreamTests(unittest.TestCase):
 
         valid_bm = benchmark_with_validation_stream(bm, 20, shuffle=False)
 
-        self.assertEqual(2, len(valid_bm.train_stream))
-        self.assertEqual(2, len(valid_bm.valid_stream))
-        self.assertEqual(1, len(valid_bm.test_stream))
+        self.assertEqual(2, len(list(valid_bm.train_stream)))
+        self.assertEqual(2, len(list(valid_bm.valid_stream)))
+        self.assertEqual(1, len(list(valid_bm.test_stream)))
 
-        dd = valid_bm.train_stream[0].dataset
+        dd = list(valid_bm.train_stream)[0].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(
             torch.equal(
@@ -308,7 +327,7 @@ class DatasetWithValidationStreamTests(unittest.TestCase):
             )
         )
 
-        dd = valid_bm.train_stream[1].dataset
+        dd = list(valid_bm.train_stream)[1].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(
             torch.equal(
@@ -317,7 +336,7 @@ class DatasetWithValidationStreamTests(unittest.TestCase):
             )
         )
 
-        dd = valid_bm.train_stream[0].dataset
+        dd = list(valid_bm.train_stream)[0].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(
             torch.equal(
@@ -326,7 +345,7 @@ class DatasetWithValidationStreamTests(unittest.TestCase):
             )
         )
 
-        dd = valid_bm.train_stream[1].dataset
+        dd = list(valid_bm.train_stream)[1].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(
             torch.equal(
@@ -335,23 +354,23 @@ class DatasetWithValidationStreamTests(unittest.TestCase):
             )
         )
 
-        dd = valid_bm.valid_stream[0].dataset
+        dd = list(valid_bm.valid_stream)[0].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(torch.equal(experience_1_x[80:], mb[0]))
 
-        dd = valid_bm.valid_stream[1].dataset
+        dd = list(valid_bm.valid_stream)[1].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(torch.equal(experience_2_x[60:], mb[0]))
 
-        dd = valid_bm.valid_stream[0].dataset
+        dd = list(valid_bm.valid_stream)[0].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(torch.equal(experience_1_y[80:], mb[1]))
 
-        dd = valid_bm.valid_stream[1].dataset
+        dd = list(valid_bm.valid_stream)[1].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(torch.equal(experience_2_y[60:], mb[1]))
 
-        dd = valid_bm.test_stream[0].dataset
+        dd = list(valid_bm.test_stream)[0].dataset
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(torch.equal(test_x, mb[0]))
         self.assertTrue(torch.equal(test_y, mb[1]))

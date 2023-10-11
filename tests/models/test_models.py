@@ -38,10 +38,10 @@ from avalanche.models.pytorchcv_wrapper import (
 from tests.unit_tests_utils import (
     common_setups,
     load_benchmark,
+    get_fast_benchmark
 )
-from benchmarks.utils.test_avalanche_classification_dataset import get_mbatch
+from tests.benchmarks.utils.test_avalanche_classification_dataset import get_mbatch
 from avalanche.training.checkpoint import save_checkpoint, maybe_load_checkpoint
-from tests.unit_tests_utils import get_fast_benchmark
 
 
 class PytorchcvWrapperTests(unittest.TestCase):

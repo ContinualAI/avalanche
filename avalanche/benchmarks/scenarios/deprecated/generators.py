@@ -586,7 +586,7 @@ def data_incremental_benchmark(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def split_strategy_wrapper(exp):
-            return split_validation_random(experience_size, shuffle, exp)
+            return split_validation_random(experience_size, shuffle, exp.dataset)
 
         split_strategy = split_strategy_wrapper
     else:

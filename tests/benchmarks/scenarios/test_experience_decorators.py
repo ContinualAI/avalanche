@@ -3,7 +3,7 @@ import unittest
 import torch
 
 from avalanche.benchmarks import benchmark_from_datasets, EagerCLStream, CLScenario
-from avalanche.benchmarks.scenarios.deprecated import DatasetExperience
+from avalanche.benchmarks import DatasetExperience
 from avalanche.benchmarks.scenarios.task_aware import with_task_labels
 from avalanche.benchmarks.scenarios.supervised import with_classes_timeline
 from avalanche.benchmarks.utils import make_tensor_classification_dataset

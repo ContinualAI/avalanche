@@ -11,14 +11,17 @@
 
 """Generic definitions for CL benchmarks defined via list of datasets."""
 
+import random
 from avalanche.benchmarks.utils.data import AvalancheDataset
 import torch
 from itertools import tee
 from typing import (
     Callable,
     Generator,
+    Generic,
     List,
     Sequence,
+    TypeVar,
     Union,
     Tuple,
     Optional,
@@ -29,8 +32,11 @@ from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stre
 from ..utils import SupervisedClassificationDataset
 
 
+TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
+
+
 def benchmark_from_datasets(
-    **dataset_streams: Sequence[AvalancheDataset]
+    **dataset_streams: Sequence[TCLDataset]
 ) -> CLScenario:
     """Creates a benchmark given a list of datasets for each stream.
 
@@ -59,13 +65,13 @@ def benchmark_from_datasets(
     return CLScenario(exps_streams)
 
 
-class DatasetExperience(CLExperience):
+class DatasetExperience(CLExperience, Generic[TCLDataset]):
     """An Experience that provides a dataset."""
 
     def __init__(
         self,
         *,
-        dataset: AvalancheDataset,
+        dataset: TCLDataset,
         current_experience: Optional[int] = None
     ):
         super().__init__(current_experience=current_experience, origin_stream=None)
@@ -95,6 +101,7 @@ def _split_dataset_by_attribute(data: AvalancheDataset, attr_name: str) -> Dict[
 def split_validation_random(
     validation_size: Union[int, float],
     shuffle: bool,
+    seed: int,
     dataset: AvalancheDataset,
 ) -> Tuple[AvalancheDataset, AvalancheDataset]:
     """Splits an `AvalancheDataset` in two splits.
@@ -130,9 +137,12 @@ def split_validation_random(
         datasets.
     """
     exp_indices = list(range(len(dataset)))
+    g = torch.Generator()
+    g.manual_seed(seed)
+
     if shuffle:
         exp_indices = torch.as_tensor(exp_indices)[
-            torch.randperm(len(exp_indices))
+            torch.randperm(len(exp_indices), generator=g)
         ].tolist()
 
     if 0.0 <= validation_size <= 1.0:
@@ -207,50 +217,36 @@ def split_validation_class_balanced(
     return result_train_dataset, result_valid_dataset
 
 
-def _lazy_train_val_split(
-    split_strategy: Callable[
-        [AvalancheDataset],
-        Tuple[AvalancheDataset, AvalancheDataset],
-    ],
-    experiences: Iterable[DatasetExperience],
-) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
-    """
-    Creates a generator operating around the split strategy and the
-    experiences stream.
+class LazyTrainValSplitter:
+    def __init__(self,
+        split_strategy: Callable[
+            [AvalancheDataset],
+            Tuple[AvalancheDataset, AvalancheDataset],
+        ],
+        experiences: Iterable[DatasetExperience],
+    ) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
+        """
+        Creates a generator operating around the split strategy and the
+        experiences stream.
 
-    :param split_strategy: The strategy used to split each experience in train
-        and validation datasets.
-    :return: A generator returning a 2 elements tuple (the train and validation
-        datasets).
-    """
-
-    for new_experience in experiences:
-        yield split_strategy(new_experience.dataset)
-
-
-def _gen_split(
-    split_generator: Iterable[Tuple[AvalancheDataset, AvalancheDataset]]
-) -> Tuple[Generator[DatasetExperience, None, None], Generator[DatasetExperience, None, None],]:
-    """
-    Internal utility function to split the train-validation generator
-    into two distinct generators (one for the train stream and another one
-    for the valid stream).
-
-    :param split_generator: The lazy stream generator returning tuples of train
-        and valid datasets.
-    :return: Two generators (one for the train, one for the valuid).
-    """
-
-    # For more info: https://stackoverflow.com/a/28030261
-    gen_a, gen_b = tee(split_generator, 2)
-    return (DatasetExperience(dataset=a) for a, b in gen_a), \
-        (DatasetExperience(dataset=b) for a, b in gen_b)
+        :param split_strategy: The strategy used to split each experience in train
+            and validation datasets.
+        :return: A generator returning a 2 elements tuple (the train and validation
+            datasets).
+        """
+        self.split_strategy = split_strategy
+        self.experiences = experiences
+    
+    def __iter__(self):
+        for new_experience in self.experiences:
+            yield self.split_strategy(new_experience.dataset)
 
 
 def benchmark_with_validation_stream(
     benchmark: CLScenario,
     validation_size: Union[int, float] = 0.5,
     shuffle: bool = False,
+    seed: Optional[int] = None,
     split_strategy: Optional[
         Callable[[AvalancheDataset], Tuple[AvalancheDataset, AvalancheDataset]]
     ] = None,
@@ -297,10 +293,12 @@ def benchmark_with_validation_stream(
         [AvalancheDataset], Tuple[AvalancheDataset, AvalancheDataset]
     ]
     if split_strategy is None:
+        if seed is None:
+            seed = random.randint(0, 1000000)
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def random_validation_split_strategy_wrapper(data):
-            return split_validation_random(validation_size, shuffle, data)
+            return split_validation_random(validation_size, shuffle, seed, data)
 
         split_strategy = random_validation_split_strategy_wrapper
     else:
@@ -316,8 +314,9 @@ def benchmark_with_validation_stream(
             train_exps.append(DatasetExperience(dataset=train_data))
             valid_exps.append(DatasetExperience(dataset=valid_data))
     else:  # Lazy splitting (based on a generator)
-        split_generator = _lazy_train_val_split(split_strategy, stream)
-        train_exps, valid_exps = _gen_split(split_generator)
+        split_generator = LazyTrainValSplitter(split_strategy, stream)
+        train_exps = (DatasetExperience(dataset=a) for a, _ in split_generator)
+        valid_exps = (DatasetExperience(dataset=b) for _, b in split_generator)
 
     train_stream = make_stream(name="train", exps=train_exps)
     valid_stream = make_stream(name="valid", exps=valid_exps)

@@ -12,6 +12,7 @@ from functools import partial
 from typing import (
     Callable,
     Generator,
+    Generic,
     Iterable,
     List,
     Optional,
@@ -19,6 +20,8 @@ from typing import (
     Union, Protocol,
 )
 from typing_extensions import Literal
+import warnings
+from avalanche.benchmarks.utils.data import AvalancheDataset
 
 import torch
 from .deprecated.benchmark_wrapper_utils import wrap_stream
@@ -27,24 +30,53 @@ from .generic_scenario import (
     CLStream,
     CLScenario,
 )
-from .deprecated import DatasetExperience
+from .dataset_scenario import DatasetExperience
+
 
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
-TClassificationDataset = TypeVar(
-    "TClassificationDataset", bound="ClassificationDataset"
-)
 TCLScenario = TypeVar("TCLScenario", bound="CLScenario")
 TDatasetScenario = TypeVar("TDatasetScenario", bound="DatasetScenario")
 TOnlineCLScenario = TypeVar("TOnlineCLScenario", bound="OnlineCLScenario")
 TCLStream = TypeVar("TCLStream", bound="CLStream")
 TCLExperience = TypeVar("TCLExperience", bound="CLExperience")
 TOnlineCLExperience = TypeVar("TOnlineCLExperience", bound="OnlineCLExperience")
-TOnlineClassificationExperience = TypeVar(
-    "TOnlineClassificationExperience", bound="OnlineClassificationExperience"
-)
 
 
-class OnlineCLExperience(DatasetExperience[TCLDataset]):
+class BoundaryAware(Protocol):
+    """Boundary-aware experiences have attributes with task boundary knowledge.
+
+    Online streams may have boundary attributes to help training or metrics logging.
+
+    Task boundaries denote changes of the underlying data distribution used
+    to sample the data for the experiences.
+    """
+
+    @property
+    def is_first_subexp(self) -> bool:
+        """True if this is the first experience after a drift."""
+        return False
+
+    @property
+    def is_last_subexp(self) -> bool:
+        """True if this is the last experience before a drift."""
+        return False
+
+    @property
+    def sub_stream_length(self) -> int:
+        """Number of experiences with the same distribution of the current experience."""
+        return 0
+
+    @property
+    def access_task_boundaries(self) -> bool:
+        """True if the model has access to task boundaries.
+
+        If the model is boundary-agnostic, task boundaries are available only
+        for logging by setting the experience in logging mode `experience.logging()`.
+        """
+        return False
+
+
+class OnlineCLExperience(DatasetExperience, Generic[TCLDataset]):
     """Online CL (OCL) Experience.
 
     OCL experiences are created by splitting a larger experience. Therefore,
@@ -53,36 +85,39 @@ class OnlineCLExperience(DatasetExperience[TCLDataset]):
 
     def __init__(
         self: TOnlineCLExperience,
+        *,
         current_experience: int,
-        origin_stream: CLStream[TOnlineCLExperience],
-        benchmark: CLScenario,
         dataset: TCLDataset,
         origin_experience: DatasetExperience,
-        subexp_size: int = 1,
         is_first_subexp: bool = False,
         is_last_subexp: bool = False,
         sub_stream_length: Optional[int] = None,
         access_task_boundaries: bool = False,
     ):
-        """Init.
+        """A class representing a continual learning experience in an online setting.
 
-        :param current_experience: experience identifier.
-        :param origin_stream: origin stream.
-        :param origin_experience: origin experience used to create self.
-        :param is_first_subexp: whether self is the first in the sub-experiences
-            stream.
-        :param sub_stream_length: the sub-stream length.
-        """
+        :param current_experience: The index of the current experience.
+        :type current_experience: int
+        :param dataset: The dataset containing the experience.
+        :type dataset: TCLDataset
+        :param origin_experience: The original experience from which this experience was derived.
+        :type origin_experience: DatasetExperience
+        :param is_first_subexp: Whether this is the first sub-experience.
+        :type is_first_subexp: bool, optional
+        :param is_last_subexp: Whether this is the last sub-experience.
+        :type is_last_subexp: bool, optional
+        :param sub_stream_length: The length of the sub-stream.
+        :type sub_stream_length: int, optional
+        :param access_task_boundaries: Whether to access task boundaries.
+        :type access_task_boundaries: bool, optional
+        """       
         super().__init__(
             current_experience=current_experience,
-            origin_stream=origin_stream,
-            benchmark=benchmark,
             dataset=dataset,
         )
         self.access_task_boundaries = access_task_boundaries
-
         self.origin_experience: DatasetExperience = origin_experience
-        self.subexp_size: int = subexp_size
+        self.subexp_size: int = len(dataset)
         self.is_first_subexp: bool = is_first_subexp
         self.is_last_subexp: bool = is_last_subexp
         self.sub_stream_length: Optional[int] = sub_stream_length
@@ -94,72 +129,25 @@ class OnlineCLExperience(DatasetExperience[TCLDataset]):
             "is_last_subexp",
             "sub_stream_length",
             use_in_train=access_task_boundaries,
+            use_in_eval=access_task_boundaries,
         )
-
-    @property
-    def task_labels(self) -> List[int]:
-        return self.origin_experience.task_labels
-
-
-class OnlineClassificationExperience(OnlineCLExperience[TClassificationDataset]):
-    """
-    A specialization of :class:`OnlineCLExperience` with the
-    `classes_in_this_experience` field.
-    """
-
-    def __init__(
-        self: TOnlineClassificationExperience,
-        current_experience: int,
-        origin_stream: CLStream[TOnlineClassificationExperience],
-        benchmark: CLScenario,
-        dataset: TClassificationDataset,
-        origin_experience: DatasetExperience,
-        classes_in_this_experience: List[int],
-        subexp_size: int = 1,
-        is_first_subexp: bool = False,
-        is_last_subexp: bool = False,
-        sub_stream_length: Optional[int] = None,
-        access_task_boundaries: bool = False,
-    ):
-        """Init.
-
-        :param current_experience: experience identifier.
-        :param origin_stream: origin stream.
-        :param origin_experience: origin experience used to create self.
-        :param is_first_subexp: whether self is the first in the sub-experiences
-            stream.
-        :param sub_stream_length: the sub-stream length.
-        """
-        super().__init__(
-            current_experience=current_experience,
-            origin_stream=origin_stream,
-            benchmark=benchmark,
-            dataset=dataset,
-            origin_experience=origin_experience,
-            subexp_size=subexp_size,
-            is_first_subexp=is_first_subexp,
-            is_last_subexp=is_last_subexp,
-            sub_stream_length=sub_stream_length,
-            access_task_boundaries=access_task_boundaries,
-        )
-
-        self.classes_in_this_experience: List[int] = classes_in_this_experience
 
 
 def fixed_size_experience_split(
-    experience: DatasetExperience[TClassificationDataset],
+    experience: DatasetExperience,
     experience_size: int,
-    online_benchmark: TOnlineCLScenario,
     shuffle: bool = True,
     drop_last: bool = False,
     access_task_boundaries: bool = False,
-) -> Generator[OnlineClassificationExperience[TClassificationDataset], None, None]:
-    """
-    Returns a lazy stream generated by splitting an experience into smaller
+) -> Generator[OnlineCLExperience, None, None]:
+    """Returns a lazy stream generated by splitting an experience into smaller
     ones.
 
     Splits the experience in smaller experiences of size `experience_size`.
 
+    Experience decorators (e.g. class attributes) will be stripped from the experience.
+    You will need to re-apply them to the resulting experiences if you need them.
+    
     :param experience: The experience to split.
     :param experience_size: The experience size (number of instances).
     :param shuffle: If True, instances will be shuffled before splitting.
@@ -168,12 +156,8 @@ def fixed_size_experience_split(
     :return: The list of datasets that will be used to create the
         mini-experiences.
     """
-
     exp_dataset = experience.dataset
     exp_indices = list(range(len(exp_dataset)))
-    exp_targets = torch.as_tensor(
-        list(exp_dataset.targets), dtype=torch.long  # type: ignore
-    )
 
     if shuffle:
         exp_indices = torch.as_tensor(exp_indices)[
@@ -197,19 +181,9 @@ def fixed_size_experience_split(
             is_last = True
 
         sub_exp_subset = exp_dataset.subset(exp_indices[init_idx:final_idx])
-        sub_exp_targets: torch.Tensor = exp_targets[
-            exp_indices[init_idx:final_idx]
-        ].unique()
-
-        # origin_stream will be lazily set later
-        exp = OnlineClassificationExperience(
+        exp = OnlineCLExperience(
             current_experience=exp_idx,
-            origin_stream=None,  # type: ignore
-            benchmark=online_benchmark,
             dataset=sub_exp_subset,
-            origin_experience=experience,
-            classes_in_this_experience=sub_exp_targets.tolist(),
-            subexp_size=experience_size,
             is_first_subexp=is_first,
             is_last_subexp=is_last,
             sub_stream_length=sub_stream_length,
@@ -223,17 +197,15 @@ def fixed_size_experience_split(
 
 
 def _default_online_split(
-    online_benchmark,
     shuffle: bool,
     drop_last: bool,
     access_task_boundaries: bool,
-    exp: DatasetExperience[TClassificationDataset],
+    exp: DatasetExperience,
     size: int,
 ):
     return fixed_size_experience_split(
         experience=exp,
         experience_size=size,
-        online_benchmark=online_benchmark,
         shuffle=shuffle,
         drop_last=drop_last,
         access_task_boundaries=access_task_boundaries,
@@ -241,19 +213,18 @@ def _default_online_split(
 
 
 def split_online_stream(
-    original_stream: Iterable[DatasetExperience[TClassificationDataset]],
+    original_stream: Iterable[DatasetExperience],
     experience_size: int,
-    online_benchmark: "OnlineCLScenario[TClassificationDataset]",
     shuffle: bool = True,
     drop_last: bool = False,
     experience_split_strategy: Optional[
         Callable[
-            [DatasetExperience[TClassificationDataset], int],
-            Iterable[OnlineClassificationExperience[TClassificationDataset]],
+            [DatasetExperience[TCLDataset], int],
+            Iterable[OnlineCLExperience[TCLDataset]],
         ]
     ] = None,
     access_task_boundaries: bool = False,
-) -> CLStream[DatasetExperience[TClassificationDataset]]:
+) -> CLStream[DatasetExperience[TCLDataset]]:
     """Split a stream of large batches to create an online stream of small
     mini-batches.
 
@@ -288,9 +259,7 @@ def split_online_stream(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def default_online_split_wrapper(e, e_sz):
-            return _default_online_split(
-                online_benchmark, shuffle, drop_last, access_task_boundaries, e, e_sz
-            )
+            return _default_online_split(shuffle, drop_last, access_task_boundaries, e, e_sz)
 
         split_strategy = default_online_split_wrapper
     else:
@@ -306,27 +275,25 @@ def split_online_stream(
         name=stream_name,
         exps_iter=exps_iter(),
         set_stream_info=True,
-        benchmark=online_benchmark,
     )
 
 
 def _fixed_size_split(
-    online_benchmark: "OnlineCLScenario",
+    online_benchmark: "OnlineCLScenario",  # TODO: Deprecated and unused. Remove.
     experience_size: int,
     access_task_boundaries: bool,
     shuffle: bool,
-    s: Iterable[DatasetExperience[TClassificationDataset]],
-) -> CLStream[DatasetExperience[TClassificationDataset]]:
+    s: Iterable[DatasetExperience[TCLDataset]],
+) -> CLStream[DatasetExperience[TCLDataset]]:
     return split_online_stream(
         original_stream=s,
         experience_size=experience_size,
-        online_benchmark=online_benchmark,
         access_task_boundaries=access_task_boundaries,
         shuffle=shuffle,
     )
 
 
-class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
+class OnlineCLScenario(CLScenario):
     def __init__(
         self,
         original_streams: Iterable[CLStream[DatasetExperience[TCLDataset]]],
@@ -362,7 +329,9 @@ class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
         :param shuffle: If True, experiences will be split by first shuffling
             instances in each experience. Defaults to True.
         """
-
+        warnings.warn("Deprecated. Use `split_online_stream` or similar methods to split"
+                     "single streams or experiences instead")
+        
         if stream_split_strategy != "fixed_size_split":
             raise ValueError("Unknown experience split strategy")
 
@@ -391,41 +360,8 @@ class OnlineCLScenario(CLScenario[CLStream[DatasetExperience[TCLDataset]]]):
         super().__init__(streams=streams)
 
 
-class BoundaryAware(Protocol):
-    """Boundary-aware experiences have attributes with task boundary knowledge.
-
-    Task boundaries denote changes of the underlying data distribution used
-    to sample the data for the experiences.
-    """
-
-    @property
-    def is_first_subexp(self) -> bool:
-        """True if this is the first experience after a drift."""
-        return False
-
-    @property
-    def is_last_subexp(self) -> bool:
-        """True if this is the last experience before a drift."""
-        return False
-
-    @property
-    def sub_stream_length(self) -> int:
-        """Number of experiences with the same distribution of the current experience."""
-        return 0
-
-    @property
-    def access_task_boundaries(self) -> bool:
-        """True if the model has access to task boundaries.
-
-        If the model is boundary-agnostic, task boundaries are available only
-        for logging by setting the experience in logging mode `experience.logging()`.
-        """
-        return False
-
-
 __all__ = [
     "OnlineCLExperience",
-    "OnlineClassificationExperience",
     "fixed_size_experience_split",
     "split_online_stream",
     "OnlineCLScenario",
