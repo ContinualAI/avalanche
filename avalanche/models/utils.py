@@ -1,4 +1,4 @@
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
 from avalanche.models.dynamic_modules import MultiTaskModule, DynamicModule
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel

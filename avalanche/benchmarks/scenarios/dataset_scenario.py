@@ -29,7 +29,7 @@ from typing import (
 )
 
 from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
-from ..utils import SupervisedClassificationDataset
+from ..utils import TaskAwareSupervisedClassificationDataset
 
 
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
@@ -101,8 +101,8 @@ def _split_dataset_by_attribute(data: AvalancheDataset, attr_name: str) -> Dict[
 def split_validation_random(
     validation_size: Union[int, float],
     shuffle: bool,
-    seed: int,
-    dataset: AvalancheDataset,
+    seed: int=None,
+    dataset: AvalancheDataset=None,
 ) -> Tuple[AvalancheDataset, AvalancheDataset]:
     """Splits an `AvalancheDataset` in two splits.
 
@@ -136,7 +136,12 @@ def split_validation_random(
     :return: A tuple containing 2 elements: the new training and validation
         datasets.
     """
+    if dataset is None:
+        raise ValueError("dataset must be provided")
     exp_indices = list(range(len(dataset)))
+
+    if seed is None:
+        seed = random.randint(0, 1000000)
     g = torch.Generator()
     g.manual_seed(seed)
 
@@ -164,8 +169,8 @@ def split_validation_random(
 
 def split_validation_class_balanced(
     validation_size: Union[int, float],
-    dataset: SupervisedClassificationDataset,
-) -> Tuple[SupervisedClassificationDataset, SupervisedClassificationDataset]:
+    dataset: TaskAwareSupervisedClassificationDataset,
+) -> Tuple[TaskAwareSupervisedClassificationDataset, TaskAwareSupervisedClassificationDataset]:
     """Class-balanced dataset split.
 
     This splitting strategy splits `dataset` into train and validation data of

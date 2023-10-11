@@ -17,7 +17,7 @@ from torchvision.transforms import Compose, ToTensor
 
 from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.utils import as_supervised_classification_dataset, make_tensor_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_tensor_classification_dataset
 from avalanche.benchmarks.utils.detection_dataset import (
     make_detection_dataset,
 )
@@ -159,8 +159,8 @@ def dummy_classification_datasets(n_classes=10, n_features=7,
     train_X, test_X, train_y, test_y = train_test_split(
         X, y, train_size=0.6, shuffle=True, stratify=y, random_state=seed
     )
-    train = make_tensor_classification_dataset(train_X, train_y)
-    test = make_tensor_classification_dataset(test_X, test_y)
+    train = _make_taskaware_tensor_classification_dataset(train_X, train_y)
+    test = _make_taskaware_tensor_classification_dataset(test_X, test_y)
     return train, test
 
 

@@ -8,8 +8,8 @@ from torch.nn import CrossEntropyLoss, Module, Identity
 from torch.optim import SGD
 
 from avalanche.benchmarks.utils import (
-    make_classification_dataset,
-    make_tensor_classification_dataset,
+    _make_taskaware_classification_dataset,
+    _make_taskaware_tensor_classification_dataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.flat_data import _flatdata_depth
@@ -198,7 +198,7 @@ class SelectionStrategyTest(unittest.TestCase):
         # When
         # Features are [[0], [4], [5]]
         # Center is [3]
-        dataset = make_tensor_classification_dataset(
+        dataset = _make_taskaware_tensor_classification_dataset(
             tensor([0, -4, 5]).float(), zeros(3)
         )
         strategy = MagicMock(device="cpu", eval_mb_size=8)

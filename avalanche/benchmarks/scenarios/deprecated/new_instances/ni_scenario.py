@@ -21,16 +21,16 @@ from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
 from avalanche.benchmarks.scenarios.deprecated.new_instances.ni_utils import (
     _exp_structure_from_assignment,
 )
-from avalanche.benchmarks.utils import classification_subset
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
-    SupervisedClassificationDataset,
+    _taskaware_classification_subset,
+    TaskAwareClassificationDataset,
+    TaskAwareSupervisedClassificationDataset,
 )
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
 class NIScenario(
-    ClassificationScenario["NIStream", "NIExperience", SupervisedClassificationDataset]
+    ClassificationScenario["NIStream", "NIExperience", TaskAwareSupervisedClassificationDataset]
 ):
     """
     This class defines a "New Instance" scenario.
@@ -50,8 +50,8 @@ class NIScenario(
 
     def __init__(
         self,
-        train_dataset: ClassificationDataset,
-        test_dataset: ClassificationDataset,
+        train_dataset: TaskAwareClassificationDataset,
+        test_dataset: TaskAwareClassificationDataset,
         n_experiences: int,
         task_labels: bool = False,
         shuffle: bool = True,
@@ -107,8 +107,8 @@ class NIScenario(
             test datasets must be used. Defaults to None.
         """
 
-        train_dataset = SupervisedClassificationDataset(train_dataset)
-        test_dataset = SupervisedClassificationDataset(test_dataset)
+        train_dataset = TaskAwareSupervisedClassificationDataset(train_dataset)
+        test_dataset = TaskAwareSupervisedClassificationDataset(test_dataset)
 
         self._has_task_labels = task_labels
 
@@ -168,7 +168,7 @@ class NIScenario(
             included_patterns: List[int] = list()
             for exp_def in lst_fixed_exp_assignment:
                 included_patterns.extend(exp_def)
-            subset = classification_subset(train_dataset, indices=included_patterns)
+            subset = _taskaware_classification_subset(train_dataset, indices=included_patterns)
             unique_targets, unique_count = torch.unique(
                 torch.as_tensor(subset.targets), return_counts=True
             )
@@ -427,7 +427,7 @@ class NIScenario(
                 train_task_labels[-1], len(train_dataset)
             )
             train_experiences.append(
-                classification_subset(
+                _taskaware_classification_subset(
                     train_dataset, indices=exp_def, task_labels=exp_task_labels
                 )
             )
@@ -473,7 +473,7 @@ class NIStream(ClassificationStream["NIExperience"]):
         )
 
 
-class NIExperience(ClassificationExperience[SupervisedClassificationDataset]):
+class NIExperience(ClassificationExperience[TaskAwareSupervisedClassificationDataset]):
     """
     Defines a "New Instances" experience. It defines fields to obtain the
     current dataset and the associated task label. It also keeps a reference

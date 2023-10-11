@@ -33,8 +33,7 @@ import os.path
 from torch import Tensor
 from torchvision.transforms.functional import crop  # type: ignore
 
-from avalanche.benchmarks.utils import make_classification_dataset
-from avalanche.benchmarks.utils.transform_groups import XTransform, YTransform
+from .transform_groups import XTransform, YTransform
 
 
 def default_image_loader(path):
@@ -269,8 +268,11 @@ def datasets_from_filelists(
         train=(train_transform, train_target_transform),
         eval=(test_transform, test_target_transform),
     )
+    
+    # import here to prevent circular import issue
+    from .utils import _make_taskaware_classification_dataset
     train_inc_datasets = [
-        make_classification_dataset(
+        _make_taskaware_classification_dataset(
             FilelistDataset(root, tr_flist),
             transform_groups=transform_groups,
             initial_transform_group="train",
@@ -278,7 +280,7 @@ def datasets_from_filelists(
         for tr_flist in train_filelists
     ]
     test_inc_datasets = [
-        make_classification_dataset(
+        _make_taskaware_classification_dataset(
             FilelistDataset(root, te_flist),
             transform_groups=transform_groups,
             initial_transform_group="eval",
@@ -425,7 +427,7 @@ def datasets_from_paths(
             common_root = None
 
     train_inc_datasets = [
-        make_classification_dataset(
+        _make_taskaware_classification_dataset(
             PathsDataset(common_root, tr_flist),
             transform_groups=transform_groups,
             initial_transform_group="train",
@@ -433,7 +435,7 @@ def datasets_from_paths(
         for tr_flist in train_list
     ]
     test_inc_datasets = [
-        make_classification_dataset(
+        _make_taskaware_classification_dataset(
             PathsDataset(common_root, te_flist),
             transform_groups=transform_groups,
             initial_transform_group="eval",

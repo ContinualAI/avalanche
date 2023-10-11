@@ -6,7 +6,7 @@ from avalanche.benchmarks import benchmark_from_datasets, EagerCLStream, CLScena
 from avalanche.benchmarks import DatasetExperience
 from avalanche.benchmarks.scenarios.task_aware import with_task_labels
 from avalanche.benchmarks.scenarios.supervised import with_classes_timeline
-from avalanche.benchmarks.utils import make_tensor_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_tensor_classification_dataset
 
 
 class ExperienceDecoratorTests(unittest.TestCase):
@@ -24,11 +24,11 @@ class ExperienceDecoratorTests(unittest.TestCase):
         tx = torch.rand(10, 17)
         ty = torch.randint(0, 2, (10,))
         t_tl = torch.tensor([0 for _ in range(10)])
-        data = make_tensor_classification_dataset(tx, ty, task_labels=t_tl)
+        data = _make_taskaware_tensor_classification_dataset(tx, ty, task_labels=t_tl)
         exps.append(DatasetExperience(dataset=data))
 
         t_tl = torch.tensor([7 for _ in range(10)])
-        data = make_tensor_classification_dataset(tx, ty, task_labels=t_tl)
+        data = _make_taskaware_tensor_classification_dataset(tx, ty, task_labels=t_tl)
         exps.append(DatasetExperience(dataset=data))
 
         stream = EagerCLStream(name="train", exps=exps)
@@ -55,25 +55,25 @@ class ExperienceDecoratorTests(unittest.TestCase):
         # exp 0
         tx = torch.rand(10, 17)
         ty = torch.tensor([11 for _ in range(10)])
-        data = make_tensor_classification_dataset(tx, ty)
+        data = _make_taskaware_tensor_classification_dataset(tx, ty)
         exps.append(DatasetExperience(dataset=data))
 
         # exp 1
         tx = torch.rand(10, 17)
         ty = torch.tensor([3 for _ in range(10)])
-        data = make_tensor_classification_dataset(tx, ty)
+        data = _make_taskaware_tensor_classification_dataset(tx, ty)
         exps.append(DatasetExperience(dataset=data))
 
         # exp 2
         tx = torch.rand(10, 17)
         ty = torch.tensor([4 for _ in range(10)])
-        data = make_tensor_classification_dataset(tx, ty)
+        data = _make_taskaware_tensor_classification_dataset(tx, ty)
         exps.append(DatasetExperience(dataset=data))
 
         # exp 3
         tx = torch.rand(10, 17)
         ty = torch.tensor([4 for _ in range(10)])
-        data = make_tensor_classification_dataset(tx, ty)
+        data = _make_taskaware_tensor_classification_dataset(tx, ty)
         exps.append(DatasetExperience(dataset=data))
 
         stream = EagerCLStream(name="train", exps=exps)
@@ -118,14 +118,14 @@ class ExperienceDecoratorTests(unittest.TestCase):
         tensor_y = torch.randint(0, 70, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            make_tensor_classification_dataset(tensor_x, tensor_y, task_labels=tensor_t)
+            _make_taskaware_tensor_classification_dataset(tensor_x, tensor_y, task_labels=tensor_t)
         )
 
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            make_tensor_classification_dataset(tensor_x, tensor_y, task_labels=tensor_t)
+            _make_taskaware_tensor_classification_dataset(tensor_x, tensor_y, task_labels=tensor_t)
         )
 
         test_exps = []
@@ -133,7 +133,7 @@ class ExperienceDecoratorTests(unittest.TestCase):
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
-            make_tensor_classification_dataset(test_x, test_y, task_labels=test_t)
+            _make_taskaware_tensor_classification_dataset(test_x, test_y, task_labels=test_t)
         )
 
         other_stream_exps = []
@@ -141,7 +141,7 @@ class ExperienceDecoratorTests(unittest.TestCase):
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
-            make_tensor_classification_dataset(other_x, other_y, task_labels=other_t)
+            _make_taskaware_tensor_classification_dataset(other_x, other_y, task_labels=other_t)
         )
 
         bm = benchmark_from_datasets(

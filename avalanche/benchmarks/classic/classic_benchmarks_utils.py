@@ -4,7 +4,7 @@ from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
     DatasetStream,
 )
 
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import TaskAwareClassificationDataset
 
 
 def check_vision_benchmark(
@@ -13,7 +13,7 @@ def check_vision_benchmark(
     from matplotlib import pyplot as plt
     from torch.utils.data.dataloader import DataLoader
 
-    dataset: ClassificationDataset
+    dataset: TaskAwareClassificationDataset
     train_stream: DatasetStream = benchmark_instance.train_stream
 
     print(

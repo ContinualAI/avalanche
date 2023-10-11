@@ -23,8 +23,8 @@ from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import
     LazyStreamDefinition,
 )
 from avalanche.benchmarks.utils import (
-    make_classification_dataset,
-    make_tensor_classification_dataset,
+    _make_taskaware_classification_dataset,
+    _make_taskaware_tensor_classification_dataset,
 )
 from tests.unit_tests_utils import common_setups
 
@@ -214,21 +214,21 @@ class HighLevelGeneratorTests(unittest.TestCase):
         # Experience 1
         experience_1_x = torch.zeros(100, *pattern_shape)
         experience_1_y = torch.zeros(100, dtype=torch.long)
-        experience_1_dataset = make_tensor_classification_dataset(
+        experience_1_dataset = _make_taskaware_tensor_classification_dataset(
             experience_1_x, experience_1_y
         )
 
         # Experience 2
         experience_2_x = torch.zeros(80, *pattern_shape)
         experience_2_y = torch.ones(80, dtype=torch.long)
-        experience_2_dataset = make_tensor_classification_dataset(
+        experience_2_dataset = _make_taskaware_tensor_classification_dataset(
             experience_2_x, experience_2_y
         )
 
         # Test experience
         test_x = torch.zeros(50, *pattern_shape)
         test_y = torch.zeros(50, dtype=torch.long)
-        experience_test = make_tensor_classification_dataset(test_x, test_y)
+        experience_test = _make_taskaware_tensor_classification_dataset(test_x, test_y)
 
         def train_gen():
             # Lazy generator of the training stream

@@ -14,7 +14,7 @@ from torchvision.transforms import (
     CenterCrop,
 )
 from avalanche.benchmarks.utils import (
-    make_classification_dataset,
+    _make_taskaware_classification_dataset,
     make_avalanche_dataset,
 )
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
@@ -30,8 +30,8 @@ from avalanche.benchmarks.utils.flat_data import (
     _flatdata_print,
 )
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
-    SupervisedClassificationDataset,
+    TaskAwareClassificationDataset,
+    TaskAwareSupervisedClassificationDataset,
 )
 from tests.unit_tests_utils import (
     dummy_image_dataset,
@@ -65,7 +65,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         torch_data = TensorDataset(x_data, y_data)
 
         tls = [0 for _ in range(100)]  # one task label for each sample
-        sup_data = make_classification_dataset(torch_data, task_labels=tls)
+        sup_data = _make_taskaware_classification_dataset(torch_data, task_labels=tls)
         print(sup_data.targets.name, len(sup_data.targets._data))
         print(
             sup_data.targets_task_labels.name, len(sup_data.targets_task_labels._data)
@@ -268,7 +268,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset_mnist = MNIST(root=default_dataset_location("mnist"), download=True)
         x, y = dataset_mnist[0]
 
-        dataset = make_classification_dataset(dataset_mnist, transform=ToTensor())
+        dataset = _make_taskaware_classification_dataset(dataset_mnist, transform=ToTensor())
         x2, y2, t2 = dataset[0]
 
         self.assertIsInstance(x2, Tensor)
@@ -289,7 +289,7 @@ class AvalancheDatasetTests(unittest.TestCase):
     def test_avalanche_dataset_tensor_task_labels(self):
         data = dummy_tensor_dataset()
         taskl = torch.ones(32).int()  # Single task
-        dataset = make_classification_dataset(data, task_labels=taskl)
+        dataset = _make_taskaware_classification_dataset(data, task_labels=taskl)
 
         x2, y2, t2 = dataset[0]
 
@@ -306,7 +306,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(1, len(dataset.task_set))
 
         subset_task1 = dataset.task_set[1]
-        self.assertIsInstance(subset_task1, ClassificationDataset)
+        self.assertIsInstance(subset_task1, TaskAwareClassificationDataset)
         self.assertEqual(len(dataset), len(subset_task1))
 
         with self.assertRaises(KeyError):
@@ -325,7 +325,7 @@ class AvalancheDatasetTests(unittest.TestCase):
     @unittest.skipIf(True, "Test needs refactoring")
     def test_avalanche_dataset_uniform_task_labels_simple_def(self):
         dataset_mnist = load_image_data()
-        dataset = make_classification_dataset(
+        dataset = _make_taskaware_classification_dataset(
             dataset_mnist, transform=ToTensor(), task_labels=1
         )
         _, _, t2 = dataset[0]
@@ -338,7 +338,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         )
 
         subset_task1 = dataset.task_set[1]
-        self.assertIsInstance(subset_task1, make_classification_dataset)
+        self.assertIsInstance(subset_task1, _make_taskaware_classification_dataset)
         self.assertEqual(len(dataset), len(subset_task1))
 
         with self.assertRaises(KeyError):
@@ -349,7 +349,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         x, y = dataset_mnist[0]
 
         random_task_labels = [random.randint(0, 10) for _ in range(len(dataset_mnist))]
-        dataset = make_classification_dataset(
+        dataset = _make_taskaware_classification_dataset(
             dataset_mnist, transform=ToTensor(), task_labels=random_task_labels
         )
         x2, y2, t2 = dataset[0]
@@ -366,7 +366,7 @@ class AvalancheDatasetTests(unittest.TestCase):
         u_labels, counts = np.unique(random_task_labels, return_counts=True)
         for i, task_label in enumerate(u_labels.tolist()):
             subset_task = dataset.task_set[task_label]
-            self.assertIsInstance(subset_task, ClassificationDataset)
+            self.assertIsInstance(subset_task, TaskAwareClassificationDataset)
             self.assertEqual(int(counts[i]), len(subset_task))
 
             unique_task_labels = list(subset_task.targets_task_labels)
@@ -378,11 +378,11 @@ class AvalancheDatasetTests(unittest.TestCase):
     def test_avalanche_dataset_update_data_attribute(self):
         dataset_orig = dummy_image_dataset()
 
-        dataset: SupervisedClassificationDataset = make_classification_dataset(
+        dataset: TaskAwareSupervisedClassificationDataset = _make_taskaware_classification_dataset(
             dataset_orig, transform=ToTensor(), task_labels=0
         )
 
-        self.assertIsInstance(dataset, SupervisedClassificationDataset)
+        self.assertIsInstance(dataset, TaskAwareSupervisedClassificationDataset)
         dataset_element = dataset[101]
         self.assertEqual(3, len(dataset_element))  # x, y, t
 

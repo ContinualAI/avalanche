@@ -18,17 +18,17 @@ from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
     ClassificationStream,
     ClassificationExperience,
 )
-from avalanche.benchmarks.utils import classification_subset
+from avalanche.benchmarks.utils.classification_dataset import _taskaware_classification_subset
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
-    SupervisedClassificationDataset,
+    TaskAwareClassificationDataset,
+    TaskAwareSupervisedClassificationDataset,
 )
 
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
 class NCScenario(
-    ClassificationScenario["NCStream", "NCExperience", SupervisedClassificationDataset]
+    ClassificationScenario["NCStream", "NCExperience", TaskAwareSupervisedClassificationDataset]
 ):
 
     """
@@ -42,8 +42,8 @@ class NCScenario(
 
     def __init__(
         self,
-        train_dataset: ClassificationDataset,
-        test_dataset: ClassificationDataset,
+        train_dataset: TaskAwareClassificationDataset,
+        test_dataset: TaskAwareClassificationDataset,
         n_experiences: int,
         task_labels: bool,
         shuffle: bool = True,
@@ -124,10 +124,10 @@ class NCScenario(
             test datasets must be used. Defaults to None.
         """
 
-        if not isinstance(train_dataset, SupervisedClassificationDataset):
-            train_dataset = SupervisedClassificationDataset(train_dataset)
-        if not isinstance(test_dataset, SupervisedClassificationDataset):
-            test_dataset = SupervisedClassificationDataset(test_dataset)
+        if not isinstance(train_dataset, TaskAwareSupervisedClassificationDataset):
+            train_dataset = TaskAwareSupervisedClassificationDataset(train_dataset)
+        if not isinstance(test_dataset, TaskAwareSupervisedClassificationDataset):
+            test_dataset = TaskAwareSupervisedClassificationDataset(test_dataset)
 
         if class_ids_from_zero_from_first_exp and class_ids_from_zero_in_each_exp:
             raise ValueError(
@@ -418,12 +418,12 @@ class NCScenario(
         #     .replace_transforms(*transform_groups['train'], group='train') \
         #     .replace_transforms(*transform_groups['eval'], group='eval')
 
-        train_dataset = classification_subset(
+        train_dataset = _taskaware_classification_subset(
             train_dataset,
             class_mapping=self.class_mapping,
             initial_transform_group="train",
         )
-        test_dataset = classification_subset(
+        test_dataset = _taskaware_classification_subset(
             test_dataset,
             class_mapping=self.class_mapping,
             initial_transform_group="eval",
@@ -439,7 +439,7 @@ class NCScenario(
         experience in the test stream. Instances are identified by their id 
         w.r.t. the dataset found in the original_test_dataset field. """
 
-        train_experiences: List[ClassificationDataset] = []
+        train_experiences: List[TaskAwareClassificationDataset] = []
         train_task_labels: List[int] = []
         for t_id, exp_def in enumerate(train_exps_patterns_assignment):
             if self._has_task_labels:
@@ -450,12 +450,12 @@ class NCScenario(
                 train_task_labels[-1], len(train_dataset)
             )
             train_experiences.append(
-                classification_subset(
+                _taskaware_classification_subset(
                     train_dataset, indices=exp_def, task_labels=exp_task_labels
                 )
             )
 
-        test_experiences: List[ClassificationDataset] = []
+        test_experiences: List[TaskAwareClassificationDataset] = []
         test_task_labels: List[int] = []
         for t_id, exp_def in enumerate(test_exps_patterns_assignment):
             if self._has_task_labels:
@@ -465,7 +465,7 @@ class NCScenario(
 
             exp_task_labels = ConstantSequence(test_task_labels[-1], len(test_dataset))
             test_experiences.append(
-                classification_subset(
+                _taskaware_classification_subset(
                     test_dataset, indices=exp_def, task_labels=exp_task_labels
                 )
             )
@@ -543,7 +543,7 @@ class NCStream(ClassificationStream["NCExperience"]):
         )
 
 
-class NCExperience(ClassificationExperience[SupervisedClassificationDataset]):
+class NCExperience(ClassificationExperience[TaskAwareSupervisedClassificationDataset]):
     """
     Defines a "New Classes" experience. It defines fields to obtain the current
     dataset and the associated task label. It also keeps a reference to the

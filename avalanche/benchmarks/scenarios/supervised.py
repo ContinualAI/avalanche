@@ -22,7 +22,7 @@ from typing import (
 import torch
 
 from avalanche.benchmarks.utils.classification_dataset import (
-    as_supervised_classification_dataset, SupervisedClassificationDataset,
+    _as_taskaware_supervised_classification_dataset, TaskAwareSupervisedClassificationDataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
@@ -71,7 +71,7 @@ def class_incremental_benchmark(
     # convert to avalanche datasets
     for name, dd in datasets_dict.items():
         if not isinstance(dd, AvalancheDataset):
-            datasets_dict[name] = as_supervised_classification_dataset(dd)
+            datasets_dict[name] = _as_taskaware_supervised_classification_dataset(dd)
 
     # validate classes
     dd_classes = list(datasets_dict.values())[0].targets.uniques
@@ -254,7 +254,7 @@ def _random_indices(
 
 
 def new_instances_benchmark(
-    train_dataset: SupervisedClassificationDataset,
+    train_dataset: TaskAwareSupervisedClassificationDataset,
     test_dataset: AvalancheDataset,
     *,
     num_experiences: int = None,

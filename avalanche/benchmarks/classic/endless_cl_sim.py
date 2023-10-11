@@ -26,7 +26,7 @@ from torchvision.transforms.transforms import Compose
 
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.scenarios.deprecated.generators import dataset_benchmark
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
 
 _default_transform = Compose([ToTensor()])
 
@@ -130,10 +130,10 @@ def EndlessCLSim(
         eval_data.transform = eval_transform
 
         train_datasets.append(
-            make_classification_dataset(dataset=train_data, task_labels=task_order[i])
+            _make_taskaware_classification_dataset(dataset=train_data, task_labels=task_order[i])
         )
         eval_datasets.append(
-            make_classification_dataset(dataset=eval_data, task_labels=task_order[i])
+            _make_taskaware_classification_dataset(dataset=eval_data, task_labels=task_order[i])
         )
 
     scenario_obj = dataset_benchmark(train_datasets, eval_datasets)

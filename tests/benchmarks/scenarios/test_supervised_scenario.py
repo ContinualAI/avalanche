@@ -5,7 +5,7 @@ import torch
 from avalanche.benchmarks.scenarios import _split_dataset_by_attribute
 from avalanche.benchmarks.scenarios.supervised import class_incremental_benchmark, new_instances_benchmark, \
     with_classes_timeline
-from avalanche.benchmarks.utils import make_tensor_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_tensor_classification_dataset
 from tests.unit_tests_utils import dummy_classification_datasets
 
 
@@ -13,15 +13,15 @@ class ClassIncrementalBenchmark(unittest.TestCase):
     def test_class_incremental_benchmark_basic_num_experiences(self):
         tx = torch.rand(10, 17)
         ty = torch.tensor([1 for _ in range(10)])
-        data = make_tensor_classification_dataset(tx, ty)
+        data = _make_taskaware_tensor_classification_dataset(tx, ty)
 
         tx = torch.rand(10, 15)
         ty = torch.tensor([0 for _ in range(10)])
-        data = data.concat(make_tensor_classification_dataset(tx, ty))
+        data = data.concat(_make_taskaware_tensor_classification_dataset(tx, ty))
 
         tx = torch.rand(10, 17)
         ty = torch.tensor([2 for _ in range(10)])
-        data = data.concat(make_tensor_classification_dataset(tx, ty))
+        data = data.concat(_make_taskaware_tensor_classification_dataset(tx, ty))
 
         bm = class_incremental_benchmark(
             datasets_dict={"train": data, "test": data},
@@ -56,15 +56,15 @@ class ClassIncrementalBenchmark(unittest.TestCase):
     def test_class_incremental_benchmark_basic_num_classes_per_exp(self):
         tx = torch.rand(10, 17)
         ty = torch.tensor([1 for _ in range(10)])
-        data = make_tensor_classification_dataset(tx, ty)
+        data = _make_taskaware_tensor_classification_dataset(tx, ty)
 
         tx = torch.rand(10, 17)
         ty = torch.tensor([0 for _ in range(10)])
-        data = data.concat(make_tensor_classification_dataset(tx, ty))
+        data = data.concat(_make_taskaware_tensor_classification_dataset(tx, ty))
 
         tx = torch.rand(10, 17)
         ty = torch.tensor([2 for _ in range(10)])
-        data = data.concat(make_tensor_classification_dataset(tx, ty))
+        data = data.concat(_make_taskaware_tensor_classification_dataset(tx, ty))
 
         bm = class_incremental_benchmark(
             datasets_dict={"train": data, "test": data},

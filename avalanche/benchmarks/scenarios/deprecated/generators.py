@@ -52,9 +52,9 @@ from avalanche.benchmarks.scenarios.deprecated.new_classes.nc_scenario import NC
 from avalanche.benchmarks.scenarios.deprecated.new_instances.ni_scenario import NIScenario
 from avalanche.benchmarks.utils.classification_dataset import (
     SupportedDataset,
-    as_supervised_classification_dataset,
-    make_classification_dataset,
-    concat_classification_datasets_sequentially,
+    _as_taskaware_supervised_classification_dataset,
+    _make_taskaware_classification_dataset,
+    _concat_taskaware_classification_datasets_sequentially,
 )
 
 TDatasetScenario = TypeVar("TDatasetScenario", bound="DatasetScenario")
@@ -208,15 +208,15 @@ def nc_benchmark(
             )
 
         train_dataset_sup = list(
-            map(as_supervised_classification_dataset, train_dataset)
+            map(_as_taskaware_supervised_classification_dataset, train_dataset)
         )
-        test_dataset_sup = list(map(as_supervised_classification_dataset, test_dataset))
+        test_dataset_sup = list(map(_as_taskaware_supervised_classification_dataset, test_dataset))
 
         (
             seq_train_dataset,
             seq_test_dataset,
             mapping,
-        ) = concat_classification_datasets_sequentially(
+        ) = _concat_taskaware_classification_datasets_sequentially(
             train_dataset_sup, test_dataset_sup
         )
 
@@ -237,19 +237,19 @@ def nc_benchmark(
             # Overrides n_experiences (and per_experience_classes, already done)
             n_experiences = len(train_dataset)
     else:
-        seq_train_dataset = as_supervised_classification_dataset(train_dataset)
-        seq_test_dataset = as_supervised_classification_dataset(test_dataset)
+        seq_train_dataset = _as_taskaware_supervised_classification_dataset(train_dataset)
+        seq_test_dataset = _as_taskaware_supervised_classification_dataset(test_dataset)
 
     transform_groups = dict(train=(train_transform, None), eval=(eval_transform, None))
 
     # Set transformation groups
-    final_train_dataset = as_supervised_classification_dataset(
+    final_train_dataset = _as_taskaware_supervised_classification_dataset(
         seq_train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
     )
 
-    final_test_dataset = as_supervised_classification_dataset(
+    final_test_dataset = _as_taskaware_supervised_classification_dataset(
         seq_test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",
@@ -363,31 +363,31 @@ def ni_benchmark(
             )
 
         train_dataset_sup = list(
-            map(as_supervised_classification_dataset, train_dataset)
+            map(_as_taskaware_supervised_classification_dataset, train_dataset)
         )
-        test_dataset_sup = list(map(as_supervised_classification_dataset, test_dataset))
+        test_dataset_sup = list(map(_as_taskaware_supervised_classification_dataset, test_dataset))
 
         (
             seq_train_dataset,
             seq_test_dataset,
             _,
-        ) = concat_classification_datasets_sequentially(
+        ) = _concat_taskaware_classification_datasets_sequentially(
             train_dataset_sup, test_dataset_sup
         )
     else:
-        seq_train_dataset = as_supervised_classification_dataset(train_dataset)
-        seq_test_dataset = as_supervised_classification_dataset(test_dataset)
+        seq_train_dataset = _as_taskaware_supervised_classification_dataset(train_dataset)
+        seq_test_dataset = _as_taskaware_supervised_classification_dataset(test_dataset)
 
     transform_groups = dict(train=(train_transform, None), eval=(eval_transform, None))
 
     # Set transformation groups
-    final_train_dataset = make_classification_dataset(
+    final_train_dataset = _make_taskaware_classification_dataset(
         seq_train_dataset,
         transform_groups=transform_groups,
         initial_transform_group="train",
     )
 
-    final_test_dataset = make_classification_dataset(
+    final_test_dataset = _make_taskaware_classification_dataset(
         seq_test_dataset,
         transform_groups=transform_groups,
         initial_transform_group="eval",

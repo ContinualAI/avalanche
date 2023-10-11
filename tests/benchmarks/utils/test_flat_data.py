@@ -6,7 +6,7 @@ import torch
 
 from avalanche.benchmarks import FixedSizeExperienceSplitter
 from avalanche.benchmarks.utils import AvalancheDataset, concat_datasets
-from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import TaskAwareClassificationDataset
 from avalanche.benchmarks.utils.flat_data import (
     FlatData,
     _flatten_datasets_and_reindex,
@@ -151,7 +151,7 @@ class FlatteningTests(unittest.TestCase):
         self.assertListEqual([2, 3, 1, 2, 3], list(C))
 
     def test_concat_flattens_same_classification_dataset(self):
-        D = ClassificationDataset([[1, 2, 3]])
+        D = TaskAwareClassificationDataset([[1, 2, 3]])
         B = concat_datasets([])
         B = B.concat(D)
         B = D.concat(B)

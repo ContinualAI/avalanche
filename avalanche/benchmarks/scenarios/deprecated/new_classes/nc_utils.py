@@ -15,12 +15,12 @@ from typing import List, Sequence, Dict, Any, Union, SupportsInt
 import torch
 
 from avalanche.benchmarks.utils import (
-    classification_subset,
+    _taskaware_classification_subset,
     SupportedDataset,
 )
 from avalanche.benchmarks.utils import tensor_as_list
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
+    TaskAwareClassificationDataset,
 )
 
 
@@ -165,7 +165,7 @@ def make_nc_transformation_subset(
     bucket_classes: bool = False,
     sort_classes: bool = False,
     sort_indexes: bool = False,
-) -> ClassificationDataset:
+) -> TaskAwareClassificationDataset:
     """
     Creates a subset given the list of classes the patterns should belong to.
 
@@ -189,7 +189,7 @@ def make_nc_transformation_subset(
         belonging to the given classes, in the order controlled by the
         ``bucket_classes``, ``sort_classes`` and ``sort_indexes`` parameters.
     """
-    return classification_subset(
+    return _taskaware_classification_subset(
         dataset,
         indices=_indexes_from_set(
             getattr(dataset, "targets"),

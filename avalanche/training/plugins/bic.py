@@ -15,8 +15,8 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import MultiStepLR
 
 from avalanche.benchmarks.utils import (
-    classification_subset,
-    concat_classification_datasets,
+    _taskaware_classification_subset,
+    _concat_taskaware_classification_datasets,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
@@ -165,7 +165,7 @@ class BiCPlugin(SupervisedPlugin):
         for class_id, class_buf in self.val_buffer.items():
             class_buf.resize(strategy, class_to_len[class_id])
 
-        strategy.experience.dataset = concat_classification_datasets(train_data)
+        strategy.experience.dataset = _concat_taskaware_classification_datasets(train_data)
 
     def before_training_exp(
         self,
@@ -248,7 +248,7 @@ class BiCPlugin(SupervisedPlugin):
             for _, class_buf in self.val_buffer.items():
                 list_subsets.append(class_buf.buffer)
 
-            stage_set = concat_classification_datasets(list_subsets)
+            stage_set = _concat_taskaware_classification_datasets(list_subsets)
             stage_loader = DataLoader(
                 stage_set,
                 batch_size=strategy.train_mb_size,

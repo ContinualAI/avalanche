@@ -29,16 +29,19 @@ from typing import (
     NamedTuple,
 )
 
+from avalanche.benchmarks.utils.classification_dataset import (
+    _make_taskaware_tensor_classification_dataset,
+    _make_taskaware_classification_dataset,
+)
+
 from avalanche.benchmarks.utils import (
-    make_tensor_classification_dataset,
     SupportedDataset,
-    make_classification_dataset,
     FilelistDataset,
     PathsDataset,
     common_paths_root,
 )
 from avalanche.benchmarks.utils.classification_dataset import (
-    ClassificationDataset,
+    TaskAwareClassificationDataset,
 )
 from avalanche.benchmarks.scenarios.deprecated.classification_scenario import GenericCLScenario
 
@@ -138,7 +141,7 @@ def create_multi_dataset_generic_benchmark(
                 "complete_test_set_only is True"
             )
 
-    stream_definitions: Dict[str, Tuple[Iterable[ClassificationDataset]]] = dict()
+    stream_definitions: Dict[str, Tuple[Iterable[TaskAwareClassificationDataset]]] = dict()
 
     for stream_name, dataset_list in input_streams.items():
         initial_transform_group = "train"
@@ -149,7 +152,7 @@ def create_multi_dataset_generic_benchmark(
         for dataset_idx in range(len(dataset_list)):
             dataset = dataset_list[dataset_idx]
             stream_datasets.append(
-                make_classification_dataset(
+                _make_taskaware_classification_dataset(
                     dataset,
                     transform_groups=transform_groups,
                     initial_transform_group=initial_transform_group,
@@ -174,7 +177,7 @@ def _adapt_lazy_stream(generator, transform_groups, initial_transform_group):
     """
 
     for dataset in generator:
-        dataset = make_classification_dataset(
+        dataset = _make_taskaware_classification_dataset(
             dataset,
             transform_groups=transform_groups,
             initial_transform_group=initial_transform_group,
@@ -200,7 +203,7 @@ class LazyStreamDefinition(NamedTuple):
       can be used.
     """
 
-    exps_generator: Iterable[ClassificationDataset]
+    exps_generator: Iterable[TaskAwareClassificationDataset]
     """
     The experiences generator. Can be a "yield"-based generator, a custom
     sequence, a standard list or any kind of iterable returning
@@ -330,7 +333,7 @@ def create_lazy_generic_benchmark(
         str,
         Tuple[
             # Dataset generator + stream length
-            Tuple[Generator[ClassificationDataset, None, None], int],
+            Tuple[Generator[TaskAwareClassificationDataset, None, None], int],
             # Task label(s) for each experience
             Iterable[Union[int, Iterable[int]]],
         ],
@@ -457,14 +460,14 @@ def create_generic_benchmark_from_filelists(
     if other_streams_file_lists is not None:
         input_streams = {**input_streams, **other_streams_file_lists}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[TaskAwareClassificationDataset]] = dict()
 
     for stream_name, file_lists in input_streams.items():
-        stream_datasets: List[ClassificationDataset] = []
+        stream_datasets: List[TaskAwareClassificationDataset] = []
         for exp_id, f_list in enumerate(file_lists):
             f_list_dataset = FilelistDataset(root, f_list)
             stream_datasets.append(
-                make_classification_dataset(
+                _make_taskaware_classification_dataset(
                     f_list_dataset, task_labels=task_labels[exp_id]
                 )
             )
@@ -583,17 +586,17 @@ def create_generic_benchmark_from_paths(
     if other_streams_lists_of_files is not None:
         input_streams = {**input_streams, **other_streams_lists_of_files}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[TaskAwareClassificationDataset]] = dict()
 
     for stream_name, lists_of_files in input_streams.items():
-        stream_datasets: List[ClassificationDataset] = []
+        stream_datasets: List[TaskAwareClassificationDataset] = []
         for exp_id, list_of_files in enumerate(lists_of_files):
             common_root, exp_paths_list = common_paths_root(list_of_files)
             paths_dataset: PathsDataset[Any, int] = PathsDataset(
                 common_root, exp_paths_list
             )
             stream_datasets.append(
-                make_classification_dataset(
+                _make_taskaware_classification_dataset(
                     paths_dataset, task_labels=task_labels[exp_id]
                 )
             )
@@ -706,13 +709,13 @@ def create_generic_benchmark_from_tensor_lists(
     if other_streams_tensors is not None:
         input_streams = {**input_streams, **other_streams_tensors}
 
-    stream_definitions: Dict[str, Sequence[ClassificationDataset]] = dict()
+    stream_definitions: Dict[str, Sequence[TaskAwareClassificationDataset]] = dict()
 
     for stream_name, list_of_exps_tensors in input_streams.items():
-        stream_datasets: List[ClassificationDataset] = []
+        stream_datasets: List[TaskAwareClassificationDataset] = []
         for exp_id, exp_tensors in enumerate(list_of_exps_tensors):
             stream_datasets.append(
-                make_tensor_classification_dataset(
+                _make_taskaware_tensor_classification_dataset(
                     *exp_tensors, task_labels=task_labels[exp_id]
                 )
             )

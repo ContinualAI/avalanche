@@ -28,7 +28,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 )
 from avalanche.benchmarks.datasets.external_datasets.mnist import get_mnist_dataset
 from avalanche.benchmarks.utils import (
-    make_classification_dataset,
+    _make_taskaware_classification_dataset,
     DefaultTransformGroups,
 )
 from avalanche.benchmarks.utils.data import make_avalanche_dataset
@@ -237,12 +237,12 @@ def PermutedMNIST(
 
         # Freeze the permutation
         permuted_train = make_avalanche_dataset(
-            make_classification_dataset(mnist_train),
+            _make_taskaware_classification_dataset(mnist_train),
             frozen_transform_groups=DefaultTransformGroups((permutation, None)),
         )
 
         permuted_test = make_avalanche_dataset(
-            make_classification_dataset(mnist_test),
+            _make_taskaware_classification_dataset(mnist_test),
             frozen_transform_groups=DefaultTransformGroups((permutation, None)),
         )
 
@@ -354,12 +354,12 @@ def RotatedMNIST(
 
         # Freeze the rotation
         rotated_train = make_avalanche_dataset(
-            make_classification_dataset(mnist_train),
+            _make_taskaware_classification_dataset(mnist_train),
             frozen_transform_groups=DefaultTransformGroups((rotation, None)),
         )
 
         rotated_test = make_avalanche_dataset(
-            make_classification_dataset(mnist_test),
+            _make_taskaware_classification_dataset(mnist_test),
             frozen_transform_groups=DefaultTransformGroups((rotation, None)),
         )
 

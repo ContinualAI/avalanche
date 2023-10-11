@@ -19,7 +19,7 @@ from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset, DataLoader
 
-from avalanche.benchmarks.utils import concat_classification_datasets
+from avalanche.benchmarks.utils import _concat_taskaware_classification_datasets
 from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.models import SimpleMLP
 from avalanche.training.plugins import ReplayPlugin

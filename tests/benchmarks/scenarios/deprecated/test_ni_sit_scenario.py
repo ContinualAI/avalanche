@@ -9,7 +9,7 @@ from avalanche.benchmarks.scenarios import NIExperience, ClassificationStream
 from avalanche.benchmarks.scenarios.deprecated.new_classes.nc_utils import (
     make_nc_transformation_subset,
 )
-from avalanche.benchmarks.utils import classification_subset
+from avalanche.benchmarks.utils import _taskaware_classification_subset
 
 
 class NISITTests(unittest.TestCase):
@@ -160,11 +160,11 @@ class NISITTests(unittest.TestCase):
         train_part2 = make_nc_transformation_subset(
             mnist_train, None, None, range(5, 10)
         )
-        train_part2 = classification_subset(train_part2, class_mapping=split_mapping)
+        train_part2 = _taskaware_classification_subset(train_part2, class_mapping=split_mapping)
 
         test_part1 = make_nc_transformation_subset(mnist_test, None, None, range(5))
         test_part2 = make_nc_transformation_subset(mnist_test, None, None, range(5, 10))
-        test_part2 = classification_subset(test_part2, class_mapping=split_mapping)
+        test_part2 = _taskaware_classification_subset(test_part2, class_mapping=split_mapping)
         my_ni_benchmark = ni_benchmark(
             [train_part1, train_part2],
             [test_part1, test_part2],
