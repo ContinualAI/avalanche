@@ -18,7 +18,8 @@ from typing import (
     List,
     Optional,
     TypeVar,
-    Union, Protocol,
+    Union,
+    Protocol,
 )
 from typing_extensions import Literal
 import warnings
@@ -110,7 +111,7 @@ class OnlineCLExperience(DatasetExperience, Generic[TCLDataset]):
         :type sub_stream_length: int, optional
         :param access_task_boundaries: Whether to access task boundaries.
         :type access_task_boundaries: bool, optional
-        """       
+        """
         super().__init__(dataset=dataset)
         self.access_task_boundaries = access_task_boundaries
         self.origin_experience: DatasetExperience = origin_experience
@@ -146,7 +147,7 @@ class FixedSizeExperienceSplitter:
 
         Experience decorators (e.g. class attributes) will be stripped from the experience.
         You will need to re-apply them to the resulting experiences if you need them.
-        
+
         :param experience: The experience to split.
         :param experience_size: The experience size (number of instances).
         :param shuffle: If True, instances will be shuffled before splitting.
@@ -163,7 +164,7 @@ class FixedSizeExperienceSplitter:
 
         # we need to fix the seed because repeated calls to the generator
         # must return the same order every time.
-        self.seed = random.randint(0, 2 ** 32 - 1)
+        self.seed = random.randint(0, 2**32 - 1)
 
     def __iter__(self):
         exp_dataset = self.experience.dataset
@@ -272,7 +273,9 @@ def split_online_stream(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def default_online_split_wrapper(e, e_sz):
-            return _default_online_split(shuffle, drop_last, access_task_boundaries, e, e_sz)
+            return _default_online_split(
+                shuffle, drop_last, access_task_boundaries, e, e_sz
+            )
 
         split_strategy = default_online_split_wrapper
     else:
@@ -342,9 +345,11 @@ class OnlineCLScenario(CLScenario):
         :param shuffle: If True, experiences will be split by first shuffling
             instances in each experience. Defaults to True.
         """
-        warnings.warn("Deprecated. Use `split_online_stream` or similar methods to split"
-                     "single streams or experiences instead")
-        
+        warnings.warn(
+            "Deprecated. Use `split_online_stream` or similar methods to split"
+            "single streams or experiences instead"
+        )
+
         if stream_split_strategy != "fixed_size_split":
             raise ValueError("Unknown experience split strategy")
 

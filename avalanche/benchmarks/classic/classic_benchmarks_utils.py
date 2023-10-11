@@ -4,7 +4,9 @@ from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
     DatasetStream,
 )
 
-from avalanche.benchmarks.utils.classification_dataset import TaskAwareClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    TaskAwareClassificationDataset,
+)
 
 
 def check_vision_benchmark(

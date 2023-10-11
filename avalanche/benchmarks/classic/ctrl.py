@@ -105,10 +105,12 @@ def CTrL(
                 paths_dataset: PathsDataset[Image, int] = PathsDataset(
                     common_root, exp_paths_list
                 )
-                dataset: TaskAwareSupervisedClassificationDataset = _make_taskaware_classification_dataset(
-                    paths_dataset,
-                    task_labels=task_labels,
-                    transform=transforms.Compose([transforms.ToTensor(), trans]),
+                dataset: TaskAwareSupervisedClassificationDataset = (
+                    _make_taskaware_classification_dataset(
+                        paths_dataset,
+                        task_labels=task_labels,
+                        transform=transforms.Compose([transforms.ToTensor(), trans]),
+                    )
                 )
             else:
                 dataset = _make_taskaware_tensor_classification_dataset(

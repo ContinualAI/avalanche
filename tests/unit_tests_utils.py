@@ -130,7 +130,9 @@ def get_fast_benchmark(
     train_transform=None,
     eval_transform=None,
 ):
-    train, test = dummy_classification_datasets(n_classes, n_features, n_samples_per_class, seed)
+    train, test = dummy_classification_datasets(
+        n_classes, n_features, n_samples_per_class, seed
+    )
     my_nc_benchmark = nc_benchmark(
         train,
         test,
@@ -144,8 +146,9 @@ def get_fast_benchmark(
     return my_nc_benchmark
 
 
-def dummy_classification_datasets(n_classes=10, n_features=7,
-                                  n_samples_per_class=20, seed=42):
+def dummy_classification_datasets(
+    n_classes=10, n_features=7, n_samples_per_class=20, seed=42
+):
     dataset = make_classification(
         n_samples=n_classes * n_samples_per_class,
         n_classes=n_classes,

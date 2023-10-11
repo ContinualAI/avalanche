@@ -4,11 +4,24 @@ import torch
 from numpy.testing import assert_almost_equal
 from torch.utils.data import TensorDataset, DataLoader
 
-from avalanche.benchmarks import benchmark_from_datasets, benchmark_with_validation_stream, CLScenario, CLStream, \
-    split_validation_random, task_incremental_benchmark
-from avalanche.benchmarks.scenarios.dataset_scenario import DatasetExperience, split_validation_class_balanced
+from avalanche.benchmarks import (
+    benchmark_from_datasets,
+    benchmark_with_validation_stream,
+    CLScenario,
+    CLStream,
+    split_validation_random,
+    task_incremental_benchmark,
+)
+from avalanche.benchmarks.scenarios.dataset_scenario import (
+    DatasetExperience,
+    split_validation_class_balanced,
+)
 from avalanche.benchmarks.utils import AvalancheDataset
-from tests.unit_tests_utils import dummy_tensor_dataset, get_fast_benchmark, DummyImageDataset
+from tests.unit_tests_utils import (
+    dummy_tensor_dataset,
+    get_fast_benchmark,
+    DummyImageDataset,
+)
 
 
 def get_mbatch(data, batch_size=5):
@@ -25,10 +38,7 @@ class DatasetScenarioTests(unittest.TestCase):
         d3 = AvalancheDataset(dummy_tensor_dataset())
         d4 = AvalancheDataset(dummy_tensor_dataset())
 
-        bm = benchmark_from_datasets(
-            train=[d1, d2],
-            test=[d3, d4]
-        )
+        bm = benchmark_from_datasets(train=[d1, d2], test=[d3, d4])
 
         # train stream
         train_s = bm.streams["train"]
@@ -55,10 +65,7 @@ class DatasetScenarioTests(unittest.TestCase):
         d1b = AvalancheDataset(DummyImageDataset(n_classes=10))
         d2b = AvalancheDataset(DummyImageDataset(n_classes=10))
 
-        bm = benchmark_from_datasets(
-            train=[d1, d1b],
-            test=[d2, d2b]
-        )
+        bm = benchmark_from_datasets(train=[d1, d1b], test=[d2, d2b])
 
 
 class TaskIncrementalScenarioTests(unittest.TestCase):
@@ -78,7 +85,9 @@ class TaskIncrementalScenarioTests(unittest.TestCase):
 class DatasetSplitterTest(unittest.TestCase):
     def test_split_dataset_random(self):
         x = torch.rand(32, 10)
-        y = torch.arange(32)  # we use ordered labels to reconstruct the order after shuffling
+        y = torch.arange(
+            32
+        )  # we use ordered labels to reconstruct the order after shuffling
         dd = AvalancheDataset([TensorDataset(x, y)])
 
         d1, d2 = split_validation_random(validation_size=0.5, shuffle=True, dataset=dd)
@@ -124,7 +133,9 @@ class DatasetSplitterTest(unittest.TestCase):
 
     def test_fixed_size_experience_split_strategy(self):
         x = torch.rand(32, 10)
-        y = torch.arange(32)  # we use ordered labels to reconstruct the order after shuffling
+        y = torch.arange(
+            32
+        )  # we use ordered labels to reconstruct the order after shuffling
         dd = AvalancheDataset([TensorDataset(x, y)])
 
         d1, d2 = split_validation_random(validation_size=10, shuffle=True, dataset=dd)
@@ -307,10 +318,7 @@ class DatasetWithValidationStreamTests(unittest.TestCase):
             for dataset in [dtest]:
                 yield DatasetExperience(dataset=dataset)
 
-        bm = CLScenario([
-            CLStream("train", train_gen()),
-            CLStream("test", test_gen())
-        ])
+        bm = CLScenario([CLStream("train", train_gen()), CLStream("test", test_gen())])
 
         valid_bm = benchmark_with_validation_stream(bm, 20, shuffle=False)
 

@@ -35,11 +35,7 @@ from avalanche.models.pytorchcv_wrapper import (
     pyramidnet,
     get_model,
 )
-from tests.unit_tests_utils import (
-    common_setups,
-    load_benchmark,
-    get_fast_benchmark
-)
+from tests.unit_tests_utils import common_setups, load_benchmark, get_fast_benchmark
 from tests.benchmarks.utils.test_avalanche_classification_dataset import get_mbatch
 from avalanche.training.checkpoint import save_checkpoint, maybe_load_checkpoint
 

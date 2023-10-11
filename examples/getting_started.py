@@ -50,21 +50,26 @@ def main(args):
     # ---------
 
     # --- BENCHMARK CREATION
-    mnist_train = as_supervised(MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
-        train=True,
-        download=True,
-        transform=train_transform,
-    ))
-    mnist_test = AvalancheDataset(MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
-        train=False,
-        download=True,
-        transform=test_transform,
-    ))
+    mnist_train = as_supervised(
+        MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=True,
+            download=True,
+            transform=train_transform,
+        )
+    )
+    mnist_test = AvalancheDataset(
+        MNIST(
+            root=expanduser("~") + "/.avalanche/data/mnist/",
+            train=False,
+            download=True,
+            transform=test_transform,
+        )
+    )
     benchmark = class_incremental_benchmark(
-        datasets_dict={'train': mnist_train, 'test': mnist_test},
-        num_experiences=5, seed=1234
+        datasets_dict={"train": mnist_train, "test": mnist_test},
+        num_experiences=5,
+        seed=1234,
     )
     # ---------
 

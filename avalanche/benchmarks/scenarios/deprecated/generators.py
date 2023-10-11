@@ -49,7 +49,9 @@ from avalanche.benchmarks.scenarios.deprecated.lazy_dataset_sequence import (
     LazyDatasetSequence,
 )
 from avalanche.benchmarks.scenarios.deprecated.new_classes.nc_scenario import NCScenario
-from avalanche.benchmarks.scenarios.deprecated.new_instances.ni_scenario import NIScenario
+from avalanche.benchmarks.scenarios.deprecated.new_instances.ni_scenario import (
+    NIScenario,
+)
 from avalanche.benchmarks.scenarios.online import FixedSizeExperienceSplitter
 from avalanche.benchmarks.utils.classification_dataset import (
     SupportedDataset,
@@ -211,7 +213,9 @@ def nc_benchmark(
         train_dataset_sup = list(
             map(_as_taskaware_supervised_classification_dataset, train_dataset)
         )
-        test_dataset_sup = list(map(_as_taskaware_supervised_classification_dataset, test_dataset))
+        test_dataset_sup = list(
+            map(_as_taskaware_supervised_classification_dataset, test_dataset)
+        )
 
         (
             seq_train_dataset,
@@ -238,7 +242,9 @@ def nc_benchmark(
             # Overrides n_experiences (and per_experience_classes, already done)
             n_experiences = len(train_dataset)
     else:
-        seq_train_dataset = _as_taskaware_supervised_classification_dataset(train_dataset)
+        seq_train_dataset = _as_taskaware_supervised_classification_dataset(
+            train_dataset
+        )
         seq_test_dataset = _as_taskaware_supervised_classification_dataset(test_dataset)
 
     transform_groups = dict(train=(train_transform, None), eval=(eval_transform, None))
@@ -366,7 +372,9 @@ def ni_benchmark(
         train_dataset_sup = list(
             map(_as_taskaware_supervised_classification_dataset, train_dataset)
         )
-        test_dataset_sup = list(map(_as_taskaware_supervised_classification_dataset, test_dataset))
+        test_dataset_sup = list(
+            map(_as_taskaware_supervised_classification_dataset, test_dataset)
+        )
 
         (
             seq_train_dataset,
@@ -376,7 +384,9 @@ def ni_benchmark(
             train_dataset_sup, test_dataset_sup
         )
     else:
-        seq_train_dataset = _as_taskaware_supervised_classification_dataset(train_dataset)
+        seq_train_dataset = _as_taskaware_supervised_classification_dataset(
+            train_dataset
+        )
         seq_test_dataset = _as_taskaware_supervised_classification_dataset(test_dataset)
 
     transform_groups = dict(train=(train_transform, None), eval=(eval_transform, None))
@@ -588,11 +598,10 @@ def data_incremental_benchmark(
         # However, MyPy does not understand what a partial is -_-
         def split_strategy_wrapper(exp):
             ss = FixedSizeExperienceSplitter(
-                experience=exp, 
-                experience_size=experience_size, 
-                shuffle=shuffle
+                experience=exp, experience_size=experience_size, shuffle=shuffle
             )
             return [e.dataset for e in ss]
+
         split_strategy = split_strategy_wrapper
     else:
         split_strategy = custom_split_strategy

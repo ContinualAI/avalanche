@@ -197,7 +197,9 @@ def as_classification_dataset(
 def as_taskaware_classification_dataset(
     dataset: ISupportedClassificationDataset[T_co],
 ) -> "TaskAwareClassificationDataset":
-    from avalanche.benchmarks.utils.classification_dataset import TaskAwareClassificationDataset
+    from avalanche.benchmarks.utils.classification_dataset import (
+        TaskAwareClassificationDataset,
+    )
 
     if isinstance(dataset, TaskAwareClassificationDataset):
         return dataset

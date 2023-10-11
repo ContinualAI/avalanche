@@ -6,7 +6,10 @@ from os.path import expanduser
 from torchvision.datasets import MNIST
 
 from avalanche.benchmarks import tensors_benchmark
-from avalanche.benchmarks.scenarios.deprecated.generators import nc_benchmark, ni_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import (
+    nc_benchmark,
+    ni_benchmark,
+)
 from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
     ClassificationExperience,
 )

@@ -18,7 +18,9 @@ from avalanche.benchmarks.scenarios.deprecated.classification_scenario import (
     ClassificationStream,
     ClassificationExperience,
 )
-from avalanche.benchmarks.utils.classification_dataset import _taskaware_classification_subset
+from avalanche.benchmarks.utils.classification_dataset import (
+    _taskaware_classification_subset,
+)
 from avalanche.benchmarks.utils.classification_dataset import (
     TaskAwareClassificationDataset,
     TaskAwareSupervisedClassificationDataset,
@@ -28,7 +30,9 @@ from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
 class NCScenario(
-    ClassificationScenario["NCStream", "NCExperience", TaskAwareSupervisedClassificationDataset]
+    ClassificationScenario[
+        "NCStream", "NCExperience", TaskAwareSupervisedClassificationDataset
+    ]
 ):
 
     """

@@ -25,7 +25,8 @@ from typing import (
     Union,
     Tuple,
     Optional,
-    Iterable, Dict,
+    Iterable,
+    Dict,
 )
 
 from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
@@ -35,9 +36,7 @@ from ..utils import TaskAwareSupervisedClassificationDataset
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
 
 
-def benchmark_from_datasets(
-    **dataset_streams: Sequence[TCLDataset]
-) -> CLScenario:
+def benchmark_from_datasets(**dataset_streams: Sequence[TCLDataset]) -> CLScenario:
     """Creates a benchmark given a list of datasets for each stream.
 
     Each dataset will be considered as a separate experience.
@@ -59,7 +58,10 @@ def benchmark_from_datasets(
         for dd in data_s:
             if not isinstance(dd, AvalancheDataset):
                 raise ValueError("datasets must be AvalancheDatasets")
-        des = [DatasetExperience(dataset=dd, current_experience=eid) for eid, dd in enumerate(data_s)]
+        des = [
+            DatasetExperience(dataset=dd, current_experience=eid)
+            for eid, dd in enumerate(data_s)
+        ]
         s = EagerCLStream(stream_name, des)
         exps_streams.append(s)
     return CLScenario(exps_streams)
@@ -69,10 +71,7 @@ class DatasetExperience(CLExperience, Generic[TCLDataset]):
     """An Experience that provides a dataset."""
 
     def __init__(
-        self,
-        *,
-        dataset: TCLDataset,
-        current_experience: Optional[int] = None
+        self, *, dataset: TCLDataset, current_experience: Optional[int] = None
     ):
         super().__init__(current_experience=current_experience, origin_stream=None)
         self._dataset: AvalancheDataset = dataset
@@ -84,7 +83,9 @@ class DatasetExperience(CLExperience, Generic[TCLDataset]):
         return data
 
 
-def _split_dataset_by_attribute(data: AvalancheDataset, attr_name: str) -> Dict[int, AvalancheDataset]:
+def _split_dataset_by_attribute(
+    data: AvalancheDataset, attr_name: str
+) -> Dict[int, AvalancheDataset]:
     """Helper to split a dataset by attribute.
 
     :param data: an Avalanche dataset.
@@ -101,8 +102,8 @@ def _split_dataset_by_attribute(data: AvalancheDataset, attr_name: str) -> Dict[
 def split_validation_random(
     validation_size: Union[int, float],
     shuffle: bool,
-    seed: int=None,
-    dataset: AvalancheDataset=None,
+    seed: int = None,
+    dataset: AvalancheDataset = None,
 ) -> Tuple[AvalancheDataset, AvalancheDataset]:
     """Splits an `AvalancheDataset` in two splits.
 
@@ -170,7 +171,9 @@ def split_validation_random(
 def split_validation_class_balanced(
     validation_size: Union[int, float],
     dataset: TaskAwareSupervisedClassificationDataset,
-) -> Tuple[TaskAwareSupervisedClassificationDataset, TaskAwareSupervisedClassificationDataset]:
+) -> Tuple[
+    TaskAwareSupervisedClassificationDataset, TaskAwareSupervisedClassificationDataset
+]:
     """Class-balanced dataset split.
 
     This splitting strategy splits `dataset` into train and validation data of
@@ -223,7 +226,8 @@ def split_validation_class_balanced(
 
 
 class LazyTrainValSplitter:
-    def __init__(self,
+    def __init__(
+        self,
         split_strategy: Callable[
             [AvalancheDataset],
             Tuple[AvalancheDataset, AvalancheDataset],
@@ -241,7 +245,7 @@ class LazyTrainValSplitter:
         """
         self.split_strategy = split_strategy
         self.experiences = experiences
-    
+
     def __iter__(self):
         for new_experience in self.experiences:
             yield self.split_strategy(new_experience.dataset)
@@ -300,6 +304,7 @@ def benchmark_with_validation_stream(
     if split_strategy is None:
         if seed is None:
             seed = random.randint(0, 1000000)
+
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def random_validation_split_strategy_wrapper(data):
@@ -328,7 +333,9 @@ def benchmark_with_validation_stream(
     other_streams = benchmark.streams
 
     del other_streams["train"]
-    return CLScenario(streams=[train_stream, valid_stream] + list(other_streams.values()))
+    return CLScenario(
+        streams=[train_stream, valid_stream] + list(other_streams.values())
+    )
 
 
 __all__ = [
@@ -336,5 +343,5 @@ __all__ = [
     "benchmark_from_datasets",
     "DatasetExperience",
     "split_validation_random",
-    "benchmark_with_validation_stream"
+    "benchmark_with_validation_stream",
 ]

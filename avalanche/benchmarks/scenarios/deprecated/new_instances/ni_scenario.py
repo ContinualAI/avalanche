@@ -30,7 +30,9 @@ from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
 class NIScenario(
-    ClassificationScenario["NIStream", "NIExperience", TaskAwareSupervisedClassificationDataset]
+    ClassificationScenario[
+        "NIStream", "NIExperience", TaskAwareSupervisedClassificationDataset
+    ]
 ):
     """
     This class defines a "New Instance" scenario.
@@ -168,7 +170,9 @@ class NIScenario(
             included_patterns: List[int] = list()
             for exp_def in lst_fixed_exp_assignment:
                 included_patterns.extend(exp_def)
-            subset = _taskaware_classification_subset(train_dataset, indices=included_patterns)
+            subset = _taskaware_classification_subset(
+                train_dataset, indices=included_patterns
+            )
             unique_targets, unique_count = torch.unique(
                 torch.as_tensor(subset.targets), return_counts=True
             )

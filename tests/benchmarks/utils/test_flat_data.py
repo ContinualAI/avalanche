@@ -6,7 +6,9 @@ import torch
 
 from avalanche.benchmarks import FixedSizeExperienceSplitter
 from avalanche.benchmarks.utils import AvalancheDataset, concat_datasets
-from avalanche.benchmarks.utils.classification_dataset import TaskAwareClassificationDataset
+from avalanche.benchmarks.utils.classification_dataset import (
+    TaskAwareClassificationDataset,
+)
 from avalanche.benchmarks.utils.flat_data import (
     FlatData,
     _flatten_datasets_and_reindex,

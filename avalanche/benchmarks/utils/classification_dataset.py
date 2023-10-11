@@ -156,7 +156,11 @@ class TaskAwareSupervisedClassificationDataset(TaskAwareClassificationDataset[T_
 
 
 SupportedDataset = Union[
-    IDatasetWithTargets, ITensorDataset, Subset, ConcatDataset, TaskAwareClassificationDataset
+    IDatasetWithTargets,
+    ITensorDataset,
+    Subset,
+    ConcatDataset,
+    TaskAwareClassificationDataset,
 ]
 
 
@@ -318,7 +322,9 @@ def _make_taskaware_classification_dataset(
         targets_data is not None and task_labels_data is not None
     )
 
-    data: Union[TaskAwareClassificationDataset, TaskAwareSupervisedClassificationDataset]
+    data: Union[
+        TaskAwareClassificationDataset, TaskAwareSupervisedClassificationDataset
+    ]
     if is_supervised:
         data = TaskAwareSupervisedClassificationDataset(
             [dataset],
@@ -913,13 +919,17 @@ def _concat_taskaware_classification_datasets(
         (len(dds) > 0) or (targets is not None and task_labels is not None)
     )
 
-    data: Union[TaskAwareSupervisedClassificationDataset, TaskAwareClassificationDataset]
+    data: Union[
+        TaskAwareSupervisedClassificationDataset, TaskAwareClassificationDataset
+    ]
     if supervised:
         data = TaskAwareSupervisedClassificationDataset(
             dds, transform_groups=transform_groups_obj
         )
     else:
-        data = TaskAwareClassificationDataset(dds, transform_groups=transform_groups_obj)
+        data = TaskAwareClassificationDataset(
+            dds, transform_groups=transform_groups_obj
+        )
     return data.with_transforms(initial_transform_group)
 
 
@@ -953,7 +963,9 @@ def _concat_taskaware_classification_datasets_sequentially(
     train_dataset_list: Sequence[ISupportedClassificationDataset],
     test_dataset_list: Sequence[ISupportedClassificationDataset],
 ) -> Tuple[
-    TaskAwareSupervisedClassificationDataset, TaskAwareSupervisedClassificationDataset, List[list]
+    TaskAwareSupervisedClassificationDataset,
+    TaskAwareSupervisedClassificationDataset,
+    List[list],
 ]:
     """
     Concatenates a list of datasets. This is completely different from
@@ -1119,5 +1131,5 @@ __all__ = [
     "_make_taskaware_classification_dataset",
     "_make_taskaware_tensor_classification_dataset",
     "_taskaware_classification_subset",
-    "_concat_taskaware_classification_datasets"
+    "_concat_taskaware_classification_datasets",
 ]

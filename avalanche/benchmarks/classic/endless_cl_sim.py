@@ -130,10 +130,14 @@ def EndlessCLSim(
         eval_data.transform = eval_transform
 
         train_datasets.append(
-            _make_taskaware_classification_dataset(dataset=train_data, task_labels=task_order[i])
+            _make_taskaware_classification_dataset(
+                dataset=train_data, task_labels=task_order[i]
+            )
         )
         eval_datasets.append(
-            _make_taskaware_classification_dataset(dataset=eval_data, task_labels=task_order[i])
+            _make_taskaware_classification_dataset(
+                dataset=eval_data, task_labels=task_order[i]
+            )
         )
 
     scenario_obj = dataset_benchmark(train_datasets, eval_datasets)

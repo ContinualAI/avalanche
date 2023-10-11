@@ -8,6 +8,7 @@ try:
         RLExperience,
     )
     import pygame
+
     skip = False
 except ImportError:
     skip = True

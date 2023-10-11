@@ -13,7 +13,7 @@ from torch.utils.data import TensorDataset
 
 class TestsTaskAware(unittest.TestCase):
     def test_taskaware(self):
-        """Common use case: add tas labels to class-incremental benchmark."""        
+        """Common use case: add tas labels to class-incremental benchmark."""
         n_classes, n_samples_per_class, n_features = 10, 3, 7
         dataset = make_classification(
             n_samples=n_classes * n_samples_per_class,
@@ -27,16 +27,18 @@ class TestsTaskAware(unittest.TestCase):
         train_X, test_X, train_y, test_y = train_test_split(
             X, y, train_size=0.6, shuffle=True, stratify=y
         )
-        
+
         d1 = TensorDataset(train_X, train_y)
         da = DataAttribute(train_y.tolist(), "targets")
         d1 = ClassificationDataset(d1, data_attributes=[da])
-        
+
         d2 = TensorDataset(test_X, test_y)
         da = DataAttribute(test_y.tolist(), "targets")
         d2 = ClassificationDataset(d2, data_attributes=[da])
 
-        bm_ci = class_incremental_benchmark({'train': d1, 'test': d2}, num_experiences=n_classes)
+        bm_ci = class_incremental_benchmark(
+            {"train": d1, "test": d2}, num_experiences=n_classes
+        )
         bm_ti = task_incremental_benchmark(bm_ci)
 
         assert len(list(bm_ti.train_stream)) == len(list(bm_ci.train_stream))
@@ -48,5 +50,5 @@ class TestsTaskAware(unittest.TestCase):
             assert len(ci_train[eid].dataset) == len(exp.dataset)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -118,14 +118,18 @@ class ExperienceDecoratorTests(unittest.TestCase):
         tensor_y = torch.randint(0, 70, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            _make_taskaware_tensor_classification_dataset(tensor_x, tensor_y, task_labels=tensor_t)
+            _make_taskaware_tensor_classification_dataset(
+                tensor_x, tensor_y, task_labels=tensor_t
+            )
         )
 
         tensor_x = torch.rand(200, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (200,))
         tensor_t = torch.randint(0, 5, (200,))
         train_exps.append(
-            _make_taskaware_tensor_classification_dataset(tensor_x, tensor_y, task_labels=tensor_t)
+            _make_taskaware_tensor_classification_dataset(
+                tensor_x, tensor_y, task_labels=tensor_t
+            )
         )
 
         test_exps = []
@@ -133,7 +137,9 @@ class ExperienceDecoratorTests(unittest.TestCase):
         test_y = torch.randint(100, 200, (200,))
         test_t = torch.randint(0, 5, (200,))
         test_exps.append(
-            _make_taskaware_tensor_classification_dataset(test_x, test_y, task_labels=test_t)
+            _make_taskaware_tensor_classification_dataset(
+                test_x, test_y, task_labels=test_t
+            )
         )
 
         other_stream_exps = []
@@ -141,24 +147,20 @@ class ExperienceDecoratorTests(unittest.TestCase):
         other_y = torch.randint(400, 600, (200,))
         other_t = torch.randint(0, 5, (200,))
         other_stream_exps.append(
-            _make_taskaware_tensor_classification_dataset(other_x, other_y, task_labels=other_t)
+            _make_taskaware_tensor_classification_dataset(
+                other_x, other_y, task_labels=other_t
+            )
         )
 
         bm = benchmark_from_datasets(
-            train=train_exps,
-            test=test_exps,
-            other=other_stream_exps
+            train=train_exps, test=test_exps, other=other_stream_exps
         )
         bm = with_classes_timeline(bm)
 
         train_0_classes = bm.train_stream[0].classes_in_this_experience
         train_1_classes = bm.train_stream[1].classes_in_this_experience
-        self._assert_is_unique_and_int(
-            bm.train_stream[0].classes_in_this_experience
-        )
-        self._assert_is_unique_and_int(
-            bm.train_stream[1].classes_in_this_experience
-        )
+        self._assert_is_unique_and_int(bm.train_stream[0].classes_in_this_experience)
+        self._assert_is_unique_and_int(bm.train_stream[1].classes_in_this_experience)
 
         train_0_classes_min = min(train_0_classes)
         train_1_classes_min = min(train_1_classes)
@@ -170,9 +172,7 @@ class ExperienceDecoratorTests(unittest.TestCase):
         self.assertLess(train_1_classes_max, 100)
 
         test_0_classes = bm.test_stream[0].classes_in_this_experience
-        self._assert_is_unique_and_int(
-            bm.test_stream[0].classes_in_this_experience
-        )
+        self._assert_is_unique_and_int(bm.test_stream[0].classes_in_this_experience)
 
         test_0_classes_min = min(test_0_classes)
         test_0_classes_max = max(test_0_classes)
@@ -180,9 +180,7 @@ class ExperienceDecoratorTests(unittest.TestCase):
         self.assertLess(test_0_classes_max, 200)
 
         other_0_classes = bm.other_stream[0].classes_in_this_experience
-        self._assert_is_unique_and_int(
-            bm.other_stream[0].classes_in_this_experience
-        )
+        self._assert_is_unique_and_int(bm.other_stream[0].classes_in_this_experience)
 
         other_0_classes_min = min(other_0_classes)
         other_0_classes_max = max(other_0_classes)

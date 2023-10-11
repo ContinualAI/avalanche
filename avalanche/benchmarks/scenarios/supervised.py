@@ -16,13 +16,15 @@ from typing import (
     Sequence,
     Optional,
     Dict,
-    List, Protocol,
+    List,
+    Protocol,
 )
 
 import torch
 
 from avalanche.benchmarks.utils.classification_dataset import (
-    _as_taskaware_supervised_classification_dataset, TaskAwareSupervisedClassificationDataset,
+    _as_taskaware_supervised_classification_dataset,
+    TaskAwareSupervisedClassificationDataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
@@ -56,12 +58,16 @@ def class_incremental_benchmark(
 
     :return: A class-incremental :class:`CLScenario`.
     """
-    if ((class_order is not None) and (seed is not None)):
+    if (class_order is not None) and (seed is not None):
         raise ValueError("Can't set `seed` if a fixed `class_order` is given.")
     if (num_classes_per_exp is not None) and (num_experiences is not None):
-        raise ValueError("Only one of `num_classes_per_exp` or `num_experiences` can be used.")
+        raise ValueError(
+            "Only one of `num_classes_per_exp` or `num_experiences` can be used."
+        )
     if (num_classes_per_exp is None) and (num_experiences is None):
-        raise ValueError("One of `num_classes_per_exp` or `num_experiences` must be set.")
+        raise ValueError(
+            "One of `num_classes_per_exp` or `num_experiences` must be set."
+        )
     if num_experiences is not None and num_experiences < 1:
         raise ValueError(
             "Invalid number of experiences (n_experiences "
@@ -77,7 +83,9 @@ def class_incremental_benchmark(
     dd_classes = list(datasets_dict.values())[0].targets.uniques
     num_classes = 1 + max(list(datasets_dict.values())[0].targets.uniques)
     if (num_classes_per_exp is not None) and (num_classes != sum(num_classes_per_exp)):
-        raise ValueError("`sum(num_classes_per_exp)` must be equal to the total number of classes.")
+        raise ValueError(
+            "`sum(num_classes_per_exp)` must be equal to the total number of classes."
+        )
     for dd in datasets_dict.values():  # all datasets have the same classes
         clss = dd.targets.uniques
         if dd_classes != clss:
@@ -99,12 +107,12 @@ def class_incremental_benchmark(
             else:
                 # final exp will take reminder of classes if they don't divide equally
                 start_idx = num_classes_per_exp * eid
-                end_idx = start_idx+num_classes_per_exp
+                end_idx = start_idx + num_classes_per_exp
                 classes_exp_assignment.append(class_order[start_idx:end_idx])
     elif num_classes_per_exp is not None:
         num_curr = 0
         for eid, num_classes in enumerate(num_classes_per_exp):
-            curr_classes = class_order[num_curr:num_curr+num_classes]
+            curr_classes = class_order[num_curr : num_curr + num_classes]
             classes_exp_assignment.append(curr_classes)
             num_curr += num_classes
 
@@ -123,8 +131,12 @@ def class_incremental_benchmark(
     return with_classes_timeline(CLScenario(streams))
 
 
-def _class_balanced_indices(data: AvalancheDataset, num_experiences: int,
-                            shuffle: bool = True, seed: Optional[int] = None) -> List[List[int]]:
+def _class_balanced_indices(
+    data: AvalancheDataset,
+    num_experiences: int,
+    shuffle: bool = True,
+    seed: Optional[int] = None,
+) -> List[List[int]]:
     """class-balanced indices.
 
     Internal helper for `new_instances_benchmark`.
@@ -164,7 +176,9 @@ def _class_balanced_indices(data: AvalancheDataset, num_experiences: int,
         # distribute remainder if not divisible by num_experiences
         if len(class_idxs) > 0:
             if shuffle:
-                exps_remaining = torch.randperm(num_experiences).tolist()[:len(class_idxs)]
+                exps_remaining = torch.randperm(num_experiences).tolist()[
+                    : len(class_idxs)
+                ]
             else:
                 exps_remaining = range(len(class_idxs))
             for eid in exps_remaining:
@@ -178,10 +192,12 @@ def _class_balanced_indices(data: AvalancheDataset, num_experiences: int,
 
 
 def _random_indices(
-        data, num_experiences: int, shuffle: bool = True,
-        seed: Optional[int] = None,
-        min_class_patterns_in_exp: int = 0
-    ) -> List[List[int]]:
+    data,
+    num_experiences: int,
+    shuffle: bool = True,
+    seed: Optional[int] = None,
+    min_class_patterns_in_exp: int = 0,
+) -> List[List[int]]:
     """Random indices splitter.
 
     Internal helper for `new_instances_benchmark.
@@ -239,7 +255,9 @@ def _random_indices(
         # distribute remaining patterns
         if len(class_idxs) > 0:
             if shuffle:
-                exps_remaining = torch.randperm(num_experiences).tolist()[:len(class_idxs)]
+                exps_remaining = torch.randperm(num_experiences).tolist()[
+                    : len(class_idxs)
+                ]
             else:
                 exps_remaining = range(len(class_idxs))
 
@@ -291,13 +309,19 @@ def new_instances_benchmark(
     """
     if balance_experiences:  # class-balanced split
         exps_idxs = _class_balanced_indices(
-            data=train_dataset, num_experiences=num_experiences,
-            shuffle=shuffle, seed=seed)
+            data=train_dataset,
+            num_experiences=num_experiences,
+            shuffle=shuffle,
+            seed=seed,
+        )
     else:
         exps_idxs = _random_indices(
-            data=train_dataset, num_experiences=num_experiences,
-            shuffle=shuffle, seed=seed,
-            min_class_patterns_in_exp=min_class_patterns_in_exp)
+            data=train_dataset,
+            num_experiences=num_experiences,
+            shuffle=shuffle,
+            seed=seed,
+            min_class_patterns_in_exp=min_class_patterns_in_exp,
+        )
 
     train_experiences = []
     for idxs in exps_idxs:
@@ -320,22 +344,22 @@ class ClassesTimeline(Protocol):
 
     @property
     def classes_in_this_experience(self) -> list[int]:
-        """ The list of classes in this experience. """
+        """The list of classes in this experience."""
         ...
 
     @property
     def previous_classes(self) -> list[int]:
-        """ The list of classes in previous experiences. """
+        """The list of classes in previous experiences."""
         ...
 
     @property
     def classes_seen_so_far(self) -> list[int]:
-        """ List of classes of current and previous experiences. """
+        """List of classes of current and previous experiences."""
         ...
 
     @property
     def future_classes(self) -> list[int]:
-        """ The list of classes of next experiences. """
+        """The list of classes of next experiences."""
         ...
 
 
@@ -384,4 +408,6 @@ def with_classes_timeline(obj):
     elif isinstance(obj, CLStream):
         return _decorate_stream(obj)
     else:
-        raise ValueError("Unsupported object type: must be one of {CLScenario, CLStream}")
+        raise ValueError(
+            "Unsupported object type: must be one of {CLScenario, CLStream}"
+        )

@@ -620,7 +620,7 @@ def make_stream(name: str, exps: Iterable[CLExperience]) -> CLStream:
     s_wrapped: CLStream
     if isinstance(exps, List):  # Maintain indexing/slicing functionalities
         return EagerCLStream(name=name, exps=exps)
-    elif hasattr(exps, '__len__'):  # Sized stream
+    elif hasattr(exps, "__len__"):  # Sized stream
         return SizedCLStream(name=name, exps_iter=exps)
     else:  # Plain iterator
         return CLStream(name=name, exps_iter=exps)
@@ -635,5 +635,5 @@ __all__ = [
     "SequenceCLStream",
     "EagerCLStream",
     "CLScenario",
-    "make_stream"
+    "make_stream",
 ]

@@ -268,7 +268,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         dataset_mnist = MNIST(root=default_dataset_location("mnist"), download=True)
         x, y = dataset_mnist[0]
 
-        dataset = _make_taskaware_classification_dataset(dataset_mnist, transform=ToTensor())
+        dataset = _make_taskaware_classification_dataset(
+            dataset_mnist, transform=ToTensor()
+        )
         x2, y2, t2 = dataset[0]
 
         self.assertIsInstance(x2, Tensor)
@@ -378,8 +380,10 @@ class AvalancheDatasetTests(unittest.TestCase):
     def test_avalanche_dataset_update_data_attribute(self):
         dataset_orig = dummy_image_dataset()
 
-        dataset: TaskAwareSupervisedClassificationDataset = _make_taskaware_classification_dataset(
-            dataset_orig, transform=ToTensor(), task_labels=0
+        dataset: TaskAwareSupervisedClassificationDataset = (
+            _make_taskaware_classification_dataset(
+                dataset_orig, transform=ToTensor(), task_labels=0
+            )
         )
 
         self.assertIsInstance(dataset, TaskAwareSupervisedClassificationDataset)

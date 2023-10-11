@@ -72,8 +72,7 @@ def main(args):
         transform=test_transform,
     )
     benchmark = class_incremental_benchmark(
-        {"train": mnist_train, "test": mnist_test},
-        num_experiences=5, seed=1234
+        {"train": mnist_train, "test": mnist_test}, num_experiences=5, seed=1234
     )
 
     # ---------

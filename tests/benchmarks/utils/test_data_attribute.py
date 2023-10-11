@@ -3,7 +3,10 @@ import unittest
 import numpy as np
 import torch
 
-from avalanche.benchmarks.utils import _taskaware_classification_subset, make_avalanche_dataset
+from avalanche.benchmarks.utils import (
+    _taskaware_classification_subset,
+    make_avalanche_dataset,
+)
 from avalanche.benchmarks.utils.data_attribute import DataAttribute, TensorDataAttribute
 
 

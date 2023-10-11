@@ -4,7 +4,9 @@ from typing import Generic, List, Optional, Sequence, TypeVar
 from .. import CLExperience, CLStream, CLScenario
 
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
-TDatasetExperience = TypeVar("TDatasetExperience", bound="DatasetExperience")  # Implementation, defined here
+TDatasetExperience = TypeVar(
+    "TDatasetExperience", bound="DatasetExperience"
+)  # Implementation, defined here
 
 
 class DatasetExperience(CLExperience, Generic[TCLDataset], ABC):

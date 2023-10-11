@@ -81,7 +81,9 @@ def _decorate_generic(obj, exp_decorator):
     elif isinstance(obj, CLExperience):
         return _decorate_exp(obj, exp_decorator)
     else:
-        raise ValueError("Unsupported object type: must be one of {CLScenario, CLStream, CLExperience}")
+        raise ValueError(
+            "Unsupported object type: must be one of {CLScenario, CLStream, CLExperience}"
+        )
 
 
 def with_task_labels(obj):
@@ -91,6 +93,7 @@ def with_task_labels(obj):
 
     `obj` must be a scenario, stream, or experience.
     """
+
     def _add_task_labels(exp):
         tls = exp.dataset.targets_task_labels.uniques
         if len(tls) == 1:
@@ -102,9 +105,7 @@ def with_task_labels(obj):
     return _decorate_generic(obj, _add_task_labels)
 
 
-def task_incremental_benchmark(
-    bm: CLScenario, reset_task_labels=False
-) -> CLScenario:
+def task_incremental_benchmark(bm: CLScenario, reset_task_labels=False) -> CLScenario:
     """Creates a task-incremental benchmark from a dataset scenario.
 
     Adds progressive task labels to each stream (experience $i$ has task label $i$).
@@ -136,10 +137,14 @@ def task_incremental_benchmark(
         new_stream = []
         for eid, exp in enumerate(stream):
             if has_task_labels(exp.dataset) and (not reset_task_labels):
-                raise ValueError("AvalancheDataset already has task labels. Use `benchmark_from_datasets` "
-                                 "instead or set `reset_task_labels=True`.")
+                raise ValueError(
+                    "AvalancheDataset already has task labels. Use `benchmark_from_datasets` "
+                    "instead or set `reset_task_labels=True`."
+                )
             tls = TaskLabels(ConstantSequence(eid, len(exp.dataset)))
-            new_dd = exp.dataset.update_data_attribute(name="targets_task_labels", new_value=tls)
+            new_dd = exp.dataset.update_data_attribute(
+                name="targets_task_labels", new_value=tls
+            )
             new_exp = DatasetExperience(dataset=new_dd, current_experience=eid)
             new_stream.append(new_exp)
         s = EagerCLStream(name, new_stream)

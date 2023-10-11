@@ -165,7 +165,9 @@ class BiCPlugin(SupervisedPlugin):
         for class_id, class_buf in self.val_buffer.items():
             class_buf.resize(strategy, class_to_len[class_id])
 
-        strategy.experience.dataset = _concat_taskaware_classification_datasets(train_data)
+        strategy.experience.dataset = _concat_taskaware_classification_datasets(
+            train_data
+        )
 
     def before_training_exp(
         self,

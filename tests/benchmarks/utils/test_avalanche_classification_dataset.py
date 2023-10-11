@@ -101,7 +101,9 @@ class AvalancheDatasetTests(unittest.TestCase):
 
         tgs = {"train": dataset_transform, "eval": dataset_transform}
         x, y = dataset_mnist[ref_instance_idx]
-        dataset = _make_taskaware_classification_dataset(dataset_mnist, transform_groups=tgs)
+        dataset = _make_taskaware_classification_dataset(
+            dataset_mnist, transform_groups=tgs
+        )
         x2, y2, t2 = dataset[ref_instance_idx]
 
         self.assertIsInstance(x2, Tensor)
@@ -514,7 +516,9 @@ class AvalancheDatasetTests(unittest.TestCase):
             return x_values, y_values, z_values, t_values
 
         whole_dataset = TensorDataset(tensor_x, tensor_y, tensor_z)
-        dataset = _make_taskaware_classification_dataset(whole_dataset, collate_fn=my_collate_fn)
+        dataset = _make_taskaware_classification_dataset(
+            whole_dataset, collate_fn=my_collate_fn
+        )
 
         x, y, z, t = dataset[0]
         self.assertIsInstance(x, Tensor)
@@ -558,7 +562,9 @@ class AvalancheDatasetTests(unittest.TestCase):
             return x_values, y_values, z_values, t_values
 
         whole_dataset = TensorDataset(tensor_x, tensor_y, tensor_z)
-        dataset = _make_taskaware_classification_dataset(whole_dataset, collate_fn=my_collate_fn)
+        dataset = _make_taskaware_classification_dataset(
+            whole_dataset, collate_fn=my_collate_fn
+        )
         inherited = _make_taskaware_classification_dataset(
             dataset, collate_fn=my_collate_fn2
         )  # Ok
@@ -997,7 +1003,9 @@ class AvalancheDatasetTests(unittest.TestCase):
         class_mapping = list(range(10))
         random.shuffle(class_mapping)
 
-        subset = _taskaware_classification_subset(dataset_mnist, indices=[3000, 8, 4, 1010, 12])
+        subset = _taskaware_classification_subset(
+            dataset_mnist, indices=[3000, 8, 4, 1010, 12]
+        )
 
         dataset = _taskaware_classification_subset(
             subset, indices=[0, 3, 1], class_mapping=class_mapping
@@ -1182,9 +1190,11 @@ class AvalancheDatasetTests(unittest.TestCase):
         ]
 
         # concatenate datasets
-        final_train, _, classes = _concat_taskaware_classification_datasets_sequentially(
-            train, test
-        )
+        (
+            final_train,
+            _,
+            classes,
+        ) = _concat_taskaware_classification_datasets_sequentially(train, test)
 
         # merge all classes into a single list
         classes_all = []
@@ -1339,7 +1349,9 @@ class TransformationSubsetTests(unittest.TestCase):
             dataset_mnist, transform=ToTensor(), task_labels=random_task_labels
         )
 
-        dataset_child = _taskaware_classification_subset(dataset_orig, indices=[1000, 1007])
+        dataset_child = _taskaware_classification_subset(
+            dataset_orig, indices=[1000, 1007]
+        )
         _, _, t2 = dataset_orig[1000]
         _, _, t5 = dataset_orig[1007]
         _, _, t3 = dataset_child[0]
@@ -1377,7 +1389,9 @@ class TransformationSubsetTests(unittest.TestCase):
             return x_values, y_values, z_values, t_values
 
         whole_dataset = TensorDataset(tensor_x, tensor_y, tensor_z)
-        dataset = _make_taskaware_classification_dataset(whole_dataset, collate_fn=my_collate_fn)
+        dataset = _make_taskaware_classification_dataset(
+            whole_dataset, collate_fn=my_collate_fn
+        )
         inherited = _taskaware_classification_subset(
             dataset, indices=list(range(5, 150)), collate_fn=my_collate_fn2
         )  # Ok
@@ -1576,7 +1590,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
     def test_freeze_transforms(self):
         original_dataset = MNIST(root=default_dataset_location("mnist"), download=True)
         x, y = original_dataset[0]
-        dataset = _make_taskaware_classification_dataset(original_dataset, transform=ToTensor())
+        dataset = _make_taskaware_classification_dataset(
+            original_dataset, transform=ToTensor()
+        )
         dataset_frozen = dataset.freeze_transforms()
 
         x2, y2, _ = dataset_frozen[0]
@@ -1657,7 +1673,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
     def test_replace_transforms(self):
         original_dataset = MNIST(root=default_dataset_location("mnist"), download=True)
         x, y = original_dataset[0]
-        dataset = _make_taskaware_classification_dataset(original_dataset, transform=ToTensor())
+        dataset = _make_taskaware_classification_dataset(
+            original_dataset, transform=ToTensor()
+        )
         x2, *_ = dataset[0]
         dataset_reset = dataset.replace_current_transform_group(None)
         x3, *_ = dataset_reset[0]
@@ -1686,7 +1704,9 @@ class AvalancheDatasetTransformOpsTests(unittest.TestCase):
     def test_transforms_replace_freeze_mix(self):
         original_dataset = MNIST(root=default_dataset_location("mnist"), download=True)
         x, _ = original_dataset[0]
-        dataset = _make_taskaware_classification_dataset(original_dataset, transform=ToTensor())
+        dataset = _make_taskaware_classification_dataset(
+            original_dataset, transform=ToTensor()
+        )
         x2, *_ = dataset[0]
         dataset_reset = dataset.replace_current_transform_group((None, None))
         x3, *_ = dataset_reset[0]
