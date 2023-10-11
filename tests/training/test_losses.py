@@ -1,4 +1,5 @@
 import unittest
+
 import torch
 import torch.nn as nn
 
@@ -46,12 +47,12 @@ class TestMaskedCrossEntropy(unittest.TestCase):
         mb_y = torch.tensor([5, 5, 6, 7, 6])
 
         new_pred = torch.rand(5, 8)
-        new_pred_new = new_pred[:, criterion.current_mask]
+        new_pred_new = new_pred[:, criterion.current_mask(new_pred.shape[1])]
 
         loss1 = criterion(new_pred, mb_y)
         loss2 = cross_entropy(new_pred_new, mb_y - 5)
 
-        criterion.mask = "all"
+        criterion.mask = "seen"
         loss3 = criterion(new_pred, mb_y)
 
         self.assertAlmostEqual(float(loss1), float(loss2), places=5)

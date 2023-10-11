@@ -173,7 +173,7 @@ class MaskedCrossEntropy(SupervisedPlugin):
     (i.e LwF in Class Incremental Learning would need to use mask="new").
     """
 
-    def __init__(self, classes=None, mask="all", reduction="mean"):
+    def __init__(self, classes=None, mask="seen", reduction="batchmean"):
         """
         param: classes: Initial value for current classes
         param: mask: "all" normal cross entropy, uses all the classes seen so far
@@ -182,7 +182,7 @@ class MaskedCrossEntropy(SupervisedPlugin):
         param: reduction: "mean" or "none", average or per-sample loss
         """
         super().__init__()
-        assert mask in ["all", "new", "old"]
+        assert mask in ["seen", "new", "old", "all"]
         if classes is not None:
             self.current_classes = set(classes)
         else:
@@ -195,23 +195,25 @@ class MaskedCrossEntropy(SupervisedPlugin):
     def __call__(self, logits, targets):
         oh_targets = F.one_hot(targets, num_classes=logits.shape[1])
 
-        oh_targets = oh_targets[:, self.current_mask]
-        logits = logits[:, self.current_mask]
+        oh_targets = oh_targets[:, self.current_mask(logits.shape[1])]
+        logits = logits[:, self.current_mask(logits.shape[1])]
 
-        return cross_entropy_with_oh_targets(
-            logits,
+        return F.kl_div(
+            torch.log_softmax(logits, dim=1),
             oh_targets.float(),
             reduction=self.reduction,
+            log_target=False,
         )
 
-    @property
-    def current_mask(self):
-        if self.mask == "all":
+    def current_mask(self, logit_shape):
+        if self.mask == "seen":
             return list(self.current_classes.union(self.old_classes))
-        if self.mask == "new":
+        elif self.mask == "new":
             return list(self.current_classes)
-        if self.mask == "old":
+        elif self.mask == "old":
             return list(self.old_classes)
+        elif self.mask == "all":
+            return list(range(int(logit_shape)))
 
     def adaptation(self, new_classes):
         self.old_classes = self.old_classes.union(self.current_classes)
