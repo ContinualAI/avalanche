@@ -24,7 +24,7 @@ from avalanche.training.plugins import EvaluationPlugin
 
 def main(cuda: int):
     # --- CONFIG
-    device = torch.device(f"cuda:{cuda}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(f"cuda:{cuda}" if cuda >= 0 and torch.cuda.is_available() else "cpu")
     RNGManager.set_random_seeds(1234)
 
     benchmark_type = "cifar100"
