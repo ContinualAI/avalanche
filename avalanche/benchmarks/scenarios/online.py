@@ -183,11 +183,16 @@ class FixedSizeExperienceSplitter:
         exp_idx = 0
         while init_idx < len(exp_indices):
             final_idx = init_idx + self.experience_size  # Exclusive
+
             if final_idx > len(exp_indices):
                 if self.drop_last:
                     break
 
                 final_idx = len(exp_indices)
+                is_last = True
+
+            # check is_last when drop_last=True
+            if self.drop_last and (final_idx + self.experience_size > len(exp_indices)):
                 is_last = True
 
             sub_exp_subset = exp_dataset.subset(exp_indices[init_idx:final_idx])
