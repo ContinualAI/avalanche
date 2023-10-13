@@ -11,3 +11,52 @@ verbose = 2
 quiet = false
 whitelist-regex = []
 color = true
+
+[tool.mypy]
+ignore_missing_imports = true
+warn_unused_configs = true
+disable_error_code = "annotation-unchecked"
+
+[[tool.mypy.overrides]]
+module = "avalanche.benchmarks.classic.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "avalanche.benchmarks.datasets.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "avalanche.benchmarks.utils.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "avalanche.training.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "avalanche.logging.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "avalanche.metrics"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "avalanche.models.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "avalanche.evaluation.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "examples.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "profiling.*"
+ignore_errors = true

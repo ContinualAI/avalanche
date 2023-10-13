@@ -84,8 +84,8 @@ class DatasetExperience(CLExperience, Generic[TCLDataset]):
 
 
 def _split_dataset_by_attribute(
-    data: AvalancheDataset, attr_name: str
-) -> Dict[int, AvalancheDataset]:
+    data: TCLDataset, attr_name: str
+) -> Dict[int, TCLDataset]:
     """Helper to split a dataset by attribute.
 
     :param data: an Avalanche dataset.
@@ -102,8 +102,8 @@ def _split_dataset_by_attribute(
 def split_validation_random(
     validation_size: Union[int, float],
     shuffle: bool,
-    seed: int = None,
-    dataset: AvalancheDataset = None,
+    seed: Optional[int] = None,
+    dataset: Optional[AvalancheDataset] = None,
 ) -> Tuple[AvalancheDataset, AvalancheDataset]:
     """Splits an `AvalancheDataset` in two splits.
 
@@ -208,14 +208,14 @@ def split_validation_class_balanced(
     exp_classes: List[int] = targets_as_tensor.unique().tolist()
 
     # shuffle exp_indices
-    exp_indices = torch.as_tensor(exp_indices)[torch.randperm(len(exp_indices))]
+    exp_indices_t = torch.as_tensor(exp_indices)[torch.randperm(len(exp_indices))]
     # shuffle the targets as well
     exp_targets = targets_as_tensor[exp_indices]
 
-    train_exp_indices = []
-    valid_exp_indices = []
+    train_exp_indices: list[int] = []
+    valid_exp_indices: list[int] = []
     for cid in exp_classes:  # split indices for each class separately.
-        c_indices = exp_indices[exp_targets == cid]
+        c_indices = exp_indices_t[exp_targets == cid]
         valid_n_instances = int(validation_size * len(c_indices))
         valid_exp_indices.extend(c_indices[:valid_n_instances])
         train_exp_indices.extend(c_indices[valid_n_instances:])
@@ -233,7 +233,7 @@ class LazyTrainValSplitter:
             Tuple[AvalancheDataset, AvalancheDataset],
         ],
         experiences: Iterable[DatasetExperience],
-    ) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
+    ) -> None:
         """
         Creates a generator operating around the split strategy and the
         experiences stream.
@@ -246,7 +246,7 @@ class LazyTrainValSplitter:
         self.split_strategy = split_strategy
         self.experiences = experiences
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
         for new_experience in self.experiences:
             yield self.split_strategy(new_experience.dataset)
 
@@ -298,9 +298,6 @@ def benchmark_with_validation_stream(
     :return: A benchmark instance in which the validation stream has been added.
     """
 
-    split_strategy: Callable[
-        [AvalancheDataset], Tuple[AvalancheDataset, AvalancheDataset]
-    ]
     if split_strategy is None:
         if seed is None:
             seed = random.randint(0, 1000000)

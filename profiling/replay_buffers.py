@@ -8,6 +8,7 @@ from avalanche.benchmarks import (
     SplitMNIST,
     split_online_stream,
 )
+from avalanche.benchmarks.scenarios.dataset_scenario import DatasetExperience
 from avalanche.training import ReservoirSamplingBuffer
 from avalanche.training import ParametricBuffer
 
@@ -20,6 +21,7 @@ if __name__ == "__main__":
 
     start = time.time()
     buffer = ReservoirSamplingBuffer(100)
+    exp: DatasetExperience
     for t, exp in tqdm(enumerate(split_online_stream(benchmark.train_stream, 10))):
         buffer.update_from_dataset(exp.dataset)
         b = buffer.buffer

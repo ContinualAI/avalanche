@@ -1,11 +1,10 @@
 from abc import ABC
-from typing import TypeVar, Generic
+from typing import Any, TypeVar, Generic
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from avalanche.training.templates.base import BaseTemplate
 
-CallbackResult = TypeVar("CallbackResult")
 Template = TypeVar("Template", bound="BaseTemplate")
 
 
@@ -38,35 +37,35 @@ class BasePlugin(Generic[Template], ABC):
         """
         super().__init__()
 
-    def before_training(self, strategy: Template, *args, **kwargs):
+    def before_training(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `train` by the `BaseTemplate`."""
         pass
 
-    def before_training_exp(self, strategy: Template, *args, **kwargs):
+    def before_training_exp(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `train_exp` by the `BaseTemplate`."""
         pass
 
-    def after_training_exp(self, strategy: Template, *args, **kwargs):
+    def after_training_exp(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `train_exp` by the `BaseTemplate`."""
         pass
 
-    def after_training(self, strategy: Template, *args, **kwargs):
+    def after_training(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `train` by the `BaseTemplate`."""
         pass
 
-    def before_eval(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def before_eval(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `eval` by the `BaseTemplate`."""
         pass
 
-    def before_eval_exp(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def before_eval_exp(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `eval_exp` by the `BaseTemplate`."""
         pass
 
-    def after_eval_exp(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def after_eval_exp(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `eval_exp` by the `BaseTemplate`."""
         pass
 
-    def after_eval(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def after_eval(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `eval` by the `BaseTemplate`."""
         pass
 
@@ -89,99 +88,99 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
 
     def before_training_epoch(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before `train_epoch` by the `BaseTemplate`."""
         pass
 
     def before_training_iteration(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before the start of a training iteration by the
         `BaseTemplate`."""
         pass
 
-    def before_forward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def before_forward(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `model.forward()` by the `BaseTemplate`."""
         pass
 
-    def after_forward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def after_forward(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `model.forward()` by the `BaseTemplate`."""
         pass
 
-    def before_backward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def before_backward(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `criterion.backward()` by the `BaseTemplate`."""
         pass
 
-    def after_backward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def after_backward(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `criterion.backward()` by the `BaseTemplate`."""
         pass
 
     def after_training_iteration(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called after the end of a training iteration by the
         `BaseTemplate`."""
         pass
 
-    def before_update(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def before_update(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `optimizer.update()` by the `BaseTemplate`."""
         pass
 
-    def after_update(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def after_update(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `optimizer.update()` by the `BaseTemplate`."""
         pass
 
     def after_training_epoch(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called after `train_epoch` by the `BaseTemplate`."""
         pass
 
     def before_eval_iteration(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before the start of a training iteration by the
         `BaseTemplate`."""
         pass
 
     def before_eval_forward(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before `model.forward()` by the `BaseTemplate`."""
         pass
 
-    def after_eval_forward(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def after_eval_forward(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `model.forward()` by the `BaseTemplate`."""
         pass
 
     def after_eval_iteration(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called after the end of an iteration by the
         `BaseTemplate`."""
         pass
 
     def before_train_dataset_adaptation(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before `train_dataset_adapatation` by the `BaseTemplate`."""
         pass
 
     def after_train_dataset_adaptation(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called after `train_dataset_adapatation` by the `BaseTemplate`."""
         pass
 
     def before_eval_dataset_adaptation(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before `eval_dataset_adaptation` by the `BaseTemplate`."""
         pass
 
     def after_eval_dataset_adaptation(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called after `eval_dataset_adaptation` by the `BaseTemplate`."""
         pass
 
@@ -207,22 +206,22 @@ class SupervisedMetaLearningPlugin(SupervisedPlugin[Template], ABC):
 
     def before_inner_updates(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before `_inner_updates` by the `BaseTemplate`."""
         pass
 
     def after_inner_updates(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before `_outer_updates` by the `BaseTemplate`."""
         pass
 
     def before_outer_update(
         self, strategy: Template, *args, **kwargs
-    ) -> CallbackResult:
+    ) -> Any:
         """Called before `_outer_updates` by the `BaseTemplate`."""
         pass
 
-    def after_outer_update(self, strategy: Template, *args, **kwargs) -> CallbackResult:
+    def after_outer_update(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `_outer_updates` by the `BaseTemplate`."""
         pass

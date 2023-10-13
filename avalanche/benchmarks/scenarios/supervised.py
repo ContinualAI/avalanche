@@ -13,6 +13,7 @@
 import warnings
 from copy import copy
 from typing import (
+    Iterable,
     Sequence,
     Optional,
     Dict,
@@ -23,19 +24,21 @@ from typing import (
 import torch
 
 from avalanche.benchmarks.utils.classification_dataset import (
+    ClassificationDataset,
     _as_taskaware_supervised_classification_dataset,
     TaskAwareSupervisedClassificationDataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
 from .. import CLScenario, CLStream, EagerCLStream
 
 
 def class_incremental_benchmark(
-    datasets_dict: Dict[str, AvalancheDataset],
+    datasets_dict: Dict[str, ClassificationDataset],
     *,
     class_order: Optional[Sequence[int]] = None,
-    num_experiences: int = None,
+    num_experiences: Optional[int] = None,
     num_classes_per_exp: Optional[Sequence[int]] = None,
     seed: Optional[int] = None,
 ) -> CLScenario:
@@ -81,7 +84,7 @@ def class_incremental_benchmark(
 
     # validate classes
     dd_classes = list(datasets_dict.values())[0].targets.uniques
-    num_classes = 1 + max(list(datasets_dict.values())[0].targets.uniques)
+    num_classes: int = 1 + max(list(datasets_dict.values())[0].targets.uniques)
     if (num_classes_per_exp is not None) and (num_classes != sum(num_classes_per_exp)):
         raise ValueError(
             "`sum(num_classes_per_exp)` must be equal to the total number of classes."
@@ -100,14 +103,15 @@ def class_incremental_benchmark(
     # split classes by experience
     classes_exp_assignment = []
     if num_experiences is not None:
-        num_classes_per_exp = num_classes // num_experiences
+        assert num_classes_per_exp is None, "BUG: num_classes_per_exp must be None"
+        curr_classess_per_exp: int = num_classes // num_experiences
         for eid in range(num_experiences):
             if eid == 0:
-                classes_exp_assignment.append(class_order[:num_classes_per_exp])
+                classes_exp_assignment.append(class_order[:curr_classess_per_exp])
             else:
                 # final exp will take reminder of classes if they don't divide equally
-                start_idx = num_classes_per_exp * eid
-                end_idx = start_idx + num_classes_per_exp
+                start_idx = curr_classess_per_exp * eid
+                end_idx = start_idx + curr_classess_per_exp
                 classes_exp_assignment.append(class_order[start_idx:end_idx])
     elif num_classes_per_exp is not None:
         num_curr = 0
@@ -122,7 +126,7 @@ def class_incremental_benchmark(
         curr_stream = []
         data_by_class = _split_dataset_by_attribute(dd, "targets")
         for eid, clss in enumerate(classes_exp_assignment):
-            curr_data = AvalancheDataset([])
+            curr_data: ClassificationDataset = ClassificationDataset([], data_attributes=[DataAttribute([], "targets")])
             for cls in clss:
                 # TODO: curr_data.concat(data_by_class[cls]) is bugged and removes targets
                 curr_data = data_by_class[cls].concat(curr_data)
@@ -132,7 +136,7 @@ def class_incremental_benchmark(
 
 
 def _class_balanced_indices(
-    data: AvalancheDataset,
+    data: ClassificationDataset,
     num_experiences: int,
     shuffle: bool = True,
     seed: Optional[int] = None,
@@ -176,7 +180,7 @@ def _class_balanced_indices(
         # distribute remainder if not divisible by num_experiences
         if len(class_idxs) > 0:
             if shuffle:
-                exps_remaining = torch.randperm(num_experiences).tolist()[
+                exps_remaining: Iterable[int] = torch.randperm(num_experiences).tolist()[
                     : len(class_idxs)
                 ]
             else:
@@ -255,7 +259,7 @@ def _random_indices(
         # distribute remaining patterns
         if len(class_idxs) > 0:
             if shuffle:
-                exps_remaining = torch.randperm(num_experiences).tolist()[
+                exps_remaining: Iterable[int] = torch.randperm(num_experiences).tolist()[
                     : len(class_idxs)
                 ]
             else:
@@ -272,10 +276,10 @@ def _random_indices(
 
 
 def new_instances_benchmark(
-    train_dataset: TaskAwareSupervisedClassificationDataset,
+    train_dataset: ClassificationDataset,
     test_dataset: AvalancheDataset,
+    num_experiences: int,
     *,
-    num_experiences: int = None,
     shuffle: bool = True,
     seed: Optional[int] = None,
     balance_experiences: bool = False,
@@ -307,6 +311,7 @@ def new_instances_benchmark(
 
     :return: A properly initialized :class:`NIScenario` instance.
     """
+    
     if balance_experiences:  # class-balanced split
         exps_idxs = _class_balanced_indices(
             data=train_dataset,
@@ -383,11 +388,11 @@ def with_classes_timeline(obj):
             warnings.warn("stream generator will be converted to a list.")
 
         # compute set of all classes in the stream
-        all_cls = set()
+        all_cls: set[int] = set()
         for exp in obj:
             all_cls = all_cls.union(exp.dataset.targets.uniques)
 
-        prev_cls = set()
+        prev_cls: set[int] = set()
         for exp in obj:
             new_exp = copy(exp)
             curr_cls = exp.dataset.targets.uniques

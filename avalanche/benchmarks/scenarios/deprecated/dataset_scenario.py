@@ -15,18 +15,26 @@ from typing import (
     Set,
     Tuple,
     Mapping,
+    TYPE_CHECKING
 )
+
+from . import DatasetExperience
 
 
 from ..generic_scenario import (
     CLScenario,
+    CLExperience,
+    CLStream,
     SequenceCLStream,
 )
+
 
 from .lazy_dataset_sequence import LazyDatasetSequence
 
 from avalanche.benchmarks.utils import AvalancheDataset
+
 from torch.utils.data.dataset import Dataset
+
 
 # --- Dataset ---
 # From utils:

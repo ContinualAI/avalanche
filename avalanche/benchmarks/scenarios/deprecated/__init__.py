@@ -3,6 +3,11 @@ from typing import Generic, List, Optional, Sequence, TypeVar
 
 from .. import CLExperience, CLStream, CLScenario
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from avalanche.benchmarks.utils import AvalancheDataset
+
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
 TDatasetExperience = TypeVar(
     "TDatasetExperience", bound="DatasetExperience"

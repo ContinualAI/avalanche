@@ -16,6 +16,7 @@ the generic ones: filelist_benchmark, tensors_benchmark, dataset_benchmark
 and paths_benchmark.
 """
 from typing import (
+    TYPE_CHECKING,
     Sequence,
     Optional,
     Dict,
@@ -59,6 +60,10 @@ from avalanche.benchmarks.utils.classification_dataset import (
     _make_taskaware_classification_dataset,
     _concat_taskaware_classification_datasets_sequentially,
 )
+
+if TYPE_CHECKING:
+    from .. import CLStream, AvalancheDataset
+    from ..generic_scenario import SizedCLStream
 
 TDatasetScenario = TypeVar("TDatasetScenario", bound="DatasetScenario")
 TCLStream = TypeVar("TCLStream", bound="CLStream")

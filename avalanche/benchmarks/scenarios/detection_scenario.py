@@ -27,10 +27,12 @@ import warnings
 
 from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
     ClassesTimelineCLScenario,
+    DatasetScenario,
     FactoryBasedStream,
     TStreamsUserDict,
 )
 from avalanche.benchmarks.scenarios.deprecated import AbstractClassTimelineExperience
+from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 from avalanche.benchmarks.utils.detection_dataset import DetectionDataset
 
