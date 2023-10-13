@@ -45,7 +45,7 @@ class StrategyTest(unittest.TestCase):
         benchmark_streams = benchmark.streams.values()
 
         # With task boundaries
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, _ = self.init_sit()
         strategy = OnlineNaive(
             model,
             optimizer,
@@ -113,7 +113,7 @@ class StrategyTest(unittest.TestCase):
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
 
-        cl_strategy.train(benchmark.train_stream, num_workers=0)
+        cl_strategy.train(benchmark.train_online_stream, num_workers=0)
         print("Training completed")
 
         assert cl_strategy.clock.train_exp_counter > 0

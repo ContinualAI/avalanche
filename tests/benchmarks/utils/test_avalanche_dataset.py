@@ -148,7 +148,7 @@ class AvalancheDatasetTests(unittest.TestCase):
             self.assertTrue(torch.equal(x_curr, x_true))
 
             t_curr = torch.tensor(
-                [curr_dataset.task_labels[idx] for idx in range(d_sz)]
+                [curr_dataset.targets_task_labels[idx] for idx in range(d_sz)]
             )
             t_true = torch.stack([dadata[idx] for idx in true_indices], dim=0)
             self.assertTrue(torch.equal(t_curr, t_true))

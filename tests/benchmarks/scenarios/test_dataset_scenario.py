@@ -120,6 +120,7 @@ class DatasetSplitterTest(unittest.TestCase):
         for cid in exp.classes_in_this_experience:
             train_cnt = (torch.as_tensor(train_d.targets) == cid).sum()
             valid_cnt = (torch.as_tensor(valid_d.targets) == cid).sum()
+            # print(train_cnt, valid_cnt)
             assert abs(train_cnt - valid_cnt) <= 1
 
         ratio = 0.123

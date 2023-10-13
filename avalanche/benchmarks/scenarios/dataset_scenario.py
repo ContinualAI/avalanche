@@ -210,7 +210,7 @@ def split_validation_class_balanced(
     # shuffle exp_indices
     exp_indices_t = torch.as_tensor(exp_indices)[torch.randperm(len(exp_indices))]
     # shuffle the targets as well
-    exp_targets = targets_as_tensor[exp_indices]
+    exp_targets = targets_as_tensor[exp_indices_t]
 
     train_exp_indices: list[int] = []
     valid_exp_indices: list[int] = []
