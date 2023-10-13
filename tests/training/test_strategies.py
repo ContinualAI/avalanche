@@ -260,7 +260,7 @@ class StrategyTest(unittest.TestCase):
 
     def init_scenario(self, multi_task=False):
         model = self.get_model(fast_test=True, multi_task=multi_task)
-        optimizer = SGD(model.parameters(), lr=1e-3)
+        optimizer = SGD(model.parameters(), lr=1e-4)
         criterion = CrossEntropyLoss()
         benchmark = self.load_benchmark(use_task_labels=multi_task)
         return model, optimizer, criterion, benchmark
@@ -851,6 +851,7 @@ class StrategyTest(unittest.TestCase):
 
     def test_icarl(self):
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+        optimizer = SGD(model.parameters(), lr=1e-5)
 
         strategy = ICaRL(
             model.features,
