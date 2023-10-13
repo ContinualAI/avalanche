@@ -246,7 +246,9 @@ class LazyTrainValSplitter:
         self.split_strategy = split_strategy
         self.experiences = experiences
 
-    def __iter__(self) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
+    def __iter__(
+        self,
+    ) -> Generator[Tuple[AvalancheDataset, AvalancheDataset], None, None]:
         for new_experience in self.experiences:
             yield self.split_strategy(new_experience.dataset)
 

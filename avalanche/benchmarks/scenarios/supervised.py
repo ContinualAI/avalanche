@@ -126,7 +126,9 @@ def class_incremental_benchmark(
         curr_stream = []
         data_by_class = _split_dataset_by_attribute(dd, "targets")
         for eid, clss in enumerate(classes_exp_assignment):
-            curr_data: ClassificationDataset = ClassificationDataset([], data_attributes=[DataAttribute([], "targets")])
+            curr_data: ClassificationDataset = ClassificationDataset(
+                [], data_attributes=[DataAttribute([], "targets")]
+            )
             for cls in clss:
                 # TODO: curr_data.concat(data_by_class[cls]) is bugged and removes targets
                 curr_data = data_by_class[cls].concat(curr_data)
@@ -180,9 +182,9 @@ def _class_balanced_indices(
         # distribute remainder if not divisible by num_experiences
         if len(class_idxs) > 0:
             if shuffle:
-                exps_remaining: Iterable[int] = torch.randperm(num_experiences).tolist()[
-                    : len(class_idxs)
-                ]
+                exps_remaining: Iterable[int] = torch.randperm(
+                    num_experiences
+                ).tolist()[: len(class_idxs)]
             else:
                 exps_remaining = range(len(class_idxs))
             for eid in exps_remaining:
@@ -259,9 +261,9 @@ def _random_indices(
         # distribute remaining patterns
         if len(class_idxs) > 0:
             if shuffle:
-                exps_remaining: Iterable[int] = torch.randperm(num_experiences).tolist()[
-                    : len(class_idxs)
-                ]
+                exps_remaining: Iterable[int] = torch.randperm(
+                    num_experiences
+                ).tolist()[: len(class_idxs)]
             else:
                 exps_remaining = range(len(class_idxs))
 
@@ -311,7 +313,7 @@ def new_instances_benchmark(
 
     :return: A properly initialized :class:`NIScenario` instance.
     """
-    
+
     if balance_experiences:  # class-balanced split
         exps_idxs = _class_balanced_indices(
             data=train_dataset,

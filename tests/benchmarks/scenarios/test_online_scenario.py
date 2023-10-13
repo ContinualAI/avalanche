@@ -39,7 +39,7 @@ class OCLTests(unittest.TestCase):
             if exp.is_last_subexp:
                 cnt_is_last += 1
             assert len(exp.dataset) == 10
-       
+
         assert exp.is_last_subexp  # final exp should have is_last_subexp == True
         assert cnt_is_last == len(bm.train_stream)
         assert cnt_is_first == len(bm.train_stream)
@@ -69,6 +69,7 @@ class OCLTests(unittest.TestCase):
         assert exp.is_last_subexp  # final exp should have is_last_subexp == True
         assert cnt_is_last == len(bm.train_stream)
         assert cnt_is_first == len(bm.train_stream)
+
 
 if __name__ == "__main__":
     unittest.main()

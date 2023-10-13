@@ -10,7 +10,7 @@ from typing import (
     Tuple,
     Mapping,
     overload,
-    TYPE_CHECKING
+    TYPE_CHECKING,
 )
 
 import warnings
@@ -27,7 +27,9 @@ from avalanche.benchmarks.scenarios.deprecated.dataset_scenario import (
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 
 if TYPE_CHECKING:
-    from avalanche.benchmarks.utils.classification_dataset import TaskAwareClassificationDataset
+    from avalanche.benchmarks.utils.classification_dataset import (
+        TaskAwareClassificationDataset,
+    )
     from .dataset_scenario import DatasetScenario
 
 

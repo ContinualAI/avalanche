@@ -86,15 +86,11 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         """
         super().__init__()
 
-    def before_training_epoch(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def before_training_epoch(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `train_epoch` by the `BaseTemplate`."""
         pass
 
-    def before_training_iteration(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def before_training_iteration(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before the start of a training iteration by the
         `BaseTemplate`."""
         pass
@@ -115,9 +111,7 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         """Called after `criterion.backward()` by the `BaseTemplate`."""
         pass
 
-    def after_training_iteration(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def after_training_iteration(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after the end of a training iteration by the
         `BaseTemplate`."""
         pass
@@ -130,22 +124,16 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         """Called after `optimizer.update()` by the `BaseTemplate`."""
         pass
 
-    def after_training_epoch(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def after_training_epoch(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `train_epoch` by the `BaseTemplate`."""
         pass
 
-    def before_eval_iteration(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def before_eval_iteration(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before the start of a training iteration by the
         `BaseTemplate`."""
         pass
 
-    def before_eval_forward(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def before_eval_forward(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `model.forward()` by the `BaseTemplate`."""
         pass
 
@@ -153,9 +141,7 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         """Called after `model.forward()` by the `BaseTemplate`."""
         pass
 
-    def after_eval_iteration(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def after_eval_iteration(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after the end of an iteration by the
         `BaseTemplate`."""
         pass
@@ -178,9 +164,7 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
         """Called before `eval_dataset_adaptation` by the `BaseTemplate`."""
         pass
 
-    def after_eval_dataset_adaptation(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def after_eval_dataset_adaptation(self, strategy: Template, *args, **kwargs) -> Any:
         """Called after `eval_dataset_adaptation` by the `BaseTemplate`."""
         pass
 
@@ -204,21 +188,15 @@ class SupervisedMetaLearningPlugin(SupervisedPlugin[Template], ABC):
     See `BaseTemplate` for complete description of the train/eval loop.
     """
 
-    def before_inner_updates(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def before_inner_updates(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `_inner_updates` by the `BaseTemplate`."""
         pass
 
-    def after_inner_updates(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def after_inner_updates(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `_outer_updates` by the `BaseTemplate`."""
         pass
 
-    def before_outer_update(
-        self, strategy: Template, *args, **kwargs
-    ) -> Any:
+    def before_outer_update(self, strategy: Template, *args, **kwargs) -> Any:
         """Called before `_outer_updates` by the `BaseTemplate`."""
         pass
 
