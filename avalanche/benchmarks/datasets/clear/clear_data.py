@@ -13,33 +13,33 @@
 clear10 = [
     (
         "clear10-train.zip",  # name
-        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
     ),
     (
         "clear10-test.zip",  # name
-        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
     ),
 ]
 clear100 = [
     (
         "clear100-train.zip",  # name
-        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
     ),
     (
         "clear100-test.zip",  # name
-        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
     ),
 ]
 clear10_neurips2021 = [
     (
         "clear10-public.zip",  # name
-        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
     )
 ]
 clear100_cvpr2022 = [
     (
         "clear100-workshop-avalanche.zip",  # name
-        "https://clear-challenge.s3.us-east-2.amazonaws.com",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
     )
 ]
 

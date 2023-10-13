@@ -15,6 +15,7 @@ from torch.nn.parameter import Parameter
 from torch import sigmoid
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+from avalanche.models.packnet import PackNetModel, PackNetModule, PackNetPlugin
 
 from avalanche.models.pnn import PNN
 from avalanche.training.plugins.evaluation import (
@@ -167,6 +168,90 @@ class PNNStrategy(SupervisedTemplate):
             eval_mb_size=eval_mb_size,
             device=device,
             plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            **base_kwargs
+        )
+
+
+class PackNet(SupervisedTemplate):
+    """Task-incremental fixed-network parameter isolation with PackNet.
+
+    The strategy packs multiple tasks into a single network by pruning
+    parameters that are not important for the current task. This is done by
+    pruning the network after each task. The network is then finetuned for a
+    few epochs to recover the performance. This process is repeated for each
+    task.
+
+    The supplied model must be wrapped in a :class:`PackNetModel` or implement
+    :class:`PackNetModule`. These wrappers are designed to automatically upgrade
+    most models to support PackNet.
+
+    Mallya, A., & Lazebnik, S. (2018). PackNet: Adding Multiple Tasks to a
+        Single Network by Iterative Pruning. 2018 IEEE/CVF Conference on Computer
+        Vision and Pattern Recognition, 7765-7773.
+        https://doi.org/10.1109/CVPR.2018.00810
+    """
+
+    def __init__(
+        self,
+        model: Union[PackNetModule, PackNetModel],
+        optimizer: Optimizer,
+        post_prune_epochs: int,
+        prune_proportion: float,
+        criterion=CrossEntropyLoss(),
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: Union[
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
+        eval_every=-1,
+        **base_kwargs
+    ):
+        """
+        Creates an instance of the Naive strategy.
+
+        :param model: The model. You can use many modules wrapped in a
+            :class:`avalanche.models.PackNetModel` or your own implementation
+            of :class:`avalanche.models.PackNetModule`.
+        :param optimizer: The optimizer to use.
+        :param post_prune_epochs: The number of epochs to finetune the model
+            after pruning the parameters. Must be less than the number of
+            training epochs.
+        :param prune_proportion: The proportion of parameters to prune each
+            durring each task. Must be between 0 and 1.
+        :param criterion: The loss criterion to use.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
+        :param base_kwargs: any additional
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
+        """
+
+        if not isinstance(model, PackNetModule):
+            raise ValueError("PackNet requires a model that implements PackNetModule.")
+
+        super().__init__(
+            model,
+            optimizer,
+            criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=[plugins, PackNetPlugin(post_prune_epochs, prune_proportion)],
             evaluator=evaluator,
             eval_every=eval_every,
             **base_kwargs

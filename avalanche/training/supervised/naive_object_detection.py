@@ -247,10 +247,19 @@ class ObjectDetectionTemplate(SupervisedTemplate):
     def _unpack_minibatch(self):
         # Unpack minibatch mainly takes care of moving tensors to devices.
         # In addition, it will prepare the targets in the proper dict format.
-        images = list(image.to(self.device) for image in self.mbatch[0])
-        targets = [{k: v.to(self.device) for k, v in t.items()} for t in self.mbatch[1]]
+        images = list(
+            image.to(self.device, non_blocking=True) for image in self.mbatch[0]
+        )
+        targets = [
+            {k: v.to(self.device, non_blocking=True) for k, v in t.items()}
+            for t in self.mbatch[1]
+        ]
 
-        mbatch = [images, targets, torch.as_tensor(self.mbatch[2]).to(self.device)]
+        mbatch = [
+            images,
+            targets,
+            torch.as_tensor(self.mbatch[2]).to(self.device, non_blocking=True),
+        ]
         self.mbatch = tuple(mbatch)
 
     def backward(self):

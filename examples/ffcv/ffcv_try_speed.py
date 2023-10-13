@@ -28,12 +28,18 @@ from ffcv.transforms import ToTensor
 from torchvision.transforms import Compose, ToTensor, Normalize
 
 from torch.utils.data import DataLoader
+from torch.utils.data.sampler import (
+    BatchSampler,
+    SequentialSampler,
+)
 from tqdm import tqdm
 
 
 def main(cuda: int):
     # --- CONFIG
-    device = torch.device(f"cuda:{cuda}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        f"cuda:{cuda}" if cuda >= 0 and torch.cuda.is_available() else "cpu"
+    )
     RNGManager.set_random_seeds(1234)
 
     benchmark_type = "cifar100"
@@ -114,16 +120,19 @@ def benchmark_ffcv_speed(
 
     start_time = time.time()
     ffcv_loader = HybridFfcvLoader(
-        avl_set,
-        None,
-        batch_size,
-        dict(num_workers=num_workers, drop_last=True),
+        dataset=avl_set,
+        batch_sampler=BatchSampler(
+            SequentialSampler(avl_set),
+            batch_size=batch_size,
+            drop_last=True,
+        ),
+        ffcv_loader_parameters=dict(num_workers=num_workers),
         device=device,
         print_ffcv_summary=False,
     )
 
     for _ in tqdm(range(epochs)):
-        for batch in ffcv_loader:
+        for batch in tqdm(ffcv_loader):
             # "Touch" tensors to make sure they already moved to GPU
             batch[0][0]
             batch[-1][0]
@@ -152,7 +161,7 @@ def benchmark_pytorch_speed(benchmark, device, batch_size=128, num_workers=1, ep
 
     batch: Tuple[torch.Tensor]
     for _ in tqdm(range(epochs)):
-        for batch in torch_loader:
+        for batch in tqdm(torch_loader):
             batch = tuple(x.to(device, non_blocking=True) for x in batch)
 
             # "Touch" tensors to make sure they already moved to GPU

@@ -15,18 +15,18 @@ General utility functions for pytorch.
 
 """
 from collections import defaultdict
-from typing import Dict, NamedTuple, List, Optional, Tuple, Callable, Union
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
-from torch.nn import Module, Linear
-from torch.utils.data import Dataset, DataLoader
+from torch.nn import Linear, Module
+from torch.utils.data import DataLoader, Dataset
 
-from avalanche.models.batch_renorm import BatchRenorm2D
 from avalanche.benchmarks import OnlineCLExperience
+from avalanche.models.batch_renorm import BatchRenorm2D
 
 
-def at_task_boundary(training_experience) -> bool:
+def _at_task_boundary(training_experience, before=True) -> bool:
     """
     Given a training experience,
     returns true if the experience is at the task boundary
@@ -41,11 +41,17 @@ def at_task_boundary(training_experience) -> bool:
 
     - If the experience is not an online experience, returns True
 
+    :param before: If used in before_training_exp,
+                   set to True, otherwise set
+                   to False
+
     """
 
     if isinstance(training_experience, OnlineCLExperience):
         if training_experience.access_task_boundaries:
-            if training_experience.is_first_subexp:
+            if before and training_experience.is_first_subexp:
+                return True
+            elif (not before) and training_experience.is_last_subexp:
                 return True
         else:
             return True
@@ -222,7 +228,7 @@ def replace_bn_with_brn(
 ):
     for attr_str in dir(m):
         target_attr = getattr(m, attr_str)
-        if type(target_attr) == torch.nn.BatchNorm2d:
+        if isinstance(target_attr, torch.nn.BatchNorm2d):
             # print('replaced: ', name, attr_str)
             setattr(
                 m,
@@ -253,7 +259,7 @@ def change_brn_pars(
 ):
     for attr_str in dir(m):
         target_attr = getattr(m, attr_str)
-        if type(target_attr) == BatchRenorm2D:
+        if isinstance(target_attr, BatchRenorm2D):
             target_attr.momentum = torch.tensor((momentum), requires_grad=False)
             target_attr.r_max = torch.tensor(r_max, requires_grad=False)
             target_attr.d_max = torch.tensor(d_max, requires_grad=False)
@@ -481,5 +487,4 @@ __all__ = [
     "examples_per_class",
     "ParamData",
     "cycle",
-    "at_task_boundary",
 ]
