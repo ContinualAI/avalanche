@@ -173,7 +173,7 @@ class MaskedCrossEntropy(SupervisedPlugin):
     (i.e LwF in Class Incremental Learning would need to use mask="new").
     """
 
-    def __init__(self, classes=None, mask="seen", reduction="batchmean"):
+    def __init__(self, classes=None, mask="seen", reduction="mean"):
         """
         param: classes: Initial value for current classes
         param: mask: "all" normal cross entropy, uses all the classes seen so far
@@ -198,11 +198,10 @@ class MaskedCrossEntropy(SupervisedPlugin):
         oh_targets = oh_targets[:, self.current_mask(logits.shape[1])]
         logits = logits[:, self.current_mask(logits.shape[1])]
 
-        return F.kl_div(
-            torch.log_softmax(logits, dim=1),
+        return cross_entropy_with_oh_targets(
+            logits,
             oh_targets.float(),
             reduction=self.reduction,
-            log_target=False,
         )
 
     def current_mask(self, logit_shape):

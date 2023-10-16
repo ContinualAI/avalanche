@@ -8,11 +8,18 @@ import torch.nn.functional as F
 
 from avalanche.models import MultiTaskModule, avalanche_forward
 
+def stable_softmax(x):
+    z = x - torch.max(x, dim=1, keepdim=True)[0]
+    numerator = torch.exp(z)
+    denominator = torch.sum(numerator, dim=1, keepdim=True)
+    softmax = numerator / denominator
+    return softmax
+
 
 def cross_entropy_with_oh_targets(outputs, targets, reduction="mean"):
     """Calculates cross-entropy with temperature scaling,
     targets can also be soft targets but they must sum to 1"""
-    outputs = torch.nn.functional.softmax(outputs, dim=1)
+    outputs = stable_softmax(outputs)
     ce = -(targets * outputs.log()).sum(1)
     if reduction == "mean":
         ce = ce.mean()
