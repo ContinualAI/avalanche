@@ -25,6 +25,7 @@ from torchvision.transforms import ToTensor, RandomCrop
 
 from avalanche.benchmarks import AvalancheDataset
 from avalanche.benchmarks.scenarios.supervised import class_incremental_benchmark
+from avalanche.benchmarks.utils import as_supervised_dataset
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised import Naive
 
@@ -50,7 +51,7 @@ def main(args):
     # ---------
 
     # --- BENCHMARK CREATION
-    mnist_train = as_supervised(
+    mnist_train = as_supervised_dataset(
         MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/",
             train=True,
@@ -58,7 +59,7 @@ def main(args):
             transform=train_transform,
         )
     )
-    mnist_test = AvalancheDataset(
+    mnist_test = as_supervised_dataset(
         MNIST(
             root=expanduser("~") + "/.avalanche/data/mnist/",
             train=False,
