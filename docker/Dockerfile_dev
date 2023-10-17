@@ -8,5 +8,10 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 ADD requirements.txt .
+
+# RUN pip install virtualenv
+# RUN python -m venv local_venv
+# RUN source local_venv/bin/activate
 RUN pip install -r requirements.txt
+
 SHELL ["/bin/bash", "--login", "-c"]

@@ -184,7 +184,7 @@ def as_avalanche_dataset(
 
 def as_classification_dataset(
     dataset: ISupportedClassificationDataset[T_co],
-    transform_groups: Optional[TransformGroups] = None
+    transform_groups: Optional[TransformGroups] = None,
 ) -> "TaskAwareClassificationDataset":
     """Converts a dataset with a `targets` field into an Avalanche ClassificationDataset."""
     from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
@@ -193,9 +193,7 @@ def as_classification_dataset(
         return dataset
     da = DataAttribute(dataset.targets, "targets")
     return ClassificationDataset(
-        [dataset], 
-        transform_groups=transform_groups, 
-        data_attributes=[da]
+        [dataset], transform_groups=transform_groups, data_attributes=[da]
     )
 
 
