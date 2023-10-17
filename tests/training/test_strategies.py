@@ -852,7 +852,7 @@ class StrategyTest(unittest.TestCase):
     def test_icarl(self):
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
         model = SimpleMLP(input_size=6, hidden_size=10)
-        optimizer = SGD(model.parameters(), lr=.000001)
+        optimizer = SGD(model.parameters(), lr=0.000001)
 
         strategy = ICaRL(
             model.features,

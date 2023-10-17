@@ -428,15 +428,16 @@ def datasets_from_paths(
             common_root = None
 
     train_inc_datasets = [
-        _make_taskaware_classification_dataset(
+        as_task(
             PathsDataset(common_root, tr_flist),
             transform_groups=transform_groups,
             initial_transform_group="train",
         )
         for tr_flist in train_list
     ]
+    from avalanche.benchmarks.utils import as_taskaware_classification_dataset
     test_inc_datasets = [
-        _make_taskaware_classification_dataset(
+        as_taskaware_classification_dataset(
             PathsDataset(common_root, te_flist),
             transform_groups=transform_groups,
             initial_transform_group="eval",

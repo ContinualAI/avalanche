@@ -350,22 +350,22 @@ class ClassesTimeline(Protocol):
     """Experience decorator that provides info about classes occurrence over time."""
 
     @property
-    def classes_in_this_experience(self) -> list[int]:
+    def classes_in_this_experience(self) -> List[int]:
         """The list of classes in this experience."""
         ...
 
     @property
-    def previous_classes(self) -> list[int]:
+    def previous_classes(self) -> List[int]:
         """The list of classes in previous experiences."""
         ...
 
     @property
-    def classes_seen_so_far(self) -> list[int]:
+    def classes_seen_so_far(self) -> List[int]:
         """List of classes of current and previous experiences."""
         ...
 
     @property
-    def future_classes(self) -> list[int]:
+    def future_classes(self) -> List[int]:
         """The list of classes of next experiences."""
         ...
 
