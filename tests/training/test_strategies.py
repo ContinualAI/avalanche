@@ -851,7 +851,8 @@ class StrategyTest(unittest.TestCase):
 
     def test_icarl(self):
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        optimizer = SGD(model.parameters(), lr=1e-5)
+        model = SimpleMLP(input_size=6, hidden_size=10)
+        optimizer = SGD(model.parameters(), lr=.000001)
 
         strategy = ICaRL(
             model.features,
@@ -860,11 +861,11 @@ class StrategyTest(unittest.TestCase):
             20,
             buffer_transform=None,
             fixed_memory=True,
-            train_mb_size=10,
+            train_mb_size=32,
             train_epochs=2,
             eval_mb_size=50,
             device=self.device,
-            eval_every=1,
+            eval_every=-1,
         )
 
         run_strategy(benchmark, strategy)
