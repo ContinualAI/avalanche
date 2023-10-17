@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from avalanche.models import MultiTaskModule, avalanche_forward
 
+
 def stable_softmax(x):
     z = x - torch.max(x, dim=1, keepdim=True)[0]
     numerator = torch.exp(z)
