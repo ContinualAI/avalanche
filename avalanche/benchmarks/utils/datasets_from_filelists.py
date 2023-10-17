@@ -270,10 +270,10 @@ def datasets_from_filelists(
     )
 
     # import here to prevent circular import issue
-    from .utils import _make_taskaware_classification_dataset
+    from .utils import as_taskaware_classification_dataset
 
     train_inc_datasets = [
-        _make_taskaware_classification_dataset(
+        as_taskaware_classification_dataset(
             FilelistDataset(root, tr_flist),
             transform_groups=transform_groups,
             initial_transform_group="train",
@@ -281,7 +281,7 @@ def datasets_from_filelists(
         for tr_flist in train_filelists
     ]
     test_inc_datasets = [
-        _make_taskaware_classification_dataset(
+        as_taskaware_classification_dataset(
             FilelistDataset(root, te_flist),
             transform_groups=transform_groups,
             initial_transform_group="eval",
