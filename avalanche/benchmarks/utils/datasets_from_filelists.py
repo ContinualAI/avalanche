@@ -428,7 +428,7 @@ def datasets_from_paths(
             common_root = None
 
     train_inc_datasets = [
-        as_task(
+        as_taskaware_classification_dataset(
             PathsDataset(common_root, tr_flist),
             transform_groups=transform_groups,
             initial_transform_group="train",
