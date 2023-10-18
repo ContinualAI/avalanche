@@ -427,6 +427,8 @@ def datasets_from_paths(
             has_common_root = False
             common_root = None
 
+    from avalanche.benchmarks.utils import as_taskaware_classification_dataset
+
     train_inc_datasets = [
         as_taskaware_classification_dataset(
             PathsDataset(common_root, tr_flist),
@@ -435,7 +437,6 @@ def datasets_from_paths(
         )
         for tr_flist in train_list
     ]
-    from avalanche.benchmarks.utils import as_taskaware_classification_dataset
     test_inc_datasets = [
         as_taskaware_classification_dataset(
             PathsDataset(common_root, te_flist),
