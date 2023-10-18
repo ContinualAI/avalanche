@@ -27,9 +27,7 @@ from avalanche.benchmarks.datasets.dataset_utils import \
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised.strategy_wrappers_online import \
     OnlineNaive
-from avalanche.benchmarks.scenarios.continuous_task_agnostic_scenario import (
-    ContinuousTaskAgnosticScenario
-)
+from avalanche.benchmarks.scenarios import OnlineCLScenario 
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -44,7 +42,6 @@ def main(args):
     device = torch.device(args.device)
 
     # Benchmark
-    n_tasks = 10
     benchmark = SplitMNIST(n_experiences=10)
 
     # Model
@@ -76,16 +73,19 @@ def main(args):
 
     # Create streams using the continuous task-agnostic scenario
     batch_streams = benchmark.streams.values()
-    cta_benchmark = ContinuousTaskAgnosticScenario(
+    cta_benchmark = OnlineCLScenario(
         original_streams=batch_streams,
         experience_size=10,
-        iters_per_virtual_epoch=300,
+        stream_split_strategy="continuous_linear_decay",
+        access_task_boundaries=False,
         overlap_factor=4,
-        stream_split_strategy="linear_decay"
+        iters_per_virtual_epoch=50
     )
 
     # Start training
-    cl_strategy.train(cta_benchmark.train_stream)
+    for itr, exp in enumerate(cta_benchmark.train_stream):
+        cl_strategy.train(exp)
+        print(exp.n_samples_from_each_exp)
 
     results = cl_strategy.eval(cta_benchmark.original_test_stream)
 
