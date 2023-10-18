@@ -58,11 +58,6 @@ class MIRPlugin(SupervisedPlugin):
         )
         self.replay_loader = None
 
-    # TODO: remove ext_mem
-    # @property
-    # def ext_mem(self):
-    #     return self.storage_policy.buffer_groups  # a Dict<task_id, Dataset>
-
     def before_backward(self, strategy, **kwargs):
         if self.replay_loader is None:
             return

@@ -155,7 +155,7 @@ class MiniImageNetDataset(Dataset):
         The size of the output images, as a two ints tuple.
         """
 
-        # TODO: the original loader from yaoyao-liu uses cv2.INTER_AREA
+        # NOTE: the original loader from yaoyao-liu uses cv2.INTER_AREA
         self._transform = Resize(self.resize_to, interpolation=PIL.Image.BILINEAR)
 
         # The following fields are filled by self.prepare_dataset()

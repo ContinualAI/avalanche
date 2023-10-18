@@ -15,7 +15,7 @@ import torch
 from torch.nn import Module
 from torch.optim import Optimizer
 
-from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
+from avalanche.benchmarks import DatasetExperience
 from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.core import BasePlugin
 from avalanche.training.plugins.evaluation import (

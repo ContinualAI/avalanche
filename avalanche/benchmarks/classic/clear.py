@@ -24,8 +24,7 @@ Streaming Protocol: Use the data of next task as the test set for current task,
 We support both evaluation protocols for benchmark construction."""
 
 from pathlib import Path
-from typing import List, Sequence, Union, Any, Optional
-from typing_extensions import Literal
+from typing import Sequence, Union, Any, Optional
 
 from avalanche.benchmarks.datasets.clear import (
     _CLEARImage,
@@ -34,7 +33,7 @@ from avalanche.benchmarks.datasets.clear import (
     CLEAR_FEATURE_TYPES,
     _CLEAR_DATA_SPLITS,
 )
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import (
     create_generic_benchmark_from_paths,
     create_generic_benchmark_from_tensor_lists,
 )
@@ -276,7 +275,6 @@ __all__ = ["CLEAR", "CLEARMetric"]
 if __name__ == "__main__":
     import sys
     from torchvision import transforms
-    import torch
 
     normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]

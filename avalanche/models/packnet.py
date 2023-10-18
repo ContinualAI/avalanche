@@ -514,8 +514,8 @@ class PackNetPlugin(BaseSGDPlugin):
         super().__init__()
         self.post_prune_epochs = post_prune_epochs
         self.total_epochs: Union[int, None] = None
+        self.prune_proportion: t.Callable[[int], float] = prune_proportion
 
-        self.prune_proportion: t.Callable[[int], float]
         if isinstance(prune_proportion, float):
             assert 0 <= self.prune_proportion <= 1, (
                 f"`prune_proportion` must be between 0 and 1, got "

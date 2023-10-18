@@ -25,7 +25,7 @@ except ImportError:
     )
     SPEECHCOMMANDS = object
 
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
 from avalanche.benchmarks.datasets import default_dataset_location
 import torch
 
@@ -127,7 +127,7 @@ def SpeechCommands(
         mfcc_preprocessing=mfcc_preprocessing,
     )
     labels = [datapoint[1] for datapoint in dataset]
-    return make_classification_dataset(
+    return _make_taskaware_classification_dataset(
         dataset, collate_fn=speech_commands_collate, targets=labels
     )
 

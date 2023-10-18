@@ -33,9 +33,9 @@ except ImportError:
         "detection dependencies: "
         "pip install avalanche-lib[detection]"
     )
-    LVIS = object
-    COCO = object
-    coco_mask = object
+    LVIS = object  # type: ignore
+    COCO = object  # type: ignore
+    coco_mask = object  # type: ignore
 
 from torch import Tensor
 from json import JSONEncoder

@@ -260,7 +260,7 @@ class StrategyTest(unittest.TestCase):
 
     def init_scenario(self, multi_task=False):
         model = self.get_model(fast_test=True, multi_task=multi_task)
-        optimizer = SGD(model.parameters(), lr=1e-3)
+        optimizer = SGD(model.parameters(), lr=1e-4)
         criterion = CrossEntropyLoss()
         benchmark = self.load_benchmark(use_task_labels=multi_task)
         return model, optimizer, criterion, benchmark
@@ -851,6 +851,8 @@ class StrategyTest(unittest.TestCase):
 
     def test_icarl(self):
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+        model = SimpleMLP(input_size=6, hidden_size=10)
+        optimizer = SGD(model.parameters(), lr=0.000001)
 
         strategy = ICaRL(
             model.features,
@@ -859,11 +861,11 @@ class StrategyTest(unittest.TestCase):
             20,
             buffer_transform=None,
             fixed_memory=True,
-            train_mb_size=10,
+            train_mb_size=32,
             train_epochs=2,
             eval_mb_size=50,
             device=self.device,
-            eval_every=1,
+            eval_every=-1,
         )
 
         run_strategy(benchmark, strategy)

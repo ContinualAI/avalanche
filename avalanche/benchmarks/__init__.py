@@ -9,5 +9,5 @@ are made available.
 """
 
 from .scenarios import *
-from .generators import *
+from .scenarios.deprecated.generators import *
 from .classic import *

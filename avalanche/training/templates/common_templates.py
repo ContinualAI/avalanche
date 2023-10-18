@@ -3,7 +3,7 @@ import torch
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-from avalanche.benchmarks.scenarios.generic_scenario import DatasetExperience
+from ...benchmarks.scenarios.deprecated import DatasetExperience
 
 from avalanche.core import BasePlugin, BaseSGDPlugin, SupervisedPlugin
 from avalanche.training.plugins.evaluation import (

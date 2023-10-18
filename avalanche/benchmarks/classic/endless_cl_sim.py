@@ -15,9 +15,6 @@ generator. It returns an iterable scenario object
 ``GenericCLScenario`` given a number of configuration parameters.
 """
 
-from avalanche.benchmarks.utils.classification_dataset import (
-    make_classification_dataset,
-)
 from avalanche.benchmarks.datasets.endless_cl_sim.endless_cl_sim import (
     EndlessCLSimDataset,
 )
@@ -27,12 +24,9 @@ from typing import List, Union, Optional, Any
 from torchvision.transforms import ToTensor
 from torchvision.transforms.transforms import Compose
 
-from avalanche.benchmarks.classic.classic_benchmarks_utils import (
-    check_vision_benchmark,
-)
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.generators import dataset_benchmark
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.scenarios.deprecated.generators import dataset_benchmark
+from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
 
 _default_transform = Compose([ToTensor()])
 
@@ -136,10 +130,14 @@ def EndlessCLSim(
         eval_data.transform = eval_transform
 
         train_datasets.append(
-            make_classification_dataset(dataset=train_data, task_labels=task_order[i])
+            _make_taskaware_classification_dataset(
+                dataset=train_data, task_labels=task_order[i]
+            )
         )
         eval_datasets.append(
-            make_classification_dataset(dataset=eval_data, task_labels=task_order[i])
+            _make_taskaware_classification_dataset(
+                dataset=eval_data, task_labels=task_order[i]
+            )
         )
 
     scenario_obj = dataset_benchmark(train_datasets, eval_datasets)

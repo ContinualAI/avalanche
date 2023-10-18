@@ -3,10 +3,11 @@ import numpy as np
 
 try:
     import gym
-    from avalanche.benchmarks.scenarios.rl_scenario import (
+    from avalanche.benchmarks.scenarios.reinforcement_learning import (
         RLScenario,
         RLExperience,
     )
+    import pygame
 
     skip = False
 except ImportError:
@@ -14,7 +15,7 @@ except ImportError:
 
 
 class RLScenarioTests(unittest.TestCase):
-    @unittest.skipIf(skip, reason="Need gym to run these tests")
+    @unittest.skipIf(skip, reason="Need gym and pygame to run these tests")
     def test_simple_scenario(self):
         from packaging import version
 
@@ -40,7 +41,7 @@ class RLScenarioTests(unittest.TestCase):
             else:
                 self.assertIsInstance(obs, np.ndarray)
 
-    @unittest.skipIf(skip, reason="Need gym to run these tests")
+    @unittest.skipIf(skip, reason="Need gym and pygame to run these tests")
     def test_multiple_envs_shuffle(self):
         envs = [
             gym.make("CartPole-v0"),
@@ -69,7 +70,7 @@ class RLScenarioTests(unittest.TestCase):
             assert exp.task_label == i
             assert exp.environment.spec.id == envs[i].spec.id
 
-    @unittest.skipIf(skip, reason="Need gym to run these tests")
+    @unittest.skipIf(skip, reason="Need gym and pygame to run these tests")
     def test_multiple_envs(self):
         envs = [
             gym.make("CartPole-v0"),

@@ -26,7 +26,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,
 )
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import (
     create_generic_benchmark_from_filelists,
 )
 from avalanche.benchmarks.datasets.core50.core50 import CORe50Dataset

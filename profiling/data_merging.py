@@ -10,9 +10,11 @@ from os.path import expanduser
 from tqdm import tqdm
 
 from avalanche.benchmarks import (
-    fixed_size_experience_split,
+    FixedSizeExperienceSplitter,
     SplitMNIST,
-    classification_subset,
+)
+from avalanche.benchmarks.utils.classification_dataset import (
+    _taskaware_classification_subset,
 )
 from avalanche.benchmarks.utils.flat_data import _flatdata_depth
 from avalanche.benchmarks.utils.utils import concat_datasets
@@ -30,9 +32,9 @@ print("len experience: ", len(experience.dataset))
 
 start = time.time()
 buffer = concat_datasets([])
-for exp in tqdm(fixed_size_experience_split(experience, 1)):
+for exp in tqdm(FixedSizeExperienceSplitter(experience, 1)):
     buffer = buffer.concat(exp.dataset)
-    buffer = classification_subset(buffer, list(range(len(buffer)))[:100])
+    buffer = _taskaware_classification_subset(buffer, list(range(len(buffer)))[:100])
     # buffer = buffer.subset(list(range(len(buffer)))[:100])
 
     # depths = [_flatdata_depth(b) for b in bgs]

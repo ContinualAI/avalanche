@@ -9,8 +9,8 @@ from torch.nn import Module
 
 from avalanche.benchmarks.scenarios.generic_scenario import (
     CLExperience,
-    DatasetExperience,
 )
+from avalanche.benchmarks import DatasetExperience
 from avalanche.core import BasePlugin
 
 TExperienceType = TypeVar("TExperienceType", bound=CLExperience)

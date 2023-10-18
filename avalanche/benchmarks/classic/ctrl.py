@@ -20,7 +20,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 from avalanche.benchmarks.utils.classification_dataset import (
-    SupervisedClassificationDataset,
+    TaskAwareSupervisedClassificationDataset,
 )
 
 try:
@@ -36,9 +36,9 @@ except ImportError:
 from avalanche.benchmarks import dataset_benchmark
 from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.utils import (
-    make_tensor_classification_dataset,
+    _make_taskaware_tensor_classification_dataset,
     common_paths_root,
-    make_classification_dataset,
+    _make_taskaware_classification_dataset,
     PathsDataset,
 )
 
@@ -83,7 +83,7 @@ def CTrL(
         folder = path / "ctrl" / stream_name / f"seed_{seed}"
 
     # Train, val and test experiences
-    exps: List[List[SupervisedClassificationDataset]] = [[], [], []]
+    exps: List[List[TaskAwareSupervisedClassificationDataset]] = [[], [], []]
     for t_id, t in enumerate(
         tqdm(stream, desc=f"Loading {stream_name}"),
     ):
@@ -105,13 +105,15 @@ def CTrL(
                 paths_dataset: PathsDataset[Image, int] = PathsDataset(
                     common_root, exp_paths_list
                 )
-                dataset: SupervisedClassificationDataset = make_classification_dataset(
-                    paths_dataset,
-                    task_labels=task_labels,
-                    transform=transforms.Compose([transforms.ToTensor(), trans]),
+                dataset: TaskAwareSupervisedClassificationDataset = (
+                    _make_taskaware_classification_dataset(
+                        paths_dataset,
+                        task_labels=task_labels,
+                        transform=transforms.Compose([transforms.ToTensor(), trans]),
+                    )
                 )
             else:
-                dataset = make_tensor_classification_dataset(
+                dataset = _make_taskaware_tensor_classification_dataset(
                     samples,
                     labels.squeeze(1),
                     task_labels=task_labels,

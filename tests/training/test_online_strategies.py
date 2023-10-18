@@ -7,7 +7,7 @@ from torch.optim import SGD
 
 from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
-from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
+from avalanche.benchmarks.scenarios.online import OnlineCLScenario
 from avalanche.training import OnlineNaive
 from tests.unit_tests_utils import get_fast_benchmark
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -45,7 +45,7 @@ class StrategyTest(unittest.TestCase):
         benchmark_streams = benchmark.streams.values()
 
         # With task boundaries
-        model, optimizer, criterion, my_nc_benchmark = self.init_sit()
+        model, optimizer, criterion, _ = self.init_sit()
         strategy = OnlineNaive(
             model,
             optimizer,
@@ -99,7 +99,7 @@ class StrategyTest(unittest.TestCase):
         print("Starting experiment (with boundaries) ...")
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
-        for exp_idx, train_batch_info in enumerate(benchmark.train_stream):
+        for exp_idx, train_batch_info in enumerate(benchmark.train_online_stream):
             print("Start of experience ", exp_idx)
 
             cl_strategy.train(train_batch_info, num_workers=0)
@@ -113,7 +113,7 @@ class StrategyTest(unittest.TestCase):
         cl_strategy.evaluator.loggers = [TextLogger(sys.stdout)]
         results = []
 
-        cl_strategy.train(benchmark.train_stream, num_workers=0)
+        cl_strategy.train(benchmark.train_online_stream, num_workers=0)
         print("Training completed")
 
         assert cl_strategy.clock.train_exp_counter > 0

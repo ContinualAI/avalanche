@@ -103,16 +103,6 @@ class AvalancheDataset(IDataset[T_co]):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
-        if isinstance(datasets, TorchDataset) or isinstance(datasets, AvalancheDataset):
-            warnings.warn(
-                "AvalancheDataset constructor has been changed. "
-                "Please check the documentation for the correct usage. You can"
-                " use `avalanche.benchmarks.utils.make_classification_dataset "
-                "if you need the old behavior.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
         if issubclass(type(datasets), TorchDataset) or issubclass(
             type(datasets), AvalancheDataset
         ):

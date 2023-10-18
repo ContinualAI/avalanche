@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 import torch
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 
@@ -163,7 +163,7 @@ class GSS_greedyPlugin(SupervisedPlugin):
         temp_y_tensors = self.ext_mem_list_y.to("cpu")
 
         memory = list(zip(temp_x_tensors, temp_y_tensors))
-        memory_dataset = make_classification_dataset(
+        memory_dataset = _make_taskaware_classification_dataset(
             memory, targets=temp_y_tensors.tolist()
         )
 

@@ -7,7 +7,7 @@ from avalanche import training
 
 __version__ = "0.4.0a"
 
-_dataset_add = None
+_dataset_add = None  # type: ignore
 
 
 def _avdataset_radd(self, other, *args, **kwargs):

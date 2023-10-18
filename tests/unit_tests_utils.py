@@ -16,6 +16,8 @@ from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, ToTensor
 
 from avalanche.benchmarks import nc_benchmark
+from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.benchmarks.utils import _make_taskaware_tensor_classification_dataset
 from avalanche.benchmarks.utils.detection_dataset import (
     make_detection_dataset,
 )
@@ -81,13 +83,13 @@ def load_benchmark(use_task_labels=False, fast_test=True):
 
 def load_image_data():
     mnist_train = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=True,
         download=True,
         transform=Compose([ToTensor()]),
     )
     mnist_test = MNIST(
-        root=expanduser("~") + "/.avalanche/data/mnist/",
+        root=default_dataset_location("mnist"),
         train=False,
         download=True,
         transform=Compose([ToTensor()]),
@@ -98,20 +100,20 @@ def load_image_data():
 image_data = None
 
 
-def load_image_benchmark():
+def dummy_image_dataset():
     """Returns a PyTorch image dataset of 10 classes."""
     global image_data
 
     if image_data is None:
         image_data = MNIST(
-            root=expanduser("~") + "/.avalanche/data/mnist/",
+            root=default_dataset_location("mnist"),
             train=True,
             download=True,
         )
     return image_data
 
 
-def load_tensor_benchmark():
+def dummy_tensor_dataset():
     """Returns a PyTorch image dataset of 10 classes."""
     x = torch.rand(32, 10)
     y = torch.rand(32, 10)
@@ -128,27 +130,12 @@ def get_fast_benchmark(
     train_transform=None,
     eval_transform=None,
 ):
-    dataset = make_classification(
-        n_samples=n_classes * n_samples_per_class,
-        n_classes=n_classes,
-        n_features=n_features,
-        n_informative=6,
-        n_redundant=0,
-        random_state=seed,
+    train, test = dummy_classification_datasets(
+        n_classes, n_features, n_samples_per_class, seed
     )
-
-    X = torch.from_numpy(dataset[0]).float()
-    y = torch.from_numpy(dataset[1]).long()
-
-    train_X, test_X, train_y, test_y = train_test_split(
-        X, y, train_size=0.6, shuffle=True, stratify=y, random_state=seed
-    )
-
-    train_dataset = TensorDataset(train_X, train_y)
-    test_dataset = TensorDataset(test_X, test_y)
     my_nc_benchmark = nc_benchmark(
-        train_dataset,
-        test_dataset,
+        train,
+        test,
         5,
         task_labels=use_task_labels,
         shuffle=shuffle,
@@ -157,6 +144,27 @@ def get_fast_benchmark(
         seed=seed,
     )
     return my_nc_benchmark
+
+
+def dummy_classification_datasets(
+    n_classes=10, n_features=7, n_samples_per_class=20, seed=42
+):
+    dataset = make_classification(
+        n_samples=n_classes * n_samples_per_class,
+        n_classes=n_classes,
+        n_features=n_features,
+        n_informative=6,
+        n_redundant=0,
+        random_state=seed,
+    )
+    X = torch.from_numpy(dataset[0]).float()
+    y = torch.from_numpy(dataset[1]).long()
+    train_X, test_X, train_y, test_y = train_test_split(
+        X, y, train_size=0.6, shuffle=True, stratify=y, random_state=seed
+    )
+    train = _make_taskaware_tensor_classification_dataset(train_X, train_y)
+    test = _make_taskaware_tensor_classification_dataset(test_X, test_y)
+    return train, test
 
 
 class DummyImageDataset(Dataset):
