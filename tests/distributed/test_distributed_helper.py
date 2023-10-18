@@ -10,9 +10,9 @@ import torch
 import torch.distributed as dst
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
-from avalanche.benchmarks.generators.benchmark_generators import dataset_benchmark
+from avalanche.benchmarks.scenarios.deprecated.generators import dataset_benchmark
 from avalanche.benchmarks.utils.classification_dataset import (
-    make_tensor_classification_dataset,
+    _make_taskaware_tensor_classification_dataset,
 )
 
 from avalanche.distributed import DistributedHelper
@@ -84,12 +84,12 @@ class DistributedHelperTests(unittest.TestCase):
 
         benchmark = dataset_benchmark(
             [
-                make_tensor_classification_dataset(
+                _make_taskaware_tensor_classification_dataset(
                     mb_x, mb_y, mb_t, task_labels=mb_t.tolist()
                 )
             ],
             [
-                make_tensor_classification_dataset(
+                _make_taskaware_tensor_classification_dataset(
                     mb_x, mb_y, mb_t, task_labels=mb_t.tolist()
                 )
             ],

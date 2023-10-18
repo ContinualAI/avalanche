@@ -23,7 +23,7 @@ from avalanche.benchmarks.classic.classic_benchmarks_utils import (
 from avalanche.benchmarks.datasets.openloris import (
     OpenLORIS as OpenLORISDataset,
 )
-from avalanche.benchmarks.scenarios.generic_benchmark_creation import (
+from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import (
     create_generic_benchmark_from_filelists,
 )
 

@@ -20,15 +20,18 @@ import numpy as np
 import torch
 
 from avalanche.benchmarks.utils.transforms import flat_transforms_recursive
+from avalanche.benchmarks.utils.ffcv_support.center_crop import (
+    CenterCropRGBImageDecoderTVAlike,
+)
 
 from torchvision.transforms import ToTensor as ToTensorTV
 from torchvision.transforms import PILToTensor as PILToTensorTV
 from torchvision.transforms import Normalize as NormalizeTV
 from torchvision.transforms import ConvertImageDtype as ConvertTV
 from torchvision.transforms import RandomResizedCrop as RandomResizedCropTV
+from torchvision.transforms import CenterCrop as CenterCropTV
 from torchvision.transforms import RandomHorizontalFlip as RandomHorizontalFlipTV
 from torchvision.transforms import RandomCrop as RandomCropTV
-from torchvision.transforms import Lambda
 
 from ffcv.transforms import ToTensor as ToTensorFFCV
 from ffcv.transforms import ToDevice as ToDeviceFFCV
@@ -282,6 +285,15 @@ def _apply_transforms_pre_optimization(
             elif len(size) == 1:
                 size = [size[0], size[0]]
             result[-1] = RandomResizedCropRGBImageDecoder(size, t.scale, t.ratio)
+        elif isinstance(t, CenterCropTV) and isinstance(
+            result[-1], SimpleRGBImageDecoder
+        ):
+            size = t.size
+            if isinstance(size, int):
+                size = [size, size]
+            elif len(size) == 1:
+                size = [size[0], size[0]]
+            result[-1] = CenterCropRGBImageDecoderTVAlike(size)
         else:
             result.append(t)
 

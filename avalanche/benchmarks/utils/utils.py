@@ -34,17 +34,17 @@ import torch
 from torch import Tensor
 from torch.utils.data import Subset, ConcatDataset
 
-from avalanche.benchmarks.utils.data import AvalancheDataset
-from avalanche.benchmarks.utils.data_attribute import DataAttribute
-from avalanche.benchmarks.utils.dataset_definitions import (
+from .data import AvalancheDataset
+from .data_attribute import DataAttribute
+from .dataset_definitions import (
     ISupportedClassificationDataset,
 )
-from avalanche.benchmarks.utils.dataset_utils import (
+from .dataset_utils import (
     SubSequence,
     find_list_from_index,
 )
-from avalanche.benchmarks.utils.flat_data import ConstantSequence
-from avalanche.benchmarks.utils.transform_groups import (
+from .flat_data import ConstantSequence
+from .transform_groups import (
     TransformGroupDef,
     TransformGroups,
     XTransform,
@@ -52,7 +52,7 @@ from avalanche.benchmarks.utils.transform_groups import (
 )
 
 if TYPE_CHECKING:
-    from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
+    from .classification_dataset import TaskAwareClassificationDataset
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
@@ -184,12 +184,29 @@ def as_avalanche_dataset(
 
 def as_classification_dataset(
     dataset: ISupportedClassificationDataset[T_co],
-) -> "ClassificationDataset":
+    transform_groups: Optional[TransformGroups] = None,
+) -> "TaskAwareClassificationDataset":
+    """Converts a dataset with a `targets` field into an Avalanche ClassificationDataset."""
     from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 
     if isinstance(dataset, ClassificationDataset):
         return dataset
-    return ClassificationDataset([dataset])
+    da = DataAttribute(dataset.targets, "targets")
+    return ClassificationDataset(
+        [dataset], transform_groups=transform_groups, data_attributes=[da]
+    )
+
+
+def as_taskaware_classification_dataset(
+    dataset: ISupportedClassificationDataset[T_co],
+) -> "TaskAwareClassificationDataset":
+    from avalanche.benchmarks.utils.classification_dataset import (
+        TaskAwareClassificationDataset,
+    )
+
+    if isinstance(dataset, TaskAwareClassificationDataset):
+        return dataset
+    return TaskAwareClassificationDataset([dataset])
 
 
 def _count_unique(*sequences: Sequence[SupportsInt]):
@@ -666,6 +683,7 @@ __all__ = [
     "grouped_and_ordered_indexes",
     "as_avalanche_dataset",
     "as_classification_dataset",
+    "as_taskaware_classification_dataset",
     "concat_datasets",
     "find_common_transforms_group",
     "TaskSet",

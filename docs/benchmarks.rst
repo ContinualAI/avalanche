@@ -235,7 +235,7 @@ Datasets
     torchaudio_wrapper.SpeechCommands
 
 
-.. currentmodule:: avalanche.benchmarks.generators
+.. currentmodule:: avalanche.benchmarks.scenarios.deprecated.generators
 
 Benchmark Generators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

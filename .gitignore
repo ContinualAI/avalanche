@@ -17,3 +17,4 @@ docs/_build/
 pip-wheel-metadata
 **/.DS_Store
 avalanche_lib.egg-info/
+.devcontainer

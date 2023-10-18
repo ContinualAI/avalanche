@@ -1,6 +1,7 @@
 # see https://github.com/ContinualAI/avalanche/issues/1357
 
 from os.path import expanduser
+from typing import Optional
 
 import torch
 import time
@@ -23,7 +24,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         self,
         max_size: int,
         adaptive_size: bool = True,
-        total_num_classes: int = None,
+        total_num_classes: Optional[int] = None,
     ):
         if not adaptive_size:
             assert (
@@ -33,7 +34,7 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         super().__init__(max_size, adaptive_size, total_num_classes)
         self.adaptive_size = adaptive_size
         self.total_num_classes = total_num_classes
-        self.seen_classes = set()
+        self.seen_classes: set[int] = set()
 
     def update(self, dataset, add_attributes=True):
         logits = [torch.randn(1, 10) for _ in range(len(dataset))]

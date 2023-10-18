@@ -19,10 +19,10 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 
-from avalanche.benchmarks.generators.benchmark_generators import (
+from avalanche.benchmarks.scenarios.deprecated.generators.benchmark_generators import (
     create_multi_dataset_generic_benchmark,
 )
-from avalanche.benchmarks.utils import make_tensor_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_tensor_classification_dataset
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -50,7 +50,7 @@ def main(args):
 
     # --- BENCHMARK CREATION (USING A FAKE DATASET)
     tr_ds = [
-        make_tensor_classification_dataset(
+        _make_taskaware_tensor_classification_dataset(
             torch.randn(10, 3),
             torch.randint(0, 3, (10,)),
             task_labels=torch.randint(0, 5, (10,)).tolist(),
@@ -58,7 +58,7 @@ def main(args):
         for _ in range(3)
     ]
     ts_ds = [
-        make_tensor_classification_dataset(
+        _make_taskaware_tensor_classification_dataset(
             torch.randn(10, 3),
             torch.randint(0, 3, (10,)),
             task_labels=torch.randint(0, 5, (10,)).tolist(),

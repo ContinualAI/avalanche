@@ -31,46 +31,18 @@ from typing import (
 from typing_extensions import final
 
 import numpy as np
-from avalanche.benchmarks.utils import AvalancheDataset
-import warnings
 
 from avalanche.benchmarks.utils.dataset_utils import (
     slice_alike_object_to_indices,
 )
 
+
+# Typing
 T = TypeVar("T")
 TCov = TypeVar("TCov", covariant=True)
-E = TypeVar("E")
-
-# Dataset
-TCLDataset = TypeVar(
-    "TCLDataset", bound="AvalancheDataset"
-)  # Implementation, defined in utils
-TCLDatasetCov = TypeVar(
-    "TCLDatasetCov", bound="AvalancheDataset", covariant=True
-)  # Implementation, defined in utils
-
-# Scenario
-TCLScenario = TypeVar("TCLScenario", bound="CLScenario")  # Implementation, defined here
-TCLScenarioCov = TypeVar(
-    "TCLScenarioCov", bound="CLScenario", covariant=True
-)  # Implementation, defined here
-
-# Stream
-TCLStream = TypeVar("TCLStream", bound="CLStream")  # Implementation, defined here
-TCLStreamCov = TypeVar(
-    "TCLStreamCov", bound="CLStream", covariant=True
-)  # Implementation, defined here
+TCLStream = TypeVar("TCLStream", bound="CLStream")
 TSequenceCLStream = TypeVar("TSequenceCLStream", bound="SequenceCLStream")
-
-
-# Experience
-TCLExperience = TypeVar(
-    "TCLExperience", bound="CLExperience"
-)  # Implementation, defined here
-TDatasetExperience = TypeVar(
-    "TDatasetExperience", bound="DatasetExperience"
-)  # Implementation, defined here
+TCLExperience = TypeVar("TCLExperience", bound="CLExperience")
 
 
 class MaskedAttributeError(ValueError):
@@ -139,13 +111,13 @@ class CLExperience:
     def __init__(
         self: TCLExperience,
         current_experience: int,
-        origin_stream: "CLStream[TCLExperience]",
+        origin_stream: "Optional[CLStream[TCLExperience]]",
     ):
         super().__init__()
         self._current_experience: int = current_experience
         """Experience identifier (the position in the origin_stream)."""
 
-        self._origin_stream: "CLStream[TCLExperience]" = origin_stream
+        self._origin_stream: "Optional[CLStream[TCLExperience]]" = origin_stream
         """Stream containing the experience."""
 
         self._exp_mode: ExperienceMode = ExperienceMode.LOGGING
@@ -196,6 +168,7 @@ class CLExperience:
         Check that ExperienceAttribute are available in train/eval mode.
         """
         v = super().__getattribute__(item)
+
         if isinstance(v, ExperienceAttribute):
             if not self.are_attributes_masked:
                 return v.value
@@ -302,146 +275,6 @@ class CLExperience:
         )
 
 
-class DatasetExperience(CLExperience, Generic[TCLDataset], ABC):
-    """Base Experience.
-
-    Experiences have an index which track the experience's position
-    inside the stream for evaluation purposes.
-    """
-
-    def __init__(
-        self: TDatasetExperience,
-        current_experience: int,
-        origin_stream: "CLStream[TDatasetExperience]",
-        benchmark: "CLScenario",
-        dataset: TCLDataset,
-    ):
-        super().__init__(
-            current_experience=current_experience, origin_stream=origin_stream
-        )
-
-        self._benchmark: CLScenario = benchmark
-        self._dataset: TCLDataset = dataset
-
-    @property
-    def benchmark(self) -> "CLScenario":
-        bench = self._benchmark
-        CLExperience._check_unset_attribute("benchmark", bench)
-        return bench
-
-    @benchmark.setter
-    def benchmark(self, bench: "CLScenario"):
-        self._benchmark = bench
-
-    @property
-    def dataset(self) -> TCLDataset:
-        data = self._dataset
-        CLExperience._check_unset_attribute("dataset", data)
-        return data
-
-    @dataset.setter
-    def dataset(self, d: TCLDataset):
-        self._dataset = d
-
-    @property
-    def scenario(self) -> "CLScenario":
-        """This property is DEPRECATED."""
-        warnings.warn(
-            "Using self.scenario is deprecated in Experience. "
-            "Consider using self.benchmark instead.",
-            stacklevel=2,
-        )
-        return self.benchmark
-
-    @property
-    def task_label(self) -> int:
-        """
-        The task label. This value will never have value "None". However,
-        for scenarios that don't produce task labels a placeholder value like 0
-        is usually set. Beware that this field is meant as a shortcut to obtain
-        a unique task label: it assumes that only patterns labeled with a
-        single task label are present. If this experience contains patterns from
-        multiple tasks, accessing this property will result in an exception.
-        """
-        if len(self.task_labels) != 1:
-            raise ValueError(
-                "The task_label property can only be accessed "
-                "when the experience contains a single task label"
-            )
-
-        return self.task_labels[0]
-
-    @property
-    def task_labels(self) -> List[int]:
-        task_labels = getattr(self.dataset, "targets_task_labels", None)
-
-        assert task_labels is not None, (
-            "In its default implementation, DatasetExperience will use the "
-            "the dataset `targets_task_labels` field to compute the "
-            "content of the `task_label(s)` field. The given does not "
-            "contain such field."
-        )
-
-        return list(set(task_labels))
-
-
-class AbstractClassTimelineExperience(DatasetExperience[TCLDataset], ABC):
-    """
-    Definition of a learning experience. A learning experience contains a set of
-    patterns which has become available at a particular time instant. The
-    content and size of an Experience is defined by the specific benchmark that
-    creates the experience.
-
-    For instance, an experience of a New Classes scenario will contain all
-    patterns belonging to a subset of classes of the original training set. An
-    experience of a New Instance scenario will contain patterns from previously
-    seen classes.
-    """
-
-    def __init__(
-        self: TDatasetExperience,
-        origin_stream: "CLStream[TDatasetExperience]",
-        dataset: TCLDataset,
-        current_experience: int,
-        classes_in_this_exp: Optional[Sequence[int]],
-        previous_classes: Optional[Sequence[int]],
-        classes_seen_so_far: Optional[Sequence[int]],
-        future_classes: Optional[Sequence[int]],
-    ):
-        """
-        Creates an instance of an experience given the benchmark
-        stream, the current experience ID and data about the classes timeline.
-
-        :param origin_stream: The stream from which this experience was
-            obtained.
-        :param current_experience: The current experience ID, as an integer.
-        :param classes_in_this_exp: The list of classes in this experience.
-        :param previous_classes: The list of classes in previous experiences.
-        :param classes_seen_so_far: List of classes of current and previous
-            experiences.
-        :param future_classes: The list of classes of next experiences.
-        """
-
-        self.classes_in_this_experience: Optional[Sequence[int]] = classes_in_this_exp
-        """ The list of classes in this experience """
-
-        self.previous_classes: Optional[Sequence[int]] = previous_classes
-        """ The list of classes in previous experiences """
-
-        self.classes_seen_so_far: Optional[Sequence[int]] = classes_seen_so_far
-        """ List of classes of current and previous experiences """
-
-        self.future_classes: Optional[Sequence[int]] = future_classes
-        """ The list of classes of next experiences """
-
-        super().__init__(
-            current_experience=current_experience,
-            origin_stream=origin_stream,
-            benchmark=origin_stream.benchmark,  # type: ignore
-            dataset=dataset,
-        )
-
-
 class GeneratorMemo(Generic[T]):
     def __init__(self, generator: Generator[T, None, None]):
         self._generator: Optional[Generator[T, None, None]] = generator
@@ -479,7 +312,7 @@ class CLStream(Generic[TCLExperience]):
         self: TCLStream,
         name: str,
         exps_iter: Iterable[TCLExperience],
-        benchmark: "CLScenario[TCLStream]",
+        benchmark: "Optional[CLScenario[TCLStream]]" = None,
         set_stream_info: bool = True,
     ):
         """
@@ -536,7 +369,7 @@ class SizedCLStream(CLStream[TCLExperience], ABC):
         self: TCLStream,
         name: str,
         exps_iter: Iterable[TCLExperience],
-        benchmark: "CLScenario[TCLStream]",
+        benchmark: "Optional[CLScenario[TCLStream]]" = None,
         set_stream_info: bool = True,
     ):
         super().__init__(
@@ -700,7 +533,7 @@ class EagerCLStream(SequenceCLStream[TCLExperience]):
         self,
         name: str,
         exps: Sequence[TCLExperience],
-        benchmark: "CLScenario",
+        benchmark: "Optional[CLScenario]" = None,
         set_stream_info: bool = True,
         slice_ids: Optional[Iterable[int]] = None,
     ):
@@ -776,15 +609,31 @@ class CLScenario(Generic[TCLStream]):
         return copy(self._streams)
 
 
+def make_stream(name: str, exps: Iterable[CLExperience]) -> CLStream:
+    """Internal utility used to create a stream.
+
+    Uses the correct class for generators, sized generators, and lists.
+
+    :param new_name: The name of the new stream.
+    :param exps: sequence of experiences.
+    """
+    s_wrapped: CLStream
+    if isinstance(exps, List):  # Maintain indexing/slicing functionalities
+        return EagerCLStream(name=name, exps=exps)
+    elif hasattr(exps, "__len__"):  # Sized stream
+        return SizedCLStream(name=name, exps_iter=exps)
+    else:  # Plain iterator
+        return CLStream(name=name, exps_iter=exps)
+
+
 __all__ = [
     "MaskedAttributeError",
     "ExperienceMode",
     "ExperienceAttribute",
     "CLExperience",
-    "DatasetExperience",
-    "AbstractClassTimelineExperience",
     "CLStream",
     "SequenceCLStream",
     "EagerCLStream",
     "CLScenario",
+    "make_stream",
 ]

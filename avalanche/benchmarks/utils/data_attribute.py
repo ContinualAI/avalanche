@@ -167,12 +167,17 @@ class DataAttribute(IDataset[T_co], Sequence[T_co]):
 TensorDataAttribute = DataAttribute[T_co]
 
 
+def has_task_labels(dataset):
+    """Check if `dataset` has task labels."""
+    return hasattr(dataset, "targets_task_labels")
+
+
 class TaskLabels(DataAttribute):
     """Task labels are `DataAttribute`s that are automatically appended to the
     mini-batch."""
 
     def __init__(self, task_labels):
-        super().__init__(task_labels, "task_labels", use_in_getitem=True)
+        super().__init__(task_labels, "targets_task_labels", use_in_getitem=True)
 
 
 __all__ = ["DataAttribute", "TensorDataAttribute", "TaskLabels"]

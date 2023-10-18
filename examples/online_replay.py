@@ -10,8 +10,7 @@
 ################################################################################
 
 """
-This is a simple example on how to use the Replay strategy in an online
-benchmark created using OnlineCLScenario.
+This is a simple example on how to use the Replay strategy in an online benchmark.
 """
 
 import argparse
@@ -23,11 +22,13 @@ from torchvision.transforms import ToTensor, RandomCrop
 import torch.optim.lr_scheduler
 from avalanche.benchmarks import nc_benchmark
 from avalanche.benchmarks.datasets.dataset_utils import default_dataset_location
+from avalanche.benchmarks.scenarios.supervised import class_incremental_benchmark
 from avalanche.models import SimpleMLP
+from avalanche.training.supervised.strategy_wrappers import Naive
 from avalanche.training.supervised.strategy_wrappers_online import OnlineNaive
 from avalanche.training.plugins import ReplayPlugin
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
-from avalanche.benchmarks.scenarios.online_scenario import OnlineCLScenario
+from avalanche.benchmarks.scenarios.online import OnlineCLScenario, split_online_stream
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -42,7 +43,6 @@ def main(args):
     device = torch.device(
         f"cuda:{args.cuda}" if torch.cuda.is_available() and args.cuda >= 0 else "cpu"
     )
-    n_batches = 5
     # ---------
 
     # --- TRANSFORMATIONS
@@ -71,13 +71,14 @@ def main(args):
         download=True,
         transform=test_transform,
     )
-    benchmark = nc_benchmark(
-        mnist_train, mnist_test, n_batches, task_labels=False, seed=1234
+    benchmark = class_incremental_benchmark(
+        {"train": mnist_train, "test": mnist_test}, num_experiences=5, seed=1234
     )
+
     # ---------
 
     # MODEL CREATION
-    model = SimpleMLP(num_classes=benchmark.n_classes)
+    model = SimpleMLP(num_classes=10)
 
     # choose some metrics and evaluation method
     interactive_logger = InteractiveLogger()
@@ -95,11 +96,11 @@ def main(args):
         mem_size=100, batch_size=1, storage_policy=storage_policy
     )
 
-    cl_strategy = OnlineNaive(
+    cl_strategy = Naive(
         model,
         torch.optim.Adam(model.parameters(), lr=0.1),
         CrossEntropyLoss(),
-        train_passes=1,
+        train_epochs=1,  # in online settings, epochs correpond to a single iteration
         train_mb_size=10,
         eval_mb_size=32,
         device=device,
@@ -111,16 +112,19 @@ def main(args):
     print("Starting experiment...")
     results = []
 
-    # Create online benchmark
-    batch_streams = benchmark.streams.values()
-    # ocl_benchmark = OnlineCLScenario(batch_streams)
+    # you can split the whole stream like this:
+    # ocl_stream = split_online_stream(benchmark.train_stream, experience_size=32)
+    # but we split each experience separately because we want to call .eval()
+    # after each experience
     for i, exp in enumerate(benchmark.train_stream):
-        # Create online scenario from experience exp
-        ocl_benchmark = OnlineCLScenario(
-            original_streams=batch_streams, experiences=exp, experience_size=10
-        )
+        # split experience into an online stream
+        ocl_stream = split_online_stream([exp], experience_size=32)
+
         # Train on the online train stream of the scenario
-        cl_strategy.train(ocl_benchmark.train_stream)
+        cl_strategy.train(ocl_stream)
+
+        # It is easier to evaluate on the original (non-online) streams
+        cl_strategy.eval(benchmark.train_stream)
         results.append(cl_strategy.eval(benchmark.test_stream))
 
 

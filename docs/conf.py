@@ -26,6 +26,7 @@ import sys
 
 import pkgutil
 from importlib import import_module
+from typing import Any
 
 from jinja2.filters import FILTERS
 
@@ -96,7 +97,7 @@ language = "en"
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "_templates"]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style: None = None
 
 # include __init__ in the class documentation
 autoclass_content = "class"
@@ -148,7 +149,7 @@ htmlhelp_basename = "Avalanchedoc"
 
 # -- Options for LaTeX output ------------------------------------------------
 
-latex_elements = {
+latex_elements: dict[Any, Any] = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',

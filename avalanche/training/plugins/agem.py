@@ -4,7 +4,7 @@ from typing import Any, Iterator, List, Optional
 import torch
 from torch import Tensor
 
-from avalanche.benchmarks.utils import make_classification_dataset
+from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_loader import (
     GroupBalancedInfiniteDataLoader,

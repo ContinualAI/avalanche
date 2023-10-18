@@ -11,9 +11,9 @@ from pycocotools.coco import COCO
 from torch.utils.data import Subset
 
 from avalanche.benchmarks.utils import (
-    make_classification_dataset,
-    classification_subset,
-    concat_classification_datasets,
+    _make_taskaware_classification_dataset,
+    _taskaware_classification_subset,
+    _concat_taskaware_classification_datasets,
 )
 from examples.tvdetection.coco_eval import CocoEvaluator
 from examples.tvdetection.coco_utils import CocoDetection, convert_to_coco_api

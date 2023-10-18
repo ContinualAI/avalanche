@@ -19,7 +19,7 @@ from torch.nn import Module
 from torch.utils.data import DataLoader
 
 from avalanche.benchmarks.utils import (
-    classification_subset,
+    _taskaware_classification_subset,
     AvalancheDataset,
 )
 from avalanche.models import FeatureExtractorBackbone
@@ -304,7 +304,7 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
         # Make AvalancheSubset per class
         cl_datasets = {}
         for c, c_idxs in cl_idxs.items():
-            cl_datasets[c] = classification_subset(new_data, indices=c_idxs)
+            cl_datasets[c] = _taskaware_classification_subset(new_data, indices=c_idxs)
 
         # Update seen classes
         self.seen_classes.update(cl_datasets.keys())
@@ -415,7 +415,7 @@ class ParametricBuffer(BalancedExemplarsBuffer):
         # Make AvalancheSubset per class
         new_groups: Dict[int, AvalancheDataset] = {}
         for c, c_idxs in cl_idxs.items():
-            new_groups[c] = classification_subset(data, indices=c_idxs)
+            new_groups[c] = _taskaware_classification_subset(data, indices=c_idxs)
         return new_groups
 
     def _split_by_experience(

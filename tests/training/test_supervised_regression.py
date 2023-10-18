@@ -36,7 +36,8 @@ from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.utils import trigger_plugins
-from tests.test_dataloaders import get_fast_benchmark
+from tests.unit_tests_utils import get_fast_benchmark
+
 
 logger = logging.getLogger(__name__)
 
