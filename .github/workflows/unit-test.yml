@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10"]
     defaults:
       run:
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
