@@ -25,8 +25,7 @@ from avalanche.benchmarks import PermutedMNIST, SplitMNIST
 from avalanche.benchmarks.datasets.dataset_utils import \
     default_dataset_location
 from avalanche.models import SimpleMLP
-from avalanche.training.supervised.strategy_wrappers_online import \
-    OnlineNaive
+from avalanche.training.supervised import Naive
 from avalanche.benchmarks.scenarios import OnlineCLScenario 
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
@@ -60,11 +59,11 @@ def main(args):
     )
 
     # CL Strategy
-    cl_strategy = OnlineNaive(
+    cl_strategy = Naive(
         model,
         torch.optim.Adam(model.parameters(), lr=0.1),
         CrossEntropyLoss(),
-        train_passes=1,
+        train_epochs=1,
         train_mb_size=10,
         eval_mb_size=32,
         device=device,
