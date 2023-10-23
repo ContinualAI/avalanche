@@ -318,9 +318,11 @@ def _traverse_supported_dataset(
         result = []
         if indices is None:
             for c_dataset in dataset.datasets:
-                result += list(
-                    _traverse_supported_dataset(c_dataset, values_selector, indices)
-                )
+                result_data = _traverse_supported_dataset(c_dataset, values_selector)
+                if isinstance(result_data, Tensor):
+                    result += result_data.tolist()
+                else:
+                    result += list(result_data)
             return result
 
         datasets_to_indexes = defaultdict(list)
