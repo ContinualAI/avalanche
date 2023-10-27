@@ -559,8 +559,8 @@ class OnlineCLScenario(CLScenario):
             instances in each experience. Defaults to True.
         :param overlap_factor: The overlap factor between consecutive
             experiences. Defaults to 4.
-        :param iters_per_virtual_epoch: The number of iterations per virtual epoch
-            for each experience
+        :param iters_per_virtual_epoch: The number of iterations per virtual 
+            epoch for each experience
         """
         warnings.warn(
             "Deprecated. Use `split_online_stream` or similar methods to split"
