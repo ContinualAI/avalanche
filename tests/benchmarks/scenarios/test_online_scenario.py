@@ -5,7 +5,7 @@ from avalanche.benchmarks.scenarios.supervised import class_incremental_benchmar
 from tests.unit_tests_utils import dummy_classification_datasets, get_fast_benchmark
 from avalanche.benchmarks.scenarios.online import (
     split_online_stream,
-    split_continuous_linear_decay_stream
+    split_continuous_linear_decay_stream,
 )
 
 
@@ -86,7 +86,7 @@ class OCLTests(unittest.TestCase):
             experience_size=10,
             iters_per_virtual_epoch=100,
             beta=0.5,
-            shuffle=True
+            shuffle=True,
         )
 
         expected_length = len(bm.train_stream) * iter_per_virt_epoch

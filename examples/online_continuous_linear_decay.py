@@ -48,9 +48,7 @@ def main(args):
     interactive_logger = InteractiveLogger()
 
     eval_plugin = EvaluationPlugin(
-        accuracy_metrics(
-            minibatch=True, epoch=True, experience=True, stream=True
-        ),
+        accuracy_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         loss_metrics(minibatch=True, epoch=True, experience=True, stream=True),
         forgetting_metrics(experience=True),
         loggers=[interactive_logger],
@@ -75,7 +73,7 @@ def main(args):
         experience_size=10,
         iters_per_virtual_epoch=100,
         beta=0.5,
-        shuffle=True
+        shuffle=True,
     )
 
     # Train the strtegy on the continuous stream
