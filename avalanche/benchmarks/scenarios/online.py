@@ -409,13 +409,20 @@ def split_continuous_linear_decay_stream(
     """Creates a stream of sub-experiences from a list of overlapped
         experiences with a linear decay in the overlapping areas.
 
+    :param original_stream: The original stream.
     :param experience_size: The size of each sub-experience.
-    :param iters_per_virtual_epoch: The number of iterations per virtual epoch
-        for each experience.
+    :param iters_per_virtual_epoch: The number of iterations per virtual epoch.
+        This parameter determines the number of (sub-)experiences that we want
+        to create from each experience in the original stream, after "merging"
+        all experiences with a certain level of "overlap".
     :param beta: The beta parameter for the linear decay function which
         indicates the amount of overlap.
     :param shuffle: Whether to shuffle the sub-experiences.
-    :param original_stream: The original stream.
+
+    Terminology is taken from the official implementation of the paper:
+    "Task Agnostic Continual Learning Using Online Variational Bayes" by
+    Zero et al. (https://arxiv.org/abs/2006.05990)
+    Code repo: https://github.com/chenzeno/FOO-VB/tree/main
 
     :return: A stream of sub-experiences.
 
@@ -564,7 +571,8 @@ class OnlineCLScenario(CLScenario):
         :param overlap_factor: The overlap factor between consecutive
             experiences. Defaults to 4.
         :param iters_per_virtual_epoch: The number of iterations per virtual epoch
-            for each experience
+            for each experience. Defaults to 10.
+
         """
         warnings.warn(
             "Deprecated. Use `split_online_stream` or similar methods to split"

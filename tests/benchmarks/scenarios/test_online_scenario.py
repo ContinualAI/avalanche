@@ -91,11 +91,17 @@ class OCLTests(unittest.TestCase):
 
         expected_length = len(bm.train_stream) * iter_per_virt_epoch
         n_exps = 0
+        all_classes = set() 
         for exp in ocl_stream:
             assert len(exp.dataset) == 10
             n_exps += 1
+            all_classes.update(set(exp.dataset.targets))
 
+        # Check the length of the stream
         assert n_exps == expected_length
+
+        # Check if all classes in the dataset are present in the stream
+        assert len(all_classes) == num_classes
 
 
 if __name__ == "__main__":
