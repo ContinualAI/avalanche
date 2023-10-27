@@ -400,12 +400,12 @@ def create_sub_exp_from_multi_exps(
     return exp
 
 
-def _continuous_linear_decay_split(
+def split_continuous_linear_decay_stream(
+    original_stream: Iterable[DatasetExperience[TCLDataset]],
     experience_size: int,
     iters_per_virtual_epoch: int,
     beta: float,
     shuffle: bool,
-    original_stream: Iterable[DatasetExperience[TCLDataset]],
 ) -> CLStream[DatasetExperience[TCLDataset]]:
     """Creates a stream of sub-experiences from a list of overlapped 
         experiences with a linear decay in the overlapping areas.
@@ -576,10 +576,11 @@ class OnlineCLScenario(CLScenario):
             assert access_task_boundaries is False
 
             split_strat = partial(
-                _continuous_linear_decay_split, experience_size,
-                iters_per_virtual_epoch, overlap_factor, True
+                split_online_stream, experience_size=experience_size,
+                iters_per_virtual_epoch=iters_per_virtual_epoch,
+                beta=overlap_factor, shuffle=True
             )
-        else:        
+        else:
             raise ValueError("Unknown experience split strategy")
 
         streams_dict = {s.name: s for s in original_streams}
@@ -608,5 +609,6 @@ __all__ = [
     "OnlineCLExperience",
     "FixedSizeExperienceSplitter",
     "split_online_stream",
+    "split_continuous_linear_decay_stream",
     "OnlineCLScenario",
 ]

@@ -21,12 +21,10 @@ https://arxiv.org/pdf/2010.00373.pdf
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
-from avalanche.benchmarks import PermutedMNIST, SplitMNIST
-from avalanche.benchmarks.datasets.dataset_utils import \
-    default_dataset_location
+from avalanche.benchmarks import SplitMNIST
 from avalanche.models import SimpleMLP
 from avalanche.training.supervised import Naive
-from avalanche.benchmarks.scenarios import OnlineCLScenario 
+from avalanche.benchmarks.scenarios import split_continuous_linear_decay_stream
 from avalanche.evaluation.metrics import (
     forgetting_metrics,
     accuracy_metrics,
@@ -70,23 +68,21 @@ def main(args):
         evaluator=eval_plugin,
     )
 
-    # Create streams using the continuous task-agnostic scenario
-    batch_streams = benchmark.streams.values()
-    cta_benchmark = OnlineCLScenario(
-        original_streams=batch_streams,
+    # Create a "continuous" stream with linear decay from the original
+    # train stream of the benchmark
+    ocl_stream = split_continuous_linear_decay_stream(
+        benchmark.train_stream,
         experience_size=10,
-        stream_split_strategy="continuous_linear_decay",
-        access_task_boundaries=False,
-        overlap_factor=4,
-        iters_per_virtual_epoch=50
+        iters_per_virtual_epoch=100,
+        beta=0.5,
+        shuffle=True
     )
 
-    # Start training
-    for itr, exp in enumerate(cta_benchmark.train_stream):
-        cl_strategy.train(exp)
-        print(exp.n_samples_from_each_exp)
+    # Train the strtegy on the continuous stream
+    cl_strategy.train(ocl_stream)
 
-    results = cl_strategy.eval(cta_benchmark.original_test_stream)
+    # Test on the benchmark test stream
+    results = cl_strategy.eval(benchmark.test_stream)
 
 
 if __name__ == "__main__":
