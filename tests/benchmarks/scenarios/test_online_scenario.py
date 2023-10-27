@@ -91,7 +91,7 @@ class OCLTests(unittest.TestCase):
 
         expected_length = len(bm.train_stream) * iter_per_virt_epoch
         n_exps = 0
-        all_classes = set() 
+        all_classes = set()
         for exp in ocl_stream:
             assert len(exp.dataset) == 10
             n_exps += 1
