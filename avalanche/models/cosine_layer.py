@@ -13,8 +13,24 @@ Implementation of Cosine layer taken and modified from https://github.com/G-U-N/
 
 
 class CosineLinear(nn.Module):
+    """
+    Cosine layer defined in 
+    "Learning a Unified Classifier Incrementally via Rebalancing" 
+    by Saihui Hou et al.
+
+    Implementation modified from https://github.com/G-U-N/PyCIL
+
+    This layer is aimed at countering the task-recency bias by removing the bias 
+    in the classifier and normalizing the weight and the input feature before 
+    computing the weight-feature product
+    """
     def __init__(self, in_features, out_features, sigma=True):
-        super(CosineLinear, self).__init__()
+        """
+        :param in_features: number of input features
+        :param out_features: number of classes
+        :param sigma: learnable output scaling factor
+        """
+        super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.weight = nn.Parameter(torch.Tensor(self.out_features, in_features))
@@ -42,8 +58,9 @@ class CosineLinear(nn.Module):
 
 class SplitCosineLinear(nn.Module):
     """
-    This class keeps two Cosine Linear layers, without sigma, and handles the sigma parameter
-    that is common for the two of them. One CosineLinear is for the old classes and the other
+    This class keeps two Cosine Linear layers, without sigma scaling, 
+    and handles the sigma parameter that is common for the two of them. 
+    One CosineLinear is for the old classes and the other
     one is for the new classes
     """
 
@@ -85,8 +102,10 @@ class CosineIncrementalClassifier(DynamicModule):
             # Do not adapt
             return
         self.num_current_classes = max_class
-        fc = self.generate_fc(self.feature_dim, max_class + 1)
+        fc = self._generate_fc(self.feature_dim, max_class + 1)
         if experience.current_experience == 1:
+            # First exp self.fc is CosineLinear 
+            # while it is SplitCosineLinear for subsequent exps
             fc.fc1.weight.data = self.fc.weight.data
             fc.sigma.data = self.fc.sigma.data
         else:
@@ -100,7 +119,7 @@ class CosineIncrementalClassifier(DynamicModule):
     def forward(self, x):
         return self.fc(x)
 
-    def generate_fc(self, in_dim, out_dim):
+    def _generate_fc(self, in_dim, out_dim):
         fc = SplitCosineLinear(
             in_dim, self.fc.out_features, out_dim - self.fc.out_features
         )

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+import collections
 import copy
 from typing import Dict
-import collections
 
 import numpy as np
 import torch
@@ -13,6 +13,7 @@ from avalanche.benchmarks.utils import concat_datasets
 from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.models import NCMClassifier
 
 
 @torch.no_grad()
@@ -51,14 +52,23 @@ def compute_class_means(model, dataset, batch_size, normalize, device, **kwargs)
 
     return class_means_dict
 
+def _check_has_ncm(model):
+    assert hasattr(model, "eval_classifier")
+    assert isinstance(model.eval_classifier, NCMClassifier)
+
 
 class CurrentDataNCMUpdate(SupervisedPlugin):
+    """
+    Updates the NCM prototypes
+    using the current task data
+    """
     def __init__(self):
         super().__init__()
 
     # Maybe change with before_eval
     @torch.no_grad()
     def after_training_exp(self, strategy, **kwargs):
+        _check_has_ncm(strategy.model)
         class_means_dict = compute_class_means(
             strategy.model,
             strategy.adapted_dataset,
@@ -72,10 +82,9 @@ class CurrentDataNCMUpdate(SupervisedPlugin):
 class MemoryNCMUpdate(SupervisedPlugin):
     """
     Updates NCM prototypes
-    using the current task data
-    (at the end of each task)
+    using the data contained inside a memory buffer
+    (as is is done in ICaRL)
     """
-
     def __init__(self, mem_size=2000, storage_policy=None):
         super().__init__()
         if storage_policy is None:
@@ -84,6 +93,7 @@ class MemoryNCMUpdate(SupervisedPlugin):
             self.storage_policy = storage_policy
 
     def after_training_exp(self, strategy, **kwargs):
+        _check_has_ncm(strategy.model)
         self.storage_policy.update(strategy)
         class_means_dict = compute_class_means(
             strategy.model,
@@ -96,12 +106,24 @@ class MemoryNCMUpdate(SupervisedPlugin):
 
 
 class NCMOracle(SupervisedPlugin):
+    """
+    Updates NCM prototypes
+    using all the data seen so far
+    WARNING: This is an oracle, 
+    and thus breaks assumptions usually made 
+    in continual learning algorithms i
+    (storage of full dataset)
+    This is meant to be used as an upper bound 
+    for NCM based methods 
+    (i.e when trying to estimate prototype drift)
+    """
     def __init__(self):
         super().__init__()
         self.all_datasets = []
 
     @torch.no_grad()
     def after_training_exp(self, strategy, **kwargs):
+        _check_has_ncm(strategy.model)
         self.all_datasets.append(strategy.experience.dataset)
         accumulated_dataset = concat_datasets(self.all_datasets)
 
