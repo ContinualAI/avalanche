@@ -3,28 +3,43 @@ import os
 import sys
 import tempfile
 import unittest
+import numpy as np
 
 import pytorchcv.models.pyramidnet_cifar
 import torch
-from tests.benchmarks.utils.test_avalanche_classification_dataset import \
-    get_mbatch
-from tests.unit_tests_utils import (common_setups, get_fast_benchmark,
-                                    load_benchmark)
+from tests.benchmarks.utils.test_avalanche_classification_dataset import get_mbatch
+from tests.unit_tests_utils import common_setups, get_fast_benchmark, load_benchmark
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
 from avalanche.logging import TextLogger
-from avalanche.models import (PNN, FeCAMClassifier, IncrementalClassifier,
-                              MTSimpleMLP, MultiHeadClassifier, NCMClassifier,
-                              SimpleCNN, SimpleMLP, TrainEvalModel)
-from avalanche.models.dynamic_optimizers import (add_new_params_to_optimizer,
-                                                 update_optimizer)
-from avalanche.models.pytorchcv_wrapper import (densenet, get_model,
-                                                pyramidnet, resnet, vgg)
+from avalanche.models import (
+    PNN,
+    CosineIncrementalClassifier,
+    FeCAMClassifier,
+    IncrementalClassifier,
+    MTSimpleMLP,
+    MultiHeadClassifier,
+    NCMClassifier,
+    SimpleCNN,
+    SimpleMLP,
+    TrainEvalModel,
+)
+from avalanche.models.cosine_layer import CosineLinear, SplitCosineLinear
+from avalanche.models.dynamic_optimizers import (
+    add_new_params_to_optimizer,
+    update_optimizer,
+)
+from avalanche.models.pytorchcv_wrapper import (
+    densenet,
+    get_model,
+    pyramidnet,
+    resnet,
+    vgg,
+)
 from avalanche.models.utils import avalanche_model_adaptation
-from avalanche.training.checkpoint import (maybe_load_checkpoint,
-                                           save_checkpoint)
+from avalanche.training.checkpoint import maybe_load_checkpoint, save_checkpoint
 from avalanche.training.supervised import Naive
 
 
@@ -715,6 +730,48 @@ class FeCAMClassifierTest(unittest.TestCase):
         classifier.load_state_dict(check)
 
         assert len(classifier.class_means_dict) == 2
+
+
+class CosineLayerTest(unittest.TestCase):
+    def test_single_cosine(self):
+        layer = CosineLinear(32, 10)
+        test_input = torch.rand(5, 32)
+        out = layer(test_input)
+        out.sum().backward()
+
+    def test_split_cosine(self):
+        in_feat_1, in_feat_2 = 10, 10
+        layer = SplitCosineLinear(32, in_feat_1, in_feat_2)
+        test_input = torch.rand(5, 32)
+        out = layer(test_input)
+        self.assertEqual(out.size(1), in_feat_1 + in_feat_2)
+        out.sum().backward()
+
+    def test_cosine_incremental_adaptation(self):
+        benchmark = load_benchmark(use_task_labels=False)
+        num_classes_0 = np.max(benchmark.train_stream[0].classes_in_this_experience) + 1
+        num_classes_1 = np.max(benchmark.train_stream[1].classes_in_this_experience) + 1
+
+        test_input = torch.rand(5, 32)
+
+        # Without initial classes
+        layer = CosineIncrementalClassifier(32, num_classes=0)
+        avalanche_model_adaptation(layer, benchmark.train_stream[0])
+        out = layer(test_input)
+        self.assertEqual(out.size(1), num_classes_0)
+        avalanche_model_adaptation(layer, benchmark.train_stream[1])
+        out = layer(test_input)
+        self.assertEqual(out.size(1), max(num_classes_0, num_classes_1))
+
+        # With initial classes
+        initial_classes = 5
+        layer = CosineIncrementalClassifier(32, num_classes=initial_classes)
+        avalanche_model_adaptation(layer, benchmark.train_stream[0])
+        out = layer(test_input)
+        self.assertEqual(out.size(1), max(num_classes_0, initial_classes))
+
+        # Test backward
+        out.sum().backward()
 
 
 class PNNTest(unittest.TestCase):

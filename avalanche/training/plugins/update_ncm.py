@@ -52,6 +52,7 @@ def compute_class_means(model, dataset, batch_size, normalize, device, **kwargs)
 
     return class_means_dict
 
+
 def _check_has_ncm(model):
     assert hasattr(model, "eval_classifier")
     assert isinstance(model.eval_classifier, NCMClassifier)
@@ -62,6 +63,7 @@ class CurrentDataNCMUpdate(SupervisedPlugin):
     Updates the NCM prototypes
     using the current task data
     """
+
     def __init__(self):
         super().__init__()
 
@@ -85,6 +87,7 @@ class MemoryNCMUpdate(SupervisedPlugin):
     using the data contained inside a memory buffer
     (as is is done in ICaRL)
     """
+
     def __init__(self, mem_size=2000, storage_policy=None):
         super().__init__()
         if storage_policy is None:
@@ -109,14 +112,15 @@ class NCMOracle(SupervisedPlugin):
     """
     Updates NCM prototypes
     using all the data seen so far
-    WARNING: This is an oracle, 
-    and thus breaks assumptions usually made 
+    WARNING: This is an oracle,
+    and thus breaks assumptions usually made
     in continual learning algorithms i
     (storage of full dataset)
-    This is meant to be used as an upper bound 
-    for NCM based methods 
+    This is meant to be used as an upper bound
+    for NCM based methods
     (i.e when trying to estimate prototype drift)
     """
+
     def __init__(self):
         super().__init__()
         self.all_datasets = []
