@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 
 from avalanche.benchmarks.utils import concat_datasets
+from avalanche.models import FeCAMClassifier
 from avalanche.models.fecam import compute_covariance, compute_means
 from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.storage_policy import ClassBalancedBuffer
@@ -54,6 +55,11 @@ def _gather_means_and_cov(model, dataset, batch_size, device, **kwargs):
     return class_means, class_cov
 
 
+def _check_has_fecam(model):
+    assert hasattr(model, "eval_classifier")
+    assert isinstance(model.eval_classifier, FeCAMClassifier)
+
+
 class CurrentDataFeCAMUpdate(SupervisedPlugin):
     """
     Updates FeCAM cov and prototypes
@@ -65,8 +71,7 @@ class CurrentDataFeCAMUpdate(SupervisedPlugin):
         super().__init__()
 
     def after_training_exp(self, strategy, **kwargs):
-        assert hasattr(strategy.model, "eval_classifier")
-        assert isinstance(strategy.model.eval_classifier, FeCAMClassifier)
+        _check_has_fecam(strategy.model)
 
         class_means, class_cov = _gather_means_and_cov(
             strategy.model,
@@ -94,6 +99,8 @@ class MemoryFeCAMUpdate(SupervisedPlugin):
             self.storage_policy = storage_policy
 
     def after_training_exp(self, strategy, **kwargs):
+        _check_has_fecam(strategy.model)
+
         self.storage_policy.update(strategy)
 
         class_means, class_cov = _gather_means_and_cov(
@@ -126,6 +133,8 @@ class FeCAMOracle(SupervisedPlugin):
         self.all_datasets = []
 
     def after_training_exp(self, strategy, **kwargs):
+        _check_has_fecam(strategy.model)
+
         self.all_datasets.append(strategy.experience.dataset)
         full_dataset = concat_datasets(self.all_datasets)
 

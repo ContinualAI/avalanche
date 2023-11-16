@@ -18,7 +18,7 @@ from avalanche.models import NCMClassifier
 
 @torch.no_grad()
 def compute_class_means(model, dataset, batch_size, normalize, device, **kwargs):
-    class_means_dict = collections.defaultdict(list())
+    class_means_dict = collections.defaultdict(list)
     class_counts = collections.defaultdict(lambda: 0)
     num_workers = kwargs["num_workers"] if "num_workers" in kwargs else 0
     loader = torch.utils.data.DataLoader(
@@ -73,7 +73,7 @@ class CurrentDataNCMUpdate(SupervisedPlugin):
         _check_has_ncm(strategy.model)
         class_means_dict = compute_class_means(
             strategy.model,
-            strategy.adapted_dataset,
+            strategy.experience.dataset,
             strategy.train_mb_size,
             normalize=strategy.model.eval_classifier.normalize,
             device=strategy.device,
