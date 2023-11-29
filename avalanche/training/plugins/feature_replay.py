@@ -14,7 +14,7 @@ from avalanche.training.utils import _at_task_boundary, cycle
 from avalanche.models.utils import avalanche_forward
 
 
-class FeatureDistillation(SupervisedPlugin):
+class FeatureDistillationPlugin(SupervisedPlugin):
     def __init__(self, alpha=1):
         """
         :param alpha: distillation hyperparameter. It can be either a float
@@ -150,10 +150,13 @@ class FeatureReplayPlugin(SupervisedPlugin):
         all_labels = []
         for x, y, t in dataloader:
             x, y = x.to(strategy.device), y.to(strategy.device)
-            feats = strategy.model.feature_extractor(x)
+            feats = avalanche_forward(strategy.model.feature_extractor, x, t)
             all_features.append(feats.cpu())
             all_labels.append(y.cpu())
         all_features = torch.cat(all_features)
         all_labels = torch.cat(all_labels)
         features_dataset = FeatureDataset(all_features, all_labels)
         return features_dataset
+
+
+__all__ = ["FeatureDistillationPlugin", "FeatureReplayPlugin", "FeatureExtractorModel"]

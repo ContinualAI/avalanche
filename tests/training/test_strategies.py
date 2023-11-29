@@ -13,44 +13,55 @@ import sys
 import unittest
 
 import torch
+from tests.training.test_strategy_utils import run_strategy
+from tests.unit_tests_utils import get_device, get_fast_benchmark
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
+from torchvision import transforms
 
 from avalanche.evaluation.metrics import StreamAccuracy, loss_metrics
-from avalanche.logging import TextLogger, InteractiveLogger
-from avalanche.models import SimpleMLP, ExpertGate
-from avalanche.models import MTSimpleMLP, IncrementalClassifier, PNN
+from avalanche.logging import InteractiveLogger, TextLogger
+from avalanche.models import (
+    PNN,
+    ExpertGate,
+    IncrementalClassifier,
+    MTSimpleMLP,
+    SimpleMLP,
+)
 from avalanche.training.plugins import (
+    EarlyStoppingPlugin,
     EvaluationPlugin,
-    SupervisedPlugin,
+    FeatureDistillationPlugin,
+    FeatureExtractorModel,
+    FeatureReplayPlugin,
     LwFPlugin,
     ReplayPlugin,
     RWalkPlugin,
-    EarlyStoppingPlugin,
+    SupervisedPlugin,
 )
 from avalanche.training.supervised import (
-    Naive,
-    Replay,
-    CWRStar,
-    GDumb,
-    LwF,
     AGEM,
-    GEM,
-    EWC,
-    LFL,
-    SynapticIntelligence,
-    JointTraining,
-    CoPE,
-    StreamingLDA,
-    MAS,
-    BiC,
-    MIR,
+    DER,
     ER_ACE,
     ER_AML,
-    DER,
-    LearningToPrompt,
-    ExpertGateStrategy,
+    EWC,
+    GEM,
+    LFL,
+    MAS,
     MER,
+    MIR,
+    BiC,
+    CoPE,
+    CWRStar,
+    ExpertGateStrategy,
+    GDumb,
+    JointTraining,
+    LearningToPrompt,
+    LwF,
+    Naive,
+    Replay,
+    StreamingLDA,
+    SynapticIntelligence,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -59,9 +70,6 @@ from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.templates.base import _group_experiences_by_stream
 from avalanche.training.utils import get_last_fc_layer
-from tests.training.test_strategy_utils import run_strategy
-from tests.unit_tests_utils import get_fast_benchmark, get_device
-from torchvision import transforms
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -1053,6 +1061,111 @@ class StrategyTest(unittest.TestCase):
             train_epochs=2,
         )
         run_strategy(benchmark, strategy)
+
+    def test_feature_distillation(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+
+        # Modify model to make it compatible
+        last_fc_name, _ = get_last_fc_layer(model)
+        old_layer = getattr(model, last_fc_name)
+        setattr(model, last_fc_name, torch.nn.Identity())
+        model = FeatureExtractorModel(model, old_layer)
+
+        feature_distillation = FeatureDistillationPlugin(alpha=10)
+
+        plugins = [feature_distillation]
+
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            device=self.device,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=plugins,
+        )
+        run_strategy(benchmark, strategy)
+
+        # Multitask
+
+        #model, optimizer, criterion, benchmark = self.init_scenario(multi_task=True)
+
+        ## Modify model to make it compatible
+        #last_fc_name = "classifier"
+        #old_layer = getattr(model, last_fc_name)
+        #setattr(model, last_fc_name, torch.nn.Identity())
+        #model = FeatureExtractorModel(model, old_layer)
+
+        #feature_distillation = FeatureDistillationPlugin(alpha=10)
+
+        #plugins = [feature_distillation]
+
+        #strategy = Naive(
+        #    model,
+        #    optimizer,
+        #    criterion,
+        #    device=self.device,
+        #    train_mb_size=10,
+        #    eval_mb_size=50,
+        #    train_epochs=2,
+        #    plugins=plugins,
+        #)
+        #run_strategy(benchmark, strategy)
+
+    def test_feature_replay(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+
+        last_fc_name, _ = get_last_fc_layer(model)
+        old_layer = getattr(model, last_fc_name)
+        setattr(model, last_fc_name, torch.nn.Identity())
+        model = FeatureExtractorModel(model, old_layer)
+
+        # Modify model to make it compatible
+        feature_replay = FeatureReplayPlugin(mem_size=100)
+
+        plugins = [feature_replay]
+
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            device=self.device,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=plugins,
+        )
+        run_strategy(benchmark, strategy)
+
+        # Multitask
+
+        #model, optimizer, criterion, benchmark = self.init_scenario(multi_task=True)
+
+        ## Modify model to make it compatible
+        #last_fc_name = "classifier"
+        #old_layer = getattr(model, last_fc_name)
+        #setattr(model, last_fc_name, torch.nn.Identity())
+        #model = FeatureExtractorModel(model, old_layer)
+
+        #feature_replay = FeatureReplayPlugin(mem_size=100)
+
+        #plugins = [feature_replay]
+
+        #strategy = Naive(
+        #    model,
+        #    optimizer,
+        #    criterion,
+        #    device=self.device,
+        #    train_mb_size=10,
+        #    eval_mb_size=50,
+        #    train_epochs=2,
+        #    plugins=plugins,
+        #)
+        #run_strategy(benchmark, strategy)
+
 
     def load_benchmark(
         self,

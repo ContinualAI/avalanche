@@ -25,3 +25,4 @@ from .from_scratch_training import FromScratchTrainingPlugin
 from .rar import RARPlugin
 from .update_ncm import *
 from .update_fecam import *
+from .feature_replay import *
