@@ -1088,32 +1088,6 @@ class StrategyTest(unittest.TestCase):
         )
         run_strategy(benchmark, strategy)
 
-        # Multitask
-
-        #model, optimizer, criterion, benchmark = self.init_scenario(multi_task=True)
-
-        ## Modify model to make it compatible
-        #last_fc_name = "classifier"
-        #old_layer = getattr(model, last_fc_name)
-        #setattr(model, last_fc_name, torch.nn.Identity())
-        #model = FeatureExtractorModel(model, old_layer)
-
-        #feature_distillation = FeatureDistillationPlugin(alpha=10)
-
-        #plugins = [feature_distillation]
-
-        #strategy = Naive(
-        #    model,
-        #    optimizer,
-        #    criterion,
-        #    device=self.device,
-        #    train_mb_size=10,
-        #    eval_mb_size=50,
-        #    train_epochs=2,
-        #    plugins=plugins,
-        #)
-        #run_strategy(benchmark, strategy)
-
     def test_feature_replay(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
@@ -1139,33 +1113,6 @@ class StrategyTest(unittest.TestCase):
             plugins=plugins,
         )
         run_strategy(benchmark, strategy)
-
-        # Multitask
-
-        #model, optimizer, criterion, benchmark = self.init_scenario(multi_task=True)
-
-        ## Modify model to make it compatible
-        #last_fc_name = "classifier"
-        #old_layer = getattr(model, last_fc_name)
-        #setattr(model, last_fc_name, torch.nn.Identity())
-        #model = FeatureExtractorModel(model, old_layer)
-
-        #feature_replay = FeatureReplayPlugin(mem_size=100)
-
-        #plugins = [feature_replay]
-
-        #strategy = Naive(
-        #    model,
-        #    optimizer,
-        #    criterion,
-        #    device=self.device,
-        #    train_mb_size=10,
-        #    eval_mb_size=50,
-        #    train_epochs=2,
-        #    plugins=plugins,
-        #)
-        #run_strategy(benchmark, strategy)
-
 
     def load_benchmark(
         self,
