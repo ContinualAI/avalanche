@@ -32,8 +32,6 @@ from avalanche.training.plugins import (
     EarlyStoppingPlugin,
     EvaluationPlugin,
     FeatureDistillationPlugin,
-    FeatureExtractorModel,
-    FeatureReplayPlugin,
     LwFPlugin,
     ReplayPlugin,
     RWalkPlugin,
@@ -62,6 +60,7 @@ from avalanche.training.supervised import (
     Replay,
     StreamingLDA,
     SynapticIntelligence,
+    FeatureReplay,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -70,6 +69,7 @@ from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.templates.base import _group_experiences_by_stream
 from avalanche.training.utils import get_last_fc_layer
+from avalanche.models.utils import FeatureExtractorModel
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -1093,20 +1093,16 @@ class StrategyTest(unittest.TestCase):
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
 
         last_fc_name, _ = get_last_fc_layer(model)
-        old_layer = getattr(model, last_fc_name)
-        setattr(model, last_fc_name, torch.nn.Identity())
-        model = FeatureExtractorModel(model, old_layer)
 
-        # Modify model to make it compatible
-        feature_replay = FeatureReplayPlugin(mem_size=100)
+        plugins = []
 
-        plugins = [feature_replay]
-
-        strategy = Naive(
+        # We do not add MT criterion cause FeatureReplay uses
+        # MaskedCrossEntropy as main criterion
+        strategy = FeatureReplay(
             model,
             optimizer,
-            criterion,
             device=self.device,
+            last_layer_name=last_fc_name,
             train_mb_size=10,
             eval_mb_size=50,
             train_epochs=2,

@@ -16,3 +16,4 @@ from .l2p import LearningToPrompt
 from .supervised_contrastive_replay import SCR
 from .expert_gate import ExpertGateStrategy
 from .mer import MER
+from .feature_replay import FeatureReplay
