@@ -110,8 +110,23 @@ detail and make you a true Continual Learner! :woman_student:
 
 Cite Avalanche
 ----------------
-If you used Avalanche in your research project, please remember to cite our reference paper published at the [CLVision @ CVPR2021](https://sites.google.com/view/clvision2021/overview?authuser=0) workshop: ["Avalanche: an End-to-End Library for Continual Learning"](https://arxiv.org/abs/2104.00405). 
-This will help us make Avalanche better known in the machine learning community, ultimately making a better tool for everyone:
+
+If you use Avalanche in your research project, please remember to cite our JMLR-MLOSS paper [https://jmlr.org/papers/v24/23-0130.html](https://jmlr.org/papers/v24/23-0130.html). This will help us make Avalanche better known in the machine learning community, ultimately making a better tool for everyone:
+
+```
+@article{JMLR:v24:23-0130,
+  author  = {Antonio Carta and Lorenzo Pellegrini and Andrea Cossu and Hamed Hemati and Vincenzo Lomonaco},
+  title   = {Avalanche: A PyTorch Library for Deep Continual Learning},
+  journal = {Journal of Machine Learning Research},
+  year    = {2023},
+  volume  = {24},
+  number  = {363},
+  pages   = {1--6},
+  url     = {http://jmlr.org/papers/v24/23-0130.html}
+}
+```
+
+you can also cite the previous [CLVision @ CVPR2021](https://sites.google.com/view/clvision2021/overview?authuser=0) workshop paper: ["Avalanche: an End-to-End Library for Continual Learning"](https://arxiv.org/abs/2104.00405).
 
 ```
 @InProceedings{lomonaco2021avalanche,
