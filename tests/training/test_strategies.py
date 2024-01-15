@@ -13,53 +13,45 @@ import sys
 import unittest
 
 import torch
-from tests.training.test_strategy_utils import run_strategy
-from tests.unit_tests_utils import get_device, get_fast_benchmark
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
-from torchvision import transforms
 
 from avalanche.evaluation.metrics import StreamAccuracy, loss_metrics
-from avalanche.logging import InteractiveLogger, TextLogger
-from avalanche.models import (
-    PNN,
-    ExpertGate,
-    IncrementalClassifier,
-    MTSimpleMLP,
-    SimpleMLP,
-)
+from avalanche.logging import TextLogger, InteractiveLogger
+from avalanche.models import SimpleMLP, ExpertGate
+from avalanche.models import MTSimpleMLP, IncrementalClassifier, PNN
 from avalanche.training.plugins import (
-    EarlyStoppingPlugin,
     EvaluationPlugin,
-    FeatureDistillationPlugin,
+    SupervisedPlugin,
     LwFPlugin,
+    FeatureDistillationPlugin,
     ReplayPlugin,
     RWalkPlugin,
-    SupervisedPlugin,
+    EarlyStoppingPlugin,
 )
 from avalanche.training.supervised import (
-    AGEM,
-    DER,
-    ER_ACE,
-    ER_AML,
-    EWC,
-    GEM,
-    LFL,
-    MAS,
-    MER,
-    MIR,
-    BiC,
-    CoPE,
-    CWRStar,
-    ExpertGateStrategy,
-    GDumb,
-    JointTraining,
-    LearningToPrompt,
-    LwF,
     Naive,
     Replay,
-    StreamingLDA,
+    CWRStar,
+    GDumb,
+    LwF,
+    AGEM,
+    GEM,
+    EWC,
+    LFL,
     SynapticIntelligence,
+    JointTraining,
+    CoPE,
+    StreamingLDA,
+    MAS,
+    BiC,
+    MIR,
+    ER_ACE,
+    ER_AML,
+    DER,
+    LearningToPrompt,
+    ExpertGateStrategy,
+    MER,
     FeatureReplay,
 )
 from avalanche.training.supervised.cumulative import Cumulative
@@ -69,6 +61,9 @@ from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.templates.base import _group_experiences_by_stream
 from avalanche.training.utils import get_last_fc_layer
+from tests.training.test_strategy_utils import run_strategy
+from tests.unit_tests_utils import get_fast_benchmark, get_device
+from torchvision import transforms
 from avalanche.models.utils import FeatureExtractorModel
 
 
