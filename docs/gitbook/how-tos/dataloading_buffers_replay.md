@@ -1,3 +1,5 @@
+<a href="https://colab.research.google.com/github/gogamid/avalanche/blob/master/notebooks/how-tos/dataloading_buffers_replay.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
 ---
 description: How to implement replay and data loading
 ---
@@ -29,10 +31,11 @@ from avalanche.benchmarks import SplitMNIST
 from avalanche.benchmarks.utils.data_loader import GroupBalancedDataLoader
 benchmark = SplitMNIST(5, return_task_id=True)
 
-dl = GroupBalancedDataLoader([exp.dataset for exp in benchmark.train_stream], batch_size=4)
+dl = GroupBalancedDataLoader([exp.dataset for exp in benchmark.train_stream], batch_size=5)
 for x, y, t in dl:
     print(t.tolist())
     break
+
 ```
 
 ## Memory Buffers
@@ -63,7 +66,7 @@ for i in range(5):
     strategy_state = SimpleNamespace(experience=benchmark.train_stream[i])
     storage_p.update(strategy_state)
     print(f"Max buffer size: {storage_p.max_size}, current size: {len(storage_p.buffer)}")
-    print(f"class targets: {storage_p.buffer.targets}\n")
+    print(f"class targets: {storage_p.buffer.targets.uniques}\n")
 ```
 
 Notice after each update some samples are substituted with new data. Reservoir sampling select these samples randomly.
@@ -84,7 +87,7 @@ for i in range(5):
     strategy_state = SimpleNamespace(experience=benchmark.train_stream[i])
     storage_p.update(strategy_state)
     print(f"Max buffer size: {storage_p.max_size}, current size: {len(storage_p.buffer)}")
-    print(f"class targets: {storage_p.buffer.targets}\n")
+    print(f"class targets: {storage_p.buffer.targets.uniques}\n")
 ```
 
 The advantage of using grouping buffers is that you get a balanced rehearsal buffer. You can even access the groups separately with the `buffer_groups` attribute. Combined with balanced dataloaders, you can ensure that the mini-batches stay balanced during training.
@@ -112,9 +115,9 @@ Avalanche's strategy plugins can be used to update the rehearsal buffer and set 
 
 ```python
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
-from avalanche.training.plugins import StrategyPlugin
+from avalanche.training.plugins import SupervisedPlugin
 
-class CustomReplay(StrategyPlugin):
+class CustomReplay(SupervisedPlugin):
     def __init__(self, storage_policy):
         super().__init__()
         self.storage_policy = storage_policy
