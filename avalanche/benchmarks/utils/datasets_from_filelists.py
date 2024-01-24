@@ -29,9 +29,12 @@ import torch.utils.data as data
 from PIL import Image
 import os
 import os.path
+import dill
 
 from torch import Tensor
-from torchvision.transforms.functional import crop  # type: ignore
+from torchvision.transforms.functional import crop
+
+from avalanche.training.checkpoint import constructor_based_serialization  # type: ignore
 
 from .transform_groups import XTransform, YTransform
 
@@ -156,7 +159,7 @@ class PathsDataset(data.Dataset[Tuple[T, TTargetsType]], Generic[T, TTargetsType
         return len(self.imgs)
 
 
-class FilelistDataset(PathsDataset):
+class FilelistDataset(PathsDataset[T, int]):
     """
     This class extends the basic Pytorch Dataset class to handle filelists as
     main data source.
@@ -185,7 +188,7 @@ class FilelistDataset(PathsDataset):
         :param loader: loader function to use (for the real data) given path.
         """
 
-        flist = str(flist)  # Manages Path objects
+        self.flist = str(flist)  # Manages Path objects
         files_and_labels = flist_reader(flist)
         super().__init__(
             root,
@@ -194,6 +197,23 @@ class FilelistDataset(PathsDataset):
             target_transform=target_transform,
             loader=loader,
         )
+
+
+@dill.register(FilelistDataset)
+def checkpoint_FilelistDataset(pickler, obj: FilelistDataset):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        FilelistDataset,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            flist=obj.flist,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+            loader=obj.loader,
+        ),
+    )
 
 
 def datasets_from_filelists(

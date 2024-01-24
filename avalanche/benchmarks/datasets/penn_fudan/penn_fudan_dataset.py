@@ -50,6 +50,7 @@
 
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Union
+import dill
 
 import numpy as np
 import torch
@@ -63,6 +64,7 @@ from avalanche.benchmarks.datasets import (
 from avalanche.benchmarks.datasets.penn_fudan.penn_fudan_data import (
     penn_fudan_data,
 )
+from avalanche.training.checkpoint import constructor_based_serialization
 
 
 def default_mask_loader(mask_path):
@@ -196,6 +198,22 @@ class PennFudanDataset(SimpleDownloadableDataset):
 
     def __len__(self):
         return len(self.imgs)
+    
+
+@dill.register(PennFudanDataset)
+def checkpoint_PennFudanDataset(pickler, obj: PennFudanDataset):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        PennFudanDataset,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            transform=obj.transform,
+            loader=obj.loader,
+            mask_loader=obj.mask_loader,
+        ),
+    )
 
 
 if __name__ == "__main__":

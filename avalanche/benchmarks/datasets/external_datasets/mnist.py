@@ -1,6 +1,7 @@
 import dill
 from torchvision.datasets import MNIST
 from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.training.checkpoint import constructor_based_serialization
 
 
 class TensorMNIST(MNIST):
@@ -35,16 +36,19 @@ def get_mnist_dataset(dataset_root):
     return train_set, test_set
 
 
-def load_MNIST(root, train, transform, target_transform):
-    return TensorMNIST(
-        root=root, train=train, transform=transform, target_transform=target_transform
-    )
-
-
 @dill.register(TensorMNIST)
-def save_MNIST(pickler, obj: TensorMNIST):
-    pickler.save_reduce(
-        load_MNIST, (obj.root, obj.train, obj.transform, obj.target_transform), obj=obj
+def checkpoint_TensorMNIST(pickler, obj: TensorMNIST):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        TensorMNIST,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            train=obj.train,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+        ),
     )
 
 

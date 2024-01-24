@@ -23,7 +23,6 @@ from torchvision.datasets import CocoDetection as torchCocoDetection
 from torchvision.datasets import LSUN as torchLSUN
 from torchvision.datasets import ImageFolder as torchImageFolder
 from torchvision.datasets import DatasetFolder as torchDatasetFolder
-from torchvision.datasets import ImageNet as torchImageNet
 from torchvision.datasets import CIFAR10 as torchCIFAR10
 from torchvision.datasets import CIFAR100 as torchCIFAR100
 from torchvision.datasets import STL10 as torchSTL10
@@ -40,6 +39,8 @@ from torchvision.datasets import USPS as torchUSPS
 from torchvision.datasets import HMDB51 as torchKHMDB51
 from torchvision.datasets import UCF101 as torchUCF101
 from torchvision.datasets import CelebA as torchCelebA
+
+from avalanche.benchmarks.datasets.imagenet.imagenet import AvalancheImageNet
 
 
 def MNIST(*args, **kwargs):
@@ -87,7 +88,7 @@ def DatasetFolder(*args, **kwargs):
 
 
 def ImageNet(*args, **kwargs):
-    return torchImageNet(*args, **kwargs)
+    return AvalancheImageNet(*args, **kwargs)
 
 
 def CIFAR10(*args, **kwargs):

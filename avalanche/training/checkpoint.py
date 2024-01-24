@@ -1,13 +1,95 @@
 import os.path
 from copy import copy
+from typing import Tuple, Type, TypeVar
 
 import dill
 import torch
+from functools import partial
+from avalanche.training.checkpoint_internals import (
+    CHECKPOINT_MECHANISM_VERSION,
+    _CheckpointLoadingContext,
+    _constructor_based_unpickle,
+    _is_registering_objects,
+    _register_unique_object,
+)
 
 from avalanche.training.determinism.rng_manager import RNGManager
 
+T = TypeVar("T")
 
-def maybe_load_checkpoint(strategy, fname, map_location=None):
+
+def constructor_based_serialization(
+    pickler, obj: T, cls: Type[T], deduplicate: bool = False, args=None, kwargs=None
+):
+    """
+    This utility is used manage the picklingof an object by only storing its constructor parameters.
+
+    This will also register the function that will be used to unpickle the object.
+
+    Classes whose objects can be serialized by only providing the constructor parameters
+    can be registered using this utility.
+
+    The standard way to register a class is to put the following function in the same script
+    where the class is defined (in this example, the class is `CIFAR100`):
+
+    ```python
+    @dill.register(CIFAR100)
+    def checkpoint_CIFAR100(pickler, obj: CIFAR100):
+        constructor_based_serialization(
+            pickler,
+            obj,
+            CIFAR100,
+            deduplicate=True,  # check `constructor_based_serialization` for details on de-duplication
+            kwargs=dict(
+                root=obj.root,
+                train=obj.train,
+                transform=obj.transform,
+                target_transform=obj.target_transform,
+            )
+        )
+    ```
+
+    Consider that alternative mechanisms exists, such as implementing custom `__getstate__` and `__setstate__`
+    methods or by manually providing a custom `@dillregister` function.
+    For the last option, see:
+    https://stackoverflow.com/questions/27351980/how-to-add-a-custom-type-to-dills-pickleable-types
+
+    This mechanism also supports de-duplicating unique objects, such as datasets.
+    This is useful to avoid duplicating the memory usage when
+    loading a checkpoint with a large number of datasets
+    (or an experiment that was already checkpointed are re-loaded multiple times).
+
+    If `deduplicate` is True, then the object is marked as elegible for de-duplication.
+    It will be de-duplicated (not loaded from the checkpoint) if the user provides,
+    in the `unique_objects` parameter of `maybe_load_checkpoint`, an object with identical
+    constructor parameters. Deduplication should be activated for dataset objects.
+    """
+
+    unpickler = partial(_constructor_based_unpickle, cls)
+
+    pickler.save_reduce(
+        unpickler,
+        (
+            CHECKPOINT_MECHANISM_VERSION,
+            deduplicate,
+            args,
+            kwargs,
+        ),
+        obj=obj,
+    )
+
+    if deduplicate and _is_registering_objects():
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+
+        _register_unique_object(obj, cls, args, kwargs)
+
+
+def maybe_load_checkpoint(
+    strategy: T, fname, map_location=None, unique_objects=None
+) -> Tuple[T, int]:
     """Load the strategy state from a checkpoint file.
 
     The method returns the strategy with the state deserialized from the file
@@ -28,6 +110,21 @@ def maybe_load_checkpoint(strategy, fname, map_location=None):
         save_checkpoint(strat, fname)
     ```
 
+    This also supports de-duplicating unique objects, such as datasets.
+    This is useful to avoid duplicating the memory usage when
+    loading a checkpoint with a large number of datasets
+    (or an experiment that was already checkpointed are re-loaded multiple times).
+
+    Consider passing the benchmark object as `unique_objects` to avoid
+    duplicating the memory associated with dataset(s).
+
+    In practice, de-duplication works by taking `unique_objects` and listing objects of
+    classes serialized by using :func:`constructor_based_serialization` and comparing their constructor
+    arguments. If an object found in `unique_objects` is already present in the
+    checkpoint, it is re-used instead of being re-loaded from the checkpoint.
+    This prevents the checkpoint size from exploding when checkpointing and re-loading
+    frequently (such as when running on a SLURM cluster that frequently preempts you job).
+
     :param strategy: strategy to load. It must be already initialized.
     :param fname: file name
     :param map_location: sets the location of the tensors after serialization.
@@ -39,6 +136,13 @@ def maybe_load_checkpoint(strategy, fname, map_location=None):
         that map (this is not usually done by `torch.load`,
         but it is needed to properly manage things in Avalanche).
         Defaults to None, which means that no mapping will take place.
+    :param unique_objects: list of unique objects that do not need to be unpickled.
+        This is useful to avoid duplicating the memory associated with a dataset
+        (or an experiment that was already checkpointed are re-loaded multiple times).
+        Classes of objects that need de-duplication must be registered as such using helpers
+        such as :func:`constructor_based_serialization`. Defaults to None.
+        Recommended: pass at least the benchmark object.
+        May increase the loading times a bit.
     :return: tuple <strategy, exp_counter>
         strategy after deserialization,
         index of the current experience to resume training.
@@ -46,9 +150,17 @@ def maybe_load_checkpoint(strategy, fname, map_location=None):
     if not os.path.exists(fname):
         return strategy, 0
 
-    ckp = torch.load(fname, pickle_module=dill, map_location=map_location)
+    if isinstance(map_location, (str, torch.device)):
+        device = torch.device(map_location)
+        map_location = dict()
 
-    print(ckp)
+        map_location["cpu"] = "cpu"
+        for cuda_idx in range(100):
+            map_location[f"cuda:{cuda_idx}"] = str(device)
+
+    with _CheckpointLoadingContext(map_location, unique_objects):
+        ckp = torch.load(fname, pickle_module=dill, map_location=map_location)
+
     strategy.__dict__.update(ckp["strategy"].__dict__)
     exp_counter = ckp["exp_counter"]
     return strategy, exp_counter
@@ -70,7 +182,6 @@ def save_checkpoint(strategy, fname, exclude=None):
     :param fname: name of the file.
     :param exclude: List[string] list of attributes to remove before the
         serialization.
-    :return:
     """
     if exclude is None:
         exclude = []
@@ -86,3 +197,10 @@ def save_checkpoint(strategy, fname, exclude=None):
         "exp_counter": ended_experience_counter,
     }
     torch.save(checkpoint_data, fname, pickle_module=dill)
+
+
+__all__ = [
+    "constructor_based_serialization",
+    "maybe_load_checkpoint",
+    "save_checkpoint",
+]

@@ -52,7 +52,12 @@ class LazyIndices(Sequence[int]):
     Do not use for anything outside this file.
     """
 
-    def __init__(self, *lists: Sequence[SupportsInt], known_length: Optional[SupportsInt] = None, offset: SupportsInt = 0):
+    def __init__(
+        self,
+        *lists: Sequence[SupportsInt],
+        known_length: Optional[SupportsInt] = None,
+        offset: SupportsInt = 0,
+    ):
         new_lists = []
         for ll in lists:
             if isinstance(ll, LazyIndices) and ll._eager_list is not None:
@@ -60,15 +65,21 @@ class LazyIndices(Sequence[int]):
                 new_lists.append(ll._eager_list)
             else:
                 new_lists.append(ll)
-        
-        self._lists: Optional[List[Sequence[int]]] = new_lists  # freed after eagerification
+
+        self._lists: Optional[
+            List[Sequence[int]]
+        ] = new_lists  # freed after eagerification
         self._offset: int = int(offset)
         self._eager_list: Optional[np.ndarray] = None
         """This is the list where we save indices
         whenever we generate them from the lazy sequence.
         """
 
-        self._known_length: int = int(known_length) if known_length is not None else sum(len(ll) for ll in new_lists)
+        self._known_length: int = (
+            int(known_length)
+            if known_length is not None
+            else sum(len(ll) for ll in new_lists)
+        )
 
         # check depth to avoid RecursionError
         if self._depth(stop_at_depth=3) > 2:
@@ -83,15 +94,17 @@ class LazyIndices(Sequence[int]):
 
         if self._eager_list is not None:
             return 0
-        
+
         assert self._lists is not None
 
         # List kept mostly for debugging purposes, can be replaced with a single int
         lens = [0]
         for ll in self._lists:
             if isinstance(ll, LazyIndices):
-                lens.append(ll._depth(stop_at_depth=stop_at_depth, cur_depth=cur_depth+1))
-        
+                lens.append(
+                    ll._depth(stop_at_depth=stop_at_depth, cur_depth=cur_depth + 1)
+                )
+
         return max(lens) + 1
 
     def _to_eager(self):
@@ -104,13 +117,17 @@ class LazyIndices(Sequence[int]):
             my_offset = 0
             for lst in self._lists:
                 if isinstance(lst, LazyRange):
-                    self._eager_list[my_offset:my_offset+len(lst)] = np.arange(len(lst), dtype=np.int64) + (lst._start + lst._offset + self._offset)
+                    self._eager_list[my_offset : my_offset + len(lst)] = np.arange(
+                        len(lst), dtype=np.int64
+                    ) + (lst._start + lst._offset + self._offset)
                 elif isinstance(lst, LazyIndices):
                     lst._to_eager()
-                    self._eager_list[my_offset:my_offset+len(lst)] = lst._eager_list + self._offset
+                    self._eager_list[my_offset : my_offset + len(lst)] = (
+                        lst._eager_list + self._offset
+                    )
                 else:
-                    self._eager_list[my_offset:my_offset+len(lst)] = lst
-                    self._eager_list[my_offset:my_offset+len(lst)] += self._offset
+                    self._eager_list[my_offset : my_offset + len(lst)] = lst
+                    self._eager_list[my_offset : my_offset + len(lst)] += self._offset
                 my_offset += len(lst)
             assert my_offset == self._known_length
 
@@ -228,13 +245,13 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         if self._indices is None:
             # print("[FlatData] Not subsetting...")
             return
-        
+
         for dataset in self._datasets:
             if not isinstance(dataset, list):
                 # print("Can't remove unused elements from non-list dataset")
                 # TODO: support all iterables
                 return
-            
+
         shrinked_dataset = []
 
         for i in range(len(self)):
@@ -243,11 +260,11 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
 
         # removed_count = sum(len(x) for x in self._datasets) - len(shrinked_dataset)
         # print(f"[FlatData] Removed {removed_count} elements from FlatData")
-        
+
         self._datasets = [shrinked_dataset]
         self._indices = None
         self._cumulative_sizes = ConcatDataset.cumsum(self._datasets)
-        
+
     def _get_lazy_indices(self):
         """This method creates indices on-the-fly if self._indices=None.
         Only for internal use. Call may be expensive if self._indices=None.
@@ -272,8 +289,16 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
             else:
                 self_indices = self._get_lazy_indices()
                 new_indices = [self_indices[x] for x in indices]
-            return self.__class__(datasets=self._datasets, indices=new_indices, discard_elements_not_in_indices=self._discard_elements_not_in_indices)
-        return self.__class__(datasets=[self], indices=indices, discard_elements_not_in_indices=self._discard_elements_not_in_indices)
+            return self.__class__(
+                datasets=self._datasets,
+                indices=new_indices,
+                discard_elements_not_in_indices=self._discard_elements_not_in_indices,
+            )
+        return self.__class__(
+            datasets=[self],
+            indices=indices,
+            discard_elements_not_in_indices=self._discard_elements_not_in_indices,
+        )
 
     def concat(self: TFlatData, other: TFlatData) -> TFlatData:
         """Concatenation operation.

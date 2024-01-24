@@ -14,6 +14,7 @@
 
 from pathlib import Path
 from typing import Optional, Union, List, Sequence
+import dill
 
 import torch
 from PIL import Image
@@ -26,6 +27,7 @@ from avalanche.benchmarks.datasets import (
     default_dataset_location,
 )
 from avalanche.benchmarks.datasets.lvis_dataset.lvis_data import lvis_archives
+from avalanche.training.checkpoint import constructor_based_serialization
 
 try:
     from lvis import LVIS
@@ -208,6 +210,24 @@ class LvisDataset(DownloadableDataset):
         img_path = splitted_url[-2] + "/" + splitted_url[-1]
         final_path = self.root / img_path  # <root>/train2017/<img_id>.jpg
         return self.loader(str(final_path))
+    
+
+@dill.register(LvisDataset)
+def checkpoint_LvisDataset(pickler, obj: LvisDataset):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        LvisDataset,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            train=obj.train,
+            transform=obj.transform,
+            loader=obj.loader,
+            lvis_api=obj.lvis_api,
+            img_ids=obj.img_ids,
+        ),
+    )
 
 
 class LVISImgEntry(TypedDict):

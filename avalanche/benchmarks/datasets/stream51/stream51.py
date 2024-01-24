@@ -16,6 +16,7 @@ import os
 import shutil
 import json
 import random
+import dill
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, TypeVar, Union
 
@@ -29,6 +30,7 @@ from avalanche.benchmarks.datasets import (
     default_dataset_location,
 )
 from avalanche.benchmarks.datasets.stream51 import stream51_data
+from avalanche.training.checkpoint import constructor_based_serialization
 
 
 TSequence = TypeVar("TSequence", bound=Sequence)
@@ -255,7 +257,23 @@ class Stream51(DownloadableDataset):
             self.target_transform.__repr__().replace("\n", "\n" + " " * len(tmp)),
         )
         return fmt_str
+    
 
+@dill.register(Stream51)
+def checkpoint_Stream51(pickler, obj: Stream51):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        Stream51,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            train=obj.train,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+            loader=obj.loader
+        ),
+    )
 
 if __name__ == "__main__":
     # this little example script can be used to visualize the first image
