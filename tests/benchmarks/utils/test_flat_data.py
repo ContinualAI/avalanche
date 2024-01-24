@@ -11,6 +11,7 @@ from avalanche.benchmarks.utils.classification_dataset import (
 )
 from avalanche.benchmarks.utils.flat_data import (
     FlatData,
+    LazyRange,
     _flatten_datasets_and_reindex,
     LazyIndices,
 )
@@ -270,6 +271,24 @@ class LazyIndicesTests(unittest.TestCase):
 
         li = LazyIndices(eager, offset=7)
         self.assertListEqual(list([el + 7 for el in eager]), list(li))
+        self.assertEqual(len(eager), len(li))
+
+    def test_range(self):
+        eager = list(range(1, 11))
+        li = LazyRange(start=1, end=11)
+        self.assertListEqual(eager, list(li))
+        self.assertEqual(len(eager), len(li))
+
+        eager = list(range(1, 11))
+        li = LazyRange(start=0, end=10, offset=1)
+        self.assertListEqual(eager, list(li))
+        self.assertEqual(len(eager), len(li))
+
+        eager = list(range(8, 18)) + list(range(12, 15))
+        a = LazyRange(start=0, end=10, offset=1)
+        b = LazyRange(start=2, end=5, offset=3)
+        li = LazyIndices(a, b, offset=7)
+        self.assertListEqual(eager, list(li))
         self.assertEqual(len(eager), len(li))
 
     def test_recursion(self):
