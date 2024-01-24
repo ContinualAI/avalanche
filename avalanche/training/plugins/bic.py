@@ -255,6 +255,7 @@ class BiCPlugin(SupervisedPlugin):
         # Make sure that the old_model is frozen (including batch norm layers)
         # requires_grad=False is not sufficient to freeze BN layers,
         # we also need eval()
+        self.model_old = None
         self.model_old = deepcopy(strategy.model)
         self.model_old.eval()
         for param in self.model_old.parameters():
@@ -381,7 +382,7 @@ class BiCPlugin(SupervisedPlugin):
             batch_size=strategy.train_mb_size,
             shuffle=True,
             num_workers=self.num_workers,
-            persistent_workers=persistent_workers,
+            persistent_workers=persistent_workers if self.num_workers > 0 else False,
         )
 
         # Loop epochs
