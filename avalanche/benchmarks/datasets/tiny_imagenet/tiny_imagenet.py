@@ -189,7 +189,7 @@ class TinyImagenet(SimpleDownloadableDataset):
             target = self.target_transform(target)
 
         return img, target
-    
+
 
 @dill.register(TinyImagenet)
 def checkpoint_TinyImagenet(pickler, obj: TinyImagenet):
@@ -203,7 +203,7 @@ def checkpoint_TinyImagenet(pickler, obj: TinyImagenet):
             train=obj.train,
             transform=obj.transform,
             target_transform=obj.target_transform,
-            loader=obj.loader
+            loader=obj.loader,
         ),
     )
 

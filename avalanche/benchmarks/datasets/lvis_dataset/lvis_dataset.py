@@ -210,7 +210,7 @@ class LvisDataset(DownloadableDataset):
         img_path = splitted_url[-2] + "/" + splitted_url[-1]
         final_path = self.root / img_path  # <root>/train2017/<img_id>.jpg
         return self.loader(str(final_path))
-    
+
 
 @dill.register(LvisDataset)
 def checkpoint_LvisDataset(pickler, obj: LvisDataset):

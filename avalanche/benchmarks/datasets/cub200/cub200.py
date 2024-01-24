@@ -178,7 +178,7 @@ class CUB200(PathsDataset, DownloadableDataset):
                 return False
 
         return True
-    
+
 
 @dill.register(CUB200)
 def checkpoint_CUB200(pickler, obj: CUB200):

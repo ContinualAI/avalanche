@@ -198,7 +198,7 @@ class PennFudanDataset(SimpleDownloadableDataset):
 
     def __len__(self):
         return len(self.imgs)
-    
+
 
 @dill.register(PennFudanDataset)
 def checkpoint_PennFudanDataset(pickler, obj: PennFudanDataset):

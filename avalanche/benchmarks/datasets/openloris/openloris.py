@@ -167,7 +167,7 @@ class OpenLORIS(DownloadableDataset):
 
     def __len__(self):
         return len(self.targets)
-    
+
 
 @dill.register(OpenLORIS)
 def checkpoint_OpenLORIS(pickler, obj: OpenLORIS):
@@ -181,7 +181,7 @@ def checkpoint_OpenLORIS(pickler, obj: OpenLORIS):
             train=obj.train,
             transform=obj.transform,
             target_transform=obj.target_transform,
-            loader=obj.loader
+            loader=obj.loader,
         ),
     )
 

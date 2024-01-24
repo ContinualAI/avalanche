@@ -263,9 +263,10 @@ def checkpoint_CORe50Dataset(pickler, obj: CORe50Dataset):
             target_transform=obj.target_transform,
             loader=obj.loader,
             mini=obj.mini,
-            object_level=obj.object_level
+            object_level=obj.object_level,
         ),
     )
+
 
 if __name__ == "__main__":
     # this litte example script can be used to visualize the first image

@@ -257,7 +257,7 @@ class Stream51(DownloadableDataset):
             self.target_transform.__repr__().replace("\n", "\n" + " " * len(tmp)),
         )
         return fmt_str
-    
+
 
 @dill.register(Stream51)
 def checkpoint_Stream51(pickler, obj: Stream51):
@@ -271,9 +271,10 @@ def checkpoint_Stream51(pickler, obj: Stream51):
             train=obj.train,
             transform=obj.transform,
             target_transform=obj.target_transform,
-            loader=obj.loader
+            loader=obj.loader,
         ),
     )
+
 
 if __name__ == "__main__":
     # this little example script can be used to visualize the first image

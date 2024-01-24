@@ -178,7 +178,7 @@ class INATURALIST2018(Dataset):
 
     def __len__(self):
         return len(self.img_ids)
-    
+
 
 @dill.register(INATURALIST2018)
 def checkpoint_INATURALIST2018(pickler, obj: INATURALIST2018):
