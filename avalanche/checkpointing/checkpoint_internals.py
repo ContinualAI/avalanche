@@ -1,5 +1,18 @@
 import warnings
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Type, TypeAlias, TypeVar, BinaryIO, IO, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeAlias,
+    TypeVar,
+    BinaryIO,
+    IO,
+    Union,
+)
 
 import dill
 import torch
@@ -137,7 +150,9 @@ class _CheckpointLoadingContext:
         Standard use: dataset objects used to create the benchmark.
     """
 
-    def __init__(self, map_location: MAP_LOCATION, unique_objects: Optional[Sequence[Any]]):
+    def __init__(
+        self, map_location: MAP_LOCATION, unique_objects: Optional[Sequence[Any]]
+    ):
         self._map_location = map_location
         self._unique_objects = unique_objects
 
@@ -190,7 +205,7 @@ def fixed_pytorch_1_13_load(
     pickle_module: Any = None,
     *,
     weights_only: bool = False,
-    **pickle_load_args: Any
+    **pickle_load_args: Any,
 ) -> Any:
     """
     A patched version of torch.load for PyTorch versions 1.13.0 and 1.13.1.
@@ -198,8 +213,13 @@ def fixed_pytorch_1_13_load(
     import pickle
     import torch._weights_only_unpickler as _weights_only_unpickler
     from torch.serialization import (
-        _check_dill_version, _open_file_like, _open_zipfile_reader, _is_zipfile,
-        _is_torchscript_zip, _legacy_load, _load
+        _check_dill_version,
+        _open_file_like,
+        _open_zipfile_reader,
+        _is_zipfile,
+        _is_torchscript_zip,
+        _legacy_load,
+        _load,
     )
 
     UNSAFE_MESSAGE = (
@@ -208,22 +228,29 @@ def fixed_pytorch_1_13_load(
         "Do it only if you get the file from a trusted source. WeightsUnpickler error: "
     )
     # Add ability to force safe only weight loads via environment variable
-    if os.getenv("TORCH_FORCE_WEIGHTS_ONLY_LOAD", "0").lower() in ['1', 'y', 'yes', 'true']:
+    if os.getenv("TORCH_FORCE_WEIGHTS_ONLY_LOAD", "0").lower() in [
+        "1",
+        "y",
+        "yes",
+        "true",
+    ]:
         weights_only = True
 
     if weights_only:
         if pickle_module is not None:
-            raise RuntimeError("Can not safely load weights when expiclit picke_module is specified")
+            raise RuntimeError(
+                "Can not safely load weights when expiclit picke_module is specified"
+            )
     else:
         if pickle_module is None:
             pickle_module = pickle
 
     _check_dill_version(pickle_module)
 
-    if 'encoding' not in pickle_load_args.keys():
-        pickle_load_args['encoding'] = 'utf-8'
+    if "encoding" not in pickle_load_args.keys():
+        pickle_load_args["encoding"] = "utf-8"
 
-    with _open_file_like(f, 'rb') as opened_file:
+    with _open_file_like(f, "rb") as opened_file:
         if _is_zipfile(opened_file):
             # The zipfile reader is going to advance the current file position.
             # If we want to actually tail call to torch.jit.load, we need to
@@ -231,24 +258,41 @@ def fixed_pytorch_1_13_load(
             orig_position = opened_file.tell()
             with _open_zipfile_reader(opened_file) as opened_zipfile:
                 if _is_torchscript_zip(opened_zipfile):
-                    warnings.warn("'torch.load' received a zip file that looks like a TorchScript archive"
-                                  " dispatching to 'torch.jit.load' (call 'torch.jit.load' directly to"
-                                  " silence this warning)", UserWarning)
+                    warnings.warn(
+                        "'torch.load' received a zip file that looks like a TorchScript archive"
+                        " dispatching to 'torch.jit.load' (call 'torch.jit.load' directly to"
+                        " silence this warning)",
+                        UserWarning,
+                    )
                     opened_file.seek(orig_position)
                     return torch.jit.load(opened_file, map_location=map_location)
                 if weights_only:
                     try:
-                        return _load(opened_zipfile, map_location, _weights_only_unpickler, **pickle_load_args)
+                        return _load(
+                            opened_zipfile,
+                            map_location,
+                            _weights_only_unpickler,
+                            **pickle_load_args,
+                        )
                     except RuntimeError as e:
                         raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e)) from None
-                return _load(opened_zipfile, map_location, pickle_module, **pickle_load_args)
+                return _load(
+                    opened_zipfile, map_location, pickle_module, **pickle_load_args
+                )
         if weights_only:
             try:
-                return _legacy_load(opened_file, map_location, _weights_only_unpickler, **pickle_load_args)
+                return _legacy_load(
+                    opened_file,
+                    map_location,
+                    _weights_only_unpickler,
+                    **pickle_load_args,
+                )
             except RuntimeError as e:
                 raise pickle.UnpicklingError(UNSAFE_MESSAGE + str(e)) from None
-        return _legacy_load(opened_file, map_location, pickle_module, **pickle_load_args)
-    
+        return _legacy_load(
+            opened_file, map_location, pickle_module, **pickle_load_args
+        )
+
 
 def _recreate_pytorch_device(*args):
     device_map = globals().get("CHECKPOINT_DEVICE_MAP", None)

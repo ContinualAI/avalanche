@@ -90,7 +90,10 @@ def constructor_based_serialization(
 
 
 def maybe_load_checkpoint(
-    strategy: T, fname: FILE_LIKE, map_location: MAP_LOCATION = None, unique_objects: Any = None
+    strategy: T,
+    fname: FILE_LIKE,
+    map_location: MAP_LOCATION = None,
+    unique_objects: Any = None,
 ) -> Tuple[T, int]:
     """Load the strategy state from a checkpoint file.
 
@@ -164,7 +167,9 @@ def maybe_load_checkpoint(
         # fixed_pytorch_1_13_load instead.
         pytorch_version = parse(torch.__version__)
         if pytorch_version >= parse("1.13.0") and pytorch_version < parse("1.14.0"):
-            ckp = fixed_pytorch_1_13_load(fname, pickle_module=dill, map_location=map_location)
+            ckp = fixed_pytorch_1_13_load(
+                fname, pickle_module=dill, map_location=map_location
+            )
         else:
             ckp = torch.load(fname, pickle_module=dill, map_location=map_location)
 
@@ -173,7 +178,9 @@ def maybe_load_checkpoint(
     return strategy, exp_counter
 
 
-def save_checkpoint(strategy, fname: FILE_LIKE, exclude: Optional[Collection[str]] = None):
+def save_checkpoint(
+    strategy, fname: FILE_LIKE, exclude: Optional[Collection[str]] = None
+):
     """Save the strategy state into a file.
 
     The file can be loaded using `maybe_load_checkpoint`.
