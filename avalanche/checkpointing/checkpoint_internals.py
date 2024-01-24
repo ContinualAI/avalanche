@@ -19,7 +19,12 @@ import torch
 import io
 import os
 
-from torch.serialization import FILE_LIKE, MAP_LOCATION
+FILE_LIKE: TypeAlias = Union[str, os.PathLike, BinaryIO, IO[bytes]]
+MAP_LOCATION: TypeAlias = Optional[
+    Union[
+        Callable[[torch.Tensor, str], torch.Tensor], torch.device, str, Dict[str, str]
+    ]
+]
 
 T = TypeVar("T")
 

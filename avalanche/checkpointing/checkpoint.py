@@ -1,11 +1,23 @@
 import os.path
 from pathlib import Path
 from copy import copy
-from typing import Any, Collection, Optional, Tuple, Type, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Type,
+    TypeAlias,
+    TypeVar,
+    BinaryIO,
+    IO,
+    Union,
+    Collection,
+)
 
 import dill
 import torch
-from torch.serialization import FILE_LIKE, MAP_LOCATION
 from functools import partial
 from packaging.version import parse
 from .checkpoint_internals import (
@@ -16,6 +28,13 @@ from .checkpoint_internals import (
     _register_unique_object,
     fixed_pytorch_1_13_load,
 )
+
+FILE_LIKE: TypeAlias = Union[str, os.PathLike, BinaryIO, IO[bytes]]
+MAP_LOCATION: TypeAlias = Optional[
+    Union[
+        Callable[[torch.Tensor, str], torch.Tensor], torch.device, str, Dict[str, str]
+    ]
+]
 
 T = TypeVar("T")
 
