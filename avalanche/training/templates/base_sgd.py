@@ -96,6 +96,9 @@ class BaseSGDTemplate(
         self._criterion = criterion
         """ Criterion. """
 
+        if criterion not in self.plugins and isinstance(criterion, BasePlugin):
+            self.plugins.append(criterion)
+
         self.train_epochs: int = train_epochs
         """ Number of training epochs. """
 

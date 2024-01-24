@@ -27,3 +27,5 @@ from .slim_resnet18 import SlimResNet18, MTSlimResNet18
 from .prompt import Prompt
 from .vit import create_model
 from .scr_model import *
+from .fecam import FeCAMClassifier
+from .cosine_layer import CosineIncrementalClassifier, CosineLinear

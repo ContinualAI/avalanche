@@ -13,21 +13,21 @@
 clear10 = [
     (
         "clear10-train.zip",  # name
-        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/clear10-train.zip",
     ),
     (
         "clear10-test.zip",  # name
-        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/clear10-test.zip",
     ),
 ]
 clear100 = [
     (
         "clear100-train.zip",  # name
-        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/clear100-train.zip",
     ),
     (
         "clear100-test.zip",  # name
-        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/",
+        "https://huggingface.co/datasets/elvishelvis6/CLEAR-Continual_Learning_Benchmark/resolve/main/clear100-test.zip",
     ),
 ]
 clear10_neurips2021 = [

@@ -1,10 +1,13 @@
 import copy
 
-import torch
-from torch import nn
-from avalanche.training.plugins import SupervisedPlugin
-from torch.nn import BCELoss
 import numpy as np
+import torch
+import torch.nn.functional as F
+from torch import nn
+from torch.nn import BCELoss
+
+from avalanche.training.plugins import SupervisedPlugin
+from avalanche.training.regularization import cross_entropy_with_oh_targets
 
 
 class ICaRLLossPlugin(SupervisedPlugin):
@@ -161,4 +164,62 @@ class SCRLoss(torch.nn.Module):
         return loss
 
 
-__all__ = ["ICaRLLossPlugin", "SCRLoss"]
+class MaskedCrossEntropy(SupervisedPlugin):
+    """
+    Masked Cross Entropy
+
+    This criterion can be used for instance in Class Incremental
+    Learning Problems when no examplars are used
+    (i.e LwF in Class Incremental Learning would need to use mask="new").
+    """
+
+    def __init__(self, classes=None, mask="seen", reduction="mean"):
+        """
+        param: classes: Initial value for current classes
+        param: mask: "all" normal cross entropy, uses all the classes seen so far
+                     "old" cross entropy only on the old classes
+                     "new" cross entropy only on the new classes
+        param: reduction: "mean" or "none", average or per-sample loss
+        """
+        super().__init__()
+        assert mask in ["seen", "new", "old", "all"]
+        if classes is not None:
+            self.current_classes = set(classes)
+        else:
+            self.current_classes = set()
+
+        self.old_classes = set()
+        self.reduction = reduction
+        self.mask = mask
+
+    def __call__(self, logits, targets):
+        oh_targets = F.one_hot(targets, num_classes=logits.shape[1])
+
+        oh_targets = oh_targets[:, self.current_mask(logits.shape[1])]
+        logits = logits[:, self.current_mask(logits.shape[1])]
+
+        return cross_entropy_with_oh_targets(
+            logits,
+            oh_targets.float(),
+            reduction=self.reduction,
+        )
+
+    def current_mask(self, logit_shape):
+        if self.mask == "seen":
+            return list(self.current_classes.union(self.old_classes))
+        elif self.mask == "new":
+            return list(self.current_classes)
+        elif self.mask == "old":
+            return list(self.old_classes)
+        elif self.mask == "all":
+            return list(range(int(logit_shape)))
+
+    def adaptation(self, new_classes):
+        self.old_classes = self.old_classes.union(self.current_classes)
+        self.current_classes = set(new_classes)
+
+    def before_training_exp(self, strategy, **kwargs):
+        self.adaptation(strategy.experience.classes_in_this_experience)
+
+
+__all__ = ["ICaRLLossPlugin", "SCRLoss", "MaskedCrossEntropy"]
