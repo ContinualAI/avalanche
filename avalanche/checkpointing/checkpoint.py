@@ -1,16 +1,20 @@
 import os.path
+from pathlib import Path
 from copy import copy
-from typing import Tuple, Type, TypeVar
+from typing import Any, Collection, Optional, Tuple, Type, TypeVar
 
 import dill
 import torch
+from torch.serialization import FILE_LIKE, MAP_LOCATION
 from functools import partial
+from packaging.version import parse
 from .checkpoint_internals import (
     CHECKPOINT_MECHANISM_VERSION,
     _CheckpointLoadingContext,
     _constructor_based_unpickle,
     _is_registering_objects,
     _register_unique_object,
+    fixed_pytorch_1_13_load,
 )
 
 T = TypeVar("T")
@@ -86,7 +90,7 @@ def constructor_based_serialization(
 
 
 def maybe_load_checkpoint(
-    strategy: T, fname, map_location=None, unique_objects=None
+    strategy: T, fname: FILE_LIKE, map_location: MAP_LOCATION = None, unique_objects: Any = None
 ) -> Tuple[T, int]:
     """Load the strategy state from a checkpoint file.
 
@@ -134,18 +138,17 @@ def maybe_load_checkpoint(
         that map (this is not usually done by `torch.load`,
         but it is needed to properly manage things in Avalanche).
         Defaults to None, which means that no mapping will take place.
-    :param unique_objects: list of unique objects that do not need to be unpickled.
+    :param unique_objects: list of (or a single) unique object(s) that do not need to be unpickled.
         This is useful to avoid duplicating the memory associated with a dataset
         (or an experiment that was already checkpointed are re-loaded multiple times).
         Classes of objects that need de-duplication must be registered as such using helpers
         such as :func:`constructor_based_serialization`. Defaults to None.
-        Recommended: pass at least the benchmark object.
-        May increase the loading times a bit.
+        Recommended: at least pass the benchmark object.
     :return: tuple <strategy, exp_counter>
         strategy after deserialization,
         index of the current experience to resume training.
     """
-    if not os.path.exists(fname):
+    if isinstance(fname, (str, Path)) and not os.path.exists(fname):
         return strategy, 0
 
     if isinstance(map_location, (str, torch.device)):
@@ -157,14 +160,20 @@ def maybe_load_checkpoint(
             map_location[f"cuda:{cuda_idx}"] = str(device)
 
     with _CheckpointLoadingContext(map_location, unique_objects):
-        ckp = torch.load(fname, pickle_module=dill, map_location=map_location)
+        # The load function in PyTorch 1.13.* is broken, so we use
+        # fixed_pytorch_1_13_load instead.
+        pytorch_version = parse(torch.__version__)
+        if pytorch_version >= parse("1.13.0") and pytorch_version < parse("1.14.0"):
+            ckp = fixed_pytorch_1_13_load(fname, pickle_module=dill, map_location=map_location)
+        else:
+            ckp = torch.load(fname, pickle_module=dill, map_location=map_location)
 
     strategy.__dict__.update(ckp["strategy"].__dict__)
     exp_counter = ckp["exp_counter"]
     return strategy, exp_counter
 
 
-def save_checkpoint(strategy, fname, exclude=None):
+def save_checkpoint(strategy, fname: FILE_LIKE, exclude: Optional[Collection[str]] = None):
     """Save the strategy state into a file.
 
     The file can be loaded using `maybe_load_checkpoint`.
