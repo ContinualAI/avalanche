@@ -30,7 +30,7 @@ from avalanche.benchmarks.datasets import (
     default_dataset_location,
 )
 from avalanche.benchmarks.datasets.stream51 import stream51_data
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 
 TSequence = TypeVar("TSequence", bound=Sequence)

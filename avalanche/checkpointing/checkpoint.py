@@ -5,15 +5,13 @@ from typing import Tuple, Type, TypeVar
 import dill
 import torch
 from functools import partial
-from avalanche.training.checkpoint_internals import (
+from .checkpoint_internals import (
     CHECKPOINT_MECHANISM_VERSION,
     _CheckpointLoadingContext,
     _constructor_based_unpickle,
     _is_registering_objects,
     _register_unique_object,
 )
-
-from avalanche.training.determinism.rng_manager import RNGManager
 
 T = TypeVar("T")
 
@@ -22,7 +20,7 @@ def constructor_based_serialization(
     pickler, obj: T, cls: Type[T], deduplicate: bool = False, args=None, kwargs=None
 ):
     """
-    This utility is used manage the picklingof an object by only storing its constructor parameters.
+    This utility is used manage the pickling of an object by only storing its constructor parameters.
 
     This will also register the function that will be used to unpickle the object.
 
@@ -50,7 +48,7 @@ def constructor_based_serialization(
     ```
 
     Consider that alternative mechanisms exists, such as implementing custom `__getstate__` and `__setstate__`
-    methods or by manually providing a custom `@dillregister` function.
+    methods or by manually providing a custom `@dill.register` function.
     For the last option, see:
     https://stackoverflow.com/questions/27351980/how-to-add-a-custom-type-to-dills-pickleable-types
 
@@ -183,6 +181,8 @@ def save_checkpoint(strategy, fname, exclude=None):
     :param exclude: List[string] list of attributes to remove before the
         serialization.
     """
+    from avalanche.training.determinism.rng_manager import RNGManager
+
     if exclude is None:
         exclude = []
     ended_experience_counter = strategy.clock.train_exp_counter

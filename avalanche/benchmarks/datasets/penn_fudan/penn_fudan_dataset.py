@@ -64,7 +64,7 @@ from avalanche.benchmarks.datasets import (
 from avalanche.benchmarks.datasets.penn_fudan.penn_fudan_data import (
     penn_fudan_data,
 )
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 
 def default_mask_loader(mask_path):

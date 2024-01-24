@@ -34,7 +34,7 @@ import dill
 from torch import Tensor
 from torchvision.transforms.functional import crop
 
-from avalanche.training.checkpoint import constructor_based_serialization  # type: ignore
+from avalanche.checkpointing import constructor_based_serialization
 
 from .transform_groups import XTransform, YTransform
 

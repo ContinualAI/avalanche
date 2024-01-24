@@ -1,7 +1,7 @@
 import dill
 from torchvision.datasets import MNIST
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class TensorMNIST(MNIST):

@@ -36,7 +36,7 @@ from PIL import Image
 from os.path import expanduser
 import pprint
 
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 from .inaturalist_data import INATURALIST_DATA
 

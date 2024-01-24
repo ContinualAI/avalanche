@@ -2,7 +2,7 @@ import dill
 from torchvision.datasets import CIFAR100, CIFAR10
 
 from avalanche.benchmarks.datasets import default_dataset_location
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 
 def get_cifar10_dataset(dataset_root):

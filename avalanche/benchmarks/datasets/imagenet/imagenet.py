@@ -11,7 +11,7 @@ from torchvision.datasets.folder import ImageFolder
 from torchvision.datasets.utils import check_integrity, extract_archive, verify_str_arg
 
 
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 ARCHIVE_META = {
     "train": ("ILSVRC2012_img_train.tar", "1d675b47d978889d74fa0da5fadfb00e"),

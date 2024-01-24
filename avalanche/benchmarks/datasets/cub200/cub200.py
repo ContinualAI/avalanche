@@ -32,7 +32,7 @@ from avalanche.benchmarks.datasets import (
     DownloadableDataset,
 )
 from avalanche.benchmarks.utils import PathsDataset
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class CUB200(PathsDataset, DownloadableDataset):

@@ -39,7 +39,7 @@ from avalanche.models.pytorchcv_wrapper import (
     vgg,
 )
 from avalanche.models.utils import avalanche_model_adaptation
-from avalanche.training.checkpoint import maybe_load_checkpoint, save_checkpoint
+from avalanche.checkpointing import maybe_load_checkpoint, save_checkpoint
 from avalanche.training.supervised import Naive
 
 

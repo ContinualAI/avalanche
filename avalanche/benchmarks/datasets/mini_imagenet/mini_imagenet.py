@@ -84,7 +84,7 @@ from avalanche.benchmarks.datasets.mini_imagenet.mini_imagenet_data import (
     MINI_IMAGENET_CLASSES,
     MINI_IMAGENET_CLASS_TO_IDX,
 )
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class MiniImageNetDataset(Dataset):

@@ -23,7 +23,7 @@ from avalanche.benchmarks.datasets import (
     SimpleDownloadableDataset,
     default_dataset_location,
 )
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class TinyImagenet(SimpleDownloadableDataset):

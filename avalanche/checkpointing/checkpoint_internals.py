@@ -5,7 +5,7 @@ import dill
 import torch
 import io
 
-from avalanche.training.plugins.checkpoint_common_recipes import (
+from .checkpoint_common_recipes import (
     _set_checkpoint_device_map,
 )
 
@@ -122,7 +122,7 @@ class _CheckpointLoadingContext:
         loading a checkpoint with a large number of datasets
         (or an experiment that was already checkpointed are re-loaded multiple times).
         Objects that need de-duplication must be registered as such using helpers
-        such as :func:`constructor_based_serialization`.
+        such as :func:`avalanche.checkpointing.constructor_based_serialization`.
         Standard use: dataset objects used to create the benchmark.
     """
 

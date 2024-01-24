@@ -27,7 +27,7 @@ from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.datasets.downloadable_dataset import (
     DownloadableDataset,
 )
-from avalanche.training.checkpoint import constructor_based_serialization
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class CORe50Dataset(DownloadableDataset):
