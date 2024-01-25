@@ -19,3 +19,4 @@ Welcome to Avalanche's API documentation!
    Logging module <logging>
    Models module <models>
    Training module <training>
+   Checkpointing module <checkpointing>

@@ -11,8 +11,7 @@
 from abc import ABC, abstractmethod
 import bisect
 import copy
-from typing import Iterator, overload
-from typing_extensions import final
+from typing import Iterator, overload, final
 import numpy as np
 from numpy import ndarray
 from torch import Tensor

@@ -11,7 +11,7 @@ classes.
 """
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Callable, Dict, Set, TYPE_CHECKING, List, Optional, TypeVar
+from typing import Callable, Dict, Set, TYPE_CHECKING, List, Optional, TypeVar, Literal
 
 import torch
 from matplotlib.axes import Axes
@@ -25,8 +25,6 @@ from avalanche.evaluation.metric_utils import get_metric_name
 from avalanche.evaluation.metrics import Mean
 from avalanche.evaluation.metric_results import MetricValue, AlternativeValues
 
-
-from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from avalanche.training.templates import SupervisedTemplate

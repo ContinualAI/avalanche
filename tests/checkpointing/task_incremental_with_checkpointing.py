@@ -56,7 +56,7 @@ from avalanche.training.plugins import (
     SynapticIntelligencePlugin,
     EWCPlugin,
 )
-from avalanche.training.checkpoint import maybe_load_checkpoint, save_checkpoint
+from avalanche.checkpointing import maybe_load_checkpoint, save_checkpoint
 from avalanche.training.supervised import Naive
 from tests.unit_tests_utils import get_fast_benchmark
 

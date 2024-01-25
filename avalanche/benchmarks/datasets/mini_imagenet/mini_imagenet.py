@@ -65,11 +65,11 @@
 
 import csv
 import glob
+import dill
 from pathlib import Path
-from typing import Union, List, Tuple, Dict
+from typing import Union, List, Tuple, Dict, Literal
 
 from torchvision.datasets.folder import default_loader
-from typing_extensions import Literal
 
 import PIL
 import numpy as np
@@ -83,6 +83,7 @@ from avalanche.benchmarks.datasets.mini_imagenet.mini_imagenet_data import (
     MINI_IMAGENET_CLASSES,
     MINI_IMAGENET_CLASS_TO_IDX,
 )
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class MiniImageNetDataset(Dataset):
@@ -283,6 +284,22 @@ class MiniImageNetDataset(Dataset):
         img = self.loader(self.image_paths[item])
         img = self._transform(img)
         return img, self.targets[item]
+
+
+@dill.register(MiniImageNetDataset)
+def checkpoint_MiniImageNetDataset(pickler, obj: MiniImageNetDataset):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        MiniImageNetDataset,
+        deduplicate=True,
+        kwargs=dict(
+            imagenet_path=obj.imagenet_path,
+            split=obj.split,
+            resize_to=obj.resize_to,
+            loader=obj.loader,
+        ),
+    )
 
 
 __all__ = ["MiniImageNetDataset"]

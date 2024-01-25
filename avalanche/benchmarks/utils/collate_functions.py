@@ -10,23 +10,19 @@
 ################################################################################
 
 import itertools
-from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import (
     List,
     TypeVar,
-    Generic,
     Sequence,
     Tuple,
     Dict,
     Union,
-    overload,
 )
 from typing_extensions import TypeAlias
 
 import torch
 from torch import Tensor
-from torch.utils.data import default_collate
 
 BatchT = TypeVar("BatchT")
 ExampleT = TypeVar("ExampleT")

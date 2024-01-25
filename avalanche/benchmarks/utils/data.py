@@ -466,9 +466,15 @@ class _FlatDataWithTransform(FlatData[T_co]):
         indices: Optional[List[int]] = None,
         transform_groups: Optional[TransformGroups] = None,
         frozen_transform_groups: Optional[TransformGroups] = None,
+        discard_elements_not_in_indices: bool = False,
     ):
         can_flatten = (transform_groups is None) and (frozen_transform_groups is None)
-        super().__init__(datasets, indices=indices, can_flatten=can_flatten)
+        super().__init__(
+            datasets,
+            indices=indices,
+            can_flatten=can_flatten,
+            discard_elements_not_in_indices=discard_elements_not_in_indices,
+        )
         if isinstance(transform_groups, dict):
             transform_groups = TransformGroups(transform_groups)
         if isinstance(frozen_transform_groups, dict):

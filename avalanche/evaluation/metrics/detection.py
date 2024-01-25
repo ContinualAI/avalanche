@@ -15,6 +15,7 @@ from typing import (
     Callable,
     Sequence,
     Optional,
+    Protocol,
 )
 
 from avalanche.benchmarks.utils.data import AvalancheDataset
@@ -41,7 +42,6 @@ from torch import Tensor
 from json import JSONEncoder
 
 from torch.utils.data import Subset, ConcatDataset
-from typing_extensions import Protocol
 
 from avalanche.evaluation import PluginMetric
 from avalanche.evaluation.metric_results import MetricValue
