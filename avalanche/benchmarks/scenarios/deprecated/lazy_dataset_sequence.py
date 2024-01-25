@@ -19,8 +19,8 @@ from typing import (
     Iterator,
     TypeVar,
     Union,
+    overload,
 )
-from typing_extensions import overload
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.dataset_utils import manage_advanced_indexing
 

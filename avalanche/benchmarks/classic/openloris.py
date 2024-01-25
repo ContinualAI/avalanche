@@ -14,8 +14,7 @@ It basically returns a iterable benchmark object ``GenericCLScenario`` given
 a number of configuration parameters."""
 
 from pathlib import Path
-from typing import Union, Any, Optional
-from typing_extensions import Literal
+from typing import Union, Any, Optional, Literal
 
 from avalanche.benchmarks.classic.classic_benchmarks_utils import (
     check_vision_benchmark,

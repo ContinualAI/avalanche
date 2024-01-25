@@ -31,10 +31,9 @@ dependencies:
 - conda-forge::sphinx-autoapi
 - conda-forge::sphinx-copybutton
 - pip:
-    - typing-extensions==4.4.0
+    - typing-extensions
     - pytorchcv
     - gdown
-    - ctrl-benchmark
     - higher
     - gym
     - lvis
