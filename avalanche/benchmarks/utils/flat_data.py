@@ -215,6 +215,16 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         :param datasets: list of datasets to concatenate.
         :param indices:  list of indices.
         :param can_flatten: if True, enables flattening.
+        :param discard_elements_not_in_indices: if True, will remove
+            (drop the reference to) elements not in indices.
+            Works only if all datasets are lists. If False (default),
+            will use the standard subsetting approach of keeping 
+            the references to the original datasets.
+            Setting this to True is useful when in need to keep 
+            raw data in memory (such as intermediate activations).
+            For an example, please check how this is used
+            in the :class:`ClassBalancedBufferWithLogits` of the
+            :class:`DER` strategy.
         """
         self._datasets: List[IDataset[T_co]] = list(datasets)
         self._indices: Optional[List[int]] = indices
@@ -241,7 +251,6 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
 
     def _remove_unused_elements(self):
         # print("[FlatData] Removing unused elements from FlatData")
-        # Set elements not in self._indices to None
         if self._indices is None:
             # print("[FlatData] Not subsetting...")
             return
