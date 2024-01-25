@@ -35,6 +35,13 @@ class FeatureDataset(torch.utils.data.Dataset):
 class FeatureReplay(SupervisedTemplate):
     """
     Store some last layer features and use them for replay
+
+    Replay is performed following the PR-ACE protocol
+    defined in Magistri et al. https://openreview.net/forum?id=7D9X2cFnt1
+
+    Training the current task with masked cross entropy for current task classes
+    and training the classifier with cross entropy
+    criterion over all previously seen classes
     """
 
     def __init__(
@@ -118,8 +125,8 @@ class FeatureReplay(SupervisedTemplate):
         mb_output = self.model.train_classifier(self.model.features.detach())
 
         loss = 0.5 * self._criterion(self.mb_output, self.mb_y) + 0.5 * (
-            (1 - weight_current) * self._criterion(out, batch_y)
-            + weight_current * self._criterion(mb_output, self.mb_y)
+            (1 - weight_current) * self.full_criterion(out, batch_y)
+            + weight_current * self.full_criterion(mb_output, self.mb_y)
         )
         return loss
 
@@ -140,3 +147,5 @@ class FeatureReplay(SupervisedTemplate):
         all_labels = torch.cat(all_labels)
         features_dataset = FeatureDataset(all_features, all_labels)
         return features_dataset
+
+__all__ = ["FeatureReplay"]
