@@ -27,7 +27,7 @@ on:
       - '**.py'
       - '.github/workflows/unit-test.yml'
       - 'requirements.txt'
-      - 'extra_dependencies.py'
+      - 'extra_dependencies.txt'
 
 jobs:
   unit-test:
