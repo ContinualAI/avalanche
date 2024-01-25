@@ -19,7 +19,7 @@ on:
       - '.github/workflows/environment-update.yml'
       - 'requirements.txt'
       - 'setup.py'
-      - 'extra_dependencies.py'
+      - 'extra_dependencies.txt'
   schedule:
     - cron: '0 0 * * 0'  # midnight of every Sunday
 
