@@ -1,4 +1,4 @@
-typing-extensions==4.4.0
+typing-extensions>=4.6.0
 psutil
 gputil
 scikit-learn

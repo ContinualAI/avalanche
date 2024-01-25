@@ -10,3 +10,7 @@ gym:                  rl
 pycocotools:          detection
 lvis:                 detection
 timm:                 l2p
+sphinx:               dev
+sphinx_rtd_theme:     dev
+sphinx_autoapi:       dev
+sphinx_copybutton:    dev

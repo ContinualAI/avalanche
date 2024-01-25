@@ -21,6 +21,9 @@ on:
     paths:
       - 'docker/nightly/**'
       - '.github/workflows/docker-nightly-release.yml'
+      - 'requirements.txt'
+      - 'setup.py'
+      - 'extra_dependencies.py'
 
 jobs:
   docker-nightly-release:

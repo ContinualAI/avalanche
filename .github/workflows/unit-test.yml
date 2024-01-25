@@ -19,7 +19,6 @@ on:
     paths:
       - '**.py'
       - '.github/workflows/unit-test.yml'
-      - 'environment.yml'
   pull_request:
     branches:
       - master
@@ -27,7 +26,8 @@ on:
     paths:
       - '**.py'
       - '.github/workflows/unit-test.yml'
-      - 'environment.yml'
+      - 'requirements.txt'
+      - 'extra_dependencies.py'
 
 jobs:
   unit-test:

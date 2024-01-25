@@ -17,7 +17,9 @@ on:
       - master
     paths:
       - '.github/workflows/environment-update.yml'
-      - 'environment.yml'
+      - 'requirements.txt'
+      - 'setup.py'
+      - 'extra_dependencies.py'
   schedule:
     - cron: '0 0 * * 0'  # midnight of every Sunday
 
@@ -73,30 +75,6 @@ jobs:
           ref: master
           path: 'avalanche-docker'
           token: ${{ secrets.BOT_TOKEN }}
-      - name: test failure
-        if: failure()
-        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
-        run: |
-          conda env export > failed-environment.yml &&
-          diff avalanche-docker/${{ matrix.python-version }}/environment-${{ matrix.python-version }}.yml failed-environment.yml > diff_fail.txt
-      - name: test failure - open an issue
-        if: failure()
-        uses: actions/github-script@v3
-        with:
-          github-token: ${{ secrets.BOT_TOKEN }}
-          script: |
-            var title = "Creation of a new envirnment failed for python " + ${{ matrix.python-version }}
-            var message = "Here are the differences between the last working environment and the new one that I tried to run:\n\n```\n"
-            var fs = require("fs");
-            var diff = fs.readFileSync("diff_fail.txt", "utf-8");
-            var text_complete = message.concat(diff, "\n```")
-            github.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: title,
-              body: text_complete,
-              labels: ['Continuous integration', 'test']
-            })
       - name: test success
         if: success()
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
