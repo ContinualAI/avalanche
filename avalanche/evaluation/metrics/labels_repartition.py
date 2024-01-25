@@ -8,7 +8,7 @@ from typing import (
     List,
     Counter,
     overload,
-    Literal
+    Literal,
 )
 
 from matplotlib.figure import Figure

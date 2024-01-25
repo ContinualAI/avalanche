@@ -18,7 +18,7 @@ from typing import (
     Optional,
     TYPE_CHECKING,
     List,
-    Literal
+    Literal,
 )
 
 import wandb

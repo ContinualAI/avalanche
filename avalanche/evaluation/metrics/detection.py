@@ -15,7 +15,7 @@ from typing import (
     Callable,
     Sequence,
     Optional,
-    Protocol
+    Protocol,
 )
 
 from avalanche.benchmarks.utils.data import AvalancheDataset

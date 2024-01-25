@@ -19,7 +19,7 @@ from typing import (
     Union,
     overload,
     Literal,
-    Protocol
+    Protocol,
 )
 from .metric_results import MetricValue, MetricType, AlternativeValues
 from .metric_utils import (

@@ -28,7 +28,7 @@ from typing import (
     Union,
     Callable,
     Sequence,
-    Protocol
+    Protocol,
 )
 
 from avalanche.benchmarks.utils.transforms import (

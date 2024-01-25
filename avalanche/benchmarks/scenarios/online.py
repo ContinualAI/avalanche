@@ -20,7 +20,7 @@ from typing import (
     TypeVar,
     Union,
     Protocol,
-    Literal
+    Literal,
 )
 import warnings
 from avalanche.benchmarks.utils.data import AvalancheDataset

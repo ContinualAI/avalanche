@@ -27,7 +27,7 @@ from typing import (
     Union,
     Generic,
     overload,
-    final
+    final,
 )
 
 import numpy as np
