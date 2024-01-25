@@ -14,4 +14,4 @@ torchmetrics
 gdown
 dill
 packaging
-quadprog
+quadprog @ git+https://github.com/HKaras/quadprog.git@690081f3285d4eb554394209473a274f230cd9ba
