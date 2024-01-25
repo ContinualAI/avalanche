@@ -1,4 +1,4 @@
----
+]---
 description: How to Contribute Back to the Avalanche Community
 ---
 
@@ -32,16 +32,19 @@ First of all, [install _Avalanche_ in "_Developer Mode"_](https://avalanche.cont
 
 **The following rules should be respected:**
 
-* Use PEP8 coding style and work within the 80 columns limit.
+* Use [*Black*](https://github.com/psf/black) code formatting for a consistent coding style, which also handles line lengths (the 88 columns limit) automatically.
 * Always pull before pushing a commit.
 * Try to assign to yourself one issue at a time.
 * Try closing an issue **within roughly 7 days**. If you are not able to do that, please break it down into multiple ones you can tackle more easily, or you can always remove your assignment to the issue!
 * If you add a new feature, please include also a _test_ and a usage example in your PR.
 
-Also, before making your PR **make sure** that the following commands return without any errors:
+Also, before making your PR, first run the following command for code formatting with *Black*:
+``` bash
+black .
+```
 
+then, **make sure** that the following command returns no test errors:
 ```bash
-pycodestyle avalanche tests examples
 python -m unittest discover tests -v
 ```
 
@@ -74,3 +77,5 @@ To contribute to the documentation you need to follow the steps below:
 
 You can run _this chapter_ and play with it on Google Colaboratory:
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/from-zero-to-hero-tutorial/09_contribute-to-avalanche.ipynb)
+
+

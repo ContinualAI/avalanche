@@ -328,6 +328,18 @@ class AvalancheDatasetTests(unittest.TestCase):
         self.assertEqual(5, z2)
         self.assertEqual(0, t2)
 
+    def test_avalanche_concat_dataset_targets_val_to_idx(self):
+        tensor_x = torch.rand(100, 3, 28, 28)
+        tensor_x2 = torch.rand(11, 3, 28, 28)
+        tensor_y = torch.randint(0, 10, (100,))
+        tensor_y2 = torch.randint(0, 10, (11,))
+        dataset1 = TensorDataset(tensor_x, tensor_y)
+        dataset2 = TensorDataset(tensor_x2, tensor_y2)
+        concat = dataset1 + dataset2
+        av_dataset = _make_taskaware_classification_dataset(concat)
+        self.assertIsInstance(av_dataset.targets.val_to_idx[0], list)
+        self.assertEqual(10, len(av_dataset.targets.val_to_idx))
+
     def test_avalanche_dataset_from_pytorch_subset(self):
         tensor_x = torch.rand(500, 3, 28, 28)
         tensor_y = torch.randint(0, 100, (500,))

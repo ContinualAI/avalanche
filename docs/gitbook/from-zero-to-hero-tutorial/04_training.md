@@ -245,6 +245,11 @@ strategy.train(benchmark.train_stream)
 strategy.eval(benchmark.test_stream)
 ```
 
+The animation below shows the execution and callbacks steps of a Naive strategy that is extended with the EWC plugin:
+
+<img align='center' style='max-width: 800px' src='../../.gitbook/assets/ewc_template_animation.gif'>
+
+
 Check base plugin's documentation for a complete list of the available callbacks.
 
 ## How to Write a Custom Strategy
