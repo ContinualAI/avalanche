@@ -18,8 +18,9 @@ from typing import (
     List,
     Union,
     overload,
+    Literal,
+    Protocol,
 )
-from typing_extensions import Literal, Protocol
 from .metric_results import MetricValue, MetricType, AlternativeValues
 from .metric_utils import (
     get_metric_name,

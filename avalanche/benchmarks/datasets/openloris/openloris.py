@@ -14,6 +14,7 @@
 import pickle as pkl
 from pathlib import Path
 from typing import Optional, Union
+import dill
 
 from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
@@ -23,6 +24,7 @@ from avalanche.benchmarks.datasets import (
     default_dataset_location,
 )
 from avalanche.benchmarks.datasets.openloris import openloris_data
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class OpenLORIS(DownloadableDataset):
@@ -165,6 +167,23 @@ class OpenLORIS(DownloadableDataset):
 
     def __len__(self):
         return len(self.targets)
+
+
+@dill.register(OpenLORIS)
+def checkpoint_OpenLORIS(pickler, obj: OpenLORIS):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        OpenLORIS,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            train=obj.train,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+            loader=obj.loader,
+        ),
+    )
 
 
 if __name__ == "__main__":

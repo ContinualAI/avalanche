@@ -2,6 +2,7 @@ import dill
 from torchvision.datasets import FashionMNIST
 
 from avalanche.benchmarks.datasets import default_dataset_location
+from avalanche.checkpointing import constructor_based_serialization
 
 
 def get_fmnist_dataset(dataset_root):
@@ -13,18 +14,19 @@ def get_fmnist_dataset(dataset_root):
     return train_set, test_set
 
 
-def load_FashionMNIST(root, train, transform, target_transform):
-    return FashionMNIST(
-        root=root, train=train, transform=transform, target_transform=target_transform
-    )
-
-
 @dill.register(FashionMNIST)
-def save_FashionMNIST(pickler, obj: FashionMNIST):
-    pickler.save_reduce(
-        load_FashionMNIST,
-        (obj.root, obj.train, obj.transform, obj.target_transform),
-        obj=obj,
+def checkpoint_FashionMNIST(pickler, obj: FashionMNIST):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        FashionMNIST,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            train=obj.train,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+        ),
     )
 
 

@@ -9,10 +9,9 @@
 # Website: avalanche.continualai.org                                           #
 ################################################################################
 
-from typing import TypeVar, SupportsInt, Sequence
+from typing import TypeVar, SupportsInt, Sequence, Protocol
 
 from torch.utils.data.dataset import Dataset
-from typing_extensions import Protocol
 
 T_co = TypeVar("T_co", covariant=True)
 TTargetType = TypeVar("TTargetType")

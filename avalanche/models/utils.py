@@ -1,10 +1,11 @@
-from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
-from avalanche.models.dynamic_modules import MultiTaskModule, DynamicModule
-import torch.nn as nn
-from torch.nn.parallel import DistributedDataParallel
 from collections import OrderedDict
 
+import torch.nn as nn
+from torch.nn.parallel import DistributedDataParallel
+
 from avalanche.benchmarks.scenarios import CLExperience
+from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
+from avalanche.models.dynamic_modules import DynamicModule, MultiTaskModule
 
 
 def is_multi_task_module(model: nn.Module) -> bool:
@@ -75,6 +76,23 @@ class FeatureExtractorBackbone(nn.Module):
         )
 
 
+class FeatureExtractorModel(nn.Module):
+    """
+    Feature extractor that additionnaly stores the features
+    """
+
+    def __init__(self, feature_extractor, train_classifier):
+        super().__init__()
+        self.feature_extractor = feature_extractor
+        self.train_classifier = train_classifier
+        self.features = None
+
+    def forward(self, x):
+        self.features = self.feature_extractor(x)
+        x = self.train_classifier(self.features)
+        return x
+
+
 class Flatten(nn.Module):
     """
     Simple nn.Module to flatten each tensor of a batch of tensors.
@@ -118,4 +136,10 @@ class MLP(nn.Module):
         return self.mlp(x)
 
 
-__all__ = ["avalanche_forward", "FeatureExtractorBackbone", "MLP", "Flatten"]
+__all__ = [
+    "avalanche_forward",
+    "FeatureExtractorBackbone",
+    "MLP",
+    "Flatten",
+    "FeatureExtractorModel",
+]

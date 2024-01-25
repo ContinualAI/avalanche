@@ -32,6 +32,8 @@ Avalanche will raise an error if you need one extra package and will suggest the
 
 **Note** that in some alternatives to bash like zsh you may need to enclose \`avalanche-lib\[code]\` into quotation marks ( " " ), since square brackets are used as special characters.
 
+**Warning**: by installing the [all] and [extra] versions, the PyTorch version may be limited to <2.* due to the dependencies of those additional packages.
+
 ## 📥 Install the Master Branch Using Pip
 
 If you want, you can install Avalanche directly from the master branch (latest version) in a single command. Make sure to have **pytorch** already installed in your environment, then execute

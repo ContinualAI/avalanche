@@ -1,5 +1,4 @@
-from typing import Iterable, List, Optional, Sequence, Tuple, TypeVar
-from typing_extensions import Protocol
+from typing import Iterable, List, Optional, TypeVar, Protocol
 
 from torch import Tensor
 import torch

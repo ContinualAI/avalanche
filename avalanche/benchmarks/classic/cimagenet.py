@@ -52,7 +52,8 @@ def SplitImageNet(
     class_ids_from_zero_in_each_exp: bool = False,
     class_ids_from_zero_from_first_exp: bool = False,
     train_transform: Optional[Any] = _default_train_transform,
-    eval_transform: Optional[Any] = _default_eval_transform
+    eval_transform: Optional[Any] = _default_eval_transform,
+    meta_root: Optional[Union[str, Path]] = None,
 ):
     """
     Creates a CL benchmark using the ImageNet dataset.
@@ -130,11 +131,19 @@ def SplitImageNet(
         comprehensive list of possible transformations).
         If no transformation is passed, the default test transformation
         will be used.
+    :param meta_root: Directory where the `ILSVRC2012_devkit_t12.tar.gz`
+        file can be found. The first time you use this dataset, the meta file will be
+        extracted from the archive and a `meta.bin` file will be created in the `meta_root`
+        directory. Defaults to None, which means that the meta file is expected to be
+        in the path provied in the `root` argument.
+        This is an additional argument not found in the original ImageNet class
+        from the torchvision package. For more info, see the `meta_root` argument
+        in the :class:`AvalancheImageNet` class.
 
     :returns: A properly initialized :class:`NCScenario` instance.
     """
 
-    train_set, test_set = _get_imagenet_dataset(dataset_root)
+    train_set, test_set = _get_imagenet_dataset(dataset_root, meta_root=meta_root)
 
     return nc_benchmark(
         train_dataset=train_set,
@@ -152,10 +161,10 @@ def SplitImageNet(
     )
 
 
-def _get_imagenet_dataset(root):
-    train_set = ImageNet(root, split="train")
+def _get_imagenet_dataset(root, meta_root=None):
+    train_set = ImageNet(root, split="train", meta_root=meta_root)
 
-    test_set = ImageNet(root, split="val")
+    test_set = ImageNet(root, split="val", meta_root=meta_root)
 
     return train_set, test_set
 

@@ -23,6 +23,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import gdown
 import os
+import dill
 from collections import OrderedDict
 from torchvision.datasets.folder import default_loader
 
@@ -31,6 +32,7 @@ from avalanche.benchmarks.datasets import (
     DownloadableDataset,
 )
 from avalanche.benchmarks.utils import PathsDataset
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class CUB200(PathsDataset, DownloadableDataset):
@@ -176,6 +178,23 @@ class CUB200(PathsDataset, DownloadableDataset):
                 return False
 
         return True
+
+
+@dill.register(CUB200)
+def checkpoint_CUB200(pickler, obj: CUB200):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        CUB200,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            train=obj.train,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+            loader=obj.loader,
+        ),
+    )
 
 
 if __name__ == "__main__":
