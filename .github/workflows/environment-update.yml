@@ -50,8 +50,7 @@ jobs:
       - name: install conda environment
         run: |
           mamba create -n avalanche-env -y -v python=${{ matrix.python-version }} -c conda-forge &&
-          conda run -n avalanche-env --no-capture-output mamba install -y -v pytorch torchvision cpuonly -c pytorch &&
-          conda run -n avalanche-env --no-capture-output mamba env update --file environment.yml -v
+          conda run -n avalanche-env --no-capture-output pip install -r requirements.txt
       - name: python unit test
         id: unittest
         env:
