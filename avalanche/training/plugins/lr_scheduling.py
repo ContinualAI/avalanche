@@ -1,7 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING
-
-from typing_extensions import Literal
+from typing import TYPE_CHECKING, Literal
 
 from avalanche.evaluation.metrics import Mean
 from avalanche.training.plugins import SupervisedPlugin

@@ -66,10 +66,9 @@
 import csv
 import glob
 from pathlib import Path
-from typing import Union, List, Tuple, Dict
+from typing import Union, List, Tuple, Dict, Literal
 
 from torchvision.datasets.folder import default_loader
-from typing_extensions import Literal
 
 import PIL
 import numpy as np

@@ -8,6 +8,7 @@ from typing import (
     List,
     Counter,
     overload,
+    Literal,
 )
 
 from matplotlib.figure import Figure
@@ -18,8 +19,6 @@ from avalanche.evaluation.metric_utils import (
     stream_type,
     default_history_repartition_image_creator,
 )
-
-from typing_extensions import Literal
 
 
 if TYPE_CHECKING:
