@@ -24,6 +24,7 @@ from avalanche.training.plugins import (
     EvaluationPlugin,
     SupervisedPlugin,
     LwFPlugin,
+    FeatureDistillationPlugin,
     ReplayPlugin,
     RWalkPlugin,
     EarlyStoppingPlugin,
@@ -51,6 +52,7 @@ from avalanche.training.supervised import (
     LearningToPrompt,
     ExpertGateStrategy,
     MER,
+    FeatureReplay,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -62,6 +64,7 @@ from avalanche.training.utils import get_last_fc_layer
 from tests.training.test_strategy_utils import run_strategy
 from tests.unit_tests_utils import get_fast_benchmark, get_device
 from torchvision import transforms
+from avalanche.models.utils import FeatureExtractorModel
 
 
 class BaseStrategyTest(unittest.TestCase):
@@ -850,13 +853,14 @@ class StrategyTest(unittest.TestCase):
             strategy.train(experience)
 
     def test_icarl(self):
-        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        model = SimpleMLP(input_size=6, hidden_size=10)
-        optimizer = SGD(model.parameters(), lr=0.000001)
+        _, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+        fe = torch.nn.Linear(6, 10)
+        cls = torch.nn.Sigmoid()
+        optimizer = SGD([*fe.parameters(), *cls.parameters()], lr=0.001)
 
         strategy = ICaRL(
-            model.features,
-            model.classifier,
+            fe,
+            cls,
             optimizer,
             20,
             buffer_transform=None,
@@ -1051,6 +1055,54 @@ class StrategyTest(unittest.TestCase):
             device=self.device,
             eval_mb_size=50,
             train_epochs=2,
+        )
+        run_strategy(benchmark, strategy)
+
+    def test_feature_distillation(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+
+        # Modify model to make it compatible
+        last_fc_name, _ = get_last_fc_layer(model)
+        old_layer = getattr(model, last_fc_name)
+        setattr(model, last_fc_name, torch.nn.Identity())
+        model = FeatureExtractorModel(model, old_layer)
+
+        feature_distillation = FeatureDistillationPlugin(alpha=10)
+
+        plugins = [feature_distillation]
+
+        strategy = Naive(
+            model,
+            optimizer,
+            criterion,
+            device=self.device,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=plugins,
+        )
+        run_strategy(benchmark, strategy)
+
+    def test_feature_replay(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+
+        last_fc_name, _ = get_last_fc_layer(model)
+
+        plugins = []
+
+        # We do not add MT criterion cause FeatureReplay uses
+        # MaskedCrossEntropy as main criterion
+        strategy = FeatureReplay(
+            model,
+            optimizer,
+            device=self.device,
+            last_layer_name=last_fc_name,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+            plugins=plugins,
         )
         run_strategy(benchmark, strategy)
 
