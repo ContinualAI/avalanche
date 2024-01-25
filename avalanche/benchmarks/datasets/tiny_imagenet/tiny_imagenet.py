@@ -13,6 +13,7 @@
 
 import csv
 from pathlib import Path
+import dill
 from typing import List, Optional, Tuple, Union
 
 from torchvision.datasets.folder import default_loader
@@ -22,6 +23,7 @@ from avalanche.benchmarks.datasets import (
     SimpleDownloadableDataset,
     default_dataset_location,
 )
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class TinyImagenet(SimpleDownloadableDataset):
@@ -187,6 +189,23 @@ class TinyImagenet(SimpleDownloadableDataset):
             target = self.target_transform(target)
 
         return img, target
+
+
+@dill.register(TinyImagenet)
+def checkpoint_TinyImagenet(pickler, obj: TinyImagenet):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        TinyImagenet,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            train=obj.train,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+            loader=obj.loader,
+        ),
+    )
 
 
 if __name__ == "__main__":

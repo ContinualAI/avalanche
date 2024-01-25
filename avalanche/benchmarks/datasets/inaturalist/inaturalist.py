@@ -29,11 +29,14 @@ from typing import Any, Dict, List, Set
 
 import os
 import logging
+import dill
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import ToTensor
 from PIL import Image
 from os.path import expanduser
 import pprint
+
+from avalanche.checkpointing import constructor_based_serialization
 
 from .inaturalist_data import INATURALIST_DATA
 
@@ -175,6 +178,24 @@ class INATURALIST2018(Dataset):
 
     def __len__(self):
         return len(self.img_ids)
+
+
+@dill.register(INATURALIST2018)
+def checkpoint_INATURALIST2018(pickler, obj: INATURALIST2018):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        INATURALIST2018,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            split=obj.split,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+            loader=obj.loader,
+            supcats=obj.supcats,
+        ),
+    )
 
 
 if __name__ == "__main__":

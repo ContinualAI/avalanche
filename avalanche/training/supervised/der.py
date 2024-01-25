@@ -18,6 +18,7 @@ from torch.optim import Optimizer
 from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
+from avalanche.benchmarks.utils.flat_data import FlatData
 from avalanche.training.utils import cycle
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.evaluation import (
@@ -32,20 +33,21 @@ from avalanche.training.templates import SupervisedTemplate
 
 
 @torch.no_grad()
-def compute_dataset_logits(dataset, model, batch_size, device):
+def compute_dataset_logits(dataset, model, batch_size, device, num_workers=0):
     was_training = model.training
     model.eval()
 
     logits = []
     loader = torch.utils.data.DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
+        dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers
     )
     for x, _, _ in loader:
         x = x.to(device)
         out = model(x)
-        logits.extend(list(out.cpu()))
+        out = out.detach().cpu()
+
+        for row in out:
+            logits.append(torch.clone(row))
 
     if was_training:
         model.train()
@@ -88,12 +90,20 @@ class ClassBalancedBufferWithLogits(BalancedExemplarsBuffer):
         new_data: AvalancheDataset = strategy.experience.dataset
 
         logits = compute_dataset_logits(
-            new_data.eval(), strategy.model, strategy.train_mb_size, strategy.device
+            new_data.eval(),
+            strategy.model,
+            strategy.train_mb_size,
+            strategy.device,
+            num_workers=kwargs.get("num_workers", 0),
         )
         new_data_with_logits = make_avalanche_dataset(
             new_data,
             data_attributes=[
-                TensorDataAttribute(logits, name="logits", use_in_getitem=True)
+                TensorDataAttribute(
+                    FlatData([logits], discard_elements_not_in_indices=True),
+                    name="logits",
+                    use_in_getitem=True,
+                )
             ],
         )
         # Get sample idxs per class
@@ -231,6 +241,7 @@ class DER(SupervisedTemplate):
                     batch_size=self.batch_size_mem,
                     shuffle=True,
                     drop_last=True,
+                    num_workers=kwargs.get("num_workers", 0),
                 )
             )
         else:
@@ -239,6 +250,7 @@ class DER(SupervisedTemplate):
         super()._before_training_exp(**kwargs)
 
     def _after_training_exp(self, **kwargs):
+        self.replay_loader = None  # Allow DER to be checkpointed
         self.storage_policy.update(self, **kwargs)
         super()._after_training_exp(**kwargs)
 

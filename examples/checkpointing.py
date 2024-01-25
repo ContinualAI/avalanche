@@ -27,7 +27,7 @@ from avalanche.evaluation.metrics import accuracy_metrics
 from avalanche.logging import InteractiveLogger
 
 from avalanche.models import SimpleMLP
-from avalanche.training.checkpoint import maybe_load_checkpoint, save_checkpoint
+from avalanche.checkpointing import maybe_load_checkpoint, save_checkpoint
 from avalanche.training.determinism.rng_manager import RNGManager
 from avalanche.training.plugins import EvaluationPlugin
 from avalanche.training.supervised import Naive

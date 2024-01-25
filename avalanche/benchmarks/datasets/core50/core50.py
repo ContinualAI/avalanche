@@ -14,6 +14,7 @@
 import glob
 import os
 import pickle as pkl
+import dill
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 from warnings import warn
@@ -26,6 +27,7 @@ from avalanche.benchmarks.datasets import default_dataset_location
 from avalanche.benchmarks.datasets.downloadable_dataset import (
     DownloadableDataset,
 )
+from avalanche.checkpointing import constructor_based_serialization
 
 
 class CORe50Dataset(DownloadableDataset):
@@ -245,6 +247,25 @@ def CORe50(*args, **kwargs):
         2,
     )
     return CORe50Dataset(*args, **kwargs)
+
+
+@dill.register(CORe50Dataset)
+def checkpoint_CORe50Dataset(pickler, obj: CORe50Dataset):
+    constructor_based_serialization(
+        pickler,
+        obj,
+        CORe50Dataset,
+        deduplicate=True,
+        kwargs=dict(
+            root=obj.root,
+            train=obj.train,
+            transform=obj.transform,
+            target_transform=obj.target_transform,
+            loader=obj.loader,
+            mini=obj.mini,
+            object_level=obj.object_level,
+        ),
+    )
 
 
 if __name__ == "__main__":
