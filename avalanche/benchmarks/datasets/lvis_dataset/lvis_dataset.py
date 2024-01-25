@@ -13,13 +13,12 @@
 """ LVIS PyTorch Object Detection Dataset """
 
 from pathlib import Path
-from typing import Optional, Union, List, Sequence
+from typing import Optional, Union, List, Sequence, TypedDict
 
 import torch
 from PIL import Image
 from torchvision.datasets.folder import default_loader
 from torchvision.transforms import ToTensor
-from typing_extensions import TypedDict
 
 from avalanche.benchmarks.datasets import (
     DownloadableDataset,

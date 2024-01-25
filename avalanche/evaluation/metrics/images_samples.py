@@ -1,4 +1,4 @@
-from typing import List, TYPE_CHECKING, Tuple
+from typing import List, TYPE_CHECKING, Tuple, Literal
 
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -14,8 +14,6 @@ from avalanche.evaluation.metric_results import (
     MetricValue,
 )
 from avalanche.evaluation.metric_utils import get_metric_name
-
-from typing_extensions import Literal
 
 
 if TYPE_CHECKING:

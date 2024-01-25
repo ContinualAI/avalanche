@@ -10,7 +10,6 @@
 ################################################################################
 from matplotlib.figure import Figure
 from numpy import arange
-from typing_extensions import Literal
 from typing import (
     Any,
     Callable,
@@ -19,6 +18,7 @@ from typing import (
     Optional,
     TYPE_CHECKING,
     List,
+    Literal
 )
 
 import wandb

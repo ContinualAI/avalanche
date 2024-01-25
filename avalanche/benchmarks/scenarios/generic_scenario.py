@@ -27,8 +27,8 @@ from typing import (
     Union,
     Generic,
     overload,
+    final
 )
-from typing_extensions import final
 
 import numpy as np
 

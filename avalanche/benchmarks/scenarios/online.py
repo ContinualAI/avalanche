@@ -20,8 +20,8 @@ from typing import (
     TypeVar,
     Union,
     Protocol,
+    Literal
 )
-from typing_extensions import Literal
 import warnings
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.utils import concat_datasets

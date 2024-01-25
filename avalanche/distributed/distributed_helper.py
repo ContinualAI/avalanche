@@ -2,13 +2,12 @@ import os
 import pickle
 import warnings
 from io import BytesIO
-from typing import ContextManager, Optional, List, Any, Iterable, Dict, TypeVar
+from typing import ContextManager, Optional, List, Any, Iterable, Dict, TypeVar, Literal
 
 import torch
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel
-from typing_extensions import Literal
 from torch.distributed import init_process_group, broadcast_object_list
 
 

@@ -28,8 +28,8 @@ from typing import (
     Union,
     Callable,
     Sequence,
+    Protocol
 )
-from typing_extensions import Protocol
 
 from avalanche.benchmarks.utils.transforms import (
     MultiParamCompose,

@@ -9,9 +9,7 @@
 # Website: www.continualai.org                                                 #
 ################################################################################
 from pathlib import Path
-from typing import List, Optional, Union
-
-from typing_extensions import Literal
+from typing import List, Optional, Union, Literal
 
 from avalanche.benchmarks.datasets import Stream51
 from avalanche.benchmarks.scenarios.deprecated.generic_benchmark_creation import (
