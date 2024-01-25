@@ -8,13 +8,13 @@ from typing import (
     Optional,
     Tuple,
     Type,
-    TypeAlias,
     TypeVar,
     BinaryIO,
     IO,
     Union,
     Collection,
 )
+from typing_extensions import TypeAlias
 
 import dill
 import torch

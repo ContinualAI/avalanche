@@ -7,12 +7,12 @@ from typing import (
     Sequence,
     Tuple,
     Type,
-    TypeAlias,
     TypeVar,
     BinaryIO,
     IO,
     Union,
 )
+from typing_extensions import TypeAlias
 
 import dill
 import torch
