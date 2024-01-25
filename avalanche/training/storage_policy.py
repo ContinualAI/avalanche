@@ -461,7 +461,10 @@ class _ParametricSingleBuffer(ExemplarsBuffer):
         self.update_from_dataset(strategy, new_data)
 
     def update_from_dataset(self, strategy, new_data):
-        self.buffer = self.buffer.concat(new_data)
+        if len(self.buffer) == 0:
+            self.buffer = new_data
+        else:
+            self.buffer = self.buffer.concat(new_data)
         self.resize(strategy, self.max_size)
 
     def resize(self, strategy, new_size: int):

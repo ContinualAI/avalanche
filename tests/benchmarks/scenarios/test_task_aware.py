@@ -9,19 +9,30 @@ from avalanche.benchmarks.scenarios.task_aware import task_incremental_benchmark
 from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from torch.utils.data import TensorDataset
+import numpy as np
 
 
 class TestsTaskAware(unittest.TestCase):
     def test_taskaware(self):
         """Common use case: add tas labels to class-incremental benchmark."""
         n_classes, n_samples_per_class, n_features = 10, 3, 7
-        dataset = make_classification(
-            n_samples=n_classes * n_samples_per_class,
-            n_classes=n_classes,
-            n_features=n_features,
-            n_informative=6,
-            n_redundant=0,
-        )
+
+        for _ in range(10000):
+            dataset = make_classification(
+                n_samples=n_classes * n_samples_per_class,
+                n_classes=n_classes,
+                n_features=n_features,
+                n_informative=6,
+                n_redundant=0,
+            )
+
+            # The following check is required to ensure that at least 2 exemplars
+            # per class are generated. Otherwise, the train_test_split function will
+            # fail.
+            _, unique_count = np.unique(dataset[1], return_counts=True)
+            if np.min(unique_count) > 1:
+                break
+
         X = torch.from_numpy(dataset[0]).float()
         y = torch.from_numpy(dataset[1]).long()
         train_X, test_X, train_y, test_y = train_test_split(
