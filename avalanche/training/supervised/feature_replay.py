@@ -148,4 +148,5 @@ class FeatureReplay(SupervisedTemplate):
         features_dataset = FeatureDataset(all_features, all_labels)
         return features_dataset
 
+
 __all__ = ["FeatureReplay"]
