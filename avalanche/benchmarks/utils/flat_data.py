@@ -218,9 +218,9 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         :param discard_elements_not_in_indices: if True, will remove
             (drop the reference to) elements not in indices.
             Works only if all datasets are lists. If False (default),
-            will use the standard subsetting approach of keeping 
+            will use the standard subsetting approach of keeping
             the references to the original datasets.
-            Setting this to True is useful when in need to keep 
+            Setting this to True is useful when in need to keep
             raw data in memory (such as intermediate activations).
             For an example, please check how this is used
             in the :class:`ClassBalancedBufferWithLogits` of the
