@@ -23,7 +23,7 @@ on:
       - '.github/workflows/docker-nightly-release.yml'
       - 'requirements.txt'
       - 'setup.py'
-      - 'extra_dependencies.py'
+      - 'extra_dependencies.txt'
 
 jobs:
   docker-nightly-release:
