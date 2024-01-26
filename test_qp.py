@@ -14,7 +14,7 @@ if __name__ == "__main__":
     A = np.array([0.0, 0.0, 0.0])
     b = np.array([0.0])
 
-    problem = qpsolvers.Problem(P=P, q=q, G=-G.T, h=-h)
+    problem = qpsolvers.Problem(P=P, q=-q, G=-G.T, h=-h)
     solution = qpsolvers.solve_problem(problem, solver="quadprog")
     print(f"Primal: x = {solution.x}")
     # print(f"Dual (Gx <= h): z = {solution.z}")
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # print(solution.primal_residual())
     # print(solution.duality_gap())
 
-    v = qpsolvers.solve_qp(P=P, q=q, G=-G.transpose(), h=-h, solver="quadprog")
+    v = qpsolvers.solve_qp(P=P, q=-q, G=-G.transpose(), h=-h, solver="quadprog")
     print("qpsolvers: ", v)
 
     # P, q, G, h
