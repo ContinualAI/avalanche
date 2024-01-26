@@ -12,8 +12,8 @@ from avalanche.training.utils import _at_task_boundary
 
 
 class BatchObservation(SGDStrategyProtocol):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.optimized_param_id = None
 
     def model_adaptation(self, model=None):

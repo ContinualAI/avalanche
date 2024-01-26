@@ -46,6 +46,7 @@ class ER_AML(SupervisedTemplate):
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs
     ):
         """
         :param model: PyTorch model.
@@ -74,17 +75,18 @@ class ER_AML(SupervisedTemplate):
             `eval_every` epochs or iterations (Default='epoch').
         """
         super().__init__(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
-            device,
-            plugins,
-            evaluator,
-            eval_every,
-            peval_mode,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            peval_mode=peval_mode,
+            **kwargs
         )
         self.mem_size = mem_size
         self.batch_size_mem = batch_size_mem
@@ -198,3 +200,8 @@ class ER_AML(SupervisedTemplate):
         super()._train_cleanup()
         # reset the value to avoid serialization failures
         self.replay_loader = None
+
+
+__all__ = [
+    "ER_AML",
+]

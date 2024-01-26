@@ -65,6 +65,7 @@ class AR1(SupervisedTemplate):
             EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
+        **kwargs
     ):
         """
         Creates an instance of the AR1 strategy.
@@ -166,9 +167,9 @@ class AR1(SupervisedTemplate):
         self.replay_mb_size = 0
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -176,6 +177,7 @@ class AR1(SupervisedTemplate):
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
+            **kwargs
         )
 
     def _before_training_exp(self, **kwargs):

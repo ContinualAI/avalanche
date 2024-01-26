@@ -1,4 +1,5 @@
 from typing import Any, Callable, Iterable, Sequence, Optional, TypeVar, Union
+from typing_extensions import TypeAlias
 from packaging.version import parse
 
 import torch
@@ -28,10 +29,12 @@ TDatasetExperience = TypeVar("TDatasetExperience", bound=DatasetExperience)
 TMBInput = TypeVar("TMBInput")
 TMBOutput = TypeVar("TMBOutput")
 
+CriterionType: TypeAlias = Union[Module, Callable[[Tensor, Tensor], Tensor]]
+
 
 class BaseSGDTemplate(
-    SGDStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
     BaseTemplate[TDatasetExperience],
+    SGDStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
 ):
     """Base SGD class for continual learning skeletons.
 
@@ -53,9 +56,10 @@ class BaseSGDTemplate(
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
@@ -66,6 +70,7 @@ class BaseSGDTemplate(
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs
     ):
         """Init.
 
@@ -87,8 +92,21 @@ class BaseSGDTemplate(
             `eval_every` epochs or iterations (Default='epoch').
         """
 
-        super().__init__()  # type: ignore
-        BaseTemplate.__init__(self=self, model=model, device=device, plugins=plugins)
+        # Call super with all args
+        super().__init__(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            peval_mode=peval_mode,
+            **kwargs
+        )
 
         self.optimizer: Optimizer = optimizer
         """ PyTorch optimizer. """
@@ -617,3 +635,10 @@ class PeriodicEval(BaseSGDPlugin, supports_distributed=True):
     #     if self.peval_mode == "experience":
     #         self._maybe_peval(strategy, strategy.clock.train_exp_counter,
     #                           **kwargs)
+
+
+__all__ = [
+    "CriterionType",
+    "BaseSGDTemplate",
+    "PeriodicEval",
+]

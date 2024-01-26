@@ -104,7 +104,8 @@ class SGDStrategyProtocol(
 
 
 class SupervisedStrategyProtocol(
-    SGDStrategyProtocol[TSGDExperienceType, TMBinput, TMBoutput], Protocol
+    SGDStrategyProtocol[TSGDExperienceType, TMBinput, TMBoutput],
+    Protocol[TSGDExperienceType, TMBinput, TMBoutput],
 ):
     mb_x: Tensor
 
@@ -114,7 +115,8 @@ class SupervisedStrategyProtocol(
 
 
 class MetaLearningStrategyProtocol(
-    SGDStrategyProtocol[TSGDExperienceType, TMBinput, TMBoutput], Protocol
+    SGDStrategyProtocol[TSGDExperienceType, TMBinput, TMBoutput],
+    Protocol[TSGDExperienceType, TMBinput, TMBoutput],
 ):
     def _before_inner_updates(self, **kwargs):
         ...

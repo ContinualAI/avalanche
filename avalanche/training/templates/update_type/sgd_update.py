@@ -2,6 +2,9 @@ from avalanche.training.templates.strategy_mixin_protocol import SGDStrategyProt
 
 
 class SGDUpdate(SGDStrategyProtocol):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def training_epoch(self, **kwargs):
         """Training epoch.
 

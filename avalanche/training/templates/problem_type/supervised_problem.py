@@ -8,6 +8,9 @@ from avalanche.training.templates.strategy_mixin_protocol import (
 # Also confirmed here: https://stackoverflow.com/a/70907644
 # PyLance just does not understand it
 class SupervisedProblem(SupervisedStrategyProtocol):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @property
     def mb_x(self):
         """Current mini-batch input."""

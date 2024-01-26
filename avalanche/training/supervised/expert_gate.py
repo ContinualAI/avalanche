@@ -12,15 +12,12 @@
 from collections import OrderedDict
 import warnings
 
-import torch
 from torch.nn import Module, CrossEntropyLoss
-from torch.optim import Optimizer, SGD, Adam
-from torch.nn.functional import log_softmax
+from torch.optim import Optimizer, SGD
 
 from typing import Optional, List
 
 from avalanche.models.expert_gate import ExpertAutoencoder, ExpertModel, ExpertGate
-from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.training.supervised import AETraining
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin, LwFPlugin
@@ -367,3 +364,6 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Train with autoencoder strategy
         ae_strategy.train(strategy.experience)
         print("FINISHED TRAINING NEW AUTOENCODER\n")
+
+
+__all__ = ["ExpertGateStrategy"]

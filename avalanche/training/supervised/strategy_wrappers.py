@@ -65,8 +65,9 @@ class Naive(SupervisedTemplate):
 
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
+        *args,
+        model: Module = None,
+        optimizer: Optimizer = None,
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -100,10 +101,12 @@ class Naive(SupervisedTemplate):
         :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
+
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            *args,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -123,8 +126,9 @@ class PNNStrategy(SupervisedTemplate):
 
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
+        *args,
+        model: Module = None,
+        optimizer: Optimizer = None,
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -158,8 +162,11 @@ class PNNStrategy(SupervisedTemplate):
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         # Check that the model has the correct architecture.
-        assert isinstance(model, PNN), "PNNStrategy requires a PNN model."
+        assert isinstance(model, PNN) or (
+            len(args) > 0 and isinstance(args[0], PNN)
+        ), "PNNStrategy requires a PNN model."
         super().__init__(
+            *args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -244,9 +251,9 @@ class PackNet(SupervisedTemplate):
             raise ValueError("PackNet requires a model that implements PackNetModule.")
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -306,9 +313,9 @@ class CWRStar(SupervisedTemplate):
         else:
             plugins.append(cwsp)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -372,9 +379,9 @@ class Replay(SupervisedTemplate):
         else:
             plugins.append(rp)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -503,9 +510,9 @@ class GenerativeReplay(SupervisedTemplate):
             plugins.append(rp)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -571,9 +578,9 @@ class AETraining(SupervisedTemplate):
         """
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -645,9 +652,9 @@ class VAETraining(SupervisedTemplate):
         """
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -720,9 +727,9 @@ class GSS_greedy(SupervisedTemplate):
         else:
             plugins.append(rp)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -787,9 +794,9 @@ class GDumb(SupervisedTemplate):
             plugins.append(gdumb)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -856,9 +863,9 @@ class LwF(SupervisedTemplate):
             plugins.append(lwf)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -926,9 +933,9 @@ class AGEM(SupervisedTemplate):
             plugins.append(agem)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -996,9 +1003,9 @@ class GEM(SupervisedTemplate):
             plugins.append(gem)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1077,9 +1084,9 @@ class EWC(SupervisedTemplate):
             plugins.append(ewc)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1161,13 +1168,13 @@ class SynapticIntelligence(SupervisedTemplate):
         # entire implementation of the strategy!
         plugins.append(SynapticIntelligencePlugin(si_lambda=si_lambda, eps=eps))
 
-        super(SynapticIntelligence, self).__init__(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
+        super().__init__(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
             device=device,
             plugins=plugins,
             evaluator=evaluator,
@@ -1240,9 +1247,9 @@ class CoPE(SupervisedTemplate):
         else:
             plugins.append(copep)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1308,9 +1315,9 @@ class LFL(SupervisedTemplate):
             plugins.append(lfl)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1385,9 +1392,9 @@ class MAS(SupervisedTemplate):
             plugins.append(mas)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1477,9 +1484,9 @@ class BiC(SupervisedTemplate):
             plugins.append(bic)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1552,9 +1559,9 @@ class MIR(SupervisedTemplate):
             plugins.append(mir)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1621,9 +1628,9 @@ class FromScratchTraining(SupervisedTemplate):
         else:
             plugins.append(fstp)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,

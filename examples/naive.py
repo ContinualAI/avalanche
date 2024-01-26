@@ -39,9 +39,9 @@ def main():
 
     # create strategy
     strategy = Naive(
-        model,
-        optimizer,
-        criterion,
+        model=model,
+        optimizer=optimizer,
+        criterion=criterion,
         train_epochs=1,
         device=device,
         train_mb_size=32,

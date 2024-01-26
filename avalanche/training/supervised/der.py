@@ -173,6 +173,7 @@ class DER(SupervisedTemplate):
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs
     ):
         """
         :param model: PyTorch model.
@@ -219,6 +220,7 @@ class DER(SupervisedTemplate):
             evaluator=evaluator,
             eval_every=eval_every,
             peval_mode=peval_mode,
+            **kwargs
         )
         if batch_size_mem is None:
             self.batch_size_mem = train_mb_size
@@ -328,3 +330,6 @@ class DER(SupervisedTemplate):
             self._after_update(**kwargs)
 
             self._after_training_iteration(**kwargs)
+
+
+__all__ = ["DER"]

@@ -1,8 +1,10 @@
 from typing import Callable, Sequence, Optional, TypeVar, Union
+import warnings
 import torch
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
+from torch import Tensor
 from ...benchmarks.scenarios.deprecated import DatasetExperience
 
 from avalanche.core import BasePlugin, BaseSGDPlugin, SupervisedPlugin
@@ -17,7 +19,7 @@ from avalanche.training.templates.strategy_mixin_protocol import (
 from .observation_type import *
 from .problem_type import *
 from .update_type import *
-from .base_sgd import BaseSGDTemplate
+from .base_sgd import BaseSGDTemplate, CriterionType
 
 
 TDatasetExperience = TypeVar("TDatasetExperience", bound=DatasetExperience)
@@ -25,12 +27,45 @@ TMBInput = TypeVar("TMBInput")
 TMBOutput = TypeVar("TMBOutput")
 
 
+def _merge_legacy_positional_arguments(args, kwargs):
+    # Manage the legacy positional constructor parameters
+    if len(args) > 0:
+        warnings.warn(
+            "Passing positional arguments to Strategy constructors is "
+            "deprecated. Please use keyword arguments instead."
+        )
+
+        # unroll args and apply it to kwargs
+        legacy_kwargs_order = [
+            "model",
+            "optimizer",
+            "criterion",
+            "train_mb_size",
+            "train_epochs",
+            "eval_mb_size",
+            "device",
+            "plugins",
+            "evaluator",
+            "eval_every",
+            "peval_mode",
+        ]
+
+        for i, arg in enumerate(args):
+            kwargs[legacy_kwargs_order[i]] = arg
+
+    for key, value in kwargs.items():
+        if value == "not_set":
+            raise ValueError(f"Parameter {key} is not set")
+
+    return kwargs
+
+
 class SupervisedTemplate(
     BatchObservation,
     SupervisedProblem,
     SGDUpdate,
-    SupervisedStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
     BaseSGDTemplate[TDatasetExperience, TMBInput, TMBOutput],
+    SupervisedStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
 ):
 
     """Base class for continual learning strategies.
@@ -79,11 +114,13 @@ class SupervisedTemplate(
 
     PLUGIN_CLASS = SupervisedPlugin
 
+    # TODO: remove default values of model and optimizer when legacy positional arguments are definitively removed
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        *args,
+        model: Module = "not_set",
+        optimizer: Optimizer = "not_set",
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
@@ -94,6 +131,7 @@ class SupervisedTemplate(
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs,
     ):
         """Init.
 
@@ -119,21 +157,21 @@ class SupervisedTemplate(
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__()  # type: ignore
-        BaseSGDTemplate.__init__(
-            self=self,
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
-            train_mb_size=train_mb_size,
-            train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size,
-            device=device,
-            plugins=plugins,
-            evaluator=evaluator,
-            eval_every=eval_every,
-            peval_mode=peval_mode,
-        )
+        kwargs["model"] = model
+        kwargs["optimizer"] = optimizer
+        kwargs["criterion"] = criterion
+        kwargs["train_mb_size"] = train_mb_size
+        kwargs["train_epochs"] = train_epochs
+        kwargs["eval_mb_size"] = eval_mb_size
+        kwargs["device"] = device
+        kwargs["plugins"] = plugins
+        kwargs["evaluator"] = evaluator
+        kwargs["eval_every"] = eval_every
+        kwargs["peval_mode"] = peval_mode
+
+        kwargs = _merge_legacy_positional_arguments(args, kwargs)
+
+        super().__init__(**kwargs)
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
         ###################################################################
@@ -201,10 +239,12 @@ class SupervisedMetaLearningTemplate(
 
     PLUGIN_CLASS = SupervisedPlugin
 
+    # TODO: remove default values of model and optimizer when legacy positional arguments are definitively removed
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
+        *args,
+        model: Module = "not_set",
+        optimizer: Optimizer = "not_set",
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -216,6 +256,7 @@ class SupervisedMetaLearningTemplate(
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs,
     ):
         """Init.
 
@@ -241,21 +282,21 @@ class SupervisedMetaLearningTemplate(
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__()  # type: ignore
-        BaseSGDTemplate.__init__(
-            self=self,
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
-            train_mb_size=train_mb_size,
-            train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size,
-            device=device,
-            plugins=plugins,
-            evaluator=evaluator,
-            eval_every=eval_every,
-            peval_mode=peval_mode,
-        )
+        kwargs["model"] = model
+        kwargs["optimizer"] = optimizer
+        kwargs["criterion"] = criterion
+        kwargs["train_mb_size"] = train_mb_size
+        kwargs["train_epochs"] = train_epochs
+        kwargs["eval_mb_size"] = eval_mb_size
+        kwargs["device"] = device
+        kwargs["plugins"] = plugins
+        kwargs["evaluator"] = evaluator
+        kwargs["eval_every"] = eval_every
+        kwargs["peval_mode"] = peval_mode
+
+        kwargs = _merge_legacy_positional_arguments(args, kwargs)
+
+        super().__init__(**kwargs)
         ###################################################################
         # State variables. These are updated during the train/eval loops. #
         ###################################################################

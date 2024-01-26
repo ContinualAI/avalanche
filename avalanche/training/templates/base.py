@@ -39,12 +39,14 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
 
     def __init__(
         self,
+        *,
         model: Module,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[BasePlugin]] = None,
+        **kwargs,
     ):
-        super().__init__()
         """Init."""
+        super().__init__(model=model, device=device, plugins=plugins, **kwargs)
 
         self.model: Module = model
         """ PyTorch model. """

@@ -44,6 +44,7 @@ class StreamingLDA(SupervisedTemplate):
             EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
+        **kwargs,
     ):
         """Init function for the SLDA model.
 
@@ -78,16 +79,17 @@ class StreamingLDA(SupervisedTemplate):
             ).eval()
 
         super(StreamingLDA, self).__init__(
-            slda_model,
-            None,  # type: ignore
-            criterion,
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
+            model=slda_model,
+            optimizer=None,  # type: ignore
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
             device=device,
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
+            **kwargs,
         )
 
         # SLDA parameters
