@@ -1,5 +1,6 @@
 from typing import Dict
 import numpy as np
+import quadprog
 import qpsolvers
 import torch
 from torch import Tensor
@@ -167,7 +168,7 @@ class GEMPlugin(SupervisedPlugin):
         q = np.dot(memories_np, gradient_np) * -1
         G = np.eye(t)
         h = np.zeros(t) + self.memory_strength
-        v = qpsolvers.solve_qp(P, q, G, h)[0]
+        v = quadprog.solve_qp(P, q, G, h)[0]
         v_star = np.dot(v, memories_np) + gradient_np
 
         return torch.from_numpy(v_star).float()
