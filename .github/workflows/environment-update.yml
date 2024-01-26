@@ -42,13 +42,13 @@ jobs:
       - uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: install opencv dependency libs
+      - name: install opencv and quadprog dependency libs
         env:
           DEBIAN_FRONTEND: "noninteractive"
           TZ: "Etc/UTC"
         run: |
           apt-get update &&
-          apt-get install ffmpeg libsm6 libxext6  -y
+          apt-get install ffmpeg libsm6 libxext6 build-essential -y
       - name: install conda environment
         run: |
           mamba create -n avalanche-env -y -v python=${{ matrix.python-version }} -c conda-forge &&
