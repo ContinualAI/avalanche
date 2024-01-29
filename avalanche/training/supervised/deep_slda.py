@@ -12,6 +12,7 @@ from avalanche.training.plugins.evaluation import (
 )
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
+from avalanche.training.templates.base_sgd import CriterionType
 
 
 class StreamingLDA(SupervisedTemplate):
@@ -28,11 +29,12 @@ class StreamingLDA(SupervisedTemplate):
 
     def __init__(
         self,
-        slda_model,
-        criterion,
-        input_size,
-        num_classes,
-        output_layer_name=None,
+        *args,
+        slda_model="not_set",
+        criterion: CriterionType = "not_set",
+        input_size="not_set",
+        num_classes: int = "not_set",
+        output_layer_name: Optional[str] = None,
         shrinkage_param=1e-4,
         streaming_update_sigma=True,
         train_epochs: int = 1,
@@ -48,7 +50,7 @@ class StreamingLDA(SupervisedTemplate):
     ):
         """Init function for the SLDA model.
 
-        :param slda_model: a PyTorch model
+        :param model: a PyTorch model
         :param criterion: loss function
         :param output_layer_name: if not None, wrap model to retrieve
             only the `output_layer_name` output. If None, the strategy
@@ -72,13 +74,24 @@ class StreamingLDA(SupervisedTemplate):
         if plugins is None:
             plugins = []
 
+        adapt_legacy_args = slda_model == "not_set"
+        slda_model = slda_model if slda_model != "not_set" else args[0]
         slda_model = slda_model.eval()
         if output_layer_name is not None:
             slda_model = FeatureExtractorBackbone(
                 slda_model.to(device), output_layer_name
             ).eval()
 
+        # Legacy positional arguments support (deprecation cycle)
+        if adapt_legacy_args:
+            args = list(args)
+            args[0] = slda_model
+
+        input_size = input_size if input_size != "not_set" else args[2]
+        num_classes = num_classes if num_classes != "not_set" else args[3]
+
         super(StreamingLDA, self).__init__(
+            legacy_positional_args=args,
             model=slda_model,
             optimizer=None,  # type: ignore
             criterion=criterion,

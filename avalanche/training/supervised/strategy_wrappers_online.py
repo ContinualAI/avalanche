@@ -21,6 +21,7 @@ from avalanche.training.templates import (
     SupervisedTemplate,
 )
 from avalanche._annotations import deprecated
+from avalanche.training.templates.base_sgd import CriterionType
 
 
 @deprecated(
@@ -43,9 +44,10 @@ class OnlineNaive(SupervisedTemplate):
 
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        *args,
+        model: Module = "not_set",
+        optimizer: Optimizer = "not_set",
+        criterion: CriterionType = CrossEntropyLoss(),
         train_passes: int = 1,
         train_mb_size: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -78,6 +80,7 @@ class OnlineNaive(SupervisedTemplate):
             learning experience.
         """
         super().__init__(
+            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

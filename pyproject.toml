@@ -60,3 +60,6 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "profiling.*"
 ignore_errors = true
+
+[tool.pytest.ini_options]
+addopts="-n 4"

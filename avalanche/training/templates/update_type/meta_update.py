@@ -5,6 +5,9 @@ from avalanche.training.utils import trigger_plugins
 
 
 class MetaUpdate(MetaLearningStrategyProtocol):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def training_epoch(self, **kwargs):
         """Training epoch.
 

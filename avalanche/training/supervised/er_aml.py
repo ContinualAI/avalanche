@@ -13,6 +13,7 @@ from avalanche.training.plugins.evaluation import (
 )
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.training.templates.base_sgd import CriterionType
 from avalanche.training.utils import cycle
 
 
@@ -27,10 +28,11 @@ class ER_AML(SupervisedTemplate):
 
     def __init__(
         self,
-        model: Module,
-        feature_extractor: Module,
-        optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        *args,
+        model: Module = "not_set",
+        feature_extractor: Module = "not_set",
+        optimizer: Optimizer = "not_set",
+        criterion: CriterionType = CrossEntropyLoss(),
         temp: float = 0.1,
         base_temp: float = 0.07,
         same_task_neg: bool = True,
@@ -75,6 +77,7 @@ class ER_AML(SupervisedTemplate):
             `eval_every` epochs or iterations (Default='epoch').
         """
         super().__init__(
+            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -95,7 +98,9 @@ class ER_AML(SupervisedTemplate):
         )
         self.replay_loader = None
         self.aml_criterion = AMLCriterion(
-            feature_extractor=feature_extractor,
+            feature_extractor=(
+                feature_extractor if feature_extractor != "not_set" else args[1]
+            ),
             temp=temp,
             base_temp=base_temp,
             same_task_neg=same_task_neg,

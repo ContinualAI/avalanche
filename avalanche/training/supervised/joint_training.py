@@ -28,6 +28,7 @@ from avalanche.training.templates.base import (
     _experiences_parameter_as_iterable,
     _group_experiences_by_stream,
 )
+from avalanche.training.templates.base_sgd import CriterionType
 
 
 class AlreadyTrainedError(Exception):
@@ -57,9 +58,10 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
 
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
-        criterion,
+        *args,
+        model: Module = "not_set",
+        optimizer: Optimizer = "not_set",
+        criterion: CriterionType = "not_set",
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
@@ -69,6 +71,7 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
             EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
+        **kwargs
     ):
         """Init.
 
@@ -88,6 +91,7 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience."""
         super().__init__(
+            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -98,6 +102,7 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
+            **kwargs
         )
         # JointTraining can be trained only once.
         self._is_fitted = False

@@ -8,6 +8,7 @@ from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.training.templates.base_sgd import CriterionType
 
 
 class Cumulative(SupervisedTemplate):
@@ -19,9 +20,10 @@ class Cumulative(SupervisedTemplate):
 
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
-        criterion,
+        *args,
+        model: Module = "not_set",
+        optimizer: Optimizer = "not_set",
+        criterion: CriterionType = "not_set",
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -53,6 +55,7 @@ class Cumulative(SupervisedTemplate):
         """
 
         super().__init__(
+            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

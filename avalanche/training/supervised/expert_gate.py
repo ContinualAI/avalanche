@@ -22,6 +22,7 @@ from avalanche.training.supervised import AETraining
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin, LwFPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.base_sgd import CriterionType
 
 
 class ExpertGateStrategy(SupervisedTemplate):
@@ -41,9 +42,10 @@ class ExpertGateStrategy(SupervisedTemplate):
 
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        *args,
+        model: Module = "not_set",
+        optimizer: Optimizer = "not_set",
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -85,10 +87,6 @@ class ExpertGateStrategy(SupervisedTemplate):
         expert during the forward method
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
-        # Check that the model has the correct architecture.
-        assert isinstance(
-            model, ExpertGate
-        ), "ExpertGateStrategy requires an ExpertGate model."
 
         expertgate = _ExpertGatePlugin()
 
@@ -102,7 +100,6 @@ class ExpertGateStrategy(SupervisedTemplate):
         self.ae_lr = ae_lr
         self.ae_latent_dim = ae_latent_dim
         self.rel_thresh = rel_thresh
-        model.temp = temp
 
         warnings.warn(
             "This strategy is currently in the alpha stage and we are still "
@@ -112,6 +109,7 @@ class ExpertGateStrategy(SupervisedTemplate):
         )
 
         super().__init__(
+            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -124,6 +122,12 @@ class ExpertGateStrategy(SupervisedTemplate):
             eval_every=eval_every,
             **base_kwargs
         )
+
+        # Check that the model has the correct architecture.
+        assert isinstance(
+            self.model, ExpertGate
+        ), "ExpertGateStrategy requires an ExpertGate model."
+        self.model.temp = temp
 
 
 class _ExpertGatePlugin(SupervisedPlugin):

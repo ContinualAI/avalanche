@@ -118,9 +118,9 @@ class PluginTests(unittest.TestCase):
 
         plug = MockPlugin()
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=100,
             train_epochs=1,
             eval_mb_size=100,

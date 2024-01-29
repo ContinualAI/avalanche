@@ -28,12 +28,13 @@ class ICaRL(SupervisedTemplate):
 
     def __init__(
         self,
-        feature_extractor: Module,
-        classifier: Module,
-        optimizer: Optimizer,
-        memory_size,
-        buffer_transform,
-        fixed_memory,
+        *args,
+        feature_extractor: Module = "not_set",
+        classifier: Module = "not_set",
+        optimizer: Optimizer = "not_set",
+        memory_size="not_set",
+        buffer_transform="not_set",
+        fixed_memory="not_set",
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -72,13 +73,17 @@ class ICaRL(SupervisedTemplate):
             learning experience.
         """
         model = TrainEvalModel(
-            feature_extractor,
-            train_classifier=classifier,
+            feature_extractor if feature_extractor != "not_set" else args[0],
+            train_classifier=classifier if classifier != "not_set" else args[1],
             eval_classifier=NCMClassifier(normalize=True),
         )
 
         criterion = ICaRLLossPlugin()  # iCaRL requires this specific loss (#966)
-        icarl = _ICaRLPlugin(memory_size, buffer_transform, fixed_memory)
+        icarl = _ICaRLPlugin(
+            memory_size if memory_size != "not_set" else args[3],
+            buffer_transform if buffer_transform != "not_set" else args[4],
+            fixed_memory if fixed_memory != "not_set" else args[5],
+        )
 
         if plugins is None:
             plugins = [icarl]
@@ -89,8 +94,9 @@ class ICaRL(SupervisedTemplate):
             plugins += [criterion]
 
         super().__init__(
-            model,
-            optimizer,
+            legacy_positional_args=args,
+            model=model,
+            optimizer=optimizer,
             criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,

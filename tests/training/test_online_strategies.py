@@ -9,6 +9,9 @@ from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.benchmarks.scenarios.online import OnlineCLScenario
 from avalanche.training import OnlineNaive
+from avalanche.training.templates.common_templates import (
+    PositionalArgumentDeprecatedWarning,
+)
 from tests.unit_tests_utils import get_fast_benchmark
 from avalanche.training.plugins.evaluation import default_evaluator
 
@@ -46,24 +49,25 @@ class StrategyTest(unittest.TestCase):
 
         # With task boundaries
         model, optimizer, criterion, _ = self.init_sit()
-        strategy = OnlineNaive(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size=1,
-            device=self.device,
-            eval_mb_size=50,
-            evaluator=default_evaluator,
-        )
+        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+            strategy = OnlineNaive(
+                model,
+                optimizer,
+                criterion=criterion,
+                train_mb_size=1,
+                device=self.device,
+                eval_mb_size=50,
+                evaluator=default_evaluator,
+            )
         ocl_benchmark = OnlineCLScenario(benchmark_streams, access_task_boundaries=True)
         self.run_strategy_boundaries(ocl_benchmark, strategy)
 
         # Without task boundaries
         model, optimizer, criterion, my_nc_benchmark = self.init_sit()
         strategy = OnlineNaive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=1,
             device=self.device,
             eval_mb_size=50,

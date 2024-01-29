@@ -17,6 +17,7 @@ from avalanche.training.plugins import (
     CWRStarPlugin,
 )
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.training.templates.base_sgd import CriterionType
 from avalanche.training.utils import (
     replace_bn_with_brn,
     get_last_fc_layer,
@@ -42,7 +43,8 @@ class AR1(SupervisedTemplate):
 
     def __init__(
         self,
-        criterion=None,
+        *args,
+        criterion: CriterionType = None,
         lr: float = 0.001,
         inc_lr: float = 5e-5,
         momentum=0.9,
@@ -167,6 +169,7 @@ class AR1(SupervisedTemplate):
         self.replay_mb_size = 0
 
         super().__init__(
+            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

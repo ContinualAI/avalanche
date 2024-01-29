@@ -13,6 +13,7 @@ from avalanche.training.plugins.evaluation import (
 )
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.training.templates.base_sgd import CriterionType
 from avalanche.training.utils import cycle
 
 
@@ -32,9 +33,10 @@ class ER_ACE(SupervisedTemplate):
 
     def __init__(
         self,
-        model: Module,
-        optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        *args,
+        model: Module = "not_set",
+        optimizer: Optimizer = "not_set",
+        criterion: CriterionType = CrossEntropyLoss(),
         mem_size: int = 200,
         batch_size_mem: int = 10,
         train_mb_size: int = 1,
@@ -72,6 +74,7 @@ class ER_ACE(SupervisedTemplate):
             `eval_every` epochs or iterations (Default='epoch').
         """
         super().__init__(
+            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
