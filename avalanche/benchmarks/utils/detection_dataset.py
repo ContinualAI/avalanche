@@ -151,8 +151,7 @@ def make_detection_dataset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> SupervisedDetectionDataset:
-    ...
+) -> SupervisedDetectionDataset: ...
 
 
 @overload
@@ -166,8 +165,7 @@ def make_detection_dataset(
     task_labels: Union[int, Sequence[int]],
     targets: Sequence[TTargetType],
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> SupervisedDetectionDataset:
-    ...
+) -> SupervisedDetectionDataset: ...
 
 
 @overload
@@ -181,8 +179,7 @@ def make_detection_dataset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> DetectionDataset:
-    ...
+) -> DetectionDataset: ...
 
 
 def make_detection_dataset(
@@ -373,8 +370,7 @@ def detection_subset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> SupervisedDetectionDataset:
-    ...
+) -> SupervisedDetectionDataset: ...
 
 
 @overload
@@ -390,8 +386,7 @@ def detection_subset(
     task_labels: Union[int, Sequence[int]],
     targets: Sequence[TTargetType],
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> SupervisedDetectionDataset:
-    ...
+) -> SupervisedDetectionDataset: ...
 
 
 @overload
@@ -407,8 +402,7 @@ def detection_subset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> DetectionDataset:
-    ...
+) -> DetectionDataset: ...
 
 
 def detection_subset(
@@ -595,8 +589,7 @@ def concat_detection_datasets(
         Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
     ] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> SupervisedDetectionDataset:
-    ...
+) -> SupervisedDetectionDataset: ...
 
 
 @overload
@@ -610,8 +603,7 @@ def concat_detection_datasets(
     task_labels: Union[int, Sequence[int], Sequence[Sequence[int]]],
     targets: Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]],
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> SupervisedDetectionDataset:
-    ...
+) -> SupervisedDetectionDataset: ...
 
 
 @overload
@@ -627,8 +619,7 @@ def concat_detection_datasets(
         Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
     ] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> DetectionDataset:
-    ...
+) -> DetectionDataset: ...
 
 
 def concat_detection_datasets(

@@ -5,6 +5,7 @@ CL strategies. These are provided either as standalone strategies in
 :py:mod:`training.supervised` or as plugins (:py:mod:`training.plugins`) that
 can be easily combined with your own strategy.
 """
+
 from .regularization import *
 from .supervised import *
 from .storage_policy import *

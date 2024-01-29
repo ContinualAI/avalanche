@@ -2,6 +2,7 @@
 
 This module contains
 """
+
 from .joint_training import *
 from .ar1 import AR1
 from .cumulative import Cumulative

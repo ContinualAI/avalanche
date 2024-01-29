@@ -1,9 +1,3 @@
-import warnings
-from collections import defaultdict
-from typing import List, TypeVar
-
-from torch import Tensor
-
 from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.templates.strategy_mixin_protocol import SGDStrategyProtocol

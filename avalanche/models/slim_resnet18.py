@@ -1,4 +1,5 @@
 """This is the slimmed ResNet as used by Lopez et al. in the GEM paper."""
+
 import torch.nn as nn
 from torch.nn.functional import relu, avg_pool2d
 from avalanche.models import MultiHeadClassifier, MultiTaskModule, DynamicModule

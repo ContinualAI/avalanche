@@ -2,6 +2,7 @@
     Profiling script to measure the performance of the merging process
     of AvalancheDatasets
 """
+
 from unittest.mock import Mock
 
 import time

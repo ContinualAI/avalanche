@@ -185,9 +185,11 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # Clip grad norms
         grads = [
-            torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
-            if g is not None
-            else g
+            (
+                torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
+                if g is not None
+                else g
+            )
             for g in grads
         ]
 

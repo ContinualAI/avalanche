@@ -61,9 +61,11 @@ class AGEMPlugin(SupervisedPlugin):
             loss.backward()
             # gradient can be None for some head on multi-headed models
             reference_gradients_list = [
-                p.grad.view(-1)
-                if p.grad is not None
-                else torch.zeros(p.numel(), device=strategy.device)
+                (
+                    p.grad.view(-1)
+                    if p.grad is not None
+                    else torch.zeros(p.numel(), device=strategy.device)
+                )
                 for n, p in strategy.model.named_parameters()
             ]
             self.reference_gradients = torch.cat(reference_gradients_list)
@@ -76,9 +78,11 @@ class AGEMPlugin(SupervisedPlugin):
         """
         if len(self.buffers) > 0:
             current_gradients_list = [
-                p.grad.view(-1)
-                if p.grad is not None
-                else torch.zeros(p.numel(), device=strategy.device)
+                (
+                    p.grad.view(-1)
+                    if p.grad is not None
+                    else torch.zeros(p.numel(), device=strategy.device)
+                )
                 for n, p in strategy.model.named_parameters()
             ]
             current_gradients = torch.cat(current_gradients_list)

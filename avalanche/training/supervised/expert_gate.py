@@ -236,9 +236,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
             # Iterate through all autoencoders to get error values
             for autoencoder_id in strategy.model.autoencoder_dict:
-                error_dict[
-                    str(autoencoder_id)
-                ] = self._get_average_reconstruction_error(strategy, autoencoder_id)
+                error_dict[str(autoencoder_id)] = (
+                    self._get_average_reconstruction_error(strategy, autoencoder_id)
+                )
 
             # Send error dictionary to get most relevant autoencoder
             relatedness_dict = self._task_relatedness(strategy, error_dict, task_label)

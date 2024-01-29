@@ -175,8 +175,7 @@ def _make_taskaware_classification_dataset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareSupervisedClassificationDataset:
-    ...
+) -> TaskAwareSupervisedClassificationDataset: ...
 
 
 @overload
@@ -190,8 +189,7 @@ def _make_taskaware_classification_dataset(
     task_labels: Union[int, Sequence[int]],
     targets: Sequence[TTargetType],
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareSupervisedClassificationDataset:
-    ...
+) -> TaskAwareSupervisedClassificationDataset: ...
 
 
 @overload
@@ -205,8 +203,7 @@ def _make_taskaware_classification_dataset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareClassificationDataset:
-    ...
+) -> TaskAwareClassificationDataset: ...
 
 
 def _make_taskaware_classification_dataset(
@@ -386,8 +383,7 @@ def _taskaware_classification_subset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareSupervisedClassificationDataset:
-    ...
+) -> TaskAwareSupervisedClassificationDataset: ...
 
 
 @overload
@@ -403,8 +399,7 @@ def _taskaware_classification_subset(
     task_labels: Union[int, Sequence[int]],
     targets: Sequence[TTargetType],
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareSupervisedClassificationDataset:
-    ...
+) -> TaskAwareSupervisedClassificationDataset: ...
 
 
 @overload
@@ -420,8 +415,7 @@ def _taskaware_classification_subset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Sequence[TTargetType]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareClassificationDataset:
-    ...
+) -> TaskAwareClassificationDataset: ...
 
 
 def _taskaware_classification_subset(
@@ -619,8 +613,7 @@ def _make_taskaware_tensor_classification_dataset(
     task_labels: Union[int, Sequence[int]],
     targets: Union[Sequence[TTargetType], int],
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareSupervisedClassificationDataset:
-    ...
+) -> TaskAwareSupervisedClassificationDataset: ...
 
 
 @overload
@@ -633,8 +626,9 @@ def _make_taskaware_tensor_classification_dataset(
     task_labels: Optional[Union[int, Sequence[int]]] = None,
     targets: Optional[Union[Sequence[TTargetType], int]] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> Union[TaskAwareClassificationDataset, TaskAwareSupervisedClassificationDataset]:
-    ...
+) -> Union[
+    TaskAwareClassificationDataset, TaskAwareSupervisedClassificationDataset
+]: ...
 
 
 def _make_taskaware_tensor_classification_dataset(
@@ -759,8 +753,7 @@ def _concat_taskaware_classification_datasets(
         Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
     ] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareSupervisedClassificationDataset:
-    ...
+) -> TaskAwareSupervisedClassificationDataset: ...
 
 
 @overload
@@ -774,8 +767,7 @@ def _concat_taskaware_classification_datasets(
     task_labels: Union[int, Sequence[int], Sequence[Sequence[int]]],
     targets: Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]],
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareSupervisedClassificationDataset:
-    ...
+) -> TaskAwareSupervisedClassificationDataset: ...
 
 
 @overload
@@ -791,8 +783,7 @@ def _concat_taskaware_classification_datasets(
         Union[Sequence[TTargetType], Sequence[Sequence[TTargetType]]]
     ] = None,
     collate_fn: Optional[Callable[[List], Any]] = None
-) -> TaskAwareClassificationDataset:
-    ...
+) -> TaskAwareClassificationDataset: ...
 
 
 def _concat_taskaware_classification_datasets(
