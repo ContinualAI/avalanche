@@ -1,3 +1,4 @@
+import sys
 from typing import Callable, Sequence, Optional, TypeVar, Union
 import warnings
 import torch
@@ -64,10 +65,9 @@ class SupervisedTemplate(
     BatchObservation,
     SupervisedProblem,
     SGDUpdate,
-    BaseSGDTemplate[TDatasetExperience, TMBInput, TMBOutput],
     SupervisedStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
+    BaseSGDTemplate[TDatasetExperience, TMBInput, TMBOutput],
 ):
-
     """Base class for continual learning strategies.
 
     SupervisedTemplate is the super class of all supervised task-based
@@ -171,20 +171,11 @@ class SupervisedTemplate(
 
         kwargs = _merge_legacy_positional_arguments(args, kwargs)
 
-        super().__init__(**kwargs)
-        ###################################################################
-        # State variables. These are updated during the train/eval loops. #
-        ###################################################################
-
-        # self.adapted_dataset = None
-        # """ Data used to train. It may be modified by plugins. Plugins can
-        # append data to it (e.g. for replay).
-        #
-        # .. note::
-        #
-        #    This dataset may contain samples from different experiences. If you
-        #    want the original data for the current experience
-        #    use :attr:`.BaseTemplate.experience`.
+        if sys.version_info >= (3, 11):
+            super().__init__(**kwargs)
+        else:
+            super().__init__()
+            BaseSGDTemplate.__init__(self=self, **kwargs)
 
 
 class SupervisedMetaLearningTemplate(
@@ -296,20 +287,11 @@ class SupervisedMetaLearningTemplate(
 
         kwargs = _merge_legacy_positional_arguments(args, kwargs)
 
-        super().__init__(**kwargs)
-        ###################################################################
-        # State variables. These are updated during the train/eval loops. #
-        ###################################################################
-
-        # self.adapted_dataset = None
-        # """ Data used to train. It may be modified by plugins. Plugins can
-        # append data to it (e.g. for replay).
-        #
-        # .. note::
-        #
-        #    This dataset may contain samples from different experiences. If you
-        #    want the original data for the current experience
-        #    use :attr:`.BaseTemplate.experience`.
+        if sys.version_info >= (3, 11):
+            super().__init__(**kwargs)
+        else:
+            super().__init__()
+            BaseSGDTemplate.__init__(self=self, **kwargs)
 
 
 __all__ = [

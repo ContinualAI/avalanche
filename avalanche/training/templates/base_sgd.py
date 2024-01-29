@@ -1,3 +1,4 @@
+import sys
 from typing import Any, Callable, Iterable, Sequence, Optional, TypeVar, Union
 from typing_extensions import TypeAlias
 from packaging.version import parse
@@ -33,8 +34,8 @@ CriterionType: TypeAlias = Union[Module, Callable[[Tensor, Tensor], Tensor]]
 
 
 class BaseSGDTemplate(
-    BaseTemplate[TDatasetExperience],
     SGDStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
+    BaseTemplate[TDatasetExperience],
 ):
     """Base SGD class for continual learning skeletons.
 
@@ -92,7 +93,6 @@ class BaseSGDTemplate(
             `eval_every` epochs or iterations (Default='epoch').
         """
 
-        # Call super with all args
         super().__init__(
             model=model,
             optimizer=optimizer,
@@ -107,6 +107,28 @@ class BaseSGDTemplate(
             peval_mode=peval_mode,
             **kwargs
         )
+
+        # Call super with all args
+        if sys.version_info >= (3, 11):
+            super().__init__(
+                model=model,
+                optimizer=optimizer,
+                criterion=criterion,
+                train_mb_size=train_mb_size,
+                train_epochs=train_epochs,
+                eval_mb_size=eval_mb_size,
+                device=device,
+                plugins=plugins,
+                evaluator=evaluator,
+                eval_every=eval_every,
+                peval_mode=peval_mode,
+                **kwargs
+            )
+        else:
+            super().__init__()  # type: ignore
+            BaseTemplate.__init__(
+                self=self, model=model, device=device, plugins=plugins
+            )
 
         self.optimizer: Optimizer = optimizer
         """ PyTorch optimizer. """
