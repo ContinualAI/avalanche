@@ -9,7 +9,7 @@ from avalanche.logging import TextLogger
 from avalanche.models import SimpleMLP
 from avalanche.benchmarks.scenarios.online import OnlineCLScenario
 from avalanche.training import OnlineNaive
-from avalanche.training.templates.common_templates import (
+from avalanche.training.templates.base import (
     PositionalArgumentDeprecatedWarning,
 )
 from tests.unit_tests_utils import get_fast_benchmark

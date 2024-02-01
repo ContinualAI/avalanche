@@ -42,9 +42,9 @@ class ExpertGateStrategy(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -109,7 +109,6 @@ class ExpertGateStrategy(SupervisedTemplate):
         )
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

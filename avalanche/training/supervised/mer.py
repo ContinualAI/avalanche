@@ -52,9 +52,9 @@ class MERBuffer:
 class MER(SupervisedMetaLearningTemplate):
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         mem_size=200,
         batch_size_mem=10,
@@ -88,7 +88,6 @@ class MER(SupervisedMetaLearningTemplate):
 
         """
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

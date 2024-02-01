@@ -43,7 +43,7 @@ class AR1(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
+        *,
         criterion: CriterionType = None,
         lr: float = 0.001,
         inc_lr: float = 5e-5,
@@ -169,7 +169,6 @@ class AR1(SupervisedTemplate):
         self.replay_mb_size = 0
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

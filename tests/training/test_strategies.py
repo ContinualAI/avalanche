@@ -60,7 +60,7 @@ from avalanche.training.supervised.joint_training import AlreadyTrainedError
 from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.templates.base import _group_experiences_by_stream
-from avalanche.training.templates.common_templates import (
+from avalanche.training.templates.base import (
     PositionalArgumentDeprecatedWarning,
 )
 from avalanche.training.utils import get_last_fc_layer

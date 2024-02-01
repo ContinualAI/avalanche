@@ -3,6 +3,7 @@ from typing import Callable, Optional, Sequence, Union
 
 import os
 import torch
+from torch.nn import Module
 
 from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.templates import SupervisedTemplate
@@ -29,11 +30,11 @@ class StreamingLDA(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        slda_model="not_set",
-        criterion: CriterionType = "not_set",
-        input_size="not_set",
-        num_classes: int = "not_set",
+        *,
+        slda_model: Module,
+        criterion: CriterionType,
+        input_size: int,
+        num_classes: int,
         output_layer_name: Optional[str] = None,
         shrinkage_param=1e-4,
         streaming_update_sigma=True,
@@ -74,24 +75,13 @@ class StreamingLDA(SupervisedTemplate):
         if plugins is None:
             plugins = []
 
-        adapt_legacy_args = slda_model == "not_set"
-        slda_model = slda_model if slda_model != "not_set" else args[0]
         slda_model = slda_model.eval()
         if output_layer_name is not None:
             slda_model = FeatureExtractorBackbone(
                 slda_model.to(device), output_layer_name
             ).eval()
 
-        # Legacy positional arguments support (deprecation cycle)
-        if adapt_legacy_args:
-            args = list(args)
-            args[0] = slda_model
-
-        input_size = input_size if input_size != "not_set" else args[2]
-        num_classes = num_classes if num_classes != "not_set" else args[3]
-
         super(StreamingLDA, self).__init__(
-            legacy_positional_args=args,
             model=slda_model,
             optimizer=None,  # type: ignore
             criterion=criterion,

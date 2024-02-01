@@ -66,9 +66,9 @@ class Naive(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -104,7 +104,6 @@ class Naive(SupervisedTemplate):
         """
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -127,9 +126,9 @@ class PNNStrategy(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -164,7 +163,6 @@ class PNNStrategy(SupervisedTemplate):
         """
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -203,11 +201,11 @@ class PackNet(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Union[PackNetModule, PackNetModel] = "not_set",
-        optimizer: Optimizer = "not_set",
-        post_prune_epochs: int = "not_set",
-        prune_proportion: float = "not_set",
+        *,
+        model: Union[PackNetModule, PackNetModel],
+        optimizer: Optimizer,
+        post_prune_epochs: int,
+        prune_proportion: float,
         criterion=CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -250,7 +248,6 @@ class PackNet(SupervisedTemplate):
         """
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -273,10 +270,10 @@ class CWRStar(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         cwr_layer_name: str,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -313,7 +310,7 @@ class CWRStar(SupervisedTemplate):
         """
 
         cwsp = CWRStarPlugin(
-            model if model != "not_set" else args[0],
+            model,
             cwr_layer_name,
             freeze_remaining_model=True,
         )
@@ -322,7 +319,6 @@ class CWRStar(SupervisedTemplate):
         else:
             plugins.append(cwsp)
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -346,10 +342,10 @@ class Replay(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -390,7 +386,6 @@ class Replay(SupervisedTemplate):
         else:
             plugins.append(rp)
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -426,9 +421,9 @@ class GenerativeReplay(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -523,7 +518,6 @@ class GenerativeReplay(SupervisedTemplate):
             plugins.append(rp)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -557,7 +551,7 @@ class AETraining(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
+        *,
         model: Module,
         optimizer: Optimizer,
         device,
@@ -593,7 +587,6 @@ class AETraining(SupervisedTemplate):
         """
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -631,9 +624,9 @@ class VAETraining(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion=VAE_loss,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -669,7 +662,6 @@ class VAETraining(SupervisedTemplate):
         """
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -698,10 +690,10 @@ class GSS_greedy(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         mem_size: int = 200,
         mem_strength=1,
         input_size=[],
@@ -769,10 +761,10 @@ class GDumb(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -814,7 +806,6 @@ class GDumb(SupervisedTemplate):
             plugins.append(gdumb)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -837,10 +828,10 @@ class LwF(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         alpha: Union[float, Sequence[float]],
         temperature: float,
         train_mb_size: int = 1,
@@ -885,7 +876,6 @@ class LwF(SupervisedTemplate):
             plugins.append(lwf)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -909,10 +899,10 @@ class AGEM(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         patterns_per_exp: int,
         sample_size: int = 64,
         train_mb_size: int = 1,
@@ -957,7 +947,6 @@ class AGEM(SupervisedTemplate):
             plugins.append(agem)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -981,10 +970,10 @@ class GEM(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         patterns_per_exp: int,
         memory_strength: float = 0.5,
         train_mb_size: int = 1,
@@ -1029,7 +1018,6 @@ class GEM(SupervisedTemplate):
             plugins.append(gem)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -1053,10 +1041,10 @@ class EWC(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         ewc_lambda: float,
         mode: str = "separate",
         decay_factor: Optional[float] = None,
@@ -1112,7 +1100,6 @@ class EWC(SupervisedTemplate):
             plugins.append(ewc)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -1145,10 +1132,10 @@ class SynapticIntelligence(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         si_lambda: Union[float, Sequence[float]],
         eps: float = 0.0000001,
         train_mb_size: int = 1,
@@ -1199,7 +1186,6 @@ class SynapticIntelligence(SupervisedTemplate):
         plugins.append(SynapticIntelligencePlugin(si_lambda=si_lambda, eps=eps))
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -1223,10 +1209,10 @@ class CoPE(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         mem_size: int = 200,
         n_classes: int = 10,
         p_size: int = 100,
@@ -1279,7 +1265,6 @@ class CoPE(SupervisedTemplate):
         else:
             plugins.append(copep)
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -1304,10 +1289,10 @@ class LFL(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         lambda_e: Union[float, Sequence[float]],
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -1349,7 +1334,6 @@ class LFL(SupervisedTemplate):
             plugins.append(lfl)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -1373,10 +1357,10 @@ class MAS(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         lambda_reg: float = 1.0,
         alpha: float = 0.5,
         verbose: bool = False,
@@ -1428,7 +1412,6 @@ class MAS(SupervisedTemplate):
             plugins.append(mas)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -1452,10 +1435,10 @@ class BiC(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         mem_size: int = 200,
         val_percentage: float = 0.1,
         T: int = 2,
@@ -1522,7 +1505,6 @@ class BiC(SupervisedTemplate):
             plugins.append(bic)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -1544,12 +1526,12 @@ class MIR(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
-        mem_size: int = "not_set",
-        subsample: int = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
+        mem_size: int,
+        subsample: int,
         batch_size_mem: int = 1,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -1589,8 +1571,8 @@ class MIR(SupervisedTemplate):
 
         # Instantiate plugin
         mir = MIRPlugin(
-            mem_size=mem_size if mem_size != "not_set" else args[3],
-            subsample=subsample if subsample != "not_set" else args[5],
+            mem_size=mem_size,
+            subsample=subsample,
             batch_size_mem=batch_size_mem,
         )
 
@@ -1601,7 +1583,6 @@ class MIR(SupervisedTemplate):
             plugins.append(mir)
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -1627,10 +1608,10 @@ class FromScratchTraining(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         reset_optimizer: bool = True,
         train_mb_size: int = 1,
         train_epochs: int = 1,

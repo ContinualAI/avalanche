@@ -47,9 +47,9 @@ class FeatureReplay(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: nn.Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: nn.Module,
+        optimizer: Optimizer,
         criterion: CriterionType = MaskedCrossEntropy(),
         last_layer_name: str = "classifier",
         mem_size: int = 200,
@@ -67,7 +67,6 @@ class FeatureReplay(SupervisedTemplate):
         **kwargs
     ):
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

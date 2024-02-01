@@ -1,9 +1,14 @@
-from avalanche.training.templates.strategy_mixin_protocol import SGDStrategyProtocol
+from avalanche.training.templates.strategy_mixin_protocol import (
+    SGDStrategyProtocol,
+    TSGDExperienceType,
+    TMBInput,
+    TMBOutput,
+)
 
 
-class SGDUpdate(SGDStrategyProtocol):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class SGDUpdate(SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutput]):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def training_epoch(self, **kwargs):
         """Training epoch.

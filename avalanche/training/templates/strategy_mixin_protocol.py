@@ -14,8 +14,8 @@ from avalanche.core import BasePlugin
 
 TExperienceType = TypeVar("TExperienceType", bound=CLExperience)
 TSGDExperienceType = TypeVar("TSGDExperienceType", bound=DatasetExperience)
-TMBinput = TypeVar("TMBinput")
-TMBoutput = TypeVar("TMBoutput")
+TMBInput = TypeVar("TMBInput")
+TMBOutput = TypeVar("TMBOutput")
 
 
 class BaseStrategyProtocol(Protocol[TExperienceType]):
@@ -34,17 +34,17 @@ class BaseStrategyProtocol(Protocol[TExperienceType]):
 
 class SGDStrategyProtocol(
     BaseStrategyProtocol[TSGDExperienceType],
-    Protocol[TSGDExperienceType, TMBinput, TMBoutput],
+    Protocol[TSGDExperienceType, TMBInput, TMBOutput],
 ):
     """
     A protocol for strategies to be used for typing mixin classes.
     """
 
-    mbatch: Optional[TMBinput]
+    mbatch: Optional[TMBInput]
 
-    mb_output: Optional[TMBoutput]
+    mb_output: Optional[TMBOutput]
 
-    dataloader: Iterable[TMBinput]
+    dataloader: Iterable[TMBInput]
 
     _stop_training: bool
 
@@ -54,7 +54,7 @@ class SGDStrategyProtocol(
 
     _criterion: Module
 
-    def forward(self) -> TMBoutput: ...
+    def forward(self) -> TMBOutput: ...
 
     def criterion(self) -> Tensor: ...
 
@@ -88,8 +88,8 @@ class SGDStrategyProtocol(
 
 
 class SupervisedStrategyProtocol(
-    SGDStrategyProtocol[TSGDExperienceType, TMBinput, TMBoutput],
-    Protocol[TSGDExperienceType, TMBinput, TMBoutput],
+    SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutput],
+    Protocol[TSGDExperienceType, TMBInput, TMBOutput],
 ):
     mb_x: Tensor
 
@@ -99,8 +99,8 @@ class SupervisedStrategyProtocol(
 
 
 class MetaLearningStrategyProtocol(
-    SGDStrategyProtocol[TSGDExperienceType, TMBinput, TMBoutput],
-    Protocol[TSGDExperienceType, TMBinput, TMBoutput],
+    SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutput],
+    Protocol[TSGDExperienceType, TMBInput, TMBOutput],
 ):
     def _before_inner_updates(self, **kwargs): ...
 

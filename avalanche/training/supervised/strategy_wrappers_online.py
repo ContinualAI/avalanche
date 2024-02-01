@@ -44,9 +44,9 @@ class OnlineNaive(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         train_passes: int = 1,
         train_mb_size: int = 1,
@@ -80,7 +80,6 @@ class OnlineNaive(SupervisedTemplate):
             learning experience.
         """
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

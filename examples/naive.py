@@ -42,7 +42,7 @@ def main():
         model,
         optimizer,
         criterion,
-        1,
+        train_epochs=1,
         device=device,
         train_mb_size=32,
         evaluator=eval_plugin,

@@ -1,15 +1,20 @@
 from avalanche.models import avalanche_forward
 from avalanche.training.templates.strategy_mixin_protocol import (
     SupervisedStrategyProtocol,
+    TSGDExperienceType,
+    TMBInput,
+    TMBOutput,
 )
 
 
 # Types are perfectly ok for MyPy
 # Also confirmed here: https://stackoverflow.com/a/70907644
 # PyLance just does not understand it
-class SupervisedProblem(SupervisedStrategyProtocol):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class SupervisedProblem(
+    SupervisedStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutput]
+):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     @property
     def mb_x(self):

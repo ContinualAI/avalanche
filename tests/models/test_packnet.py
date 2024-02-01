@@ -1,7 +1,7 @@
 import unittest
 from avalanche.models.packnet import PackNetModel, packnet_simple_mlp
 from avalanche.training.supervised.strategy_wrappers import PackNet
-from avalanche.training.templates.common_templates import (
+from avalanche.training.templates.base import (
     PositionalArgumentDeprecatedWarning,
 )
 from torch.optim import SGD, Adam

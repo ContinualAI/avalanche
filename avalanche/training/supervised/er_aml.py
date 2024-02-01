@@ -28,10 +28,10 @@ class ER_AML(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        feature_extractor: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        feature_extractor: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         temp: float = 0.1,
         base_temp: float = 0.07,
@@ -77,7 +77,6 @@ class ER_AML(SupervisedTemplate):
             `eval_every` epochs or iterations (Default='epoch').
         """
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
@@ -98,9 +97,7 @@ class ER_AML(SupervisedTemplate):
         )
         self.replay_loader = None
         self.aml_criterion = AMLCriterion(
-            feature_extractor=(
-                feature_extractor if feature_extractor != "not_set" else args[1]
-            ),
+            feature_extractor=feature_extractor,
             temp=temp,
             base_temp=base_temp,
             same_task_neg=same_task_neg,

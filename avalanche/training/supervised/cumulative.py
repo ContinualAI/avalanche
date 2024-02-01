@@ -20,10 +20,10 @@ class Cumulative(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
-        criterion: CriterionType = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -55,7 +55,6 @@ class Cumulative(SupervisedTemplate):
         """
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

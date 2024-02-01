@@ -31,8 +31,8 @@ class LearningToPrompt(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model_name: str = "not_set",
+        *,
+        model_name: str,
         criterion: nn.Module = nn.CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -99,7 +99,7 @@ class LearningToPrompt(SupervisedTemplate):
         self.lr = lr
         self.sim_coefficient = sim_coefficient
         model = create_model(
-            model_name=model_name if model_name != "not_set" else args[0],
+            model_name=model_name,
             prompt_pool=prompt_pool,
             pool_size=pool_size,
             prompt_length=prompt_length,
@@ -131,7 +131,6 @@ class LearningToPrompt(SupervisedTemplate):
         )
 
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

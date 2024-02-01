@@ -1,12 +1,15 @@
 from avalanche.training.templates.strategy_mixin_protocol import (
     MetaLearningStrategyProtocol,
+    TSGDExperienceType,
+    TMBInput,
+    TMBOutput,
 )
 from avalanche.training.utils import trigger_plugins
 
 
-class MetaUpdate(MetaLearningStrategyProtocol):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class MetaUpdate(MetaLearningStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutput]):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def training_epoch(self, **kwargs):
         """Training epoch.

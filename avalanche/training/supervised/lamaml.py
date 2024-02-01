@@ -27,9 +27,9 @@ from avalanche.models.utils import avalanche_forward
 class LaMAML(SupervisedMetaLearningTemplate):
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         n_inner_updates: int = 5,
         second_order: bool = True,

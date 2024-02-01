@@ -157,9 +157,9 @@ class DER(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         mem_size: int = 200,
         batch_size_mem: Optional[int] = None,
@@ -211,7 +211,6 @@ class DER(SupervisedTemplate):
             `eval_every` experience or iterations (Default='experience').
         """
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,

@@ -33,9 +33,9 @@ class ER_ACE(SupervisedTemplate):
 
     def __init__(
         self,
-        *args,
-        model: Module = "not_set",
-        optimizer: Optimizer = "not_set",
+        *,
+        model: Module,
+        optimizer: Optimizer,
         criterion: CriterionType = CrossEntropyLoss(),
         mem_size: int = 200,
         batch_size_mem: int = 10,
@@ -74,7 +74,6 @@ class ER_ACE(SupervisedTemplate):
             `eval_every` epochs or iterations (Default='epoch').
         """
         super().__init__(
-            legacy_positional_args=args,
             model=model,
             optimizer=optimizer,
             criterion=criterion,
