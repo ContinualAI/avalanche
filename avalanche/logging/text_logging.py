@@ -265,7 +265,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         if not isinstance(file_def, str):
             # Custom object (managed by pickle or dill library)
             return file_def
-        
+
         if file_def.startswith("path:"):
             file_def = _remove_prefix(file_def, "path:")
             return open(file_def, "a")
@@ -289,11 +289,11 @@ class TextLogger(BaseLogger, SupervisedPlugin):
             if fobject_path in ["<stdout>", "<stderr>"]:
                 # Standard output / error
                 return None
-            
+
             if isinstance(fobject_path, int):
                 # File descriptor
                 return None
-            
+
             return fobject_path
         except AttributeError:
             return None
