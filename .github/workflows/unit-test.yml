@@ -51,8 +51,10 @@ jobs:
         env:
           FAST_TEST: "True"
           USE_GPU: "False"
-          PYTHONPATH: ${{ env.GITHUB_WORKSPACE }}
+          PYTHONPATH: ${{ github.workspace }}
         run: |
+          bash ./tests/checkpointing/test_checkpointing.sh &&
+          exit 1 &&
           python -m unittest discover tests &&
           echo "Checking that optional dependencies are not needed" &&
           pip uninstall -y higher ctrl-benchmark torchaudio gym pycocotools lvis &&
