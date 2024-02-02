@@ -28,7 +28,7 @@ from avalanche.training.templates.base import (
     _experiences_parameter_as_iterable,
     _group_experiences_by_stream,
 )
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class AlreadyTrainedError(Exception):

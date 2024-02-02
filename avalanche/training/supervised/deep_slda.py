@@ -13,7 +13,7 @@ from avalanche.training.plugins.evaluation import (
 )
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class StreamingLDA(SupervisedTemplate):

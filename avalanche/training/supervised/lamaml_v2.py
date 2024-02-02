@@ -3,6 +3,8 @@ from packaging.version import parse
 import warnings
 import torch
 
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
+
 if parse(torch.__version__) < parse("2.0.0"):
     warnings.warn(f"LaMAML requires torch >= 2.0.0.")
 

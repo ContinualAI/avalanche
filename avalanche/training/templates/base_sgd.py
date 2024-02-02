@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Callable, Iterable, Sequence, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Iterable, Sequence, Optional, TypeVar, Union
 from typing_extensions import TypeAlias
 from packaging.version import parse
 
@@ -22,7 +22,10 @@ from avalanche.benchmarks.utils.data_loader import (
     collate_from_data_or_kwargs,
 )
 
-from avalanche.training.templates.strategy_mixin_protocol import SGDStrategyProtocol
+from avalanche.training.templates.strategy_mixin_protocol import (
+    CriterionType,
+    SGDStrategyProtocol,
+)
 from avalanche.training.utils import trigger_plugins
 
 
@@ -30,10 +33,9 @@ TDatasetExperience = TypeVar("TDatasetExperience", bound=DatasetExperience)
 TMBInput = TypeVar("TMBInput")
 TMBOutput = TypeVar("TMBOutput")
 
-CriterionType: TypeAlias = Union[Module, Callable[[Tensor, Tensor], Tensor]]
-
 
 class BaseSGDTemplate(
+    Generic[TDatasetExperience, TMBInput, TMBOutput],
     SGDStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
     BaseTemplate[TDatasetExperience],
 ):
@@ -93,21 +95,6 @@ class BaseSGDTemplate(
             `eval_every` epochs or iterations (Default='epoch').
         """
 
-        super().__init__(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
-            train_mb_size=train_mb_size,
-            train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size,
-            device=device,
-            plugins=plugins,
-            evaluator=evaluator,
-            eval_every=eval_every,
-            peval_mode=peval_mode,
-            **kwargs
-        )
-
         # Call super with all args
         if sys.version_info >= (3, 11):
             super().__init__(
@@ -127,7 +114,19 @@ class BaseSGDTemplate(
         else:
             super().__init__()  # type: ignore
             BaseTemplate.__init__(
-                self=self, model=model, device=device, plugins=plugins
+                self,
+                model=model,
+                optimizer=optimizer,
+                criterion=criterion,
+                train_mb_size=train_mb_size,
+                train_epochs=train_epochs,
+                eval_mb_size=eval_mb_size,
+                device=device,
+                plugins=plugins,
+                evaluator=evaluator,
+                eval_every=eval_every,
+                peval_mode=peval_mode,
+                **kwargs
             )
 
         self.optimizer: Optimizer = optimizer

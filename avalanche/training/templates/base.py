@@ -248,6 +248,7 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
         cls.__init__ = _support_legacy_strategy_positional_args(
             cls.__init__, cls.__name__
         )
+        super().__init_subclass__(**kwargs)
 
     # we need this only for type checking
     PLUGIN_CLASS = BasePlugin

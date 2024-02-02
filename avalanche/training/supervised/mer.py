@@ -11,7 +11,7 @@ from avalanche.training.plugins import EvaluationPlugin, SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
 from avalanche.training.templates import SupervisedMetaLearningTemplate
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class MERBuffer:

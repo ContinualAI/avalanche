@@ -22,7 +22,7 @@ from avalanche.training.supervised import AETraining
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin, LwFPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class ExpertGateStrategy(SupervisedTemplate):

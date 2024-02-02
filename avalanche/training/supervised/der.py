@@ -19,7 +19,7 @@ from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
 from avalanche.benchmarks.utils.flat_data import FlatData
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 from avalanche.training.utils import cycle
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.evaluation import (

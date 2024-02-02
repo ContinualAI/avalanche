@@ -11,7 +11,7 @@ from avalanche.training import ACECriterion
 from avalanche.training.plugins.evaluation import EvaluationPlugin, default_evaluator
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 from avalanche.training.utils import cycle
 from avalanche.training.losses import MaskedCrossEntropy
 

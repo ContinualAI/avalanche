@@ -8,6 +8,8 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 import math
 
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
+
 try:
     import higher
 except ImportError:

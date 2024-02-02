@@ -1,4 +1,5 @@
-from typing import Iterable, List, Optional, TypeVar, Protocol
+from typing import Generic, Iterable, List, Optional, TypeVar, Protocol, Callable, Union
+from typing_extensions import TypeAlias
 
 from torch import Tensor
 import torch
@@ -17,8 +18,10 @@ TSGDExperienceType = TypeVar("TSGDExperienceType", bound=DatasetExperience)
 TMBInput = TypeVar("TMBInput")
 TMBOutput = TypeVar("TMBOutput")
 
+CriterionType: TypeAlias = Union[Module, Callable[[Tensor, Tensor], Tensor]]
 
-class BaseStrategyProtocol(Protocol[TExperienceType]):
+
+class BaseStrategyProtocol(Generic[TExperienceType], Protocol[TExperienceType]):
     model: Module
 
     device: torch.device
@@ -33,6 +36,7 @@ class BaseStrategyProtocol(Protocol[TExperienceType]):
 
 
 class SGDStrategyProtocol(
+    Generic[TSGDExperienceType, TMBInput, TMBOutput],
     BaseStrategyProtocol[TSGDExperienceType],
     Protocol[TSGDExperienceType, TMBInput, TMBOutput],
 ):
@@ -52,7 +56,7 @@ class SGDStrategyProtocol(
 
     loss: Tensor
 
-    _criterion: Module
+    _criterion: CriterionType
 
     def forward(self) -> TMBOutput: ...
 

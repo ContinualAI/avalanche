@@ -21,7 +21,7 @@ from avalanche.training.templates import (
     SupervisedTemplate,
 )
 from avalanche._annotations import deprecated
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 @deprecated(

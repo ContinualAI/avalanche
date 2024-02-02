@@ -1,8 +1,6 @@
 import sys
-from typing import Any, Callable, Dict, Sequence, Optional, TypeVar, Union
-import warnings
+from typing import Callable, Sequence, Optional, TypeVar, Union
 import torch
-import inspect
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
@@ -13,8 +11,8 @@ from avalanche.training.plugins.evaluation import (
     EvaluationPlugin,
     default_evaluator,
 )
-from avalanche.training.templates.base import PositionalArgumentDeprecatedWarning
 from avalanche.training.templates.strategy_mixin_protocol import (
+    CriterionType,
     SupervisedStrategyProtocol,
     TMBOutput,
     TMBInput,
@@ -23,7 +21,7 @@ from avalanche.training.templates.strategy_mixin_protocol import (
 from .observation_type import *
 from .problem_type import *
 from .update_type import *
-from .base_sgd import BaseSGDTemplate, CriterionType
+from .base_sgd import BaseSGDTemplate
 
 
 TDatasetExperience = TypeVar("TDatasetExperience", bound=DatasetExperience)
@@ -202,7 +200,7 @@ class SupervisedMetaLearningTemplate(
         *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,

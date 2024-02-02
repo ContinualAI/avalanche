@@ -17,7 +17,6 @@ from avalanche.training.plugins import (
     CWRStarPlugin,
 )
 from avalanche.training.templates import SupervisedTemplate
-from avalanche.training.templates.base_sgd import CriterionType
 from avalanche.training.utils import (
     replace_bn_with_brn,
     get_last_fc_layer,
@@ -27,6 +26,7 @@ from avalanche.training.utils import (
     LayerAndParameter,
 )
 from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class AR1(SupervisedTemplate):
@@ -44,7 +44,7 @@ class AR1(SupervisedTemplate):
     def __init__(
         self,
         *,
-        criterion: CriterionType = None,
+        criterion: CriterionType = CrossEntropyLoss(),
         lr: float = 0.001,
         inc_lr: float = 5e-5,
         momentum=0.9,
@@ -148,9 +148,6 @@ class AR1(SupervisedTemplate):
         plugins.append(self.cwr_plugin)
 
         optimizer = SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=l2)
-
-        if criterion is None:
-            criterion = CrossEntropyLoss()
 
         self.ewc_lambda = ewc_lambda
         self.freeze_below_layer = freeze_below_layer

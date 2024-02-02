@@ -45,11 +45,11 @@ from avalanche.training.plugins import (
 )
 from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates import SupervisedTemplate
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
+from avalanche.evaluation.metrics import loss_metrics
 from avalanche.models.generator import MlpVAE, VAE_loss
 from avalanche.models.expert_gate import AE_loss
 from avalanche.logging import InteractiveLogger
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class Naive(SupervisedTemplate):

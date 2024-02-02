@@ -8,7 +8,7 @@ from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.templates import SupervisedTemplate
-from avalanche.training.templates.base_sgd import CriterionType
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class Cumulative(SupervisedTemplate):
