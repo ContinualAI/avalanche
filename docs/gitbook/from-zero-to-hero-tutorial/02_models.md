@@ -14,7 +14,7 @@ You can use any model provided in the [Pytorch](https://pytorch.org/) official e
 
 
 ```python
-!pip install avalanche-lib==0.4
+!pip install avalanche-lib==0.5
 ```
 
 
