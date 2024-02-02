@@ -46,6 +46,16 @@ jobs:
       - name: install coverage.py and coverralls
         run: |
           pip install coverage coveralls
+      - name: install pytest-xdist and pytest-cov
+        run: |
+          pip install pytest-xdist pytest-cov
+      - name: download datasets
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          pytest ./tests/benchmarks/scenarios/deprecated/test_high_level_generators.py::HighLevelGeneratorTests::test_filelist_benchmark ./tests/benchmarks/scenarios/deprecated/test_nc_mt_scenario.py::MultiTaskTests::test_mt_single_dataset
       - name: python unit test
         id: unittest
         env:
@@ -53,7 +63,6 @@ jobs:
           USE_GPU: "False"
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          pip install pytest-xdist pytest-cov &&
           mkdir coverage &&
           pytest --cov=. -n 4 tests &&
           mv .coverage coverage_unit_tests &&
