@@ -51,9 +51,18 @@ jobs:
         env:
           FAST_TEST: "True"
           USE_GPU: "False"
+          PYTHONPATH: ${{ github.workspace }}
         run: |
+          pip install pytest-xdist pytest-cov &&
           mkdir coverage &&
-          coverage run -m unittest discover tests &&
+          pytest --cov=. -n 4 tests &&
+          mv .coverage coverage_unit_tests &&
+          coverage run examples/eval_plugin.py &&
+          mv .coverage coverage_eval_plugin &&
+          RUN_COVERAGE=True bash ./tests/checkpointing/test_checkpointing.sh &&
+          coverage run tests/run_dist_tests.py &&
+          mv .coverage coverage_dist_tests &&
+          coverage combine coverage_* &&
           coverage lcov -o coverage/lcov.info --omit '**/config-3.py,**/config.py'
       - name: Upload coverage data to coveralls.io
         uses: coverallsapp/github-action@master
