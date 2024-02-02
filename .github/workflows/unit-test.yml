@@ -51,7 +51,7 @@ jobs:
         env:
           FAST_TEST: "True"
           USE_GPU: "False"
-          PYTHONPATH: ${{ GITHUB_WORKSPACE }}
+          PYTHONPATH: ${{ env.GITHUB_WORKSPACE }}
         run: |
           python -m unittest discover tests &&
           echo "Checking that optional dependencies are not needed" &&
