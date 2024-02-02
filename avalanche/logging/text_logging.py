@@ -253,10 +253,10 @@ class TextLogger(BaseLogger, SupervisedPlugin):
             out_file_path = TextLogger._file_get_real_path(file_object)
             stream_name = TextLogger._file_get_stream(file_object)
 
-        if out_file_path is not None:
-            return "path:" + str(out_file_path)
-        elif stream_name is not None:
+        if stream_name is not None:
             return "stream:" + stream_name
+        elif out_file_path is not None:
+            return "path:" + str(out_file_path)
         else:
             return None
 
@@ -265,7 +265,7 @@ class TextLogger(BaseLogger, SupervisedPlugin):
         if not isinstance(file_def, str):
             # Custom object (managed by pickle or dill library)
             return file_def
-
+        
         if file_def.startswith("path:"):
             file_def = _remove_prefix(file_def, "path:")
             return open(file_def, "a")
@@ -285,8 +285,15 @@ class TextLogger(BaseLogger, SupervisedPlugin):
                 # Manage files created by tempfile
                 file_object = file_object.file
             fobject_path = file_object.name
+
             if fobject_path in ["<stdout>", "<stderr>"]:
+                # Standard output / error
                 return None
+            
+            if isinstance(fobject_path, int):
+                # File descriptor
+                return None
+            
             return fobject_path
         except AttributeError:
             return None
