@@ -305,7 +305,7 @@ class CWRStar(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -376,7 +376,7 @@ class Replay(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -460,7 +460,7 @@ class GenerativeReplay(SupervisedTemplate):
             learning experience.
         :param generator_strategy: A trainable strategy with a generative model,
             which employs GenerativeReplayPlugin. Defaults to None.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -582,7 +582,7 @@ class AETraining(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -657,7 +657,7 @@ class VAETraining(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -727,7 +727,7 @@ class GSS_greedy(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         rp = GSS_greedyPlugin(
@@ -1484,7 +1484,7 @@ class BiC(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -1643,7 +1643,7 @@ class FromScratchTraining(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
