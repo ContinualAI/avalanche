@@ -2,4 +2,5 @@
    batch(multiple epochs) vs. online(one epoch)
 
 """
+
 from .batch_observation import BatchObservation

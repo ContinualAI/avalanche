@@ -12,19 +12,17 @@
 from collections import OrderedDict
 import warnings
 
-import torch
 from torch.nn import Module, CrossEntropyLoss
-from torch.optim import Optimizer, SGD, Adam
-from torch.nn.functional import log_softmax
+from torch.optim import Optimizer, SGD
 
 from typing import Optional, List
 
 from avalanche.models.expert_gate import ExpertAutoencoder, ExpertModel, ExpertGate
-from avalanche.models.dynamic_optimizers import reset_optimizer
 from avalanche.training.supervised import AETraining
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin, LwFPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class ExpertGateStrategy(SupervisedTemplate):
@@ -44,9 +42,10 @@ class ExpertGateStrategy(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -88,10 +87,6 @@ class ExpertGateStrategy(SupervisedTemplate):
         expert during the forward method
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
-        # Check that the model has the correct architecture.
-        assert isinstance(
-            model, ExpertGate
-        ), "ExpertGateStrategy requires an ExpertGate model."
 
         expertgate = _ExpertGatePlugin()
 
@@ -105,7 +100,6 @@ class ExpertGateStrategy(SupervisedTemplate):
         self.ae_lr = ae_lr
         self.ae_latent_dim = ae_latent_dim
         self.rel_thresh = rel_thresh
-        model.temp = temp
 
         warnings.warn(
             "This strategy is currently in the alpha stage and we are still "
@@ -127,6 +121,12 @@ class ExpertGateStrategy(SupervisedTemplate):
             eval_every=eval_every,
             **base_kwargs
         )
+
+        # Check that the model has the correct architecture.
+        assert isinstance(
+            self.model, ExpertGate
+        ), "ExpertGateStrategy requires an ExpertGate model."
+        self.model.temp = temp
 
 
 class _ExpertGatePlugin(SupervisedPlugin):
@@ -239,9 +239,9 @@ class _ExpertGatePlugin(SupervisedPlugin):
 
             # Iterate through all autoencoders to get error values
             for autoencoder_id in strategy.model.autoencoder_dict:
-                error_dict[
-                    str(autoencoder_id)
-                ] = self._get_average_reconstruction_error(strategy, autoencoder_id)
+                error_dict[str(autoencoder_id)] = (
+                    self._get_average_reconstruction_error(strategy, autoencoder_id)
+                )
 
             # Send error dictionary to get most relevant autoencoder
             relatedness_dict = self._task_relatedness(strategy, error_dict, task_label)
@@ -367,3 +367,6 @@ class _ExpertGatePlugin(SupervisedPlugin):
         # Train with autoencoder strategy
         ae_strategy.train(strategy.experience)
         print("FINISHED TRAINING NEW AUTOENCODER\n")
+
+
+__all__ = ["ExpertGateStrategy"]

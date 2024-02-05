@@ -21,6 +21,7 @@ from avalanche.training.templates import (
     SupervisedTemplate,
 )
 from avalanche._annotations import deprecated
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 @deprecated(
@@ -43,9 +44,10 @@ class OnlineNaive(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         train_passes: int = 1,
         train_mb_size: int = 1,
         eval_mb_size: Optional[int] = None,

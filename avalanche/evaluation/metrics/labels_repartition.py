@@ -85,8 +85,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
         ] = default_history_repartition_image_creator,
         mode: Literal["train"] = "train",
         emit_reset_at: Literal["stream", "experience", "epoch"] = "epoch",
-    ):
-        ...
+    ): ...
 
     @overload
     def __init__(
@@ -97,8 +96,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
         ] = default_history_repartition_image_creator,
         mode: Literal["eval"] = "eval",
         emit_reset_at: Literal["stream", "experience"],
-    ):
-        ...
+    ): ...
 
     def __init__(
         self,
@@ -171,12 +169,14 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
                 f"/{self._mode}_phase"
                 f"/{stream_type(strategy.experience)}_stream"
                 f"/Task_{task:03}",
-                value=AlternativeValues(
-                    self.image_creator(label2counts, self.steps),
-                    label2counts,
-                )
-                if self.image_creator is not None
-                else label2counts,
+                value=(
+                    AlternativeValues(
+                        self.image_creator(label2counts, self.steps),
+                        label2counts,
+                    )
+                    if self.image_creator is not None
+                    else label2counts
+                ),
                 x_plot=strategy.clock.train_iterations,
             )
             for task, label2counts in self.task2label2counts.items()

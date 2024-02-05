@@ -45,10 +45,11 @@ from avalanche.training.plugins import (
 )
 from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates import SupervisedTemplate
-from avalanche.evaluation.metrics import accuracy_metrics, loss_metrics
+from avalanche.evaluation.metrics import loss_metrics
 from avalanche.models.generator import MlpVAE, VAE_loss
 from avalanche.models.expert_gate import AE_loss
 from avalanche.logging import InteractiveLogger
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class Naive(SupervisedTemplate):
@@ -65,9 +66,10 @@ class Naive(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -100,10 +102,11 @@ class Naive(SupervisedTemplate):
         :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
+
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -123,6 +126,7 @@ class PNNStrategy(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
         criterion=CrossEntropyLoss(),
@@ -157,8 +161,7 @@ class PNNStrategy(SupervisedTemplate):
         :param base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
-        # Check that the model has the correct architecture.
-        assert isinstance(model, PNN), "PNNStrategy requires a PNN model."
+
         super().__init__(
             model=model,
             optimizer=optimizer,
@@ -172,6 +175,9 @@ class PNNStrategy(SupervisedTemplate):
             eval_every=eval_every,
             **base_kwargs
         )
+
+        # Check that the model has the correct architecture.
+        assert isinstance(self.model, PNN), "PNNStrategy requires a PNN model."
 
 
 class PackNet(SupervisedTemplate):
@@ -195,6 +201,7 @@ class PackNet(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Union[PackNetModule, PackNetModel],
         optimizer: Optimizer,
         post_prune_epochs: int,
@@ -240,13 +247,10 @@ class PackNet(SupervisedTemplate):
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
-        if not isinstance(model, PackNetModule):
-            raise ValueError("PackNet requires a model that implements PackNetModule.")
-
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -257,15 +261,19 @@ class PackNet(SupervisedTemplate):
             **base_kwargs
         )
 
+        if not isinstance(self.model, PackNetModule):
+            raise ValueError("PackNet requires a model that implements PackNetModule.")
+
 
 class CWRStar(SupervisedTemplate):
     """CWR* Strategy."""
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         cwr_layer_name: str,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -297,18 +305,23 @@ class CWRStar(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
-        cwsp = CWRStarPlugin(model, cwr_layer_name, freeze_remaining_model=True)
+
+        cwsp = CWRStarPlugin(
+            model,
+            cwr_layer_name,
+            freeze_remaining_model=True,
+        )
         if plugins is None:
             plugins = [cwsp]
         else:
             plugins.append(cwsp)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -329,9 +342,10 @@ class Replay(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -362,7 +376,7 @@ class Replay(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -372,9 +386,9 @@ class Replay(SupervisedTemplate):
         else:
             plugins.append(rp)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -407,9 +421,10 @@ class GenerativeReplay(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -445,7 +460,7 @@ class GenerativeReplay(SupervisedTemplate):
             learning experience.
         :param generator_strategy: A trainable strategy with a generative model,
             which employs GenerativeReplayPlugin. Defaults to None.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -503,9 +518,9 @@ class GenerativeReplay(SupervisedTemplate):
             plugins.append(rp)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -536,6 +551,7 @@ class AETraining(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
         device,
@@ -566,14 +582,14 @@ class AETraining(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -608,6 +624,7 @@ class VAETraining(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
         criterion=VAE_loss,
@@ -640,14 +657,14 @@ class VAETraining(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -673,9 +690,10 @@ class GSS_greedy(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         mem_size: int = 200,
         mem_strength=1,
         input_size=[],
@@ -709,7 +727,7 @@ class GSS_greedy(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
         rp = GSS_greedyPlugin(
@@ -720,9 +738,9 @@ class GSS_greedy(SupervisedTemplate):
         else:
             plugins.append(rp)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -743,9 +761,10 @@ class GDumb(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         mem_size: int = 200,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -787,9 +806,9 @@ class GDumb(SupervisedTemplate):
             plugins.append(gdumb)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -809,9 +828,10 @@ class LwF(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         alpha: Union[float, Sequence[float]],
         temperature: float,
         train_mb_size: int = 1,
@@ -856,9 +876,9 @@ class LwF(SupervisedTemplate):
             plugins.append(lwf)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -879,9 +899,10 @@ class AGEM(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         patterns_per_exp: int,
         sample_size: int = 64,
         train_mb_size: int = 1,
@@ -926,9 +947,9 @@ class AGEM(SupervisedTemplate):
             plugins.append(agem)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -949,9 +970,10 @@ class GEM(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         patterns_per_exp: int,
         memory_strength: float = 0.5,
         train_mb_size: int = 1,
@@ -996,9 +1018,9 @@ class GEM(SupervisedTemplate):
             plugins.append(gem)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1019,9 +1041,10 @@ class EWC(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         ewc_lambda: float,
         mode: str = "separate",
         decay_factor: Optional[float] = None,
@@ -1077,9 +1100,9 @@ class EWC(SupervisedTemplate):
             plugins.append(ewc)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1109,9 +1132,10 @@ class SynapticIntelligence(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         si_lambda: Union[float, Sequence[float]],
         eps: float = 0.0000001,
         train_mb_size: int = 1,
@@ -1161,13 +1185,13 @@ class SynapticIntelligence(SupervisedTemplate):
         # entire implementation of the strategy!
         plugins.append(SynapticIntelligencePlugin(si_lambda=si_lambda, eps=eps))
 
-        super(SynapticIntelligence, self).__init__(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
+        super().__init__(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
             device=device,
             plugins=plugins,
             evaluator=evaluator,
@@ -1185,9 +1209,10 @@ class CoPE(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         mem_size: int = 200,
         n_classes: int = 10,
         p_size: int = 100,
@@ -1240,9 +1265,9 @@ class CoPE(SupervisedTemplate):
         else:
             plugins.append(copep)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1264,9 +1289,10 @@ class LFL(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         lambda_e: Union[float, Sequence[float]],
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -1308,9 +1334,9 @@ class LFL(SupervisedTemplate):
             plugins.append(lfl)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1331,9 +1357,10 @@ class MAS(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         lambda_reg: float = 1.0,
         alpha: float = 0.5,
         verbose: bool = False,
@@ -1385,9 +1412,9 @@ class MAS(SupervisedTemplate):
             plugins.append(mas)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1408,9 +1435,10 @@ class BiC(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         mem_size: int = 200,
         val_percentage: float = 0.1,
         T: int = 2,
@@ -1456,7 +1484,7 @@ class BiC(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -1477,9 +1505,9 @@ class BiC(SupervisedTemplate):
             plugins.append(bic)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1498,9 +1526,10 @@ class MIR(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         mem_size: int,
         subsample: int,
         batch_size_mem: int = 1,
@@ -1542,7 +1571,9 @@ class MIR(SupervisedTemplate):
 
         # Instantiate plugin
         mir = MIRPlugin(
-            mem_size=mem_size, subsample=subsample, batch_size_mem=batch_size_mem
+            mem_size=mem_size,
+            subsample=subsample,
+            batch_size_mem=batch_size_mem,
         )
 
         # Add plugin to the strategy
@@ -1552,9 +1583,9 @@ class MIR(SupervisedTemplate):
             plugins.append(mir)
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -1577,9 +1608,10 @@ class FromScratchTraining(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         reset_optimizer: bool = True,
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -1611,7 +1643,7 @@ class FromScratchTraining(SupervisedTemplate):
             only at the end of the learning experience. Values >0 mean that
             `eval` is called every `eval_every` epochs and at the end of the
             learning experience.
-        :param \*\*base_kwargs: any additional
+        :param **base_kwargs: any additional
             :class:`~avalanche.training.BaseTemplate` constructor arguments.
         """
 
@@ -1621,9 +1653,9 @@ class FromScratchTraining(SupervisedTemplate):
         else:
             plugins.append(fstp)
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,

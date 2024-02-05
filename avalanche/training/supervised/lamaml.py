@@ -8,6 +8,8 @@ from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
 import math
 
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
+
 try:
     import higher
 except ImportError:
@@ -27,9 +29,10 @@ from avalanche.models.utils import avalanche_forward
 class LaMAML(SupervisedMetaLearningTemplate):
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         n_inner_updates: int = 5,
         second_order: bool = True,
         grad_clip_norm: float = 1.0,
@@ -183,9 +186,11 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # Clip grad norms
         grads = [
-            torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
-            if g is not None
-            else g
+            (
+                torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
+                if g is not None
+                else g
+            )
             for g in grads
         ]
 

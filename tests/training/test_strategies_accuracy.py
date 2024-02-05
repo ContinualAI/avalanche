@@ -82,9 +82,9 @@ class StrategyTest(unittest.TestCase):
         exp_acc = ExperienceAccuracy()
         evalp = EvaluationPlugin(main_metric, exp_acc, loggers=None)
         strategy = Cumulative(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=64,
             device=get_device(),
             eval_mb_size=512,
@@ -111,8 +111,8 @@ class StrategyTest(unittest.TestCase):
         model = PNN(num_layers=1, in_features=6, hidden_features_per_column=50)
         optimizer = SGD(model.parameters(), lr=0.1)
         strategy = PNNStrategy(
-            model,
-            optimizer,
+            model=model,
+            optimizer=optimizer,
             train_mb_size=32,
             device=get_device(),
             eval_mb_size=512,

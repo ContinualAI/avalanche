@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import signal
 import sys
 import unittest
@@ -34,6 +35,9 @@ def get_distributed_test_cases(suite: Union[TestCase, TestSuite]) -> Set[str]:
 @click.command()
 @click.argument("test_cases", nargs=-1)
 def run_distributed_suites(test_cases):
+    if Path.cwd().name != "tests":
+        os.chdir(Path.cwd() / "tests")
+
     cases_names = get_distributed_test_cases(
         unittest.defaultTestLoader.discover(".")
     )  # Don't change the path!

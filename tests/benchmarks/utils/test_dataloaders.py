@@ -157,9 +157,9 @@ class DataLoaderTests(unittest.TestCase):
 
         # Continual learning strategy
         cl_strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=32,
             train_epochs=1,
             eval_mb_size=32,

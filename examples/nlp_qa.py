@@ -2,6 +2,7 @@
 Simple example that show how to use Avalanche for Question Answering on 
 Squad by using T5
 """
+
 from avalanche.benchmarks.utils import DataAttribute, ConstantSequence
 from avalanche.training.plugins import ReplayPlugin
 from transformers import DataCollatorForSeq2Seq
@@ -162,7 +163,7 @@ def main():
     benchmark = CLScenario(
         [
             CLStream("train", train_exps),
-            CLStream("valid", val_exp)
+            CLStream("valid", val_exp),
             # add more stream here (validation, test, out-of-domain, ...)
         ]
     )

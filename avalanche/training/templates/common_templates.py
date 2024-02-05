@@ -1,17 +1,21 @@
+import sys
 from typing import Callable, Sequence, Optional, TypeVar, Union
 import torch
 
 from torch.nn import Module, CrossEntropyLoss
 from torch.optim import Optimizer
-from ...benchmarks.scenarios.deprecated import DatasetExperience
+from avalanche.benchmarks import DatasetExperience
 
-from avalanche.core import BasePlugin, BaseSGDPlugin, SupervisedPlugin
+from avalanche.core import BasePlugin, SupervisedPlugin
 from avalanche.training.plugins.evaluation import (
     EvaluationPlugin,
     default_evaluator,
 )
 from avalanche.training.templates.strategy_mixin_protocol import (
+    CriterionType,
     SupervisedStrategyProtocol,
+    TMBOutput,
+    TMBInput,
 )
 
 from .observation_type import *
@@ -21,18 +25,15 @@ from .base_sgd import BaseSGDTemplate
 
 
 TDatasetExperience = TypeVar("TDatasetExperience", bound=DatasetExperience)
-TMBInput = TypeVar("TMBInput")
-TMBOutput = TypeVar("TMBOutput")
 
 
 class SupervisedTemplate(
-    BatchObservation,
-    SupervisedProblem,
-    SGDUpdate,
+    BatchObservation[TDatasetExperience, TMBInput, TMBInput],
+    SupervisedProblem[TDatasetExperience, TMBInput, TMBInput],
+    SGDUpdate[TDatasetExperience, TMBInput, TMBOutput],
     SupervisedStrategyProtocol[TDatasetExperience, TMBInput, TMBOutput],
     BaseSGDTemplate[TDatasetExperience, TMBInput, TMBOutput],
 ):
-
     """Base class for continual learning strategies.
 
     SupervisedTemplate is the super class of all supervised task-based
@@ -79,11 +80,13 @@ class SupervisedTemplate(
 
     PLUGIN_CLASS = SupervisedPlugin
 
+    # TODO: remove default values of model and optimizer when legacy positional arguments are definitively removed
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
@@ -94,6 +97,7 @@ class SupervisedTemplate(
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs,
     ):
         """Init.
 
@@ -119,40 +123,29 @@ class SupervisedTemplate(
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__()  # type: ignore
-        BaseSGDTemplate.__init__(
-            self=self,
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
-            train_mb_size=train_mb_size,
-            train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size,
-            device=device,
-            plugins=plugins,
-            evaluator=evaluator,
-            eval_every=eval_every,
-            peval_mode=peval_mode,
-        )
-        ###################################################################
-        # State variables. These are updated during the train/eval loops. #
-        ###################################################################
+        kwargs["model"] = model
+        kwargs["optimizer"] = optimizer
+        kwargs["criterion"] = criterion
+        kwargs["train_mb_size"] = train_mb_size
+        kwargs["train_epochs"] = train_epochs
+        kwargs["eval_mb_size"] = eval_mb_size
+        kwargs["device"] = device
+        kwargs["plugins"] = plugins
+        kwargs["evaluator"] = evaluator
+        kwargs["eval_every"] = eval_every
+        kwargs["peval_mode"] = peval_mode
 
-        # self.adapted_dataset = None
-        # """ Data used to train. It may be modified by plugins. Plugins can
-        # append data to it (e.g. for replay).
-        #
-        # .. note::
-        #
-        #    This dataset may contain samples from different experiences. If you
-        #    want the original data for the current experience
-        #    use :attr:`.BaseTemplate.experience`.
+        if sys.version_info >= (3, 11):
+            super().__init__(**kwargs)
+        else:
+            super().__init__()
+            BaseSGDTemplate.__init__(self=self, **kwargs)
 
 
 class SupervisedMetaLearningTemplate(
-    BatchObservation,
-    SupervisedProblem,
-    MetaUpdate,
+    BatchObservation[TDatasetExperience, TMBInput, TMBInput],
+    SupervisedProblem[TDatasetExperience, TMBInput, TMBInput],
+    MetaUpdate[TDatasetExperience, TMBInput, TMBInput],
     BaseSGDTemplate[TDatasetExperience, TMBInput, TMBOutput],
 ):
     """Base class for continual learning strategies.
@@ -201,11 +194,13 @@ class SupervisedMetaLearningTemplate(
 
     PLUGIN_CLASS = SupervisedPlugin
 
+    # TODO: remove default values of model and optimizer when legacy positional arguments are definitively removed
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = 1,
@@ -216,6 +211,7 @@ class SupervisedMetaLearningTemplate(
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs,
     ):
         """Init.
 
@@ -241,34 +237,23 @@ class SupervisedMetaLearningTemplate(
             periodic evaluation during training should execute every
             `eval_every` epochs or iterations (Default='epoch').
         """
-        super().__init__()  # type: ignore
-        BaseSGDTemplate.__init__(
-            self=self,
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
-            train_mb_size=train_mb_size,
-            train_epochs=train_epochs,
-            eval_mb_size=eval_mb_size,
-            device=device,
-            plugins=plugins,
-            evaluator=evaluator,
-            eval_every=eval_every,
-            peval_mode=peval_mode,
-        )
-        ###################################################################
-        # State variables. These are updated during the train/eval loops. #
-        ###################################################################
+        kwargs["model"] = model
+        kwargs["optimizer"] = optimizer
+        kwargs["criterion"] = criterion
+        kwargs["train_mb_size"] = train_mb_size
+        kwargs["train_epochs"] = train_epochs
+        kwargs["eval_mb_size"] = eval_mb_size
+        kwargs["device"] = device
+        kwargs["plugins"] = plugins
+        kwargs["evaluator"] = evaluator
+        kwargs["eval_every"] = eval_every
+        kwargs["peval_mode"] = peval_mode
 
-        # self.adapted_dataset = None
-        # """ Data used to train. It may be modified by plugins. Plugins can
-        # append data to it (e.g. for replay).
-        #
-        # .. note::
-        #
-        #    This dataset may contain samples from different experiences. If you
-        #    want the original data for the current experience
-        #    use :attr:`.BaseTemplate.experience`.
+        if sys.version_info >= (3, 11):
+            super().__init__(**kwargs)
+        else:
+            super().__init__()
+            BaseSGDTemplate.__init__(self=self, **kwargs)
 
 
 __all__ = [

@@ -1,6 +1,9 @@
 import unittest
 from avalanche.models.packnet import PackNetModel, packnet_simple_mlp
 from avalanche.training.supervised.strategy_wrappers import PackNet
+from avalanche.training.templates.base import (
+    PositionalArgumentsDeprecatedWarning,
+)
 from torch.optim import SGD, Adam
 import torch
 import os
@@ -26,16 +29,17 @@ class TestPackNet(unittest.TestCase):
         )
         model = construct_model()
         optimizer = optimizer_constructor(model.parameters(), lr=lr)
-        strategy = PackNet(
-            model,
-            prune_proportion=0.5,
-            post_prune_epochs=1,
-            optimizer=optimizer,
-            train_epochs=2,
-            train_mb_size=10,
-            eval_mb_size=10,
-            device="cuda" if use_gpu else "cpu",
-        )
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
+            strategy = PackNet(
+                model,
+                prune_proportion=0.5,
+                post_prune_epochs=1,
+                optimizer=optimizer,
+                train_epochs=2,
+                train_mb_size=10,
+                eval_mb_size=10,
+                device="cuda" if use_gpu else "cpu",
+            )
         x_test = torch.rand(10, 6)
         t_test = torch.ones(10, dtype=torch.long)
         task_ouputs = []

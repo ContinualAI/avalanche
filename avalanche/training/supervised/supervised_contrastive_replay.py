@@ -48,6 +48,7 @@ class SCR(SupervisedTemplate):
         evaluator=default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs
     ):
         """
         :param model: an Avalanche model like the avalanche.models.SCRModel,
@@ -111,17 +112,17 @@ class SCR(SupervisedTemplate):
         else:
             raise ValueError("`plugins` parameter needs to be a list.")
         super().__init__(
-            model,
-            optimizer,
-            SCRLoss(temperature=self.temperature),
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
-            device,
-            plugins,
-            evaluator,
-            eval_every,
-            peval_mode,
+            model=model,
+            optimizer=optimizer,
+            criterion=SCRLoss(temperature=self.temperature),
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            peval_mode=peval_mode,
         )
 
     def criterion(self):
@@ -189,3 +190,6 @@ class SCR(SupervisedTemplate):
             class_means[label] /= class_means[label].norm()
 
         self.model.eval_classifier.update_class_means_dict(class_means)
+
+
+__all__ = ["SCR"]

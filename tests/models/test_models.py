@@ -157,9 +157,9 @@ class DynamicOptimizersTests(unittest.TestCase):
             model, "SGDmom", "Adam", "SGD", "AdamW"
         ):
             strategy = Naive(
-                model,
-                optimizer,
-                criterion,
+                model=model,
+                optimizer=optimizer,
+                criterion=criterion,
                 train_mb_size=64,
                 device=self.device,
                 eval_mb_size=50,
@@ -172,9 +172,9 @@ class DynamicOptimizersTests(unittest.TestCase):
         model, criterion, benchmark = self.init_scenario(multi_task=True)
         optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=64,
             device=self.device,
             eval_mb_size=50,
@@ -190,9 +190,9 @@ class DynamicOptimizersTests(unittest.TestCase):
         model, criterion, benchmark = self.init_scenario(multi_task=True)
         optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=64,
             device=self.device,
             eval_mb_size=50,
@@ -226,9 +226,9 @@ class DynamicOptimizersTests(unittest.TestCase):
         model, criterion, benchmark = self.init_scenario(multi_task=True)
         optimizer = SGD(model.parameters(), lr=0.1, momentum=0.9)
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=64,
             device=self.device,
             eval_mb_size=50,
@@ -272,9 +272,9 @@ class DynamicModelsTests(unittest.TestCase):
         benchmark = self.benchmark
 
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=100,
             train_epochs=1,
             eval_mb_size=100,
@@ -334,9 +334,9 @@ class DynamicModelsTests(unittest.TestCase):
         benchmark = self.benchmark
 
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=100,
             train_epochs=1,
             eval_mb_size=100,
@@ -378,9 +378,9 @@ class DynamicModelsTests(unittest.TestCase):
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=False)
 
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=100,
             train_epochs=1,
             eval_mb_size=100,
@@ -432,9 +432,9 @@ class DynamicModelsTests(unittest.TestCase):
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=False)
 
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=100,
             train_epochs=1,
             eval_mb_size=100,

@@ -3,6 +3,7 @@ from typing import Callable, Optional, Sequence, Union
 
 import os
 import torch
+from torch.nn import Module
 
 from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.templates import SupervisedTemplate
@@ -12,6 +13,7 @@ from avalanche.training.plugins.evaluation import (
 )
 from avalanche.models.dynamic_modules import MultiTaskModule
 from avalanche.models import FeatureExtractorBackbone
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class StreamingLDA(SupervisedTemplate):
@@ -28,11 +30,12 @@ class StreamingLDA(SupervisedTemplate):
 
     def __init__(
         self,
-        slda_model,
-        criterion,
-        input_size,
-        num_classes,
-        output_layer_name=None,
+        *,
+        slda_model: Module,
+        criterion: CriterionType,
+        input_size: int,
+        num_classes: int,
+        output_layer_name: Optional[str] = None,
         shrinkage_param=1e-4,
         streaming_update_sigma=True,
         train_epochs: int = 1,
@@ -44,10 +47,11 @@ class StreamingLDA(SupervisedTemplate):
             EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
+        **kwargs,
     ):
         """Init function for the SLDA model.
 
-        :param slda_model: a PyTorch model
+        :param model: a PyTorch model
         :param criterion: loss function
         :param output_layer_name: if not None, wrap model to retrieve
             only the `output_layer_name` output. If None, the strategy
@@ -78,16 +82,17 @@ class StreamingLDA(SupervisedTemplate):
             ).eval()
 
         super(StreamingLDA, self).__init__(
-            slda_model,
-            None,  # type: ignore
-            criterion,
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
+            model=slda_model,
+            optimizer=None,  # type: ignore
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
             device=device,
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
+            **kwargs,
         )
 
         # SLDA parameters

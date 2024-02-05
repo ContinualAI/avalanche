@@ -3,6 +3,8 @@ from packaging.version import parse
 import warnings
 import torch
 
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
+
 if parse(torch.__version__) < parse("2.0.0"):
     warnings.warn(f"LaMAML requires torch >= 2.0.0.")
 
@@ -24,9 +26,10 @@ from avalanche.training.storage_policy import ReservoirSamplingBuffer
 class LaMAML(SupervisedMetaLearningTemplate):
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         n_inner_updates: int = 5,
         second_order: bool = True,
         grad_clip_norm: float = 1.0,
@@ -185,9 +188,11 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # Clip grad norms
         grads = [
-            torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
-            if g is not None
-            else g
+            (
+                torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
+                if g is not None
+                else g
+            )
             for g in grads
         ]
 

@@ -11,6 +11,7 @@ from avalanche.training.plugins import EvaluationPlugin, SupervisedPlugin
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.storage_policy import ReservoirSamplingBuffer
 from avalanche.training.templates import SupervisedMetaLearningTemplate
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class MERBuffer:
@@ -51,9 +52,10 @@ class MERBuffer:
 class MER(SupervisedMetaLearningTemplate):
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         mem_size=200,
         batch_size_mem=10,
         n_inner_steps=5,
@@ -69,6 +71,7 @@ class MER(SupervisedMetaLearningTemplate):
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs
     ):
         """Implementation of Look-ahead MAML (LaMAML) algorithm in Avalanche
             using Higher library for applying fast updates.
@@ -85,17 +88,18 @@ class MER(SupervisedMetaLearningTemplate):
 
         """
         super().__init__(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
-            device,
-            plugins,
-            evaluator,
-            eval_every,
-            peval_mode,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            peval_mode=peval_mode,
+            **kwargs
         )
 
         self.buffer = MERBuffer(

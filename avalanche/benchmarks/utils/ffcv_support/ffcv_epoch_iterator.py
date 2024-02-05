@@ -1,6 +1,7 @@
 """
 Custom version of the FFCV epoch iterator.
 """
+
 from threading import Thread, Event, Lock
 from queue import Queue
 from typing import List, Sequence, TYPE_CHECKING
