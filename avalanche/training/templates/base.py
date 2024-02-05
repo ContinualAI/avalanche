@@ -147,9 +147,9 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
         self.model.to(self.device)
 
         # Normalize training and eval data.
-        experiences_list: Iterable[
-            TExperienceType
-        ] = _experiences_parameter_as_iterable(experiences)
+        experiences_list: Iterable[TExperienceType] = (
+            _experiences_parameter_as_iterable(experiences)
+        )
 
         if eval_streams is None:
             eval_streams = [experiences_list]
@@ -201,9 +201,9 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
         self.is_training = False
         self.model.eval()
 
-        experiences_list: Iterable[
-            TExperienceType
-        ] = _experiences_parameter_as_iterable(experiences)
+        experiences_list: Iterable[TExperienceType] = (
+            _experiences_parameter_as_iterable(experiences)
+        )
         self.current_eval_stream = experiences_list
 
         self._before_eval(**kwargs)
@@ -575,7 +575,9 @@ def _check_mispelled_kwargs(cls: Type, kwargs: Dict[str, Any]):
         )
 
     passed_parameters = set(kwargs.keys())
-    passed_parameters.discard("self")  # self should not be in kwargs, but it's better to be safe
+    passed_parameters.discard(
+        "self"
+    )  # self should not be in kwargs, but it's better to be safe
 
     # Then we check if there are any mispelled/unexpected arguments
     unexpected_args = list(passed_parameters - all_init_args)
@@ -596,6 +598,7 @@ def _check_mispelled_kwargs(cls: Type, kwargs: Dict[str, Any]):
 
 def _support_legacy_strategy_positional_args(cls):
     init_method, cls_name = cls.__init__, cls.__name__
+
     @functools.wraps(init_method)
     def wrap_init(*args, **kwargs):
         _warn_init_has_positional_args(init_method, cls_name)
