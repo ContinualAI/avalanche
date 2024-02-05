@@ -28,204 +28,6 @@ TExperienceType = TypeVar("TExperienceType", bound=CLExperience)
 TPluginType = TypeVar("TPluginType", bound=BasePlugin, contravariant=True)
 
 
-def _warn_init_has_positional_args(init_method, class_name):
-    init_args = inspect.signature(init_method).parameters
-    positional_args = [
-        k
-        for k, v in init_args.items()
-        if v.kind
-        in {
-            inspect.Parameter.POSITIONAL_ONLY,
-            inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            inspect.Parameter.VAR_POSITIONAL,
-        }
-    ]
-    if len(positional_args) > 1:  # self is always present
-        warnings.warn(
-            f"Avalanche is transitioning to strategy constructors that accept named (keyword) arguments only. "
-            f"This is done to ensure that there is no confusion regarding the meaning of each argument (strategies can have many arguments). "
-            f"Your strategy {class_name}.__init__ method still has some positional-only or "
-            f"positional-or-keyword arguments. Consider removing them. Offending arguments: {positional_args}. "
-            f"This can be achieved by adding a * in the argument list of your __init__ method just after 'self'. "
-            f"More info: https://peps.python.org/pep-3102/#specification"
-        )
-
-
-def _merge_legacy_positional_arguments(
-    init_method,
-    class_name: str,
-    args: Sequence[Any],
-    kwargs: Dict[str, Any],
-    strict_init_check=True,
-    allow_pos_args=True,
-):
-    """
-    Manage the legacy positional constructor parameters.
-
-    Used to warn the user when passing positional parameters to strategy constructors
-    (which is deprecated).
-
-    To allow for a smooth transition, we allow the user to pass positional
-    arguments to the constructor. However, we warn the user that
-    this soft transition mechanism will be removed in the future.
-    """
-
-    if len(args) == 1:
-        # No positional argument has been passed (good!)
-        return args, kwargs
-    elif len(args) == 0:
-        # This should never happen and will fail later.
-        # assert len(args) == 0, "At least the 'self' argument should be passed"
-        return args, kwargs
-
-    all_init_args = dict(inspect.signature(init_method).parameters)
-
-    # Remove 'self' from the list of arguments
-    all_init_args.pop("self")
-
-    # Divide parameters in groups
-    pos_only_args = [
-        (k, v)
-        for k, v in all_init_args.items()
-        if v.kind == inspect.Parameter.POSITIONAL_ONLY
-    ]
-    pos_or_keyword = [
-        (k, v)
-        for k, v in all_init_args.items()
-        if v.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
-    ]
-    var_pos = [
-        (k, v)
-        for k, v in all_init_args.items()
-        if v.kind == inspect.Parameter.VAR_POSITIONAL
-    ]
-    keyword_only_args = [
-        (k, v)
-        for k, v in all_init_args.items()
-        if v.kind == inspect.Parameter.KEYWORD_ONLY
-    ]
-    var_keyword_args = [
-        (k, v)
-        for k, v in all_init_args.items()
-        if v.kind == inspect.Parameter.VAR_KEYWORD
-    ]
-
-    error_str = (
-        f"Avalanche is transitioning to strategy constructors that accept named (keyword) arguments only. "
-        f"This is done to ensure that there is no confusion regarding the meaning of each argument (strategies can have many arguments). "
-        f"Your are passing {len(args) - 1} positional arguments to the {class_name}.__init__ method. "
-        f"Consider passing them as names arguments."
-    )
-
-    if allow_pos_args:
-        error_str += (
-            " The ability to pass positional arguments will be removed in the future."
-        )
-        warnings.warn(error_str, category=PositionalArgumentDeprecatedWarning)
-    else:
-        raise PositionalArgumentDeprecatedWarning(error_str)
-
-    args_to_manage = list(args)
-    kwargs_to_manage = dict(kwargs)
-
-    result_args = [args_to_manage.pop(0)]  # Add self
-    result_kwargs = OrderedDict()
-
-    unset_arguments = set(all_init_args.keys())
-
-    for argument_name, arg_def in pos_only_args:
-        if len(args_to_manage) > 0:
-            result_args.append(args_to_manage.pop(0))
-        elif arg_def.default is inspect.Parameter.empty:
-            raise ValueError(
-                f"Positional-only argument {argument_name} is not set (and no default set)."
-            )
-        unset_arguments.remove(argument_name)
-
-    for argument_name, arg_def in pos_or_keyword:
-        if len(args_to_manage) > 0:
-            result_args.append(args_to_manage.pop(0))
-        elif argument_name in kwargs_to_manage:
-            result_kwargs[argument_name] = kwargs_to_manage.pop(argument_name)
-        elif arg_def.default is inspect.Parameter.empty:
-            raise ValueError(
-                f"Parameter {argument_name} is not set (and no default provided)."
-            )
-
-        if argument_name not in unset_arguments:
-            # This is the same error and message raised by Python when passing
-            # multiple values for an argument.
-            raise TypeError(f"Got multiple values for argument '{argument_name}'")
-        unset_arguments.remove(argument_name)
-
-    if len(var_pos) > 0:
-        # assert len(var_pos) == 1, "Only one var-positional argument is supported"
-        argument_name = var_pos[0][0]
-        if len(args_to_manage) > 0:
-            result_args.extend(args_to_manage)
-            args_to_manage = list()
-
-        if argument_name not in unset_arguments:
-            # This is the same error and message raised by Python when passing
-            # multiple values for an argument.
-            raise TypeError(f"Got multiple values for argument '{argument_name}'")
-
-        unset_arguments.remove(argument_name)
-
-    for argument_name, arg_def in keyword_only_args:
-        if len(args_to_manage) > 0 and argument_name in kwargs_to_manage:
-            raise TypeError(
-                f"Got multiple values for argument '{argument_name}' (passed as both positional and named parameter)"
-            )
-
-        if len(args_to_manage) > 0:
-            # This is where the soft transition mechanism is implemented.
-            # The legacy positional arguments are transformed to keyword arguments.
-            result_kwargs[argument_name] = args_to_manage.pop(0)
-        elif argument_name in kwargs_to_manage:
-            result_kwargs[argument_name] = kwargs_to_manage.pop(argument_name)
-        elif arg_def.default is inspect.Parameter.empty:
-            raise ValueError(
-                f"Keyword-only parameter {argument_name} is not set (and no default set)."
-            )
-
-        if argument_name not in unset_arguments:
-            # This is the same error and message raised by Python when passing
-            # multiple values for an argument.
-            raise TypeError(f"Got multiple values for argument '{argument_name}'")
-
-        unset_arguments.remove(argument_name)
-
-    if len(var_keyword_args) > 0:
-        # assert len(var_keyword_args) == 1, "Only one var-keyword argument is supported"
-        argument_name = var_keyword_args[0][0]
-        result_kwargs.update(kwargs_to_manage)
-        kwargs_to_manage = dict()
-
-        if argument_name not in unset_arguments:
-            # This is the same error and message raised by Python when passing
-            # multiple values for an argument.
-            raise TypeError(f"Got multiple values for argument '{argument_name}'")
-        unset_arguments.remove(argument_name)
-
-    assert len(unset_arguments) == 0
-
-    return result_args, result_kwargs
-
-
-def _support_legacy_strategy_positional_args(func, cls_name):
-    @functools.wraps(func)
-    def wrap_init(*args, **kwargs):
-        # print("wrap_init", cls_name, args[0])
-        _warn_init_has_positional_args(func, cls_name)
-        args, kwargs = _merge_legacy_positional_arguments(
-            func, cls_name, args, kwargs, strict_init_check=False, allow_pos_args=True
-        )
-        return func(*args, **kwargs)
-
-    return wrap_init
-
-
 class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
     """Base class for continual learning skeletons.
 
@@ -568,8 +370,206 @@ def _experiences_parameter_as_iterable(
         return [experiences]
 
 
-__all__ = ["BaseTemplate"]
-
-
 class PositionalArgumentDeprecatedWarning(UserWarning):
     pass
+
+
+def _warn_init_has_positional_args(init_method, class_name):
+    init_args = inspect.signature(init_method).parameters
+    positional_args = [
+        k
+        for k, v in init_args.items()
+        if v.kind
+        in {
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.VAR_POSITIONAL,
+        }
+    ]
+    if len(positional_args) > 1:  # self is always present
+        warnings.warn(
+            f"Avalanche is transitioning to strategy constructors that accept named (keyword) arguments only. "
+            f"This is done to ensure that there is no confusion regarding the meaning of each argument (strategies can have many arguments). "
+            f"Your strategy {class_name}.__init__ method still has some positional-only or "
+            f"positional-or-keyword arguments. Consider removing them. Offending arguments: {positional_args}. "
+            f"This can be achieved by adding a * in the argument list of your __init__ method just after 'self'. "
+            f"More info: https://peps.python.org/pep-3102/#specification"
+        )
+
+
+def _merge_legacy_positional_arguments(
+    init_method,
+    class_name: str,
+    args: Sequence[Any],
+    kwargs: Dict[str, Any],
+    strict_init_check=True,
+    allow_pos_args=True,
+):
+    """
+    Manage the legacy positional constructor parameters.
+
+    Used to warn the user when passing positional parameters to strategy constructors
+    (which is deprecated).
+
+    To allow for a smooth transition, we allow the user to pass positional
+    arguments to the constructor. However, we warn the user that
+    this soft transition mechanism will be removed in the future.
+    """
+
+    if len(args) == 1:
+        # No positional argument has been passed (good!)
+        return args, kwargs
+    elif len(args) == 0:
+        # This should never happen and will fail later.
+        # assert len(args) == 0, "At least the 'self' argument should be passed"
+        return args, kwargs
+
+    all_init_args = dict(inspect.signature(init_method).parameters)
+
+    # Remove 'self' from the list of arguments
+    all_init_args.pop("self")
+
+    # Divide parameters in groups
+    pos_only_args = [
+        (k, v)
+        for k, v in all_init_args.items()
+        if v.kind == inspect.Parameter.POSITIONAL_ONLY
+    ]
+    pos_or_keyword = [
+        (k, v)
+        for k, v in all_init_args.items()
+        if v.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD
+    ]
+    var_pos = [
+        (k, v)
+        for k, v in all_init_args.items()
+        if v.kind == inspect.Parameter.VAR_POSITIONAL
+    ]
+    keyword_only_args = [
+        (k, v)
+        for k, v in all_init_args.items()
+        if v.kind == inspect.Parameter.KEYWORD_ONLY
+    ]
+    var_keyword_args = [
+        (k, v)
+        for k, v in all_init_args.items()
+        if v.kind == inspect.Parameter.VAR_KEYWORD
+    ]
+
+    error_str = (
+        f"Avalanche is transitioning to strategy constructors that accept named (keyword) arguments only. "
+        f"This is done to ensure that there is no confusion regarding the meaning of each argument (strategies can have many arguments). "
+        f"Your are passing {len(args) - 1} positional arguments to the {class_name}.__init__ method. "
+        f"Consider passing them as names arguments."
+    )
+
+    if allow_pos_args:
+        error_str += (
+            " The ability to pass positional arguments will be removed in the future."
+        )
+        warnings.warn(error_str, category=PositionalArgumentDeprecatedWarning)
+    else:
+        raise PositionalArgumentDeprecatedWarning(error_str)
+
+    args_to_manage = list(args)
+    kwargs_to_manage = dict(kwargs)
+
+    result_args = [args_to_manage.pop(0)]  # Add self
+    result_kwargs = OrderedDict()
+
+    unset_arguments = set(all_init_args.keys())
+
+    for argument_name, arg_def in pos_only_args:
+        if len(args_to_manage) > 0:
+            result_args.append(args_to_manage.pop(0))
+        elif arg_def.default is inspect.Parameter.empty:
+            raise ValueError(
+                f"Positional-only argument {argument_name} is not set (and no default set)."
+            )
+        unset_arguments.remove(argument_name)
+
+    for argument_name, arg_def in pos_or_keyword:
+        if len(args_to_manage) > 0:
+            result_args.append(args_to_manage.pop(0))
+        elif argument_name in kwargs_to_manage:
+            result_kwargs[argument_name] = kwargs_to_manage.pop(argument_name)
+        elif arg_def.default is inspect.Parameter.empty:
+            raise ValueError(
+                f"Parameter {argument_name} is not set (and no default provided)."
+            )
+
+        if argument_name not in unset_arguments:
+            # This is the same error and message raised by Python when passing
+            # multiple values for an argument.
+            raise TypeError(f"Got multiple values for argument '{argument_name}'")
+        unset_arguments.remove(argument_name)
+
+    if len(var_pos) > 0:
+        # assert len(var_pos) == 1, "Only one var-positional argument is supported"
+        argument_name = var_pos[0][0]
+        if len(args_to_manage) > 0:
+            result_args.extend(args_to_manage)
+            args_to_manage = list()
+
+        if argument_name not in unset_arguments:
+            # This is the same error and message raised by Python when passing
+            # multiple values for an argument.
+            raise TypeError(f"Got multiple values for argument '{argument_name}'")
+
+        unset_arguments.remove(argument_name)
+
+    for argument_name, arg_def in keyword_only_args:
+        if len(args_to_manage) > 0 and argument_name in kwargs_to_manage:
+            raise TypeError(
+                f"Got multiple values for argument '{argument_name}' (passed as both positional and named parameter)"
+            )
+
+        if len(args_to_manage) > 0:
+            # This is where the soft transition mechanism is implemented.
+            # The legacy positional arguments are transformed to keyword arguments.
+            result_kwargs[argument_name] = args_to_manage.pop(0)
+        elif argument_name in kwargs_to_manage:
+            result_kwargs[argument_name] = kwargs_to_manage.pop(argument_name)
+        elif arg_def.default is inspect.Parameter.empty:
+            raise ValueError(
+                f"Keyword-only parameter {argument_name} is not set (and no default set)."
+            )
+
+        if argument_name not in unset_arguments:
+            # This is the same error and message raised by Python when passing
+            # multiple values for an argument.
+            raise TypeError(f"Got multiple values for argument '{argument_name}'")
+
+        unset_arguments.remove(argument_name)
+
+    if len(var_keyword_args) > 0:
+        # assert len(var_keyword_args) == 1, "Only one var-keyword argument is supported"
+        argument_name = var_keyword_args[0][0]
+        result_kwargs.update(kwargs_to_manage)
+        kwargs_to_manage = dict()
+
+        if argument_name not in unset_arguments:
+            # This is the same error and message raised by Python when passing
+            # multiple values for an argument.
+            raise TypeError(f"Got multiple values for argument '{argument_name}'")
+        unset_arguments.remove(argument_name)
+
+    assert len(unset_arguments) == 0
+
+    return result_args, result_kwargs
+
+
+def _support_legacy_strategy_positional_args(func, cls_name):
+    @functools.wraps(func)
+    def wrap_init(*args, **kwargs):
+        # print("wrap_init", cls_name, args[0])
+        _warn_init_has_positional_args(func, cls_name)
+        args, kwargs = _merge_legacy_positional_arguments(
+            func, cls_name, args, kwargs, strict_init_check=False, allow_pos_args=True
+        )
+        return func(*args, **kwargs)
+
+    return wrap_init
+
+
+__all__ = ["BaseTemplate"]
