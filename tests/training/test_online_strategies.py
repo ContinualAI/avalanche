@@ -10,7 +10,7 @@ from avalanche.models import SimpleMLP
 from avalanche.benchmarks.scenarios.online import OnlineCLScenario
 from avalanche.training import OnlineNaive
 from avalanche.training.templates.base import (
-    PositionalArgumentDeprecatedWarning,
+    PositionalArgumentsDeprecatedWarning,
 )
 from tests.unit_tests_utils import get_fast_benchmark
 from avalanche.training.plugins.evaluation import default_evaluator
@@ -49,7 +49,7 @@ class StrategyTest(unittest.TestCase):
 
         # With task boundaries
         model, optimizer, criterion, _ = self.init_sit()
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = OnlineNaive(
                 model,
                 optimizer,

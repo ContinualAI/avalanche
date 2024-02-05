@@ -8,6 +8,7 @@ from typing import (
     OrderedDict,
     Sequence,
     Optional,
+    Type,
     TypeVar,
     Union,
     List,
@@ -47,9 +48,7 @@ class BaseTemplate(BaseStrategyProtocol[TExperienceType]):
 
     def __init_subclass__(cls, **kwargs):
         # This is needed to manage the transition to keyword-only arguments.
-        cls.__init__ = _support_legacy_strategy_positional_args(
-            cls.__init__, cls.__name__
-        )
+        cls.__init__ = _support_legacy_strategy_positional_args(cls)
         super().__init_subclass__(**kwargs)
 
     # we need this only for type checking
@@ -370,7 +369,7 @@ def _experiences_parameter_as_iterable(
         return [experiences]
 
 
-class PositionalArgumentDeprecatedWarning(UserWarning):
+class PositionalArgumentsDeprecatedWarning(UserWarning):
     pass
 
 
@@ -402,7 +401,6 @@ def _merge_legacy_positional_arguments(
     class_name: str,
     args: Sequence[Any],
     kwargs: Dict[str, Any],
-    strict_init_check=True,
     allow_pos_args=True,
 ):
     """
@@ -467,9 +465,9 @@ def _merge_legacy_positional_arguments(
         error_str += (
             " The ability to pass positional arguments will be removed in the future."
         )
-        warnings.warn(error_str, category=PositionalArgumentDeprecatedWarning)
+        warnings.warn(error_str, category=PositionalArgumentsDeprecatedWarning)
     else:
-        raise PositionalArgumentDeprecatedWarning(error_str)
+        raise PositionalArgumentsDeprecatedWarning(error_str)
 
     args_to_manage = list(args)
     kwargs_to_manage = dict(kwargs)
@@ -559,15 +557,53 @@ def _merge_legacy_positional_arguments(
     return result_args, result_kwargs
 
 
-def _support_legacy_strategy_positional_args(func, cls_name):
-    @functools.wraps(func)
-    def wrap_init(*args, **kwargs):
-        # print("wrap_init", cls_name, args[0])
-        _warn_init_has_positional_args(func, cls_name)
-        args, kwargs = _merge_legacy_positional_arguments(
-            func, cls_name, args, kwargs, strict_init_check=False, allow_pos_args=True
+def _check_mispelled_kwargs(cls: Type, kwargs: Dict[str, Any]):
+    # First: we gather all parameter names of inits of all the classes in the mro
+    all_init_args = set()
+    for c in cls.mro():
+        # We then consider only positional_or_keyword and keyword_only arguments
+        # Also, it does not make sense to include self
+        all_init_args.update(
+            k
+            for k, v in inspect.signature(c.__init__).parameters.items()
+            if v.kind
+            in {
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            }
+            and k != "self"
         )
-        return func(*args, **kwargs)
+
+    passed_parameters = set(kwargs.keys())
+    passed_parameters.discard("self")  # self should not be in kwargs, but it's better to be safe
+
+    # Then we check if there are any mispelled/unexpected arguments
+    unexpected_args = list(passed_parameters - all_init_args)
+
+    if len(unexpected_args) == 1:
+        raise TypeError(
+            f"{cls.__name__}.__init__ got an unexpected keyword argument: {unexpected_args[0]}. "
+            "This parameter is not accepted by the strategy class or any of its super classes. "
+            "Please check if you have mispelled the parameter name."
+        )
+    elif len(unexpected_args) > 1:
+        raise TypeError(
+            f"{cls.__name__}.__init__ got unexpected keyword arguments: {unexpected_args}. "
+            "Those parameters are not accepted by the strategy class or any of its super classes. "
+            "Please check if you have mispelled any parameter name."
+        )
+
+
+def _support_legacy_strategy_positional_args(cls):
+    init_method, cls_name = cls.__init__, cls.__name__
+    @functools.wraps(init_method)
+    def wrap_init(*args, **kwargs):
+        _warn_init_has_positional_args(init_method, cls_name)
+        args, kwargs = _merge_legacy_positional_arguments(
+            init_method, cls_name, args, kwargs, allow_pos_args=True
+        )
+        _check_mispelled_kwargs(cls, kwargs)
+        return init_method(*args, **kwargs)
 
     return wrap_init
 

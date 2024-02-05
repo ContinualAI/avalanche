@@ -61,7 +61,7 @@ from avalanche.training.supervised.strategy_wrappers import PNNStrategy
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.templates.base import _group_experiences_by_stream
 from avalanche.training.templates.base import (
-    PositionalArgumentDeprecatedWarning,
+    PositionalArgumentsDeprecatedWarning,
 )
 from avalanche.training.utils import get_last_fc_layer
 from tests.training.test_strategy_utils import run_strategy
@@ -275,7 +275,18 @@ class StrategyTest(unittest.TestCase):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
 
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertRaises(TypeError):
+            strategy = Naive(
+                model,
+                optimizer,
+                criterion,
+                train_mb_size=64,
+                device=self.device,
+                eval_mb_size=50,
+                trai_epochs=2,
+            )
+
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = Naive(
                 model,
                 optimizer,
@@ -319,7 +330,7 @@ class StrategyTest(unittest.TestCase):
 
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = JointTraining(
                 model,
                 optimizer,
@@ -361,7 +372,7 @@ class StrategyTest(unittest.TestCase):
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
         last_fc_name, _ = get_last_fc_layer(model)
 
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = CWRStar(
                 model,
                 optimizer,
@@ -413,7 +424,7 @@ class StrategyTest(unittest.TestCase):
     def test_replay(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = Replay(
                 model,
                 optimizer,
@@ -446,7 +457,7 @@ class StrategyTest(unittest.TestCase):
     def test_mer(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = MER(
                 model,
                 optimizer,
@@ -479,7 +490,7 @@ class StrategyTest(unittest.TestCase):
     def test_gdumb(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = GDumb(
                 model,
                 optimizer,
@@ -510,7 +521,7 @@ class StrategyTest(unittest.TestCase):
     def test_cumulative(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = Cumulative(
                 model,
                 optimizer,
@@ -537,7 +548,7 @@ class StrategyTest(unittest.TestCase):
 
     def test_slda(self):
         model, _, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = StreamingLDA(
                 model,
                 criterion,
@@ -567,7 +578,7 @@ class StrategyTest(unittest.TestCase):
     def test_lwf(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = LwF(
                 model,
                 optimizer,
@@ -599,7 +610,7 @@ class StrategyTest(unittest.TestCase):
     def test_agem(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = AGEM(
                 model,
                 optimizer,
@@ -629,7 +640,7 @@ class StrategyTest(unittest.TestCase):
     def test_gem(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = GEM(
                 model,
                 optimizer,
@@ -659,7 +670,7 @@ class StrategyTest(unittest.TestCase):
     def test_ewc(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = EWC(
                 model,
                 optimizer,
@@ -690,7 +701,7 @@ class StrategyTest(unittest.TestCase):
     def test_ewc_online(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = EWC(
                 model,
                 optimizer,
@@ -722,7 +733,7 @@ class StrategyTest(unittest.TestCase):
     def test_rwalk(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = Naive(
                 model,
                 optimizer,
@@ -762,7 +773,7 @@ class StrategyTest(unittest.TestCase):
     def test_synaptic_intelligence(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = SynapticIntelligence(
                 model,
                 optimizer,
@@ -794,7 +805,7 @@ class StrategyTest(unittest.TestCase):
 
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = CoPE(
                 model,
                 optimizer,
@@ -831,7 +842,7 @@ class StrategyTest(unittest.TestCase):
         # eval on future tasks is not allowed.
         model = PNN(num_layers=3, in_features=6, hidden_features_per_column=10)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = PNNStrategy(
                 model,
                 optimizer,
@@ -850,7 +861,7 @@ class StrategyTest(unittest.TestCase):
     def test_expertgate(self):
         model = ExpertGate(shape=(3, 227, 227), device=self.device)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = ExpertGateStrategy(
                 model,
                 optimizer,
@@ -889,7 +900,7 @@ class StrategyTest(unittest.TestCase):
         cls = torch.nn.Sigmoid()
         optimizer = SGD([*fe.parameters(), *cls.parameters()], lr=0.001)
 
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = ICaRL(
                 fe,
                 cls,
@@ -909,7 +920,7 @@ class StrategyTest(unittest.TestCase):
     def test_lfl(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = LFL(
                 model,
                 optimizer,
@@ -940,7 +951,7 @@ class StrategyTest(unittest.TestCase):
     def test_mas(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = MAS(
                 model,
                 optimizer,
@@ -973,7 +984,7 @@ class StrategyTest(unittest.TestCase):
     def test_bic(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = BiC(
                 model,
                 optimizer,
@@ -994,7 +1005,7 @@ class StrategyTest(unittest.TestCase):
     def test_mir(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = MIR(
                 model,
                 optimizer,
@@ -1028,7 +1039,7 @@ class StrategyTest(unittest.TestCase):
     def test_erace(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = ER_ACE(
                 model,
                 optimizer,
@@ -1045,7 +1056,7 @@ class StrategyTest(unittest.TestCase):
     def test_eraml(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = ER_AML(
                 model,
                 model.features,
@@ -1065,7 +1076,7 @@ class StrategyTest(unittest.TestCase):
     def test_l2p(self):
         _, _, _, benchmark = self.init_scenario(multi_task=False)
 
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = LearningToPrompt(
                 "simpleMLP",
                 criterion=CrossEntropyLoss(),
@@ -1084,7 +1095,7 @@ class StrategyTest(unittest.TestCase):
     def test_der(self):
         # SIT scenario
         model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = DER(
                 model,
                 optimizer,
@@ -1134,7 +1145,7 @@ class StrategyTest(unittest.TestCase):
 
         # We do not add MT criterion cause FeatureReplay uses
         # MaskedCrossEntropy as main criterion
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = FeatureReplay(
                 model,
                 optimizer,

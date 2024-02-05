@@ -2,7 +2,7 @@ import unittest
 from avalanche.models.packnet import PackNetModel, packnet_simple_mlp
 from avalanche.training.supervised.strategy_wrappers import PackNet
 from avalanche.training.templates.base import (
-    PositionalArgumentDeprecatedWarning,
+    PositionalArgumentsDeprecatedWarning,
 )
 from torch.optim import SGD, Adam
 import torch
@@ -29,7 +29,7 @@ class TestPackNet(unittest.TestCase):
         )
         model = construct_model()
         optimizer = optimizer_constructor(model.parameters(), lr=lr)
-        with self.assertWarns(PositionalArgumentDeprecatedWarning):
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = PackNet(
                 model,
                 prune_proportion=0.5,
