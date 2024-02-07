@@ -55,7 +55,7 @@ jobs:
           USE_GPU: "False"
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          pytest ./tests/benchmarks/scenarios/deprecated/test_high_level_generators.py::HighLevelGeneratorTests::test_filelist_benchmark ./tests/benchmarks/scenarios/deprecated/test_nc_mt_scenario.py::MultiTaskTests::test_mt_single_dataset
+          pytest -n 1 ./tests/benchmarks/scenarios/deprecated/test_high_level_generators.py::HighLevelGeneratorTests::test_filelist_benchmark ./tests/benchmarks/scenarios/deprecated/test_nc_mt_scenario.py::MultiTaskTests::test_mt_single_dataset
       - name: python unit test
         id: unittest
         env:
@@ -64,7 +64,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           mkdir coverage &&
-          pytest --cov=. -n 4 tests &&
+          pytest --cov=. tests &&
           mv .coverage coverage_unit_tests &&
           coverage run examples/eval_plugin.py &&
           mv .coverage coverage_eval_plugin &&

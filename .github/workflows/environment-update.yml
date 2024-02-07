@@ -61,7 +61,7 @@ jobs:
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
           pip install pytest-xdist &&
-          pytest ./tests/benchmarks/scenarios/deprecated/test_high_level_generators.py::HighLevelGeneratorTests::test_filelist_benchmark ./tests/benchmarks/scenarios/deprecated/test_nc_mt_scenario.py::MultiTaskTests::test_mt_single_dataset
+          pytest -n 1 ./tests/benchmarks/scenarios/deprecated/test_high_level_generators.py::HighLevelGeneratorTests::test_filelist_benchmark ./tests/benchmarks/scenarios/deprecated/test_nc_mt_scenario.py::MultiTaskTests::test_mt_single_dataset
       - name: python unit test
         id: unittest
         env:
@@ -70,7 +70,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
-          pytest -n 4 tests &&
+          pytest tests &&
           echo "Running checkpointing tests..." &&
           bash ./tests/checkpointing/test_checkpointing.sh &&
           echo "Running distributed training tests..." &&
