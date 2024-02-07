@@ -24,12 +24,12 @@ class TensorMNIST(MNIST):
             target = self.target_transform(target)
 
         return img, target
-    
+
     # Override property raw_folder
     @property
     def raw_folder(self) -> str:
         return os.path.join(self.root, "MNIST", "raw")
-    
+
     @property
     def processed_folder(self) -> str:
         return os.path.join(self.root, "MNIST", "processed")
