@@ -74,7 +74,7 @@ jobs:
           echo "Running checkpointing tests..." &&
           bash ./tests/checkpointing/test_checkpointing.sh &&
           echo "Running distributed training tests..." &&
-          python run_dist_tests.py
+          python tests/run_dist_tests.py
       - name: checkout avalanche-docker repo
         if: always()
         uses: actions/checkout@v3
