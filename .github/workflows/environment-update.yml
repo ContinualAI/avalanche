@@ -13,7 +13,7 @@ name: environment update
 
 on:
   push:
-    branches: 
+    branches:
       - master
     paths:
       - '.github/workflows/environment-update.yml'
