@@ -53,20 +53,28 @@ jobs:
         run: |
           mamba create -n avalanche-env -y -v python=${{ matrix.python-version }} -c conda-forge &&
           conda run -n avalanche-env --no-capture-output pip install -r requirements.txt
+      - name: download datasets
+        env:
+          FAST_TEST: "True"
+          USE_GPU: "False"
+          PYTHONPATH: ${{ github.workspace }}
+        shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
+        run: |
+          pip install pytest-xdist &&
+          pytest ./tests/benchmarks/scenarios/deprecated/test_high_level_generators.py::HighLevelGeneratorTests::test_filelist_benchmark ./tests/benchmarks/scenarios/deprecated/test_nc_mt_scenario.py::MultiTaskTests::test_mt_single_dataset
       - name: python unit test
         id: unittest
         env:
           FAST_TEST: "True"
           USE_GPU: "False"
+          PYTHONPATH: ${{ github.workspace }}
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
-          python -m unittest discover tests &&
+          pytest -n 4 tests &&
           echo "Running checkpointing tests..." &&
           bash ./tests/checkpointing/test_checkpointing.sh &&
           echo "Running distributed training tests..." &&
-          cd tests &&
-          PYTHONPATH=.. python run_dist_tests.py &&
-          cd ..
+          python run_dist_tests.py
       - name: checkout avalanche-docker repo
         if: always()
         uses: actions/checkout@v3
@@ -80,7 +88,8 @@ jobs:
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
           rm -f avalanche-docker/${{ matrix.python-version }}/environment-${{ matrix.python-version }}.yml &&
-          conda env export > $"avalanche-docker/"${{ matrix.python-version }}"/environment-"${{ matrix.python-version }}".yml" &&
+          rm -f avalanche-docker/${{ matrix.python-version }}/requirements-${{ matrix.python-version }}.txt &&
+          pip freeze > $"avalanche-docker/"${{ matrix.python-version }}"/requirements-"${{ matrix.python-version }}".txt"
           cd avalanche-docker &&
           git config --local user.email ${{ secrets.BOT_EMAIL }} &&
           git config --local user.name ${{ secrets.BOT_NAME }} &&
