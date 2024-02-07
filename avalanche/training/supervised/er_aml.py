@@ -144,7 +144,7 @@ class ER_AML(SupervisedTemplate):
                 self.loss += self.criterion()
             else:
                 pos_neg_replay = tuple(
-                    torch.cat(samples)
+                    torch.cat(samples).to(self.device, non_blocking=True)
                     for samples in zip(
                         *[next(loader) for loader in self.pos_neg_loaders]
                     )

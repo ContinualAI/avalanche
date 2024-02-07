@@ -247,22 +247,23 @@ class BaseStrategyTest(unittest.TestCase):
 
 
 class StrategyTest(unittest.TestCase):
-    if "FAST_TEST" in os.environ:
-        fast_test = os.environ["FAST_TEST"].lower() in ["true"]
-    else:
-        fast_test = False
-    if "USE_GPU" in os.environ:
-        use_gpu = os.environ["USE_GPU"].lower() in ["true"]
-    else:
-        use_gpu = False
+    def setUp(self):
+        if "FAST_TEST" in os.environ:
+            fast_test = os.environ["FAST_TEST"].lower() in ["true"]
+        else:
+            fast_test = False
+        if "USE_GPU" in os.environ:
+            use_gpu = os.environ["USE_GPU"].lower() in ["true"]
+        else:
+            use_gpu = False
 
-    print("Fast Test:", fast_test)
-    print("Test on GPU:", use_gpu)
+        print("Fast Test:", fast_test)
+        print("Test on GPU:", use_gpu)
 
-    if use_gpu:
-        device = "cuda"
-    else:
-        device = "cpu"
+        if use_gpu:
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
 
     def init_scenario(self, multi_task=False):
         model = self.get_model(fast_test=True, multi_task=multi_task)
@@ -859,6 +860,9 @@ class StrategyTest(unittest.TestCase):
         strategy.eval(benchmark.test_stream)
 
     def test_expertgate(self):
+        # As of PyTorch 2.1.2, adaptive_avg_pool2d_backward_cuda
+        # does not have a deterministic implementation.
+        torch.use_deterministic_algorithms(False)
         model = ExpertGate(shape=(3, 227, 227), device=self.device)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
         with self.assertWarns(PositionalArgumentsDeprecatedWarning):

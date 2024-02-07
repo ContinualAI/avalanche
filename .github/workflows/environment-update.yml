@@ -68,6 +68,7 @@ jobs:
           FAST_TEST: "True"
           USE_GPU: "False"
           PYTHONPATH: ${{ github.workspace }}
+          CUBLAS_WORKSPACE_CONFIG: ":4096:8"
         shell: bash -l -c "conda run -n avalanche-env --no-capture-output bash {0}"
         run: |
           pytest tests &&

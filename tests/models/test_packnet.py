@@ -19,6 +19,8 @@ class TestPackNet(unittest.TestCase):
             use_gpu = os.environ["USE_GPU"].lower() in ["true"]
         else:
             use_gpu = False
+        device = torch.device("cuda" if use_gpu else "cpu")
+
         scenario = get_fast_benchmark(True, seed=0)
         construct_model = partial(
             packnet_simple_mlp,
@@ -27,7 +29,7 @@ class TestPackNet(unittest.TestCase):
             input_size=6,
             hidden_size=20,
         )
-        model = construct_model()
+        model = construct_model().to(device)
         optimizer = optimizer_constructor(model.parameters(), lr=lr)
         with self.assertWarns(PositionalArgumentsDeprecatedWarning):
             strategy = PackNet(
@@ -38,10 +40,12 @@ class TestPackNet(unittest.TestCase):
                 train_epochs=2,
                 train_mb_size=10,
                 eval_mb_size=10,
-                device="cuda" if use_gpu else "cpu",
+                device=device,
             )
-        x_test = torch.rand(10, 6)
-        t_test = torch.ones(10, dtype=torch.long)
+
+        # Do NOT optimize as torch.rand(10, 6, device=device) due to reproducibility issues with RNG!
+        x_test = torch.rand(10, 6).to(device)
+        t_test = torch.ones(10, dtype=torch.long, device=device)
         task_ouputs = []
 
         # Train
@@ -52,7 +56,7 @@ class TestPackNet(unittest.TestCase):
             # performance on previous tasks.
             self.assert_eval(expectations, strategy.eval(scenario.test_stream), i)
             # Store the model output for each task
-            task_ouputs.append(model.forward(x_test, t_test * i))
+            task_ouputs.append(model.forward(x_test, t_test * i).to("cpu"))
 
         # Check that the model achieves the expected accuracy
         self.assert_eval(expectations, strategy.eval(scenario.test_stream), 5)
@@ -71,7 +75,7 @@ class TestPackNet(unittest.TestCase):
 
         # Ensure that given the same inputs, the model produces the same outputs
         for i, task_out in enumerate(task_ouputs):
-            out = model.forward(x_test, t_test * i)
+            out = model.forward(x_test, t_test * i).to("cpu")
             self.assertTrue(torch.allclose(out, task_out))
 
     def test_PackNet_adam(self):

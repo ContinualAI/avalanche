@@ -52,6 +52,7 @@ jobs:
           FAST_TEST: "True"
           USE_GPU: "False"
           PYTHONPATH: ${{ github.workspace }}
+          CUBLAS_WORKSPACE_CONFIG: ":4096:8"
         run: |
           python -m unittest discover tests &&
           echo "Checking that optional dependencies are not needed" &&
