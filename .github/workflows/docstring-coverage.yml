@@ -38,7 +38,7 @@ jobs:
       - name: Install and use interrogate
         run: |
           pip install interrogate &&
-          interrogate avalanche -vv --generate-badge interrogate-badge.svg -o documentation-coverage.txt
+          interrogate avalanche -vv --generate-badge interrogate-badge.svg -o documentation-coverage.txt -e examples -e tests  -e profiling
       - name: clone reports repository
         if: github.event_name == 'push' && github.repository == 'ContinualAI/avalanche'
         uses: actions/checkout@v2
