@@ -123,16 +123,12 @@ class EarlyStoppingPlugin(SupervisedPlugin):
             return None
 
         delta_val = float(val_acc - self.best_val)
-        if self.operator(delta_val, 0):
+        if self.operator(delta_val, 0) and abs(delta_val) >= self.margin:
             self.best_state = deepcopy(strategy.model.state_dict())
             self.best_val = val_acc
-            if abs(delta_val) > self.margin:
-                self.best_step = self._get_strategy_counter(strategy)
-                if self.verbose:
-                    print("EarlyStopping: new best value over margin:", val_acc)
-            else:
-                if self.verbose:
-                    print("EarlyStopping: new best value:", val_acc)
+            self.best_step = self._get_strategy_counter(strategy)
+            if self.verbose:
+                print("EarlyStopping: new best value:", val_acc)
 
         return self.best_val
 
