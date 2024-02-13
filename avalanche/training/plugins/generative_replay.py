@@ -15,8 +15,8 @@ All plugins related to Generative Replay.
 """
 
 from copy import deepcopy
-from typing import Optional
-from avalanche.core import SupervisedPlugin
+from typing import Optional, Any
+from avalanche.core import SupervisedPlugin, Template
 import torch
 
 
@@ -52,11 +52,14 @@ class GenerativeReplayPlugin(SupervisedPlugin):
     """
 
     def __init__(
-        self,
-        generator_strategy=None,
-        untrained_solver: bool = True,
-        replay_size: Optional[int] = None,
-        increasing_replay_size: bool = False,
+            self,
+            generator_strategy=None,
+            untrained_solver: bool = True,
+            replay_size: Optional[int] = None,
+            increasing_replay_size: bool = False,
+            is_weighted_replay: bool = False,
+            weight_replay_loss_factor: float = 1.0,
+            weight_replay_loss: float = 0.0001,
     ):
         """
         Init.
@@ -71,6 +74,9 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         self.model_is_generator = False
         self.replay_size = replay_size
         self.increasing_replay_size = increasing_replay_size
+        self.is_weighted_replay = is_weighted_replay
+        self.weight_replay_loss_factor = weight_replay_loss_factor
+        self.weight_replay_loss = weight_replay_loss
 
     def before_training(self, strategy, *args, **kwargs):
         """Checks whether we are using a user defined external generator
@@ -85,7 +91,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.model_is_generator = True
 
     def before_training_exp(
-        self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
+            self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
     ):
         """
         Make deep copies of generator and solver before training new experience.
@@ -101,7 +107,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.old_model.eval()
 
     def after_training_exp(
-        self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
+            self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
     ):
         """
         Set untrained_solver boolean to False after (the first) experience,
@@ -109,11 +115,59 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         """
         self.untrained_solver = False
 
+    def before_backward(self, strategy: Template, *args, **kwargs) -> Any:
+        super().before_backward(strategy, *args, **kwargs)
+        """
+        Generate replay data and calculate the loss on the replay data.
+        Add weighted loss to the total loss if the user has set the weight_replay_loss
+        """
+        if not self.is_weighted_replay:
+            # If we are not using weighted loss, ignore this method
+            return
+
+        if self.untrained_solver:
+            # do not generate on the first experience
+            return
+
+        # determine how many replay data points to generate
+        if self.replay_size:
+            number_replays_to_generate = self.replay_size
+        else:
+            if self.increasing_replay_size:
+                number_replays_to_generate = len(strategy.mbatch[0]) * (
+                    strategy.experience.current_experience
+                )
+            else:
+                number_replays_to_generate = len(strategy.mbatch[0])
+        replay_data = self.old_generator.generate(number_replays_to_generate).to(
+            strategy.device
+        )
+        # get labels for replay data
+        if not self.model_is_generator:
+            with torch.no_grad():
+                replay_output = self.old_model(replay_data).argmax(dim=-1)
+        else:
+            # Mock labels:
+            replay_output = torch.zeros(replay_data.shape[0])
+
+        # make copy of mbatch
+        mbatch = deepcopy(strategy.mbatch)
+        # replace mbatch with replay data, calculate loss and add to strategy.loss
+        strategy.mbatch = [replay_data, replay_output, strategy.mbatch[-1]]
+        strategy.forward()
+        strategy.loss += self.weight_replay_loss * strategy.criterion()
+        self.weight_replay_loss *= self.weight_replay_loss_factor
+        # restore mbatch
+        strategy.mbatch = mbatch
+
     def before_training_iteration(self, strategy, **kwargs):
         """
         Generating and appending replay data to current minibatch before
         each training iteration.
         """
+        if self.is_weighted_replay:
+            # When using weighted loss, do not add replay data to the current minibatch
+            return
         if self.untrained_solver:
             # The solver needs to be trained before labelling generated data and
             # the generator needs to be trained before we can sample.

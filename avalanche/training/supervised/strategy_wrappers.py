@@ -437,6 +437,9 @@ class GenerativeReplay(SupervisedTemplate):
         generator_strategy: Optional[BaseTemplate] = None,
         replay_size: Optional[int] = None,
         increasing_replay_size: bool = False,
+        is_weighted_replay: bool = False,
+        weight_replay_loss_factor: float = 1.0,
+        weight_replay_loss: float = 0.0001,
         **base_kwargs
     ):
         """
@@ -499,6 +502,9 @@ class GenerativeReplay(SupervisedTemplate):
                     GenerativeReplayPlugin(
                         replay_size=replay_size,
                         increasing_replay_size=increasing_replay_size,
+                        is_weighted_replay=is_weighted_replay,
+                        weight_replay_loss_factor=weight_replay_loss_factor,
+                        weight_replay_loss = weight_replay_loss,
                     )
                 ],
             )
@@ -507,6 +513,9 @@ class GenerativeReplay(SupervisedTemplate):
             generator_strategy=self.generator_strategy,
             replay_size=replay_size,
             increasing_replay_size=increasing_replay_size,
+            is_weighted_replay=is_weighted_replay,
+            weight_replay_loss_factor=weight_replay_loss_factor,
+            weight_replay_loss=weight_replay_loss,
         )
 
         tgp = TrainGeneratorAfterExpPlugin()
