@@ -31,7 +31,7 @@ from avalanche.benchmarks.utils.classification_dataset import (
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
-from .. import CLScenario, CLStream, EagerCLStream
+from .generic_scenario import CLScenario, CLStream, EagerCLStream
 
 
 def class_incremental_benchmark(
@@ -399,12 +399,14 @@ def with_classes_timeline(obj):
             new_exp = copy(exp)
             curr_cls = exp.dataset.targets.uniques
 
-            new_exp.classes_in_this_experience = curr_cls
-            new_exp.previous_classes = set(prev_cls)
-            new_exp.classes_seen_so_far = curr_cls.union(prev_cls)
+            new_exp.classes_in_this_experience = list(curr_cls)
+            new_exp.previous_classes = list(set(prev_cls))
+            new_exp.classes_seen_so_far = list(curr_cls.union(prev_cls))
             # TODO: future_classes ignores repetitions right now...
             #  implement and test scenario with repetitions
-            new_exp.future_classes = all_cls.difference(new_exp.classes_seen_so_far)
+            new_exp.future_classes = list(
+                all_cls.difference(new_exp.classes_seen_so_far)
+            )
             new_stream.append(new_exp)
 
             prev_cls = prev_cls.union(curr_cls)
