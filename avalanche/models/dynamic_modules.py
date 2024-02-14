@@ -246,7 +246,7 @@ class IncrementalClassifier(DynamicModule):
                 self.active_units[: old_act_units.shape[0]] = old_act_units
             # update with new active classes
             if self.training:
-                self.active_units[curr_classes] = 1
+                self.active_units[list(curr_classes)] = 1
 
         # update classifier weights
         if old_nclasses == new_nclasses:
