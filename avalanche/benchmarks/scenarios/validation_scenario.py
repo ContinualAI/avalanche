@@ -1,20 +1,13 @@
 from typing import (
     Callable,
-    Generator,
-    Generic,
-    List,
-    Sequence,
-    TypeVar,
     Union,
     Tuple,
     Optional,
-    Iterable,
-    Dict,
 )
 
 import random
 from avalanche.benchmarks.utils.data import AvalancheDataset
-from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
+from .generic_scenario import EagerCLStream, CLScenario, make_stream
 from .dataset_scenario import (
     LazyTrainValSplitter,
     DatasetExperience,
