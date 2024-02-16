@@ -12,12 +12,39 @@
 to allow architectural modifications (multi-head classifiers, progressive
 networks, ...).
 """
+from typing import List, Optional
+
 import torch
 from torch.nn import Module
-from typing import Optional
 
-from avalanche.benchmarks.utils.flat_data import ConstantSequence
 from avalanche.benchmarks.scenarios import CLExperience
+from avalanche.benchmarks.utils.flat_data import ConstantSequence
+
+
+def adapt_recursive(
+    module: Module,
+    experience: CLExperience,
+    _visited: List = None,
+    _initial_call: bool = True,
+):
+    if _visited is None:
+        _visited = []
+
+    if module in _visited:
+        return
+
+    _visited.append(module)
+
+    if isinstance(module, DynamicModule):
+        if (not _initial_call) and (not module._auto_adapt):
+            # Some modules don't want to be auto-adapted
+            return
+        else:
+            module.adaptation(experience)
+
+    # Iterate over children
+    for name, submodule in module.named_children():
+        adapt_recursive(submodule, experience, _visited=_visited, _initial_call=False)
 
 
 class DynamicModule(Module):
@@ -28,6 +55,22 @@ class DynamicModule(Module):
     Compared to pytoch Modules, they provide an additional method,
     `model_adaptation`, which adapts the model given the current experience.
     """
+
+    def __init__(self, auto_adapt=True):
+        """
+        :param auto_adapt: If True, will be adapted in the recursive adaptation loop
+                           else, will be adapted by a module in charge
+                           (i.e IncrementalClassifier inside MultiHeadClassifier)
+        """
+        super().__init__()
+        self._auto_adapt = auto_adapt
+
+    def adapt(self, experience):
+        """
+        Calls self.adaptation recursively accross
+        the hierarchy of module children
+        """
+        adapt_recursive(self, experience)
 
     def adaptation(self, experience: CLExperience):
         """Adapt the module (freeze units, add units...) using the current
@@ -42,6 +85,10 @@ class DynamicModule(Module):
             model. The dataset should be used only to check conditions which
             require the model's adaptation, such as the discovery of new
             classes or tasks.
+
+        .. warning::
+            This function only adapts the current module, to recursively adapt all
+            submodules use self.adapt() instead
 
         :param experience: the current experience.
         :return:
@@ -97,13 +144,13 @@ class MultiTaskModule(DynamicModule):
     the output is computed in parallel for each task.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.max_class_label = 0
         self.known_train_tasks_labels = set()
         """ Set of task labels encountered up to now. """
 
-    def adaptation(self, experience: CLExperience):
+    def adaptation(self, experience: CLExperience, adapt_submodules=True):
         """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
@@ -122,10 +169,7 @@ class MultiTaskModule(DynamicModule):
         """
         curr_classes = experience.classes_in_this_experience
         self.max_class_label = max(self.max_class_label, max(curr_classes) + 1)
-        if self.training:
-            self.train_adaptation(experience)
-        else:
-            self.eval_adaptation(experience)
+        super().adaptation(experience)
 
     def eval_adaptation(self, experience: CLExperience):
         pass
@@ -207,6 +251,7 @@ class IncrementalClassifier(DynamicModule):
         initial_out_features=2,
         masking=True,
         mask_value=-1000,
+        **kwargs,
     ):
         """
         :param in_features: number of input features.
@@ -215,7 +260,7 @@ class IncrementalClassifier(DynamicModule):
         :param masking: whether unused units should be masked (default=True).
         :param mask_value: the value used for masked units (default=-1000).
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.masking = masking
         self.mask_value = mask_value
 
@@ -224,7 +269,7 @@ class IncrementalClassifier(DynamicModule):
         self.register_buffer("active_units", au_init)
 
     @torch.no_grad()
-    def adaptation(self, experience: CLExperience):
+    def train_adaptation(self, experience: CLExperience):
         """If `dataset` contains unseen classes the classifier is expanded.
 
         :param experience: data from the current experience.
@@ -255,6 +300,9 @@ class IncrementalClassifier(DynamicModule):
         self.classifier = torch.nn.Linear(in_features, new_nclasses).to(device)
         self.classifier.weight[:old_nclasses] = old_w
         self.classifier.bias[:old_nclasses] = old_b
+
+    def eval_adaptation(self, experience):
+        self.train_adaptation(experience)
 
     def forward(self, x, **kwargs):
         """compute the output given the input `x`. This module does not use
@@ -321,7 +369,10 @@ class MultiHeadClassifier(MultiTaskModule):
         # masking in IncrementalClassifier is unaware of task labels
         # so we do masking here instead.
         first_head = IncrementalClassifier(
-            self.in_features, self.starting_out_features, masking=False
+            self.in_features,
+            self.starting_out_features,
+            masking=False,
+            auto_adapt=False,
         )
         self.classifiers["0"] = first_head
         self.max_class_label = max(self.max_class_label, initial_out_features)
@@ -345,13 +396,12 @@ class MultiHeadClassifier(MultiTaskModule):
             res[tid] = getattr(self, f"active_units_T{tid}").to(torch.bool)
         return res
 
-    def adaptation(self, experience: CLExperience):
+    def train_adaptation(self, experience: CLExperience):
         """If `dataset` contains new tasks, a new head is initialized.
 
         :param experience: data from the current experience.
         :return:
         """
-        super().adaptation(experience)
         device = self._adaptation_device
         curr_classes = experience.classes_in_this_experience
         task_labels = experience.task_labels
@@ -364,7 +414,10 @@ class MultiHeadClassifier(MultiTaskModule):
             # head adaptation
             if tid not in self.classifiers:  # create new head
                 new_head = IncrementalClassifier(
-                    self.in_features, self.starting_out_features, masking=False
+                    self.in_features,
+                    self.starting_out_features,
+                    masking=False,
+                    auto_adapt=False,
                 ).to(device)
                 self.classifiers[tid] = new_head
 
@@ -403,6 +456,9 @@ class MultiHeadClassifier(MultiTaskModule):
                 # update with new active classes
                 if self.training:
                     self._buffers[au_name][curr_classes] = 1
+
+    def eval_adaptation(self, experience):
+        self.train_adaptation(experience)
 
     def forward_single_task(self, x, task_label):
         """compute the output given the input `x`. This module uses the task
