@@ -34,6 +34,7 @@ class SCR(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: SCRModel,
         optimizer: Optimizer,
         augmentations=Compose([Lambda(lambda el: el)]),
