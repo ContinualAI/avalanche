@@ -21,10 +21,10 @@ from avalanche.benchmarks.scenarios import CLExperience
 from avalanche.benchmarks.utils.flat_data import ConstantSequence
 
 
-def adapt_recursive(
+def avalanche_model_adaptation(
     module: Module,
     experience: CLExperience,
-    _visited: List = None,
+    _visited=None,
     _initial_call: bool = True,
 ):
     if _visited is None:
@@ -44,7 +44,9 @@ def adapt_recursive(
 
     # Iterate over children
     for name, submodule in module.named_children():
-        adapt_recursive(submodule, experience, _visited=_visited, _initial_call=False)
+        avalanche_model_adaptation(
+            submodule, experience, _visited=_visited, _initial_call=False
+        )
 
 
 class DynamicModule(Module):
@@ -70,7 +72,7 @@ class DynamicModule(Module):
         Calls self.adaptation recursively accross
         the hierarchy of module children
         """
-        adapt_recursive(self, experience)
+        avalanche_model_adaptation(self, experience)
 
     def adaptation(self, experience: CLExperience):
         """Adapt the module (freeze units, add units...) using the current
@@ -150,7 +152,7 @@ class MultiTaskModule(DynamicModule):
         self.known_train_tasks_labels = set()
         """ Set of task labels encountered up to now. """
 
-    def adaptation(self, experience: CLExperience, adapt_submodules=True):
+    def adaptation(self, experience: CLExperience):
         """Adapt the module (freeze units, add units...) using the current
         data. Optimizers must be updated after the model adaptation.
 
