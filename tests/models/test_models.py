@@ -522,6 +522,32 @@ class DynamicModelsTests(unittest.TestCase):
             out_masked = out[:, model.active_units == 0]
             assert torch.all(out_masked == model.mask_value)
 
+    def test_multihead_sizes(self):
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
+        model = MultiHeadClassifier(in_features=6)
+        sizes = {}
+        for t, exp in enumerate(benchmark.train_stream):
+            sizes[t] = np.max(exp.classes_in_this_experience) + 1
+            avalanche_model_adaptation(model, exp)
+
+        # Second adaptation should not change anything
+        for t, exp in enumerate(benchmark.train_stream):
+            avalanche_model_adaptation(model, exp)
+
+        for t, s in sizes.items():
+            self.assertEqual(s, model.classifiers[str(t)].classifier.out_features)
+
+    def test_recursive_adaptation(self):
+        model1 = MultiHeadClassifier(in_features=6)
+        model2 = MultiHeadClassifier(in_features=6)
+
+        # Create a mess
+        model1.layer2 = model2
+        model2.layer2 = model1
+
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
+        avalanche_model_adaptation(model1, benchmark.train_stream[0])
+
     def test_multi_head_classifier_masking(self):
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
 

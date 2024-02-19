@@ -173,11 +173,9 @@ class MultiTaskModule(DynamicModule):
         self.max_class_label = max(self.max_class_label, max(curr_classes) + 1)
         super().adaptation(experience)
 
-    def eval_adaptation(self, experience: CLExperience):
-        pass
-
     def train_adaptation(self, experience: CLExperience):
         """Update known task labels."""
+        super().train_adaptation(experience)
         task_labels = experience.task_labels
         self.known_train_tasks_labels = self.known_train_tasks_labels.union(
             set(task_labels)
@@ -277,6 +275,7 @@ class IncrementalClassifier(DynamicModule):
         :param experience: data from the current experience.
         :return:
         """
+        super().train_adaptation(experience)
         device = self._adaptation_device
         in_features = self.classifier.in_features
         old_nclasses = self.classifier.out_features
@@ -304,6 +303,7 @@ class IncrementalClassifier(DynamicModule):
         self.classifier.bias[:old_nclasses] = old_b
 
     def eval_adaptation(self, experience):
+        super().eval_adaptation(experience)
         self.train_adaptation(experience)
 
     def forward(self, x, **kwargs):
@@ -404,6 +404,7 @@ class MultiHeadClassifier(MultiTaskModule):
         :param experience: data from the current experience.
         :return:
         """
+        super().train_adaptation(experience)
         device = self._adaptation_device
         curr_classes = experience.classes_in_this_experience
         task_labels = experience.task_labels
@@ -460,6 +461,7 @@ class MultiHeadClassifier(MultiTaskModule):
                     self._buffers[au_name][curr_classes] = 1
 
     def eval_adaptation(self, experience):
+        super().eval_adaptation(experience)
         self.train_adaptation(experience)
 
     def forward_single_task(self, x, task_label):
