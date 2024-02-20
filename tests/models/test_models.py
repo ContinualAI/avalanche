@@ -537,7 +537,17 @@ class DynamicModelsTests(unittest.TestCase):
         for t, s in sizes.items():
             self.assertEqual(s, model.classifiers[str(t)].classifier.out_features)
 
+    def test_avalanche_adaptation(self):
+        model1 = torch.nn.Sequential(MultiHeadClassifier(in_features=6))
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
+        avalanche_model_adaptation(model1, benchmark.train_stream[0])
+
     def test_recursive_adaptation(self):
+        model1 = MultiHeadClassifier(in_features=6)
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
+        model1.recursive_adaptation(benchmark.train_stream[0])
+
+    def test_recursive_loop(self):
         model1 = MultiHeadClassifier(in_features=6)
         model2 = MultiHeadClassifier(in_features=6)
 
@@ -546,7 +556,7 @@ class DynamicModelsTests(unittest.TestCase):
         model2.layer2 = model1
 
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
-        avalanche_model_adaptation(model1, benchmark.train_stream[0])
+        model1.recursive_adaptation(benchmark.train_stream[0])
 
     def test_multi_head_classifier_masking(self):
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)

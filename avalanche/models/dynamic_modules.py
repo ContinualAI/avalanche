@@ -27,13 +27,19 @@ def avalanche_model_adaptation(
     _visited=None,
     _initial_call: bool = True,
 ):
+    # _initial_call is set to true in the first iteration of the adaptation
+    # If initial_call is not true anymore, it means that the depth of the call is
+    # more than 1 and the adaptation is considered as "automatic" <=> done inside the
+    # recursive loop, Automatic adaptation calls will not adapt modules that
+    # have the _auto_adapt set to False
+
     if _visited is None:
-        _visited = []
+        _visited = set()
 
     if module in _visited:
         return
 
-    _visited.append(module)
+    _visited.add(module)
 
     if isinstance(module, DynamicModule):
         if (not _initial_call) and (not module._auto_adapt):
@@ -67,10 +73,10 @@ class DynamicModule(Module):
         super().__init__()
         self._auto_adapt = auto_adapt
 
-    def adapt(self, experience):
+    def recursive_adaptation(self, experience):
         """
         Calls self.adaptation recursively accross
-        the hierarchy of module children
+        the hierarchy of pytorch module childrens
         """
         avalanche_model_adaptation(self, experience)
 
@@ -90,7 +96,7 @@ class DynamicModule(Module):
 
         .. warning::
             This function only adapts the current module, to recursively adapt all
-            submodules use self.adapt() instead
+            submodules use self.recursive_adaptation() instead
 
         :param experience: the current experience.
         :return:
