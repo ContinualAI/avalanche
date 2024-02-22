@@ -522,30 +522,36 @@ class DynamicModelsTests(unittest.TestCase):
             out_masked = out[:, model.active_units == 0]
             assert torch.all(out_masked == model.mask_value)
 
-    def test_multihead_sizes(self):
+    def test_avalanche_adaptation(self):
+        # This tests adaptation when done through normal pytorch module
+        clf = MultiHeadClassifier(in_features=6)
+        model1 = torch.nn.Sequential(clf)
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
-        model = MultiHeadClassifier(in_features=6)
+        # Also test sizes here
         sizes = {}
         for t, exp in enumerate(benchmark.train_stream):
             sizes[t] = np.max(exp.classes_in_this_experience) + 1
-            avalanche_model_adaptation(model, exp)
-
+            avalanche_model_adaptation(model1, exp)
         # Second adaptation should not change anything
         for t, exp in enumerate(benchmark.train_stream):
-            avalanche_model_adaptation(model, exp)
-
+            avalanche_model_adaptation(model1, exp)
         for t, s in sizes.items():
-            self.assertEqual(s, model.classifiers[str(t)].classifier.out_features)
-
-    def test_avalanche_adaptation(self):
-        model1 = torch.nn.Sequential(MultiHeadClassifier(in_features=6))
-        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
-        avalanche_model_adaptation(model1, benchmark.train_stream[0])
+            self.assertEqual(s, clf.classifiers[str(t)].classifier.out_features)
 
     def test_recursive_adaptation(self):
+        # This tests adaptation when done directly from DynamicModule
         model1 = MultiHeadClassifier(in_features=6)
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
-        model1.recursive_adaptation(benchmark.train_stream[0])
+        # Also test sizes here
+        sizes = {}
+        for t, exp in enumerate(benchmark.train_stream):
+            sizes[t] = np.max(exp.classes_in_this_experience) + 1
+            model1.recursive_adaptation(exp)
+        # Second adaptation should not change anything
+        for t, exp in enumerate(benchmark.train_stream):
+            model1.recursive_adaptation(exp)
+        for t, s in sizes.items():
+            self.assertEqual(s, model1.classifiers[str(t)].classifier.out_features)
 
     def test_recursive_loop(self):
         model1 = MultiHeadClassifier(in_features=6)
