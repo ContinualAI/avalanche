@@ -101,32 +101,6 @@ class DynamicModule(Module):
         :param experience: the current experience.
         :return:
         """
-        if self.training:
-            self.train_adaptation(experience)
-        else:
-            self.eval_adaptation(experience)
-
-    def train_adaptation(self, experience: CLExperience):
-        """Module's adaptation at training time.
-
-        Avalanche strategies automatically call this method *before* training
-        on each experience.
-        """
-        pass
-
-    def eval_adaptation(self, experience: CLExperience):
-        """Module's adaptation at evaluation time.
-
-        Avalanche strategies automatically call this method *before* evaluating
-        on each experience.
-
-        .. warning::
-            This method receives the experience's data at evaluation time
-            because some dynamic models need it for adaptation. For example,
-            an incremental classifier needs to be expanded even at evaluation
-            time if new classes are available. However, you should **never**
-            use this data to **train** the module's parameters.
-        """
         pass
 
     @property
@@ -175,17 +149,15 @@ class MultiTaskModule(DynamicModule):
         :param experience: the current experience.
         :return:
         """
+        super().adaptation(experience)
         curr_classes = experience.classes_in_this_experience
         self.max_class_label = max(self.max_class_label, max(curr_classes) + 1)
-        super().adaptation(experience)
 
-    def train_adaptation(self, experience: CLExperience):
-        """Update known task labels."""
-        super().train_adaptation(experience)
-        task_labels = experience.task_labels
-        self.known_train_tasks_labels = self.known_train_tasks_labels.union(
-            set(task_labels)
-        )
+        if self.training:
+            task_labels = experience.task_labels
+            self.known_train_tasks_labels = self.known_train_tasks_labels.union(
+                set(task_labels)
+            )
 
     def forward(self, x: torch.Tensor, task_labels: torch.Tensor) -> torch.Tensor:
         """compute the output given the input `x` and task labels.
@@ -275,13 +247,13 @@ class IncrementalClassifier(DynamicModule):
         self.register_buffer("active_units", au_init)
 
     @torch.no_grad()
-    def train_adaptation(self, experience: CLExperience):
+    def adaptation(self, experience: CLExperience):
         """If `dataset` contains unseen classes the classifier is expanded.
 
         :param experience: data from the current experience.
         :return:
         """
-        super().train_adaptation(experience)
+        super().adaptation(experience)
         device = self._adaptation_device
         in_features = self.classifier.in_features
         old_nclasses = self.classifier.out_features
@@ -307,10 +279,6 @@ class IncrementalClassifier(DynamicModule):
         self.classifier = torch.nn.Linear(in_features, new_nclasses).to(device)
         self.classifier.weight[:old_nclasses] = old_w
         self.classifier.bias[:old_nclasses] = old_b
-
-    def eval_adaptation(self, experience):
-        super().eval_adaptation(experience)
-        self.train_adaptation(experience)
 
     def forward(self, x, **kwargs):
         """compute the output given the input `x`. This module does not use
@@ -404,13 +372,13 @@ class MultiHeadClassifier(MultiTaskModule):
             res[tid] = getattr(self, f"active_units_T{tid}").to(torch.bool)
         return res
 
-    def train_adaptation(self, experience: CLExperience):
+    def adaptation(self, experience: CLExperience):
         """If `dataset` contains new tasks, a new head is initialized.
 
         :param experience: data from the current experience.
         :return:
         """
-        super().train_adaptation(experience)
+        super().adaptation(experience)
         device = self._adaptation_device
         curr_classes = experience.classes_in_this_experience
         task_labels = experience.task_labels
@@ -465,10 +433,6 @@ class MultiHeadClassifier(MultiTaskModule):
                 # update with new active classes
                 if self.training:
                     self._buffers[au_name][curr_classes] = 1
-
-    def eval_adaptation(self, experience):
-        super().eval_adaptation(experience)
-        self.train_adaptation(experience)
 
     def forward_single_task(self, x, task_label):
         """compute the output given the input `x`. This module uses the task
