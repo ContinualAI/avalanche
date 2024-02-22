@@ -37,6 +37,7 @@ Scenarios
 
     NCScenario
     NIScenario
+    benchmark_with_validation_stream
 
 Streams
 """""""""
@@ -275,9 +276,9 @@ Misc (make data-incremental, add a validation stream, ...)
     :toctree: generated
 
     data_incremental_benchmark
-    benchmark_with_validation_stream
 
 .. currentmodule:: avalanche.benchmarks.utils
+
 
 Utils (Data Loading and AvalancheDataset)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -306,9 +307,5 @@ AvalancheDataset
 
     AvalancheDataset
     make_avalanche_dataset
-    make_classification_dataset
-    classification_subset
-    make_tensor_classification_dataset
-    concat_classification_datasets
     TaskSet
     DataAttribute
