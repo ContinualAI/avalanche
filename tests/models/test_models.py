@@ -3,17 +3,18 @@ import os
 import sys
 import tempfile
 import unittest
-import numpy as np
 
+import numpy as np
 import pytorchcv.models.pyramidnet_cifar
 import torch
+import torch.nn.functional as F
 from tests.benchmarks.utils.test_avalanche_classification_dataset import get_mbatch
 from tests.unit_tests_utils import common_setups, get_fast_benchmark, load_benchmark
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torch.utils.data import DataLoader
-import torch.nn.functional as F
 
+from avalanche.checkpointing import maybe_load_checkpoint, save_checkpoint
 from avalanche.logging import TextLogger
 from avalanche.models import (
     PNN,
@@ -40,7 +41,6 @@ from avalanche.models.pytorchcv_wrapper import (
     vgg,
 )
 from avalanche.models.utils import avalanche_model_adaptation
-from avalanche.checkpointing import maybe_load_checkpoint, save_checkpoint
 from avalanche.training.supervised import Naive
 
 
@@ -695,6 +695,25 @@ class NCMClassifierTest(unittest.TestCase):
         logits = classifier(torch.randn(2, 7))
         assert logits.shape == (2, 10)
 
+    def test_ncm_eval_adapt(self):
+        benchmark = get_fast_benchmark(use_task_labels=False, shuffle=True)
+        model = SimpleMLP(input_size=6)
+        train_classifier = model.classifier
+        model.classifier = torch.nn.Identity()
+        eval_classifier = NCMClassifier()
+        model = TrainEvalModel(
+            model, train_classifier=train_classifier, eval_classifier=eval_classifier
+        )
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        strategy = Naive(model, optimizer)
+
+        # Do one first adaptation to know about output shape
+        class_means_dict = {0: model.feature_extractor(torch.rand(1, 6)).mean(dim=0)}
+        model.eval_classifier.replace_class_means_dict(class_means_dict)
+
+        for exp in benchmark.test_stream:
+            strategy.eval(exp)
+
     def test_ncm_save_load(self):
         classifier = NCMClassifier()
         classifier.update_class_means_dict(
@@ -752,7 +771,7 @@ class FeCAMClassifierTest(unittest.TestCase):
         logits = classifier(torch.randn(2, 7))
         assert logits.shape == (2, 10)
 
-    def test_ncm_save_load(self):
+    def test_fecam_save_load(self):
         classifier = FeCAMClassifier()
 
         classifier.update_class_means_dict(
@@ -783,6 +802,27 @@ class FeCAMClassifierTest(unittest.TestCase):
         classifier.load_state_dict(check)
 
         assert len(classifier.class_means_dict) == 2
+
+    def test_fecam_eval_adapt(self):
+        benchmark = get_fast_benchmark(use_task_labels=False, shuffle=True)
+        model = SimpleMLP(input_size=6)
+        train_classifier = model.classifier
+        model.classifier = torch.nn.Identity()
+        eval_classifier = FeCAMClassifier()
+        model = TrainEvalModel(
+            model, train_classifier=train_classifier, eval_classifier=eval_classifier
+        )
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        strategy = Naive(model, optimizer)
+
+        # Do one first adaptation to know about output shape
+        class_means_dict = {0: model.feature_extractor(torch.rand(1, 6)).mean(dim=0)}
+        class_vars_dict = {0: torch.cov(model.feature_extractor(torch.rand(1000, 6)).T)}
+        model.eval_classifier.replace_class_means_dict(class_means_dict)
+        model.eval_classifier.replace_class_cov_dict(class_vars_dict)
+
+        for exp in benchmark.test_stream[:2]:
+            strategy.eval(exp)
 
 
 class CosineLayerTest(unittest.TestCase):

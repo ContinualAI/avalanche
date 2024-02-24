@@ -76,14 +76,14 @@ class FeCAMClassifier(DynamicModule):
         if self.tukey:
             x = self._tukey_transforms(x)
 
-        maha_dist = []
+        maha_dist = torch.ones(self.max_class + 1, x.shape[0]) * np.inf
         for class_id, prototype in self.class_means_dict.items():
             cov = self.class_cov_dict[class_id]
             dist = self._mahalanobis(x, prototype, cov)
-            maha_dist.append(dist)
+            maha_dist[class_id] = dist
 
         # n_classes, batch_size
-        maha_dis = torch.stack(maha_dist).T
+        maha_dis = maha_dist.T
 
         # (batch_size, num_classes)
         return -maha_dis
@@ -220,17 +220,24 @@ class FeCAMClassifier(DynamicModule):
                 self.class_means_dict[k] = torch.zeros(class_size).to(device)
                 self.class_cov_dict[k] = torch.eye(class_size).to(device)
 
-    def eval_adaptation(self, experience):
-        classes = experience.classes_in_this_experience
-        for k in classes:
-            self.max_class = max(k, self.max_class)
+        # Vectorize
+        self._vectorize_means_dict()
+        self._vectorize_cov_dict()
 
-        if len(self.class_means_dict) > 0:
-            self.init_missing_classes(
-                classes,
-                list(self.class_means_dict.values())[0].shape[0],
-                list(self.class_means_dict.values())[0].device,
-            )
+    def adaptation(self, experience):
+        super().adaptation(experience)
+
+        if not self.training:
+            classes = experience.classes_in_this_experience
+            for k in classes:
+                self.max_class = max(k, self.max_class)
+
+            if len(self.class_means_dict) > 0:
+                self.init_missing_classes(
+                    classes,
+                    list(self.class_means_dict.values())[0].shape[0],
+                    list(self.class_means_dict.values())[0].device,
+                )
 
     def apply_transforms(self, features):
         if self.tukey:
