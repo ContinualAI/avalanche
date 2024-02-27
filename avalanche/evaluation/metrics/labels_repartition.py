@@ -85,8 +85,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
         ] = default_history_repartition_image_creator,
         mode: Literal["train"] = "train",
         emit_reset_at: Literal["stream", "experience", "epoch"] = "epoch",
-    ):
-        ...
+    ): ...
 
     @overload
     def __init__(
@@ -97,8 +96,7 @@ class LabelsRepartitionPlugin(GenericPluginMetric[Figure, LabelsRepartition]):
         ] = default_history_repartition_image_creator,
         mode: Literal["eval"] = "eval",
         emit_reset_at: Literal["stream", "experience"],
-    ):
-        ...
+    ): ...
 
     def __init__(
         self,

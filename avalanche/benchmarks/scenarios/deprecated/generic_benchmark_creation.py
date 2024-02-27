@@ -143,9 +143,9 @@ def create_multi_dataset_generic_benchmark(
                 "complete_test_set_only is True"
             )
 
-    stream_definitions: Dict[
-        str, Tuple[Iterable[TaskAwareClassificationDataset]]
-    ] = dict()
+    stream_definitions: Dict[str, Tuple[Iterable[TaskAwareClassificationDataset]]] = (
+        dict()
+    )
 
     for stream_name, dataset_list in input_streams.items():
         initial_transform_group = "train"
