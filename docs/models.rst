@@ -14,7 +14,7 @@ models
 .. currentmodule:: avalanche.models
 
 Dynamic Modules
-^^^^^^^^^^^^^^^
+------------------
 
 Dynamic Modules are Pytorch modules that can be incrementally expanded
 to allow architectural modifications (multi-head classifiers, progressive
@@ -28,9 +28,22 @@ networks, ...).
     IncrementalClassifier
     MultiHeadClassifier
 
+Progressive Neural Networks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Modules that implement progressive neural networks models, layers, and adapters.
+
+.. autosummary::
+    :toctree: generated
+
+    PNN
+    PNNLayer
+    PNNColumn
+    LinearAdapter
+    MLPAdapter
+
 
 Models
-^^^^^^^^^^^^^^^^^^^^^^^
+------------------
 
 | Neural network architectures that can be used as backbones for CL experiments.
 
@@ -57,22 +70,8 @@ Models
     ExpertGate
 
 
-Progressive Neural Networks
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Modules that implement progressive neural networks models, layers, and adapters.
-
-.. autosummary::
-    :toctree: generated
-    
-    PNN
-    PNNLayer
-    PNNColumn    
-    LinearAdapter
-    MLPAdapter
-
-
 Model Wrappers and Utilities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 Wrappers and functions that add utility support to your models.
 
 .. autosummary::
@@ -87,7 +86,7 @@ Wrappers and functions that add utility support to your models.
     pytorchcv_wrapper.get_model
 
 Dynamic optimizer utilities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------------
 
 Utilities to handle optimizer's update when using dynamic architectures.
 Dynamic Modules (e.g. multi-head) can change their parameters dynamically

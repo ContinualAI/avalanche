@@ -28,7 +28,7 @@ from typing import (
     Dict,
 )
 
-from .generic_scenario import EagerCLStream, CLScenario, CLExperience, make_stream
+from .generic_scenario import EagerCLStream, CLScenario, CLExperience
 from ..utils import TaskAwareSupervisedClassificationDataset
 
 
@@ -257,4 +257,5 @@ __all__ = [
     "benchmark_from_datasets",
     "DatasetExperience",
     "split_validation_random",
+    "split_validation_class_balanced",
 ]
