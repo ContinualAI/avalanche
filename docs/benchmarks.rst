@@ -37,6 +37,7 @@ Scenarios
 
     NCScenario
     NIScenario
+    benchmark_with_validation_stream
 
 Streams
 """""""""
@@ -278,6 +279,7 @@ Train/Validation splits for streams:
 
 
 .. currentmodule:: avalanche.benchmarks.utils
+
 
 Utils (Data Loading and AvalancheDataset)
 --------------------------------------------------------------------------------

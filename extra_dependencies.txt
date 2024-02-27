@@ -4,8 +4,8 @@
 # package[version_required]: tag1, tag2, ...
 
 higher:               extra
-ctrl-benchmark:       extra
 torchaudio:           extra
+ctrl-benchmark:       ctrl
 gym:                  rl
 pycocotools:          detection
 lvis:                 detection
