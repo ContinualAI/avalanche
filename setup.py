@@ -76,7 +76,7 @@ setuptools.setup(
         "torchvision",
         "torchmetrics",
         "gdown",
-        "qpsolvers",
+        "qpsolvers[open_source_solvers]",
         "dill",
         "packaging",
     ],
