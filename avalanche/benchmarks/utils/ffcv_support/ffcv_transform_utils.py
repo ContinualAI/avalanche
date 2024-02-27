@@ -12,8 +12,8 @@ from typing import (
     Tuple,
     Type,
     Union,
+    Literal,
 )
-from typing_extensions import Literal
 import warnings
 import numpy as np
 

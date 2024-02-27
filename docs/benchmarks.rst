@@ -20,7 +20,7 @@ avalanche.benchmarks
 .. currentmodule:: avalanche.benchmarks.scenarios
 
 Continual Learning Scenarios
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------
 
 | Generic definitions for scenarios, streams and experiences. All the continual learning benchmarks are specific instantiations of these concepts.
 
@@ -37,6 +37,7 @@ Scenarios
 
     NCScenario
     NIScenario
+    benchmark_with_validation_stream
 
 Streams
 """""""""
@@ -49,7 +50,7 @@ Streams
     ClassificationStream
 
 Experiences
-"""""""""
+"""""""""""""
 
 .. autosummary::
     :toctree: generated
@@ -209,7 +210,7 @@ Benchmarks for learning from pretrained models or multi-agent continual learning
 .. currentmodule:: avalanche.benchmarks.datasets
 
 Datasets
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------
 
 | The **datasets** sub-module provides PyTorch dataset implementations for datasets missing from the torchvision/audio/* libraries. These datasets can also be used in a standalone way!
 
@@ -235,52 +236,54 @@ Datasets
     torchaudio_wrapper.SpeechCommands
 
 
-.. currentmodule:: avalanche.benchmarks.scenarios.deprecated.generators
+.. currentmodule:: avalanche.benchmarks
 
 Benchmark Generators
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------
+
 | The **generators** sub-module provides a lot of functions that can be used to create a new benchmark.
-| This set of functions tries to cover most common use cases (Class/Task-Incremental, Domain-Incremental, ...) but it also allows for the creation of entirely custom benchmarks (based on lists of tensors, on file lists, ...).
-
-
-Generators for Class/Task/Domain-incremental benchmarks
-........................................................
+| This set of functions tries to cover most common use cases (Class/Task-Incremental, Domain-Incremental, ...) but it also allows for the creation of entirely custom benchmarks from AvalancheDatasets.
 
 .. autosummary::
     :toctree: generated
 
-    nc_benchmark
-    ni_benchmark
+    benchmark_from_datasets
+    class_incremental_benchmark
+    new_instances_benchmark
+    task_incremental_benchmark
 
-
-Starting from tensor lists, file lists, PyTorch datasets
-..........................................................
-
-.. autosummary::
-    :toctree: generated
-
-    dataset_benchmark
-    filelist_benchmark
-    paths_benchmark
-    tensors_benchmark
-
-
-Misc (make data-incremental, add a validation stream, ...)
-..............................................................
-
-| Avalanche offers utilities to adapt a previously instantiated benchmark object.
-| More utilities to come!
+If you want to add attributes to experiences (such as `classes_in_this_experiences` or `task_labels`) you can use the generic decorators:
 
 .. autosummary::
     :toctree: generated
 
-    data_incremental_benchmark
+    with_classes_timeline
+    with_task_labels
+
+Online streams where experiences are made of small minibatches:
+
+.. autosummary::
+    :toctree: generated
+
+    split_online_stream
+    split_continuous_linear_decay_stream
+
+Train/Validation splits for streams:
+
+.. autosummary::
+    :toctree: generated
+
     benchmark_with_validation_stream
+    split_validation_class_balanced
+    split_validation_random
+
 
 .. currentmodule:: avalanche.benchmarks.utils
 
+
 Utils (Data Loading and AvalancheDataset)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------------------------------------------
+
 | The custom dataset and dataloader implementations contained in this sub-module are described in more detailed in the How-Tos about `"data loading and replay" <https://avalanche.continualai.org/how-tos/dataloading_buffers_replay>` and `"Avalanche Dataset" <https://avalanche.continualai.org/how-tos/avalanchedataset>`.
 
 
@@ -306,9 +309,5 @@ AvalancheDataset
 
     AvalancheDataset
     make_avalanche_dataset
-    make_classification_dataset
-    classification_subset
-    make_tensor_classification_dataset
-    concat_classification_datasets
     TaskSet
     DataAttribute

@@ -3,13 +3,12 @@ import torch
 
 from torch.nn import Module
 from torch.optim import Optimizer
-from torch.utils.data import ConcatDataset
 
-from avalanche.benchmarks.utils import _concat_taskaware_classification_datasets
 from avalanche.benchmarks.utils.utils import concat_datasets
 from avalanche.training.plugins.evaluation import default_evaluator
 from avalanche.training.plugins import SupervisedPlugin, EvaluationPlugin
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class Cumulative(SupervisedTemplate):
@@ -21,9 +20,10 @@ class Cumulative(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -33,6 +33,7 @@ class Cumulative(SupervisedTemplate):
             EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
+        **kwargs
     ):
         """Init.
 
@@ -54,9 +55,9 @@ class Cumulative(SupervisedTemplate):
         """
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -64,6 +65,7 @@ class Cumulative(SupervisedTemplate):
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
+            **kwargs
         )
 
         self.dataset = None  # cumulative dataset
@@ -79,3 +81,6 @@ class Cumulative(SupervisedTemplate):
         else:
             self.dataset = concat_datasets([self.dataset, exp.dataset])
         self.adapted_dataset = self.dataset
+
+
+__all__ = ["Cumulative"]

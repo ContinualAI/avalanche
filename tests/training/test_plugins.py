@@ -16,6 +16,8 @@ from torch.utils.data.dataloader import DataLoader
 from avalanche.benchmarks import (
     nc_benchmark,
     GenericCLScenario,
+)
+from avalanche.benchmarks.scenarios.validation_scenario import (
     benchmark_with_validation_stream,
 )
 from avalanche.benchmarks.utils.data_loader import TaskBalancedDataLoader
@@ -118,9 +120,9 @@ class PluginTests(unittest.TestCase):
 
         plug = MockPlugin()
         strategy = Naive(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=100,
             train_epochs=1,
             eval_mb_size=100,

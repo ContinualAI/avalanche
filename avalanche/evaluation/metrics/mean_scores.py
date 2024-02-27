@@ -9,6 +9,7 @@ E. Belouadah and A. Popescu,
 It selects the scores of the true class and then average them for past and new
 classes.
 """
+
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Callable, Dict, Set, TYPE_CHECKING, List, Optional, TypeVar, Literal

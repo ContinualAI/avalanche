@@ -28,12 +28,13 @@ class ICaRL(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         feature_extractor: Module,
         classifier: Module,
         optimizer: Optimizer,
-        memory_size,
+        memory_size: int,
         buffer_transform,
-        fixed_memory,
+        fixed_memory: bool,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
@@ -78,7 +79,11 @@ class ICaRL(SupervisedTemplate):
         )
 
         criterion = ICaRLLossPlugin()  # iCaRL requires this specific loss (#966)
-        icarl = _ICaRLPlugin(memory_size, buffer_transform, fixed_memory)
+        icarl = _ICaRLPlugin(
+            memory_size,
+            buffer_transform,
+            fixed_memory,
+        )
 
         if plugins is None:
             plugins = [icarl]
@@ -89,8 +94,8 @@ class ICaRL(SupervisedTemplate):
             plugins += [criterion]
 
         super().__init__(
-            model,
-            optimizer,
+            model=model,
+            optimizer=optimizer,
             criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,

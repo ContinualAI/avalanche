@@ -11,6 +11,7 @@ from avalanche.training import ACECriterion
 from avalanche.training.plugins.evaluation import EvaluationPlugin, default_evaluator
 from avalanche.training.storage_policy import ClassBalancedBuffer
 from avalanche.training.templates import SupervisedTemplate
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 from avalanche.training.utils import cycle
 from avalanche.training.losses import MaskedCrossEntropy
 
@@ -46,9 +47,10 @@ class FeatureReplay(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: nn.Module,
         optimizer: Optimizer,
-        criterion=MaskedCrossEntropy(),
+        criterion: CriterionType = MaskedCrossEntropy(),
         last_layer_name: str = "classifier",
         mem_size: int = 200,
         batch_size_mem: int = 10,
@@ -62,19 +64,21 @@ class FeatureReplay(SupervisedTemplate):
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs
     ):
         super().__init__(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
-            device,
-            plugins,
-            evaluator,
-            eval_every,
-            peval_mode,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            peval_mode=peval_mode,
+            **kwargs
         )
         self.mem_size = mem_size
         self.batch_size_mem = batch_size_mem

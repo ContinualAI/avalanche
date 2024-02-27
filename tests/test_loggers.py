@@ -3,6 +3,7 @@
 Right now they don't do much but they at least check that the loggers run
 without errors.
 """
+
 import unittest
 
 from torch.optim import SGD

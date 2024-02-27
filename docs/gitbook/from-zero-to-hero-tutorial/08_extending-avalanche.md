@@ -6,7 +6,7 @@ description: 'Make it Custom, Make it Yours'
 
 
 ```python
-!pip install avalanche-lib==0.4
+!pip install avalanche-lib==0.5
 ```
 
 

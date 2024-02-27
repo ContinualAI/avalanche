@@ -3,6 +3,8 @@ from packaging.version import parse
 import warnings
 import torch
 
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
+
 if parse(torch.__version__) < parse("2.0.0"):
     warnings.warn(f"LaMAML requires torch >= 2.0.0.")
 
@@ -24,9 +26,10 @@ from avalanche.training.storage_policy import ReservoirSamplingBuffer
 class LaMAML(SupervisedMetaLearningTemplate):
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         n_inner_updates: int = 5,
         second_order: bool = True,
         grad_clip_norm: float = 1.0,
@@ -96,7 +99,6 @@ class LaMAML(SupervisedMetaLearningTemplate):
             buffer_mb_size=buffer_mb_size,
             device=device,
         )
-
         self.model.apply(init_kaiming_normal)
 
     def _before_training_exp(self, **kwargs):
@@ -185,9 +187,11 @@ class LaMAML(SupervisedMetaLearningTemplate):
 
         # Clip grad norms
         grads = [
-            torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
-            if g is not None
-            else g
+            (
+                torch.clamp(g, min=-self.grad_clip_norm, max=self.grad_clip_norm)
+                if g is not None
+                else g
+            )
             for g in grads
         ]
 
@@ -300,16 +304,15 @@ class Buffer:
 
     def get_buffer_batch(self):
         rnd_ind = torch.randperm(len(self))[: self.buffer_mb_size]
-        buff_x = torch.cat(
-            [self.storage_policy.buffer[i][0].unsqueeze(0) for i in rnd_ind]
-        ).to(self.device)
-        buff_y = torch.LongTensor(
-            [self.storage_policy.buffer[i][1] for i in rnd_ind]
-        ).to(self.device)
-        buff_t = torch.LongTensor(
-            [self.storage_policy.buffer[i][2] for i in rnd_ind]
-        ).to(self.device)
-
+        buff = self.storage_policy.buffer.subset(rnd_ind)
+        buff_x, buff_y, buff_t = [], [], []
+        for bx, by, bt in buff:
+            buff_x.append(bx)
+            buff_y.append(by)
+            buff_t.append(bt)
+        buff_x = torch.stack(buff_x, dim=0).to(self.device)
+        buff_y = torch.tensor(buff_y).to(self.device).long()
+        buff_t = torch.tensor(buff_t).to(self.device).long()
         return buff_x, buff_y, buff_t
 
 

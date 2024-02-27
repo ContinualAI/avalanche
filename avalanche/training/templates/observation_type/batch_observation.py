@@ -1,19 +1,18 @@
-import warnings
-from collections import defaultdict
-from typing import List, TypeVar
-
-from torch import Tensor
-
 from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.utils import avalanche_model_adaptation
-from avalanche.training.templates.strategy_mixin_protocol import SGDStrategyProtocol
+from avalanche.training.templates.strategy_mixin_protocol import (
+    SGDStrategyProtocol,
+    TSGDExperienceType,
+    TMBInput,
+    TMBOutput,
+)
 from avalanche.models.dynamic_optimizers import reset_optimizer, update_optimizer
 from avalanche.training.utils import _at_task_boundary
 
 
-class BatchObservation(SGDStrategyProtocol):
-    def __init__(self):
-        super().__init__()
+class BatchObservation(SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutput]):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.optimized_param_id = None
 
     def model_adaptation(self, model=None):

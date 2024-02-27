@@ -28,6 +28,7 @@ from avalanche.training.templates.base import (
     _experiences_parameter_as_iterable,
     _group_experiences_by_stream,
 )
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class AlreadyTrainedError(Exception):
@@ -57,9 +58,10 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion,
+        criterion: CriterionType,
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: int = 1,
@@ -69,6 +71,7 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
             EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
+        **kwargs
     ):
         """Init.
 
@@ -98,6 +101,7 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
+            **kwargs
         )
         # JointTraining can be trained only once.
         self._is_fitted = False
@@ -135,9 +139,9 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
             )
 
         # Normalize training and eval data.
-        experiences_list: Iterable[
-            TDatasetExperience
-        ] = _experiences_parameter_as_iterable(experiences)
+        experiences_list: Iterable[TDatasetExperience] = (
+            _experiences_parameter_as_iterable(experiences)
+        )
 
         if eval_streams is None:
             eval_streams = [experiences_list]

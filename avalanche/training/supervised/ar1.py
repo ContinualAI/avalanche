@@ -26,6 +26,7 @@ from avalanche.training.utils import (
     LayerAndParameter,
 )
 from avalanche.training.plugins.evaluation import default_evaluator
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 
 
 class AR1(SupervisedTemplate):
@@ -42,7 +43,8 @@ class AR1(SupervisedTemplate):
 
     def __init__(
         self,
-        criterion=None,
+        *,
+        criterion: CriterionType = CrossEntropyLoss(),
         lr: float = 0.001,
         inc_lr: float = 5e-5,
         momentum=0.9,
@@ -65,6 +67,7 @@ class AR1(SupervisedTemplate):
             EvaluationPlugin, Callable[[], EvaluationPlugin]
         ] = default_evaluator,
         eval_every=-1,
+        **kwargs
     ):
         """
         Creates an instance of the AR1 strategy.
@@ -146,9 +149,6 @@ class AR1(SupervisedTemplate):
 
         optimizer = SGD(model.parameters(), lr=lr, momentum=momentum, weight_decay=l2)
 
-        if criterion is None:
-            criterion = CrossEntropyLoss()
-
         self.ewc_lambda = ewc_lambda
         self.freeze_below_layer = freeze_below_layer
         self.rm_sz = rm_sz
@@ -166,9 +166,9 @@ class AR1(SupervisedTemplate):
         self.replay_mb_size = 0
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -176,6 +176,7 @@ class AR1(SupervisedTemplate):
             plugins=plugins,
             evaluator=evaluator,
             eval_every=eval_every,
+            **kwargs
         )
 
     def _before_training_exp(self, **kwargs):

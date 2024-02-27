@@ -31,6 +31,7 @@ class LearningToPrompt(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model_name: str,
         criterion: nn.Module = nn.CrossEntropyLoss(),
         train_mb_size: int = 1,
@@ -130,17 +131,18 @@ class LearningToPrompt(SupervisedTemplate):
         )
 
         super().__init__(
-            model,
-            optimizer,
-            criterion,
-            train_mb_size,
-            train_epochs,
-            eval_mb_size,
-            device,
-            plugins,
-            evaluator,
-            eval_every,
-            peval_mode,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            peval_mode=peval_mode,
+            **kwargs,
         )
 
         self._criterion = criterion

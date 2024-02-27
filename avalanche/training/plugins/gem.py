@@ -60,9 +60,11 @@ class GEMPlugin(SupervisedPlugin):
                 G.append(
                     torch.cat(
                         [
-                            p.grad.flatten()
-                            if p.grad is not None
-                            else torch.zeros(p.numel(), device=strategy.device)
+                            (
+                                p.grad.flatten()
+                                if p.grad is not None
+                                else torch.zeros(p.numel(), device=strategy.device)
+                            )
                             for p in strategy.model.parameters()
                         ],
                         dim=0,
@@ -80,9 +82,11 @@ class GEMPlugin(SupervisedPlugin):
         if strategy.clock.train_exp_counter > 0:
             g = torch.cat(
                 [
-                    p.grad.flatten()
-                    if p.grad is not None
-                    else torch.zeros(p.numel(), device=strategy.device)
+                    (
+                        p.grad.flatten()
+                        if p.grad is not None
+                        else torch.zeros(p.numel(), device=strategy.device)
+                    )
                     for p in strategy.model.parameters()
                 ],
                 dim=0,

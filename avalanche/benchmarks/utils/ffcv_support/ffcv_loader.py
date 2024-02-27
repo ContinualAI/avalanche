@@ -1,6 +1,7 @@
 """
 Custom version of the FFCV loader that accepts a batch sampler.
 """
+
 from typing import Any, Callable, List, Mapping, Optional, Sequence, Type, Union
 import warnings
 

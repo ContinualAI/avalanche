@@ -34,6 +34,7 @@ from avalanche.training import Cumulative
 from avalanche.training.plugins.clock import Clock
 
 from avalanche.training.plugins import EvaluationPlugin
+from avalanche.training.supervised.strategy_wrappers import Naive
 from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.utils import trigger_plugins
 from tests.unit_tests_utils import get_fast_benchmark
@@ -396,9 +397,9 @@ class OldCumulative(OldBaseStrategy):
         eval_every=-1,
     ):
         super().__init__(
-            model,
-            optimizer,
-            criterion,
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -541,9 +542,9 @@ class TestStrategyReproducibility(unittest.TestCase):
         # if you want to check whether the seeds are set correctly
         # switch SupervisedTemplate with OldBaseStrategy and check that
         # values are exactly equal.
-        new_strategy = SupervisedTemplate(
-            new_model,
-            SGD(new_model.parameters(), lr=0.01),
+        new_strategy = Naive(
+            model=new_model,
+            optimizer=SGD(new_model.parameters(), lr=0.01),
             train_epochs=2,
             plugins=[p_new],
             evaluator=None,

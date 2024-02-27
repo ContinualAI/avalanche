@@ -19,6 +19,7 @@ from avalanche.benchmarks.utils import make_avalanche_dataset
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import TensorDataAttribute
 from avalanche.benchmarks.utils.flat_data import FlatData
+from avalanche.training.templates.strategy_mixin_protocol import CriterionType
 from avalanche.training.utils import cycle
 from avalanche.core import SupervisedPlugin
 from avalanche.training.plugins.evaluation import (
@@ -156,9 +157,10 @@ class DER(SupervisedTemplate):
 
     def __init__(
         self,
+        *,
         model: Module,
         optimizer: Optimizer,
-        criterion=CrossEntropyLoss(),
+        criterion: CriterionType = CrossEntropyLoss(),
         mem_size: int = 200,
         batch_size_mem: Optional[int] = None,
         alpha: float = 0.1,
@@ -173,6 +175,7 @@ class DER(SupervisedTemplate):
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
+        **kwargs
     ):
         """
         :param model: PyTorch model.
@@ -219,6 +222,7 @@ class DER(SupervisedTemplate):
             evaluator=evaluator,
             eval_every=eval_every,
             peval_mode=peval_mode,
+            **kwargs
         )
         if batch_size_mem is None:
             self.batch_size_mem = train_mb_size
@@ -328,3 +332,6 @@ class DER(SupervisedTemplate):
             self._after_update(**kwargs)
 
             self._after_training_iteration(**kwargs)
+
+
+__all__ = ["DER"]

@@ -5,7 +5,7 @@ from avalanche import models
 from avalanche import training
 
 
-__version__ = "0.4.0a"
+__version__ = "0.5.0"
 
 _dataset_add = None  # type: ignore
 

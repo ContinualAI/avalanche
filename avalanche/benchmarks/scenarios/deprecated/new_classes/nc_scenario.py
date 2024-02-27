@@ -34,7 +34,6 @@ class NCScenario(
         "NCStream", "NCExperience", TaskAwareSupervisedClassificationDataset
     ]
 ):
-
     """
     This class defines a "New Classes" scenario. Once created, an instance
     of this class can be iterated in order to obtain the experience sequence
@@ -328,9 +327,9 @@ class NCScenario(
                 # used, the user may have defined an amount of classes less than
                 # the overall amount of classes in the dataset.
                 if class_id in self.classes_order_original_ids:
-                    self.class_mapping[
-                        class_id
-                    ] = self.classes_order_original_ids.index(class_id)
+                    self.class_mapping[class_id] = (
+                        self.classes_order_original_ids.index(class_id)
+                    )
         elif self.class_ids_from_zero_in_each_exp:
             # Method 2: remap class IDs so that they appear in range [0, N] in
             # each experience
