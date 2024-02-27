@@ -1,6 +1,6 @@
 from typing import Dict
 import numpy as np
-import quadprog
+import qpsolvers
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -171,7 +171,10 @@ class GEMPlugin(SupervisedPlugin):
         q = np.dot(memories_np, gradient_np) * -1
         G = np.eye(t)
         h = np.zeros(t) + self.memory_strength
-        v = quadprog.solve_qp(P, q, G, h)[0]
+        # solution with old quadprog library, same as the author's implementation
+        # v = quadprog.solve_qp(P, q, G, h)[0]
+        # using new library qpsolvers
+        v = qpsolvers.solve_qp(P=P, q=-q, G=-G.transpose(), h=-h, solver="quadprog")
         v_star = np.dot(v, memories_np) + gradient_np
 
         return torch.from_numpy(v_star).float()
