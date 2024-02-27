@@ -14,4 +14,4 @@ torchmetrics
 gdown
 dill
 packaging
-qpsolvers
+qpsolvers[open_source_solvers]
