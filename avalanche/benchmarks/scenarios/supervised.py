@@ -418,8 +418,9 @@ def with_classes_timeline(obj):
             "Unsupported object type: must be one of {CLScenario, CLStream}"
         )
 
+
 __all__ = [
     "class_incremental_benchmark",
     "new_instances_benchmark",
-    "with_classes_timeline"
+    "with_classes_timeline",
 ]

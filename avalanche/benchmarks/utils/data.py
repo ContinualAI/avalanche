@@ -344,10 +344,12 @@ class AvalancheDataset(IDataset[T_co]):
         )
 
     @overload
-    def __getitem__(self, exp_id: int) -> T_co: ...
+    def __getitem__(self, exp_id: int) -> T_co:
+        ...
 
     @overload
-    def __getitem__(self: TAvalancheDataset, exp_id: slice) -> TAvalancheDataset: ...
+    def __getitem__(self: TAvalancheDataset, exp_id: slice) -> TAvalancheDataset:
+        ...
 
     def __getitem__(
         self: TAvalancheDataset, idx: Union[int, slice]

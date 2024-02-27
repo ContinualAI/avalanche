@@ -64,10 +64,12 @@ class SliceSequence(Sequence[TData], Generic[TData, TIntermediateData], ABC):
             yield el
 
     @overload
-    def __getitem__(self, item: int) -> TData: ...
+    def __getitem__(self, item: int) -> TData:
+        ...
 
     @overload
-    def __getitem__(self: TSliceSequence, item: slice) -> TSliceSequence: ...
+    def __getitem__(self: TSliceSequence, item: slice) -> TSliceSequence:
+        ...
 
     @final
     def __getitem__(

@@ -427,10 +427,12 @@ class SequenceCLStream(SizedCLStream[TCLExperience], Sequence[TCLExperience], AB
             yield exp
 
     @overload
-    def __getitem__(self, item: int) -> TCLExperience: ...
+    def __getitem__(self, item: int) -> TCLExperience:
+        ...
 
     @overload
-    def __getitem__(self: TSequenceCLStream, item: slice) -> TSequenceCLStream: ...
+    def __getitem__(self: TSequenceCLStream, item: slice) -> TSequenceCLStream:
+        ...
 
     @final
     def __getitem__(

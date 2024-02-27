@@ -257,10 +257,12 @@ class _LazyClassesInClassificationExps(Sequence[Optional[Set[int]]]):
         return len(self._benchmark.streams[self._stream])
 
     @overload
-    def __getitem__(self, exp_id: int) -> Optional[Set[int]]: ...
+    def __getitem__(self, exp_id: int) -> Optional[Set[int]]:
+        ...
 
     @overload
-    def __getitem__(self, exp_id: slice) -> Tuple[Optional[Set[int]], ...]: ...
+    def __getitem__(self, exp_id: slice) -> Tuple[Optional[Set[int]], ...]:
+        ...
 
     def __getitem__(self, exp_id: Union[int, slice]) -> LazyClassesInExpsRet:
         indexing_collate = _LazyClassesInClassificationExps._slice_collate
