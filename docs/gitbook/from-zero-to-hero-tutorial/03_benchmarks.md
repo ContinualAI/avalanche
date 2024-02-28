@@ -186,9 +186,10 @@ print(f"{bm.test_stream.name} - len {len(bm.test_stream)}")
 
 we can also split a validation stream from the training stream
 
-```python
 
-from avalanche.benchmarks.scenarios.validation_scenario import benchmark_with_validation_stream
+```python
+from avalanche.benchmarks.scenarios.dataset_scenario import benchmark_with_validation_stream
+
 
 print(f"original training samples = {len(bm.train_stream[0].dataset)}")
 

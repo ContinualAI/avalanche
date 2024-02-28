@@ -106,6 +106,37 @@ mt_model = as_multitask(model, 'classifier')
 print(mt_model)
 ```
 
+### Nested Dynamic Modules
+Whenever one or more dynamic modules are nested one inside the other, you must call the `recursive_adaptation` method, and if they are nested inside a normal pytorch module (non dynamic), you can call the `avalanche_model_adaptation` function. Avalanche strategies will by default adapt the models before training on each experience by calling `avalanche_model_adaptation`
+
+
+```python
+benchmark = SplitMNIST(5, shuffle=False, class_ids_from_zero_in_each_exp=True, return_task_id=True)
+
+model = SimpleCNN(num_classes=1)
+mt_model = as_multitask(model, 'classifier')
+
+print(mt_model)
+for exp in benchmark.train_stream:
+    mt_model.recursive_adaptation(exp)
+print(mt_model)
+```
+
+
+```python
+from avalanche.models.utils import avalanche_model_adaptation
+
+benchmark = SplitMNIST(5, shuffle=False, class_ids_from_zero_in_each_exp=False)
+
+model = SimpleCNN(num_classes=1)
+model.classifier = IncrementalClassifier(model.classifier[0].in_features, 1)
+
+for exp in benchmark.train_stream:
+    avalanche_model_adaptation(model, exp)
+    
+print(model)
+```
+
 ## 🤝 Run it on Google Colab
 
 You can run _this chapter_ and play with it on Google Colaboratory: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ContinualAI/avalanche/blob/master/notebooks/from-zero-to-hero-tutorial/02_models.ipynb)
