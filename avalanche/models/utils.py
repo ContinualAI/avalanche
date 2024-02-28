@@ -3,9 +3,14 @@ from collections import OrderedDict
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel
 
+from avalanche._annotations import deprecated
 from avalanche.benchmarks.scenarios import CLExperience
 from avalanche.benchmarks.utils import _make_taskaware_classification_dataset
-from avalanche.models.dynamic_modules import DynamicModule, MultiTaskModule
+from avalanche.models.dynamic_modules import (
+    DynamicModule,
+    MultiTaskModule,
+    avalanche_model_adaptation,
+)
 
 
 def is_multi_task_module(model: nn.Module) -> bool:
@@ -20,17 +25,6 @@ def avalanche_forward(model, x, task_labels):
         return model(x, task_labels)
     else:  # no task labels
         return model(x)
-
-
-def avalanche_model_adaptation(model: nn.Module, experience: CLExperience):
-    if isinstance(model, DistributedDataParallel):
-        raise RuntimeError(
-            "The model is wrapped in DistributedDataParallel. "
-            "Please unwrap it before calling this method."
-        )
-    for module in model.modules():
-        if isinstance(module, DynamicModule):
-            module.adaptation(experience)
 
 
 class FeatureExtractorBackbone(nn.Module):

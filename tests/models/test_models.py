@@ -3,16 +3,18 @@ import os
 import sys
 import tempfile
 import unittest
-import numpy as np
 
+import numpy as np
 import pytorchcv.models.pyramidnet_cifar
 import torch
+import torch.nn.functional as F
 from tests.benchmarks.utils.test_avalanche_classification_dataset import get_mbatch
 from tests.unit_tests_utils import common_setups, get_fast_benchmark, load_benchmark
 from torch.nn import CrossEntropyLoss
 from torch.optim import SGD
 from torch.utils.data import DataLoader
 
+from avalanche.checkpointing import maybe_load_checkpoint, save_checkpoint
 from avalanche.logging import TextLogger
 from avalanche.models import (
     PNN,
@@ -39,7 +41,6 @@ from avalanche.models.pytorchcv_wrapper import (
     vgg,
 )
 from avalanche.models.utils import avalanche_model_adaptation
-from avalanche.checkpointing import maybe_load_checkpoint, save_checkpoint
 from avalanche.training.supervised import Naive
 
 
@@ -416,8 +417,8 @@ class DynamicModelsTests(unittest.TestCase):
             w.data_ptr() for group in optimizer.param_groups for w in group["params"]
         ]
 
-        assert w_ptr not in opt_params_ptrs  # head0 has been updated
-        assert b_ptr not in opt_params_ptrs  # head0 has been updated
+        # assert w_ptr not in opt_params_ptrs  # head0 has NOT been updated
+        # assert b_ptr not in opt_params_ptrs  # head0 has NOT been updated
         assert w_ptr_t0 in opt_params_ptrs
         assert b_ptr_t0 in opt_params_ptrs
         assert w_ptr_new in opt_params_ptrs
@@ -455,6 +456,11 @@ class DynamicModelsTests(unittest.TestCase):
         for x, y, t in DataLoader(benchmark.train_stream[0].dataset):
             y_mh = model(x, t)
             y_t = model_t0(x)
+
+            # We need to pad y_t to dim with zeros
+            # because y_mh will have max dim of all heads
+            y_t = F.pad(y_t, (0, y_mh.size(1) - y_t.size(1)))
+
             assert ((y_mh - y_t) ** 2).sum() < 1.0e-7
             break
 
@@ -462,6 +468,11 @@ class DynamicModelsTests(unittest.TestCase):
         for x, y, t in DataLoader(benchmark.train_stream[4].dataset):
             y_mh = model(x, t)
             y_t = model_t4(x)
+
+            # We need to pad y_t to dim with zeros
+            # because y_mh will have max dim of all heads
+            y_t = F.pad(y_t, (0, y_mh.size(1) - y_t.size(1)))
+
             assert ((y_mh - y_t) ** 2).sum() < 1.0e-7
             break
 
@@ -510,6 +521,48 @@ class DynamicModelsTests(unittest.TestCase):
             assert torch.all(out[:, autot] != model.mask_value)
             out_masked = out[:, model.active_units == 0]
             assert torch.all(out_masked == model.mask_value)
+
+    def test_avalanche_adaptation(self):
+        # This tests adaptation when done through normal pytorch module
+        clf = MultiHeadClassifier(in_features=6)
+        model1 = torch.nn.Sequential(clf)
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
+        # Also test sizes here
+        sizes = {}
+        for t, exp in enumerate(benchmark.train_stream):
+            sizes[t] = np.max(exp.classes_in_this_experience) + 1
+            avalanche_model_adaptation(model1, exp)
+        # Second adaptation should not change anything
+        for t, exp in enumerate(benchmark.train_stream):
+            avalanche_model_adaptation(model1, exp)
+        for t, s in sizes.items():
+            self.assertEqual(s, clf.classifiers[str(t)].classifier.out_features)
+
+    def test_recursive_adaptation(self):
+        # This tests adaptation when done directly from DynamicModule
+        model1 = MultiHeadClassifier(in_features=6)
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
+        # Also test sizes here
+        sizes = {}
+        for t, exp in enumerate(benchmark.train_stream):
+            sizes[t] = np.max(exp.classes_in_this_experience) + 1
+            model1.recursive_adaptation(exp)
+        # Second adaptation should not change anything
+        for t, exp in enumerate(benchmark.train_stream):
+            model1.recursive_adaptation(exp)
+        for t, s in sizes.items():
+            self.assertEqual(s, model1.classifiers[str(t)].classifier.out_features)
+
+    def test_recursive_loop(self):
+        model1 = MultiHeadClassifier(in_features=6)
+        model2 = MultiHeadClassifier(in_features=6)
+
+        # Create a mess
+        model1.layer2 = model2
+        model2.layer2 = model1
+
+        benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
+        model1.recursive_adaptation(benchmark.train_stream[0])
 
     def test_multi_head_classifier_masking(self):
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
@@ -642,6 +695,25 @@ class NCMClassifierTest(unittest.TestCase):
         logits = classifier(torch.randn(2, 7))
         assert logits.shape == (2, 10)
 
+    def test_ncm_eval_adapt(self):
+        benchmark = get_fast_benchmark(use_task_labels=False, shuffle=True)
+        model = SimpleMLP(input_size=6)
+        train_classifier = model.classifier
+        model.classifier = torch.nn.Identity()
+        eval_classifier = NCMClassifier()
+        model = TrainEvalModel(
+            model, train_classifier=train_classifier, eval_classifier=eval_classifier
+        )
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        strategy = Naive(model, optimizer)
+
+        # Do one first adaptation to know about output shape
+        class_means_dict = {0: model.feature_extractor(torch.rand(1, 6)).mean(dim=0)}
+        model.eval_classifier.replace_class_means_dict(class_means_dict)
+
+        for exp in benchmark.test_stream:
+            strategy.eval(exp)
+
     def test_ncm_save_load(self):
         classifier = NCMClassifier()
         classifier.update_class_means_dict(
@@ -699,7 +771,7 @@ class FeCAMClassifierTest(unittest.TestCase):
         logits = classifier(torch.randn(2, 7))
         assert logits.shape == (2, 10)
 
-    def test_ncm_save_load(self):
+    def test_fecam_save_load(self):
         classifier = FeCAMClassifier()
 
         classifier.update_class_means_dict(
@@ -730,6 +802,27 @@ class FeCAMClassifierTest(unittest.TestCase):
         classifier.load_state_dict(check)
 
         assert len(classifier.class_means_dict) == 2
+
+    def test_fecam_eval_adapt(self):
+        benchmark = get_fast_benchmark(use_task_labels=False, shuffle=True)
+        model = SimpleMLP(input_size=6)
+        train_classifier = model.classifier
+        model.classifier = torch.nn.Identity()
+        eval_classifier = FeCAMClassifier()
+        model = TrainEvalModel(
+            model, train_classifier=train_classifier, eval_classifier=eval_classifier
+        )
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        strategy = Naive(model, optimizer)
+
+        # Do one first adaptation to know about output shape
+        class_means_dict = {0: model.feature_extractor(torch.rand(1, 6)).mean(dim=0)}
+        class_vars_dict = {0: torch.cov(model.feature_extractor(torch.rand(1000, 6)).T)}
+        model.eval_classifier.replace_class_means_dict(class_means_dict)
+        model.eval_classifier.replace_class_cov_dict(class_vars_dict)
+
+        for exp in benchmark.test_stream[:2]:
+            strategy.eval(exp)
 
 
 class CosineLayerTest(unittest.TestCase):

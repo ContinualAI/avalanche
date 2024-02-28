@@ -134,14 +134,17 @@ class NCMClassifier(DynamicModule):
                 self.class_means_dict[k] = torch.zeros(class_size).to(device)
         self._vectorize_means_dict()
 
-    def eval_adaptation(self, experience):
-        classes = experience.classes_in_this_experience
-        for k in classes:
-            self.max_class = max(k, self.max_class)
-        if self.class_means is not None:
-            self.init_missing_classes(
-                classes, self.class_means.shape[1], self.class_means.device
-            )
+    def adaptation(self, experience):
+        super().adaptation(experience)
+
+        if not self.training:
+            classes = experience.classes_in_this_experience
+            for k in classes:
+                self.max_class = max(k, self.max_class)
+            if self.class_means is not None:
+                self.init_missing_classes(
+                    classes, self.class_means.shape[1], self.class_means.device
+                )
 
 
 __all__ = ["NCMClassifier"]
