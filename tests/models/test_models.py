@@ -145,7 +145,11 @@ class DynamicOptimizersTests(unittest.TestCase):
         # check new_param is in optimizer
         # check old_param is NOT in optimizer
         p_new = torch.nn.Parameter(torch.zeros(10, 10))
-        optimized = update_optimizer(optimizer, {"new_param": p_new}, {"old_param": p})
+
+        # Here we cannot know what parameter group but there is only one so it should work
+        new_parameters = {"new_param": p_new}
+        new_parameters.update(dict(model.named_parameters()))
+        optimized = update_optimizer(optimizer, new_parameters, {"old_param": p})
         self.assertTrue("new_param" in optimized)
         self.assertFalse("old_param" in optimized)
         self.assertTrue(self._is_param_in_optimizer(p_new, strategy.optimizer))
