@@ -33,13 +33,17 @@ def map_optimized_params(optimizer, parameters, old_params=None):
     """
     Establishes a mapping between a list of named parameters and the parameters
     that are in the optimizer, additionally,
-    returns the list of
+    returns the lists of:
 
-    changed_parameters
-    new_parameters
-    removed_parameters: List of indexes of optimizer parameters that are not found in the new parameters
+    returns:
+        new_parameters: Names of new parameters in the provided "parameters" argument
+        changed_parameters: Names and indexes of parameters that have changed (grown, shrink)
+        removed_parameters: List of indexes of optimizer parameters that are not found in the new parameters
 
     """
+
+    if old_params is None:
+        old_params = {}
 
     group_mapping = defaultdict(dict)
     new_parameters = []
@@ -51,7 +55,9 @@ def map_optimized_params(optimizer, parameters, old_params=None):
         found_indexes.append(np.zeros(len(params)))
 
     for n, p in parameters.items():
-        g = None
+        gidx = None
+        pidx = None
+
         # Find param in optimizer
         found = False
 
@@ -64,21 +70,27 @@ def map_optimized_params(optimizer, parameters, old_params=None):
             params = group["params"]
             for param_idx, po in enumerate(params):
                 if id(po) == search_id:
-                    g = group_idx
+                    gidx = group_idx
+                    pidx = param_idx
                     found = True
                     # Update found indexes
                     assert found_indexes[group_idx][param_idx] == 0
                     found_indexes[group_idx][param_idx] = 1
                     break
+            if found:
+                break
 
         if not found:
             new_parameters.append(n)
 
         if search_id != id(p):
             if found:
-                changed_parameters.append((n, group_idx, param_idx))
+                changed_parameters.append((n, gidx, pidx))
 
-        group_mapping[n] = g
+        if len(optimizer.param_groups) > 1:
+            group_mapping[n] = gidx
+        else:
+            group_mapping[n] = 0
 
     not_found_in_parameters = [np.where(arr == 0)[0] for arr in found_indexes]
 
@@ -212,13 +224,6 @@ class TreeNode:
             )
         else:
             return list(self.groups)[0]
-
-
-def compare_keys(old_dict, new_dict):
-    not_in_new = list(set(old_dict.keys()) - set(new_dict.keys()))
-    in_both = list(set(old_dict.keys()) & set(new_dict.keys()))
-    not_in_old = list(set(new_dict.keys()) - set(old_dict.keys()))
-    return not_in_new, in_both, not_in_old
 
 
 def reset_optimizer(optimizer, model):

@@ -53,15 +53,12 @@ class BatchObservation(SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutp
               optimizer, regardless of what parameters are
               initially put in the optimizer.
         """
-        if self.optimized_param_id is None:
-            self.optimized_param_id = reset_optimizer(self.optimizer, self.model)
-        else:
-            self.optimized_param_id = update_optimizer(
-                self.optimizer,
-                dict(self.model.named_parameters()),
-                self.optimized_param_id,
-                reset_state=reset_optimizer_state,
-            )
+        self.optimized_param_id = update_optimizer(
+            self.optimizer,
+            dict(self.model.named_parameters()),
+            self.optimized_param_id,
+            reset_state=reset_optimizer_state,
+        )
 
     def check_model_and_optimizer(self, reset_optimizer_state=False, **kwargs):
         # If strategy has access to the task boundaries, and the current
