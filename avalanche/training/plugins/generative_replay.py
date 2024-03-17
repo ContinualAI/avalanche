@@ -49,6 +49,14 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         double the amount of replay data added to each data batch. The effect
         will be that the older experiences will gradually increase in importance
         to the final loss.
+    :param is_weighted_replay: If set to True, the loss function will be weighted
+        and more importance will be given to the replay data as the number of
+        experiences increases.
+    :param weight_replay_loss_factor: If is_weighted_replay is set to True, the user
+        can specify a factor the weight will be multiplied by in each iteration,
+        the default is 1.0
+    :param weight_replay_loss: The user can specify the initial weight of the loss for
+        the replay data. The default is 0.0001
     """
 
     def __init__(
