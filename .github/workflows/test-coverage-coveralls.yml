@@ -64,7 +64,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
         run: |
           mkdir coverage &&
-          pytest --cov=. tests &&
+          pytest --cov=avalanche tests &&
           mv .coverage coverage_unit_tests &&
           coverage run examples/eval_plugin.py &&
           mv .coverage coverage_eval_plugin &&

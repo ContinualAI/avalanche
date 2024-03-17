@@ -165,8 +165,8 @@ class PNNLayer(MultiTaskModule):
         :param dataset:
         :return:
         """
+        super().adaptation(experience)
         dataset = experience.dataset
-        super().train_adaptation(experience)
         task_labels = dataset.targets_task_labels
         if isinstance(task_labels, ConstantSequence):
             # task label is unique. Don't check duplicates.

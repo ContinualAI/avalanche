@@ -8,3 +8,5 @@ from .task_aware import *
 from .dataset_scenario import *
 from .exmodel_scenario import *
 from .online import *
+from .supervised import *
+from .validation_scenario import *

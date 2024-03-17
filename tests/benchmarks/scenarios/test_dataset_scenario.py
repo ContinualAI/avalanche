@@ -6,11 +6,13 @@ from torch.utils.data import TensorDataset, DataLoader
 
 from avalanche.benchmarks import (
     benchmark_from_datasets,
-    benchmark_with_validation_stream,
     CLScenario,
     CLStream,
     split_validation_random,
     task_incremental_benchmark,
+)
+from avalanche.benchmarks.scenarios.validation_scenario import (
+    benchmark_with_validation_stream,
 )
 from avalanche.benchmarks.scenarios.dataset_scenario import (
     DatasetExperience,
@@ -383,3 +385,9 @@ class DatasetWithValidationStreamTests(unittest.TestCase):
         mb = get_mbatch(dd, len(dd))
         self.assertTrue(torch.equal(test_x, mb[0]))
         self.assertTrue(torch.equal(test_y, mb[1]))
+
+    def test_regressioni1597(args):
+        # regression test for issue #1597
+        bm = get_fast_benchmark()
+        for exp in bm.train_stream:
+            assert hasattr(exp, "classes_in_this_experience")

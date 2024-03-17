@@ -26,12 +26,11 @@ import torch
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
     _as_taskaware_supervised_classification_dataset,
-    TaskAwareSupervisedClassificationDataset,
 )
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
-from .. import CLScenario, CLStream, EagerCLStream
+from .generic_scenario import CLScenario, CLStream, EagerCLStream
 
 
 def class_incremental_benchmark(
@@ -418,3 +417,10 @@ def with_classes_timeline(obj):
         raise ValueError(
             "Unsupported object type: must be one of {CLScenario, CLStream}"
         )
+
+
+__all__ = [
+    "class_incremental_benchmark",
+    "new_instances_benchmark",
+    "with_classes_timeline",
+]

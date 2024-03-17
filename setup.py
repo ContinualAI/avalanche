@@ -76,7 +76,7 @@ setuptools.setup(
         "torchvision",
         "torchmetrics",
         "gdown",
-        "quadprog @ git+https://github.com/HKaras/quadprog.git@690081f3285d4eb554394209473a274f230cd9ba",
+        "qpsolvers[open_source_solvers]",
         "dill",
         "packaging",
     ],

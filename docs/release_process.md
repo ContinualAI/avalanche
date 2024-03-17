@@ -17,7 +17,7 @@ Place yourself in the Avalanche project directory.
    
 4. After uploading to test.pypi, install the package in a fresh environment with 
     ```bash
-    python -m pip install --extra-index-url https://pypi.python.org/simple -i https://test.pypi.org/simple/ avalanche-lib`
+    python -m pip install --extra-index-url https://pypi.python.org/simple -i https://test.pypi.org/simple/ avalanche-lib
     ```
     The `--extra-index-url` is required to install dependencies from pypi and not from test.pypi where they are not all available.
 
@@ -33,3 +33,5 @@ still be synced. To make the copied collection the default one:
    1. rename the copied collection with a new name in the main Avalanche project and move it accordingly to preserve the order
    2. publish the copied collection as `in collection` by entering the collection, the option is the button on top of the page
    3. in the main Avalanche project on Gitbook click on the option in the top right and customize the collection. The copied collection should appear in a dropdown menu to make it default
+
+7. Change __init__.py version by adding a 'a' suffix and push the new changes (this will be the first commit of the dev version).
