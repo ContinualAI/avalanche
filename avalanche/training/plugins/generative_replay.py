@@ -52,14 +52,14 @@ class GenerativeReplayPlugin(SupervisedPlugin):
     """
 
     def __init__(
-            self,
-            generator_strategy=None,
-            untrained_solver: bool = True,
-            replay_size: Optional[int] = None,
-            increasing_replay_size: bool = False,
-            is_weighted_replay: bool = False,
-            weight_replay_loss_factor: float = 1.0,
-            weight_replay_loss: float = 0.0001,
+        self,
+        generator_strategy=None,
+        untrained_solver: bool = True,
+        replay_size: Optional[int] = None,
+        increasing_replay_size: bool = False,
+        is_weighted_replay: bool = False,
+        weight_replay_loss_factor: float = 1.0,
+        weight_replay_loss: float = 0.0001,
     ):
         """
         Init.
@@ -91,7 +91,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.model_is_generator = True
 
     def before_training_exp(
-            self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
+        self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
     ):
         """
         Make deep copies of generator and solver before training new experience.
@@ -107,7 +107,7 @@ class GenerativeReplayPlugin(SupervisedPlugin):
             self.old_model.eval()
 
     def after_training_exp(
-            self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
+        self, strategy, num_workers: int = 0, shuffle: bool = True, **kwargs
     ):
         """
         Set untrained_solver boolean to False after (the first) experience,
@@ -116,11 +116,11 @@ class GenerativeReplayPlugin(SupervisedPlugin):
         self.untrained_solver = False
 
     def before_backward(self, strategy: Template, *args, **kwargs) -> Any:
-        super().before_backward(strategy, *args, **kwargs)
         """
         Generate replay data and calculate the loss on the replay data.
         Add weighted loss to the total loss if the user has set the weight_replay_loss
         """
+        super().before_backward(strategy, *args, **kwargs)
         if not self.is_weighted_replay:
             # If we are not using weighted loss, ignore this method
             return
