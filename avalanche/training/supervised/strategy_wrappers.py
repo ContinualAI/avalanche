@@ -504,7 +504,7 @@ class GenerativeReplay(SupervisedTemplate):
                         increasing_replay_size=increasing_replay_size,
                         is_weighted_replay=is_weighted_replay,
                         weight_replay_loss_factor=weight_replay_loss_factor,
-                        weight_replay_loss = weight_replay_loss,
+                        weight_replay_loss=weight_replay_loss,
                     )
                 ],
             )
