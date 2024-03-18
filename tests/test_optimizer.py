@@ -34,6 +34,15 @@ from avalanche.models.utils import avalanche_model_adaptation
 from avalanche.training.supervised import Naive
 
 
+class TorchWrapper(torch.nn.Module):
+    def __init__(self, backbone):
+        super().__init__()
+        self.backbone = backbone
+
+    def forward(self, *args):
+        return self.backbone(*args)
+
+
 class DynamicOptimizersTests(unittest.TestCase):
     if "USE_GPU" in os.environ:
         use_gpu = os.environ["USE_GPU"].lower() in ["true"]
@@ -158,10 +167,7 @@ class DynamicOptimizersTests(unittest.TestCase):
             strategy.train(experience)
 
             for n, p in model.named_parameters():
-                if not self._is_param_in_optimizer(p, strategy.optimizer):
-                    import pdb
-
-                    pdb.set_trace()
+                assert self._is_param_in_optimizer(p, strategy.optimizer)
                 if "classifier" in n:
                     self.assertEqual(
                         self._is_param_in_optimizer_group(p, strategy.optimizer), 0
@@ -170,6 +176,57 @@ class DynamicOptimizersTests(unittest.TestCase):
                     self.assertEqual(
                         self._is_param_in_optimizer_group(p, strategy.optimizer), 1
                     )
+
+    def test_optimizer_groups_rename(self):
+        model, criterion, benchmark = self.init_scenario(multi_task=False)
+
+        g1 = []
+        g2 = []
+        for n, p in model.named_parameters():
+            if "classifier" in n:
+                g1.append(p)
+            else:
+                g2.append(p)
+
+        optimizer = SGD([{"params": g1, "lr": 0.1}, {"params": g2, "lr": 0.05}])
+
+        strategy = Naive(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+
+        experience = benchmark.train_stream[0]
+
+        print(experience.classes_in_this_experience)
+
+        strategy.train(experience)
+
+        experience = benchmark.train_stream[1]
+
+        print(experience.classes_in_this_experience)
+
+        # Here I do not get an error but all groups switch to 1 for some unknown reason
+        strategy.model.new_module = torch.nn.Linear(10, 10)
+        strategy.model = TorchWrapper(strategy.model)
+
+        strategy.train(experience)
+
+        for n, p in model.named_parameters():
+            assert self._is_param_in_optimizer(p, strategy.optimizer)
+            if "classifier" in n:
+                self.assertEqual(
+                    self._is_param_in_optimizer_group(p, strategy.optimizer), 0
+                )
+            else:
+                self.assertEqual(
+                    self._is_param_in_optimizer_group(p, strategy.optimizer), 1
+                )
+
 
     # Needs torch 2.0 ?
     def test_checkpointing(self):

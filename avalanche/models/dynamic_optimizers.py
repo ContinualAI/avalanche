@@ -18,6 +18,8 @@ from collections import defaultdict
 
 import numpy as np
 
+from avalanche._annotations import deprecated
+
 colors = {
     "END": "\033[0m",
     0: "\033[32m",
@@ -226,6 +228,7 @@ class TreeNode:
             return list(self.groups)[0]
 
 
+@deprecated(0.6, "reset_optimizer is deprecated in favor of update_optimizer")
 def reset_optimizer(optimizer, model):
     """Reset the optimizer to update the list of learnable parameters.
 
@@ -255,7 +258,9 @@ def reset_optimizer(optimizer, model):
     return optimized_param_id
 
 
-def update_optimizer(optimizer, new_params, optimized_params, reset_state=False):
+def update_optimizer(
+    optimizer, new_params, optimized_params, reset_state=False, verbose=False
+):
     """Update the optimizer by adding new parameters,
     removing removed parameters, and adding new parameters
     to the optimizer, for instance after model has been adapted
@@ -269,6 +274,8 @@ def update_optimizer(optimizer, new_params, optimized_params, reset_state=False)
         currently optimized parameters (returned by reset_optimizer)
     :param reset_state: Wheter to reset the optimizer's state (i.e momentum).
         Defaults to False.
+    :param verbose: If True, prints information about inferred
+                    parameter groups for new params
     :return: Dict (name, param) of optimized parameters
     """
     (
@@ -301,9 +308,8 @@ def update_optimizer(optimizer, new_params, optimized_params, reset_state=False)
             del p
 
     # Add newly added parameters (i.e Multitask, PNN)
-    # by default, add to param groups 0
 
-    param_structure = ParameterGroupStructure(group_mapping, verbose=True)
+    param_structure = ParameterGroupStructure(group_mapping, verbose=verbose)
 
     # New parameters
     for key in new_parameters:
