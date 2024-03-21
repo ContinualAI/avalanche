@@ -116,7 +116,9 @@ class DynamicOptimizersTests(unittest.TestCase):
         # Here we cannot know what parameter group but there is only one so it should work
         new_parameters = {"new_param": p_new}
         new_parameters.update(dict(model.named_parameters()))
-        optimized = update_optimizer(optimizer, new_parameters, {"old_param": p})
+        optimized = update_optimizer(
+            optimizer, new_parameters, {"old_param": p}, remove_params=True
+        )
         self.assertTrue("new_param" in optimized)
         self.assertFalse("old_param" in optimized)
         self.assertTrue(self._is_param_in_optimizer(p_new, strategy.optimizer))
@@ -140,8 +142,45 @@ class DynamicOptimizersTests(unittest.TestCase):
             self._test_optimizer(strategy)
             self._test_optimizer_state(strategy)
 
-    def test_optimizer_groups_clf(self):
+    def test_optimizer_groups_clf_til(self):
         model, criterion, benchmark = self.init_scenario(multi_task=True)
+
+        g1 = []
+        g2 = []
+        for n, p in model.named_parameters():
+            if "classifier" in n:
+                g1.append(p)
+            else:
+                g2.append(p)
+
+        optimizer = SGD([{"params": g1, "lr": 0.1}, {"params": g2, "lr": 0.05}])
+
+        strategy = Naive(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+
+        for experience in benchmark.train_stream:
+            strategy.train(experience)
+
+            for n, p in model.named_parameters():
+                assert self._is_param_in_optimizer(p, strategy.optimizer)
+                if "classifier" in n:
+                    self.assertEqual(
+                        self._is_param_in_optimizer_group(p, strategy.optimizer), 0
+                    )
+                else:
+                    self.assertEqual(
+                        self._is_param_in_optimizer_group(p, strategy.optimizer), 1
+                    )
+
+    def test_optimizer_groups_clf_cil(self):
+        model, criterion, benchmark = self.init_scenario(multi_task=False)
 
         g1 = []
         g2 = []
@@ -200,22 +239,9 @@ class DynamicOptimizersTests(unittest.TestCase):
             train_epochs=2,
         )
 
-        experience = benchmark.train_stream[0]
+        strategy.make_optimizer()
 
-        print(experience.classes_in_this_experience)
-
-        strategy.train(experience)
-
-        experience = benchmark.train_stream[1]
-
-        print(experience.classes_in_this_experience)
-
-        # Here I do not get an error but all groups switch to 1 for some unknown reason
-        strategy.model.new_module = torch.nn.Linear(10, 10)
-        strategy.model = TorchWrapper(strategy.model)
-
-        strategy.train(experience)
-
+        # Check parameter groups
         for n, p in model.named_parameters():
             assert self._is_param_in_optimizer(p, strategy.optimizer)
             if "classifier" in n:
@@ -227,6 +253,22 @@ class DynamicOptimizersTests(unittest.TestCase):
                     self._is_param_in_optimizer_group(p, strategy.optimizer), 1
                 )
 
+        # Rename parameters
+        strategy.model = TorchWrapper(strategy.model)
+
+        strategy.make_optimizer()
+
+        # Check parameter groups are still the same
+        for n, p in model.named_parameters():
+            assert self._is_param_in_optimizer(p, strategy.optimizer)
+            if "classifier" in n:
+                self.assertEqual(
+                    self._is_param_in_optimizer_group(p, strategy.optimizer), 0
+                )
+            else:
+                self.assertEqual(
+                    self._is_param_in_optimizer_group(p, strategy.optimizer), 1
+                )
 
     # Needs torch 2.0 ?
     def test_checkpointing(self):
@@ -295,7 +337,10 @@ class DynamicOptimizersTests(unittest.TestCase):
         # Remove a parameter
         del strategy.model.new_module
 
-        strategy.make_optimizer()
+        strategy.make_optimizer(remove_params=False)
+        self.assertTrue(self._is_param_in_optimizer(param1, strategy.optimizer))
+
+        strategy.make_optimizer(remove_params=True)
         self.assertFalse(self._is_param_in_optimizer(param1, strategy.optimizer))
 
     def _test_optimizer_state(self, strategy):
@@ -307,7 +352,7 @@ class DynamicOptimizersTests(unittest.TestCase):
         strategy.model.add_module("new_module1", module1)
         strategy.model.add_module("new_module2", module2)
 
-        strategy.make_optimizer()
+        strategy.make_optimizer(remove_params=True)
 
         self.assertTrue(self._is_param_in_optimizer(param1, strategy.optimizer))
         self.assertTrue(self._is_param_in_optimizer(param2, strategy.optimizer))
@@ -322,7 +367,7 @@ class DynamicOptimizersTests(unittest.TestCase):
         # Remove one module
         del strategy.model.new_module1
 
-        strategy.make_optimizer()
+        strategy.make_optimizer(remove_params=True)
 
         # Make an operation
         self._optimizer_op(strategy.optimizer, module1.weight + module2.weight)
@@ -333,7 +378,7 @@ class DynamicOptimizersTests(unittest.TestCase):
 
         # Change one module size
         strategy.model.new_module2 = torch.nn.Linear(10, 5)
-        strategy.make_optimizer()
+        strategy.make_optimizer(remove_params=True)
 
         # Make an operation
         self._optimizer_op(strategy.optimizer, module1.weight + module2.weight)

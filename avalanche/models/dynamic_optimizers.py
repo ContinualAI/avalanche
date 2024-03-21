@@ -38,10 +38,11 @@ def map_optimized_params(optimizer, parameters, old_params=None):
     returns the lists of:
 
     returns:
-        new_parameters: Names of new parameters in the provided "parameters" argument
+        new_parameters: Names of new parameters in the provided "parameters" argument,
+                        that are not in the old parameters
         changed_parameters: Names and indexes of parameters that have changed (grown, shrink)
-        removed_parameters: List of indexes of optimizer parameters that are not found in the new parameters
-
+        not_found_in_parameters: List of indexes of optimizer parameters
+                                 that are not found in the provided parameters
     """
 
     if old_params is None:
@@ -228,7 +229,7 @@ class TreeNode:
             return list(self.groups)[0]
 
 
-@deprecated(0.6, "reset_optimizer is deprecated in favor of update_optimizer")
+@deprecated(0.6, "update_optimizer with optimized_params=None is now used instead")
 def reset_optimizer(optimizer, model):
     """Reset the optimizer to update the list of learnable parameters.
 
@@ -259,7 +260,12 @@ def reset_optimizer(optimizer, model):
 
 
 def update_optimizer(
-    optimizer, new_params, optimized_params, reset_state=False, verbose=False
+    optimizer,
+    new_params,
+    optimized_params=None,
+    reset_state=False,
+    remove_params=False,
+    verbose=False,
 ):
     """Update the optimizer by adding new parameters,
     removing removed parameters, and adding new parameters
@@ -271,11 +277,15 @@ def update_optimizer(
 
     :param new_params: Dict (name, param) of new parameters
     :param optimized_params: Dict (name, param) of
-        currently optimized parameters (returned by reset_optimizer)
-    :param reset_state: Wheter to reset the optimizer's state (i.e momentum).
-        Defaults to False.
+                             currently optimized parameters
+    :param reset_state: Whether to reset the optimizer's state (i.e momentum).
+                        Defaults to False.
+    :param remove_params: Whether to remove parameters that were in the optimizer
+                          but are not found in new parameters. For safety reasons,
+                          defaults to False.
     :param verbose: If True, prints information about inferred
                     parameter groups for new params
+
     :return: Dict (name, param) of optimized parameters
     """
     (
@@ -299,13 +309,14 @@ def update_optimizer(
 
     # Remove parameters that are not here anymore
     # This should not happend in most use case
-    for group_idx, idx_list in enumerate(not_found_in_parameters):
-        for j in sorted(idx_list, key=lambda x: x, reverse=True):
-            p = optimizer.param_groups[group_idx]["params"][j]
-            optimizer.param_groups[group_idx]["params"].pop(j)
-            if p in optimizer.state:
-                optimizer.state.pop(p)
-            del p
+    if remove_params:
+        for group_idx, idx_list in enumerate(not_found_in_parameters):
+            for j in sorted(idx_list, key=lambda x: x, reverse=True):
+                p = optimizer.param_groups[group_idx]["params"][j]
+                optimizer.param_groups[group_idx]["params"].pop(j)
+                if p in optimizer.state:
+                    optimizer.state.pop(p)
+                del p
 
     # Add newly added parameters (i.e Multitask, PNN)
 
