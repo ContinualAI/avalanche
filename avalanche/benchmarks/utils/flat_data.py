@@ -186,10 +186,10 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
     """FlatData is a dataset optimized for efficient repeated concatenation
     and subset operations.
 
-    The class combines concatentation and subsampling operations in a single
+    The class combines concatenation and subsampling operations in a single
     class.
 
-    Class for internal use only. Users shuold use `AvalancheDataset` for data
+    Class for internal use only. Users should use `AvalancheDataset` for data
     or `DataAttribute` for attributes such as class and task labels.
 
     *Notes for subclassing*

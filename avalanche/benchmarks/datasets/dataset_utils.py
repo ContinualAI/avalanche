@@ -48,7 +48,7 @@ def load_config_file():
 
 
 def maybe_init_config_file():
-    """Initialize Avalanche user's config file, if it does not exists yet.
+    """Initialize Avalanche user's config file, if it does not exist yet.
 
     The file is located in `~/.avalanche/config.json`
     """

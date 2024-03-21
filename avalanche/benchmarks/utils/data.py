@@ -50,7 +50,7 @@ TDataWTransform = TypeVar("TDataWTransform", bound="_FlatDataWithTransform")
 class AvalancheDataset(IDataset[T_co]):
     """Avalanche Dataset.
 
-    Avlanche dataset are pytorch-compatible Datasets with some additional
+    Avalanche dataset are pytorch-compatible Datasets with some additional
     functionality such as:
     - management of transformation groups via :class:`AvalancheTransform`
     - support for sample attributes such as class targets and task labels
@@ -79,9 +79,9 @@ class AvalancheDataset(IDataset[T_co]):
 
     switching to a different transformation group by calling the ``train()``,
     ``eval()`` or ``with_transforms` methods always returns a new dataset,
-    levaing the original one unchanged.
+    leaving the original one unchanged.
 
-    Ttransformation groups can be manipulated by removing, freezing, or
+    Transformation groups can be manipulated by removing, freezing, or
     replacing transformations. Each operation returns a new dataset, leaving
     the original one unchanged.
     """
@@ -103,9 +103,7 @@ class AvalancheDataset(IDataset[T_co]):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
-        if issubclass(type(datasets), TorchDataset) or issubclass(
-            type(datasets), AvalancheDataset
-        ):
+        if isinstance(datasets, (TorchDataset, AvalancheDataset)):
             datasets = [datasets]  # type: ignore
 
         # NOTES on implementation:
