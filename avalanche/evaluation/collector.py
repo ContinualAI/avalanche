@@ -1,3 +1,6 @@
+# TODO: doc
+import json
+
 import numpy as np
 
 from avalanche._annotations import experimental
@@ -5,7 +8,9 @@ from avalanche._annotations import experimental
 
 @experimental()
 class MetricCollector:
+    # TODO: doc
     def __init__(self, stream):
+        # TODO: doc
         self.metrics_res = None
 
         self._stream_len = 0
@@ -17,6 +22,7 @@ class MetricCollector:
         self._coeffs = self._coeffs / self._coeffs.sum()
 
     def update(self, res):
+        # TODO: doc
         if self.metrics_res is None:
             self.metrics_res = {}
             for k, v in res.items():
@@ -29,6 +35,7 @@ class MetricCollector:
                 self.metrics_res[k].append(v)
 
     def get(self, name, time_reduce=None, exp_reduce=None):
+        # TODO: doc
         assert time_reduce in {None, "last", "mean"}
         assert exp_reduce in {None, "sample_mean", "experience_mean"}
         assert name in self.metrics_res
@@ -54,3 +61,25 @@ class MetricCollector:
             raise ValueError("BUG. It should never get here.")
 
         return mvals
+
+    def get_dict(self):
+        # TODO: doc
+        # TODO: test
+        return self.metrics_res
+
+    def load_dict(self, d):
+        # TODO: doc
+        # TODO: test
+        self.metrics_res = d
+
+    def load_json(self, fname):
+        # TODO: doc
+        # TODO: test
+        with open(fname, 'w') as f:
+            self.metrics_res = json.load(f)
+
+    def to_json(self, fname):
+        # TODO: doc
+        # TODO: test
+        with open(fname, 'w') as f:
+            json.dump(obj=self.metrics_res, fp=f)

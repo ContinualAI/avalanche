@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from avalanche.benchmarks import SplitMNIST, with_classes_timeline
 from avalanche.benchmarks.scenarios import split_online_stream
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
+from avalanche.core import Agent
 
 from avalanche.evaluation.collector import MetricCollector
 from avalanche.evaluation.functional import forgetting
@@ -76,6 +77,9 @@ def my_eval(model, stream, metrics, **extra_args):
 
 
 if __name__ == '__main__':
+    # TODO: add checkpointing
+    # TODO: add dynamic optimizers
+
     bm = SplitMNIST(n_experiences=5)
     train_stream, test_stream = bm.train_stream, bm.test_stream
     ocl_stream = split_online_stream(train_stream, experience_size=256, seed=1234)
@@ -84,7 +88,7 @@ if __name__ == '__main__':
     # agent state collects all the objects that are needed during training
     # many of these objects will have some state that is updated during training.
     # The training function returns the updated agent state at each step.
-    agent_state = SimpleNamespace()
+    agent_state = Agent()
     agent_state.replay = ReservoirSamplingBuffer(max_size=200)
     agent_state.loss = MaskedCrossEntropy()
 

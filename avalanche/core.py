@@ -1,3 +1,4 @@
+# TODO: doc
 from abc import ABC
 from typing import Any, TypeVar, Generic, Protocol, runtime_checkable
 from typing import TYPE_CHECKING
@@ -10,16 +11,36 @@ if TYPE_CHECKING:
 Template = TypeVar("Template", bound="BaseTemplate")
 
 
-class Agent():
-    def __init__(self):
-        self.updatable_objects = []
-        self.train_steps = 0
+class Agent:
+    def __init__(self, verbose=False):
+        # TODO: doc
+        # TODO: test pre_update call
+        # TODO: test post_update call
+        self._updatable_objects = []
+        self.verbose = verbose
 
-    def __setattribute__(self):
-        pass
+    def __setattr__(self, name, value):
+        super().__setattr__(name, value)
+        if hasattr(value, 'pre_update') or hasattr(value, 'post_update'):
+            self._updatable_objects.append(value)
+            if self.verbose:
+                print("Added updatable object ", value)
 
-    def pre_update(self):
-        pass
+    def pre_update(self, exp):
+        # TODO: doc
+        for uo in self._updatable_objects:
+            if hasattr(uo, 'pre_update'):
+                uo.pre_update(self, exp)
+                if self.verbose:
+                    print("preupdate ", uo)
+
+    def post_update(self, exp):
+        # TODO: doc
+        for uo in self._updatable_objects:
+            if hasattr(uo, 'post_update'):
+                uo.post_update(self, exp)
+                if self.verbose:
+                    print("post_update ", uo)
 
 
 @runtime_checkable
