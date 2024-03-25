@@ -1,11 +1,34 @@
 from abc import ABC
-from typing import Any, TypeVar, Generic
+from typing import Any, TypeVar, Generic, Protocol, runtime_checkable
 from typing import TYPE_CHECKING
+
+from avalanche.benchmarks import CLExperience
 
 if TYPE_CHECKING:
     from avalanche.training.templates.base import BaseTemplate
 
 Template = TypeVar("Template", bound="BaseTemplate")
+
+
+class Agent():
+    def __init__(self):
+        self.updatable_objects = []
+        self.train_steps = 0
+
+    def __setattribute__(self):
+        pass
+
+    def pre_update(self):
+        pass
+
+
+@runtime_checkable
+class Updatable(Protocol):
+    def pre_update(self, agent: Agent, exp: CLExperience):
+        pass
+
+    def post_udpate(self, agent: Agent, exp: CLExperience):
+        pass
 
 
 class BasePlugin(Generic[Template], ABC):

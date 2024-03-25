@@ -29,17 +29,28 @@ class MetricCollector:
                 self.metrics_res[k].append(v)
 
     def get(self, name, time_reduce=None, exp_reduce=None):
-        assert time_reduce in {None}  # 'last', 'average'
+        assert time_reduce in {None, "last", "mean"}
         assert exp_reduce in {None, "sample_mean", "experience_mean"}
         assert name in self.metrics_res
 
         mvals = np.array(self.metrics_res[name])
         if exp_reduce is None:
-            return mvals
+            pass  # nothing to do here
         elif exp_reduce == "sample_mean":
             mvals = mvals * self._coeffs[None, :]  # weight by num.samples
-            return mvals.sum(axis=1)  # weighted avg across exp.
-        elif exp_reduce == "experience_means":
-            return mvals.mean(axis=1)  # avg across exp.
+            mvals = mvals.sum(axis=1)  # weighted avg across exp.
+        elif exp_reduce == "experience_mean":
+            mvals = mvals.mean(axis=1)  # avg across exp.
         else:
             raise ValueError("BUG. It should never get here.")
+
+        if time_reduce is None:
+            pass  # nothing to do here
+        elif time_reduce == "last":
+            mvals = mvals[-1]  # last timestep
+        elif time_reduce == "mean":
+            mvals = mvals.mean(axis=0)  # avg. over time
+        else:
+            raise ValueError("BUG. It should never get here.")
+
+        return mvals

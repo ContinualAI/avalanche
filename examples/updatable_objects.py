@@ -28,14 +28,16 @@ def train_experience(agent_state, exp, epochs=10):
     # [uo.pre_update(exp, agent_state) for uo in updatable_objs]
     agent_state.loss.before_training_exp(SimpleNamespace(experience=exp))
     # agent_state.model.recursive_adaptation(exp)
+    # agent_state.pre_update(agent_state, exp)
 
+    data = exp.dataset.train()
     for ep in range(epochs):
         agent_state.model.train()
         if len(agent_state.replay.buffer) > 0:
-            dl = ReplayDataLoader(exp.dataset, agent_state.replay.buffer,
+            dl = ReplayDataLoader(data, agent_state.replay.buffer,
                                   batch_size=32, shuffle=True)
         else:
-            dl = DataLoader(exp.dataset, batch_size=32, shuffle=True)
+            dl = DataLoader(data, batch_size=32, shuffle=True)
 
         for x, y, _ in dl:
             x, y = x.cuda(), y.cuda()
@@ -51,6 +53,7 @@ def train_experience(agent_state, exp, epochs=10):
         # [uo.post_update(exp, agent_state) for uo in updatable_objs]
         agent_state.replay.update(SimpleNamespace(experience=exp))
     agent_state.scheduler.step()
+    # agent_state.post_update(agent_state, exp)
     return agent_state
 
 
@@ -60,9 +63,9 @@ def my_eval(model, stream, metrics, **extra_args):
     # we are evaluating a single exp. or the whole stream.
     # Now we evaluate each stream with a separate function call
 
-    [uo.reset() for uo in metrics]
     res = {uo.__class__.__name__: [] for uo in metrics}
     for exp in stream:
+        [uo.reset() for uo in metrics]
         dl = DataLoader(exp.dataset, batch_size=512, num_workers=8)
         for x, y, _ in dl:
             x, y = x.cuda(), y.cuda()

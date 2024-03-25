@@ -30,4 +30,5 @@ def forgetting(accuracy_matrix, boundary_indices=None):
         forgetting_matrix[:t_task+1, k] = 0
         # then, it's acc_first - acc[t, k]
         forgetting_matrix[t_task+1:, k] = acc_first - accuracy_matrix[t_task+1:, k]
+
     return forgetting_matrix
