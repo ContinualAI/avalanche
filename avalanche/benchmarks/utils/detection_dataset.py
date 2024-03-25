@@ -38,6 +38,7 @@ from torch.utils.data.dataset import Subset, ConcatDataset
 from avalanche.benchmarks.utils.utils import (
     TaskSet,
     _init_task_labels,
+    _init_transform_groups,
     _split_user_def_targets,
     _split_user_def_task_label,
     _traverse_supported_dataset,
@@ -271,7 +272,7 @@ def make_detection_dataset(
 
     is_supervised = isinstance(dataset, SupervisedDetectionDataset)
 
-    transform_gs = TransformGroups.create(
+    transform_gs = _init_transform_groups(
         transform_groups=transform_groups,
         transform=transform,
         target_transform=target_transform,
@@ -507,7 +508,7 @@ def detection_subset(
     del task_labels
     del targets
 
-    transform_gs = TransformGroups.create(
+    transform_gs = _init_transform_groups(
         transform_groups=transform_groups,
         transform=transform,
         target_transform=target_transform,
@@ -741,7 +742,7 @@ def concat_detection_datasets(
         # TRANSFORMATION GROUPS
         #######################################
         dataset = dds[0]
-        transform_groups_obj = TransformGroups.create(
+        transform_groups_obj = _init_transform_groups(
             transform_groups=transform_groups,
             transform=transform,
             target_transform=target_transform,

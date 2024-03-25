@@ -18,38 +18,6 @@ to be used frequently, as is common in replay strategies.
 """
 
 from functools import partial
-import torch
-from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
-
-from avalanche.benchmarks.utils.utils import (
-    TaskSet,
-    _count_unique,
-    find_common_transforms_group,
-    _init_task_labels,
-    _split_user_def_targets,
-    _split_user_def_task_label,
-    _traverse_supported_dataset,
-)
-
-from avalanche.benchmarks.utils.data import AvalancheDataset
-from avalanche.benchmarks.utils.transform_groups import (
-    TransformGroups,
-    TransformGroupDef,
-    DefaultTransformGroups,
-    XTransform,
-    YTransform,
-)
-from avalanche.benchmarks.utils.data_attribute import DataAttribute
-from avalanche.benchmarks.utils.dataset_utils import (
-    SubSequence,
-)
-from avalanche.benchmarks.utils.flat_data import ConstantSequence
-from avalanche.benchmarks.utils.dataset_definitions import (
-    ISupportedClassificationDataset,
-    ITensorDataset,
-    IDatasetWithTargets,
-)
-
 from typing import (
     List,
     Any,
@@ -64,6 +32,36 @@ from typing import (
     overload,
 )
 
+import torch
+from torch.utils.data.dataset import Subset, ConcatDataset, TensorDataset
+
+from avalanche.benchmarks.utils.data import AvalancheDataset
+from avalanche.benchmarks.utils.data_attribute import DataAttribute
+from avalanche.benchmarks.utils.dataset_definitions import (
+    ISupportedClassificationDataset,
+    ITensorDataset,
+    IDatasetWithTargets,
+)
+from avalanche.benchmarks.utils.dataset_utils import (
+    SubSequence,
+)
+from avalanche.benchmarks.utils.flat_data import ConstantSequence
+from avalanche.benchmarks.utils.transform_groups import (
+    TransformGroupDef,
+    DefaultTransformGroups,
+    XTransform,
+    YTransform,
+)
+from avalanche.benchmarks.utils.utils import (
+    TaskSet,
+    _count_unique,
+    find_common_transforms_group,
+    _init_task_labels,
+    _init_transform_groups,
+    _split_user_def_targets,
+    _split_user_def_task_label,
+    _traverse_supported_dataset,
+)
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
@@ -226,7 +224,7 @@ def _make_taskaware_classification_dataset(
     slicing and advanced indexing and it also contains useful fields as
     `targets`, which contains the pattern labels, and `targets_task_labels`,
     which contains the pattern task labels. The `task_set` field can be used to
-    obtain a the subset of patterns labeled with a given task label.
+    obtain a subset of patterns labeled with a given task label.
 
     This dataset can also be used to apply several advanced operations involving
     transformations. For instance, it allows the user to add and replace
@@ -296,7 +294,7 @@ def _make_taskaware_classification_dataset(
 
     is_supervised = isinstance(dataset, TaskAwareSupervisedClassificationDataset)
 
-    transform_gs = TransformGroups.create(
+    transform_gs = _init_transform_groups(
         transform_groups=transform_groups,
         transform=transform,
         target_transform=target_transform,
@@ -521,7 +519,7 @@ def _taskaware_classification_subset(
         dataset, task_labels, check_shape=False
     )
 
-    transform_gs = TransformGroups.create(
+    transform_gs = _init_transform_groups(
         transform_groups=transform_groups,
         transform=transform,
         target_transform=target_transform,
@@ -695,7 +693,7 @@ def _make_taskaware_tensor_classification_dataset(
         tts.append(tt)
     dataset = _TensorClassificationDataset(*tts)
 
-    transform_gs = TransformGroups.create(
+    transform_gs = _init_transform_groups(
         transform_groups=transform_groups,
         transform=transform,
         target_transform=target_transform,
@@ -897,7 +895,7 @@ def _concat_taskaware_classification_datasets(
 
     if len(dds) > 0:
         dataset = dds[0]
-        transform_groups_obj = TransformGroups.create(
+        transform_groups_obj = _init_transform_groups(
             transform_groups=transform_groups,
             transform=transform,
             target_transform=target_transform,
