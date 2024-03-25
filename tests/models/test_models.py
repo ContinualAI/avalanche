@@ -546,10 +546,10 @@ class DynamicModelsTests(unittest.TestCase):
         sizes = {}
         for t, exp in enumerate(benchmark.train_stream):
             sizes[t] = np.max(exp.classes_in_this_experience) + 1
-            model1.recursive_adaptation(exp)
+            model1.pre_adapt(exp)
         # Second adaptation should not change anything
         for t, exp in enumerate(benchmark.train_stream):
-            model1.recursive_adaptation(exp)
+            model1.pre_adapt(exp)
         for t, s in sizes.items():
             self.assertEqual(s, model1.classifiers[str(t)].classifier.out_features)
 
@@ -562,7 +562,7 @@ class DynamicModelsTests(unittest.TestCase):
         model2.layer2 = model1
 
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)
-        model1.recursive_adaptation(benchmark.train_stream[0])
+        model1.pre_adapt(benchmark.train_stream[0])
 
     def test_multi_head_classifier_masking(self):
         benchmark = get_fast_benchmark(use_task_labels=True, shuffle=True)

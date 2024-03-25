@@ -60,7 +60,7 @@ class DynamicModule(Module):
     expanded to allow architectural modifications (multi-head
     classifiers, progressive networks, ...).
 
-    Compared to pytoch Modules, they provide an additional method,
+    Compared to pytorch Modules, they provide an additional method,
     `model_adaptation`, which adapts the model given the current experience.
     """
 
@@ -73,7 +73,7 @@ class DynamicModule(Module):
         super().__init__()
         self._auto_adapt = auto_adapt
 
-    def recursive_adaptation(self, experience):
+    def pre_adapt(self, experience):
         """
         Calls self.adaptation recursively accross
         the hierarchy of pytorch module childrens

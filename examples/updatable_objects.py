@@ -14,7 +14,8 @@ from avalanche.evaluation.collector import MetricCollector
 from avalanche.evaluation.functional import forgetting
 from avalanche.evaluation.metrics import Accuracy
 from avalanche.evaluation.plot_utils import plot_metric_matrix
-from avalanche.models import SimpleMLP
+from avalanche.models import SimpleMLP, IncrementalClassifier
+from avalanche.models.dynamic_optimizers import DynamicOptimizer
 from avalanche.training import ReservoirSamplingBuffer, LearningWithoutForgetting
 from avalanche.training.losses import MaskedCrossEntropy
 
@@ -94,10 +95,12 @@ if __name__ == '__main__':
     agent_state.reg_loss = LearningWithoutForgetting(alpha=1, temperature=2)
 
     # model
-    agent_state.model = SimpleMLP(num_classes=10).cuda()
+    agent_state.model = SimpleMLP().cuda()
+    agent_state.model.classifier = IncrementalClassifier(in_features=512)
 
     # optim and scheduler
-    agent_state.opt = SGD(agent_state.model.parameters(), lr=0.001)
+    opt = SGD(agent_state.model.parameters(), lr=0.001)
+    agent_state.opt = DynamicOptimizer(opt)  # TODO: maybe we can do this with some hooks???
     agent_state.scheduler = ExponentialLR(agent_state.opt, gamma=0.999)
 
     print("Start training...")

@@ -17,6 +17,18 @@
 from collections import defaultdict
 
 
+class DynamicOptimizer:
+    def __init__(self, opt):
+        self._opt = opt
+
+    def pre_adapt(self):
+        # TODO: implement optimizer adaptation after albin PR is merged
+        # TODO: support scheduling and further wrapping...
+        # TODO: test
+        # TODO: doc
+        pass
+
+
 def compare_keys(old_dict, new_dict):
     not_in_new = list(set(old_dict.keys()) - set(new_dict.keys()))
     in_both = list(set(old_dict.keys()) & set(new_dict.keys()))
