@@ -73,7 +73,7 @@ class TransformGroups:
     """Transformation groups for Avalanche datasets.
 
     TransformGroups supports preprocessing and augmentation pipelines for
-    Avalanche datasets. Transfomations are separated into groups (e.g. `train`
+    Avalanche datasets. Transformations are separated into groups (e.g. `train`
     transforms and `test` transforms), that can be easily switched using the
     `with_transform` method.
     """
