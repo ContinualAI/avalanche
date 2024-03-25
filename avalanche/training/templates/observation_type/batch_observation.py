@@ -37,7 +37,11 @@ class BatchObservation(SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutp
         return model.to(self.device)
 
     def make_optimizer(
-        self, reset_optimizer_state=False, remove_params=False, **kwargs
+        self,
+        reset_optimizer_state=False,
+        remove_params=False,
+        verbose_optimizer=False,
+        **kwargs
     ):
         """Optimizer initialization.
 
@@ -45,6 +49,10 @@ class BatchObservation(SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutp
 
         :param reset_optimizer_state: bool, whether to reset the
             state of the optimizer, defaults to False
+        :param remove_params: bool, whether to remove parameters that
+                              are in the optimizer but not found in the current model
+        :param verbose_optimizer: bool, print optimized parameters
+                                  along with their parameter group
 
         Warnings:
             - The first time this function is called
@@ -54,6 +62,7 @@ class BatchObservation(SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutp
               all of the model parameters will be put in the
               optimizer, regardless of what parameters are
               initially put in the optimizer.
+
         """
         self.optimized_param_id = update_optimizer(
             self.optimizer,
@@ -61,6 +70,7 @@ class BatchObservation(SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutp
             self.optimized_param_id,
             reset_state=reset_optimizer_state,
             remove_params=remove_params,
+            verbose=verbose_optimizer,
         )
 
     def check_model_and_optimizer(self, reset_optimizer_state=False, **kwargs):

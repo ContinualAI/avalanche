@@ -81,7 +81,7 @@ def main(args):
 
     # train and test loop
     for train_task in train_stream:
-        strategy.train(train_task, num_workers=4, verbose=True)
+        strategy.train(train_task, num_workers=4, verbose_optimizer=True)
         strategy.eval(test_stream, num_workers=4)
 
 
