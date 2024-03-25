@@ -45,14 +45,12 @@ from .dataset_utils import (
 )
 from .flat_data import ConstantSequence
 from .transform_groups import (
-    TransformGroupDef,
     TransformGroups,
-    XTransform,
-    YTransform,
 )
 
 if TYPE_CHECKING:
-    from .classification_dataset import TaskAwareClassificationDataset
+    # Avoid cyclic imports
+    from .classification_dataset import ClassificationDataset, TaskAwareClassificationDataset
 
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
@@ -185,8 +183,9 @@ def as_avalanche_dataset(
 def as_classification_dataset(
     dataset: ISupportedClassificationDataset[T_co],
     transform_groups: Optional[TransformGroups] = None,
-) -> "TaskAwareClassificationDataset":
-    """Converts a dataset with a `targets` field into an Avalanche ClassificationDataset."""
+) -> "ClassificationDataset":
+    """Converts a dataset with a `targets` field into a ClassificationDataset."""
+    # Avoid cyclic imports
     from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 
     if isinstance(dataset, ClassificationDataset):
@@ -200,6 +199,7 @@ def as_classification_dataset(
 def as_taskaware_classification_dataset(
     dataset: ISupportedClassificationDataset[T_co],
 ) -> "TaskAwareClassificationDataset":
+    # Avoid cyclic imports
     from avalanche.benchmarks.utils.classification_dataset import (
         TaskAwareClassificationDataset,
     )
@@ -330,12 +330,7 @@ def _traverse_supported_dataset(
         datasets_len = []
         recursion_result = []
 
-        all_size = 0
-        for c_dataset in dataset.datasets:
-            len_dataset = len(c_dataset)
-            datasets_len.append(len_dataset)
-            all_size += len_dataset
-
+        all_size = len(dataset)
         for subset_idx in indices:
             dataset_idx, pattern_idx = find_list_from_index(
                 subset_idx, datasets_len, all_size
@@ -374,7 +369,7 @@ def _init_task_labels(
     Initializes the task label list (one for each pattern in the dataset).
 
     Precedence is given to the values contained in `task_labels` if passed.
-    Otherwisem the elements will be retrieved from the dataset itself by
+    Otherwise the elements will be retrieved from the dataset itself by
     traversing it and looking at the `targets_task_labels` field.
 
     :param dataset: The dataset for which the task labels list must be
@@ -453,74 +448,6 @@ def _select_task_labels(
         found_task_labels = SubSequence(found_task_labels, indices=indices)
 
     return found_task_labels
-
-
-def _init_transform_groups(
-    transform_groups: Optional[Mapping[str, TransformGroupDef]],
-    transform: Optional[XTransform],
-    target_transform: Optional[YTransform],
-    initial_transform_group: Optional[str],
-    dataset,
-) -> Optional[TransformGroups]:
-    """
-    Initializes the transform groups for the given dataset.
-
-    This internal utility is commonly used to manage the transformation
-    defintions coming from the user-facing API. The user may want to
-    define transformations in a more classic (and simple) way by
-    passing a single `transform`, or in a more elaborate way by
-    passing a dictionary of groups (`transform_groups`).
-
-    :param transform_groups: The transform groups to use as a dictionary
-        (group_name -> group). Can be None. Mutually exclusive with
-        `targets` and `target_transform`
-    :param transform: The transformation for the X value. Can be None.
-    :param target_transform: The transformation for the Y value. Can be None.
-    :param initial_transform_group: The name of the initial group.
-        If None, 'train' will be used.
-    :param dataset: The avalanche dataset, used only to obtain the name of
-        the initial transformations groups if `initial_transform_group` is
-        None.
-    :returns: a :class:`TransformGroups` instance if any transformation
-        was passed, else None.
-    """
-    if transform_groups is not None and (
-        transform is not None or target_transform is not None
-    ):
-        raise ValueError(
-            "transform_groups can't be used with transform"
-            "and target_transform values"
-        )
-
-    if transform_groups is not None:
-        _check_groups_dict_format(transform_groups)
-
-    if initial_transform_group is None:
-        # Detect from the input dataset. If not an AvalancheDataset then
-        # use 'train' as the initial transform group
-        if (
-            isinstance(dataset, AvalancheDataset)
-            and dataset._flat_data._transform_groups is not None
-        ):
-            tgs = dataset._flat_data._transform_groups
-            initial_transform_group = tgs.current_group
-        else:
-            initial_transform_group = "train"
-
-    if transform_groups is None:
-        if target_transform is None and transform is None:
-            tgs = None
-        else:
-            tgs = TransformGroups(
-                {
-                    "train": (transform, target_transform),
-                    "eval": (transform, target_transform),
-                },
-                current_group=initial_transform_group,
-            )
-    else:
-        tgs = TransformGroups(transform_groups, current_group=initial_transform_group)
-    return tgs
 
 
 def _check_groups_dict_format(groups_dict):

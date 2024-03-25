@@ -38,7 +38,6 @@ from torch.utils.data.dataset import Subset, ConcatDataset
 from avalanche.benchmarks.utils.utils import (
     TaskSet,
     _init_task_labels,
-    _init_transform_groups,
     _split_user_def_targets,
     _split_user_def_task_label,
     _traverse_supported_dataset,
@@ -272,12 +271,12 @@ def make_detection_dataset(
 
     is_supervised = isinstance(dataset, SupervisedDetectionDataset)
 
-    transform_gs = _init_transform_groups(
-        transform_groups,
-        transform,
-        target_transform,
-        initial_transform_group,
-        dataset,
+    transform_gs = TransformGroups.create(
+        transform_groups=transform_groups,
+        transform=transform,
+        target_transform=target_transform,
+        initial_transform_group=initial_transform_group,
+        dataset=dataset,
     )
     targets_data: Optional[DataAttribute[TTargetType]] = _init_targets(dataset, targets)
     task_labels_data: Optional[DataAttribute[int]] = _init_task_labels(
@@ -508,12 +507,12 @@ def detection_subset(
     del task_labels
     del targets
 
-    transform_gs = _init_transform_groups(
-        transform_groups,
-        transform,
-        target_transform,
-        initial_transform_group,
-        dataset,
+    transform_gs = TransformGroups.create(
+        transform_groups=transform_groups,
+        transform=transform,
+        target_transform=target_transform,
+        initial_transform_group=initial_transform_group,
+        dataset=dataset,
     )
 
     if initial_transform_group is not None and isinstance(dataset, AvalancheDataset):
@@ -741,12 +740,13 @@ def concat_detection_datasets(
         #######################################
         # TRANSFORMATION GROUPS
         #######################################
-        transform_groups_obj = _init_transform_groups(
-            transform_groups,
-            transform,
-            target_transform,
-            initial_transform_group,
-            dds[0],
+        dataset = dds[0]
+        transform_groups_obj = TransformGroups.create(
+            transform_groups=transform_groups,
+            transform=transform,
+            target_transform=target_transform,
+            initial_transform_group=initial_transform_group,
+            dataset=dataset,
         )
 
         # Find common "current_group" or use "train"

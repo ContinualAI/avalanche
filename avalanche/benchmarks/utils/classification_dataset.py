@@ -26,7 +26,6 @@ from avalanche.benchmarks.utils.utils import (
     _count_unique,
     find_common_transforms_group,
     _init_task_labels,
-    _init_transform_groups,
     _split_user_def_targets,
     _split_user_def_task_label,
     _traverse_supported_dataset,
@@ -34,6 +33,7 @@ from avalanche.benchmarks.utils.utils import (
 
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.transform_groups import (
+    TransformGroups,
     TransformGroupDef,
     DefaultTransformGroups,
     XTransform,
@@ -117,7 +117,7 @@ class TaskAwareClassificationDataset(AvalancheDataset[T_co]):
 
     @property
     def task_set(self: TClassificationDataset) -> TaskSet[TClassificationDataset]:
-        """Returns the datasets's ``TaskSet``, which is a mapping <task-id,
+        """Returns the dataset's ``TaskSet``, which is a mapping <task-id,
         task-dataset>."""
         return TaskSet(self)
 
@@ -296,12 +296,12 @@ def _make_taskaware_classification_dataset(
 
     is_supervised = isinstance(dataset, TaskAwareSupervisedClassificationDataset)
 
-    transform_gs = _init_transform_groups(
-        transform_groups,
-        transform,
-        target_transform,
-        initial_transform_group,
-        dataset,
+    transform_gs = TransformGroups.create(
+        transform_groups=transform_groups,
+        transform=transform,
+        target_transform=target_transform,
+        initial_transform_group=initial_transform_group,
+        dataset=dataset,
     )
     targets_data: Optional[DataAttribute[TTargetType]] = _init_targets(dataset, targets)
     task_labels_data: Optional[DataAttribute[int]] = _init_task_labels(
@@ -521,12 +521,12 @@ def _taskaware_classification_subset(
         dataset, task_labels, check_shape=False
     )
 
-    transform_gs = _init_transform_groups(
-        transform_groups,
-        transform,
-        target_transform,
-        initial_transform_group,
-        dataset,
+    transform_gs = TransformGroups.create(
+        transform_groups=transform_groups,
+        transform=transform,
+        target_transform=target_transform,
+        initial_transform_group=initial_transform_group,
+        dataset=dataset,
     )
 
     if initial_transform_group is not None and isinstance(dataset, AvalancheDataset):
@@ -695,12 +695,12 @@ def _make_taskaware_tensor_classification_dataset(
         tts.append(tt)
     dataset = _TensorClassificationDataset(*tts)
 
-    transform_gs = _init_transform_groups(
-        transform_groups,
-        transform,
-        target_transform,
-        initial_transform_group,
-        dataset,
+    transform_gs = TransformGroups.create(
+        transform_groups=transform_groups,
+        transform=transform,
+        target_transform=target_transform,
+        initial_transform_group=initial_transform_group,
+        dataset=dataset,
     )
     targets_data = _init_targets(dataset, targets)
     task_labels_data = _init_task_labels(dataset, task_labels)
@@ -896,12 +896,13 @@ def _concat_taskaware_classification_datasets(
         dds.append(dd)
 
     if len(dds) > 0:
-        transform_groups_obj = _init_transform_groups(
-            transform_groups,
-            transform,
-            target_transform,
-            initial_transform_group,
-            dds[0],
+        dataset = dds[0]
+        transform_groups_obj = TransformGroups.create(
+            transform_groups=transform_groups,
+            transform=transform,
+            target_transform=target_transform,
+            initial_transform_group=initial_transform_group,
+            dataset=dataset,
         )
     else:
         transform_groups_obj = None
@@ -1116,6 +1117,7 @@ def _as_taskaware_supervised_classification_dataset(
 
 
 __all__ = [
+    "ClassificationDataset",
     "SupportedDataset",
     "TaskAwareClassificationDataset",
     "TaskAwareSupervisedClassificationDataset",

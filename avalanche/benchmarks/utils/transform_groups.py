@@ -28,9 +28,11 @@ from typing import (
     Union,
     Callable,
     Sequence,
-    Protocol,
+    Protocol, Self,
 )
 
+from avalanche.benchmarks import AvalancheDataset
+from avalanche.benchmarks.utils import _check_groups_dict_format
 from avalanche.benchmarks.utils.transforms import (
     MultiParamCompose,
     TupleTransform,
@@ -108,6 +110,78 @@ class TransformGroups:
 
         if "eval" not in self.transform_groups:
             self.transform_groups["eval"] = None
+
+    @classmethod
+    def create(
+        cls,
+        transform_groups: Optional[Mapping[str, TransformGroupDef]],
+        transform: Optional[XTransform],
+        target_transform: Optional[YTransform],
+        initial_transform_group: Optional[str],
+        dataset,
+    ) -> Optional[Self]:
+        """
+        Initializes the transform groups for the given dataset.
+
+        This internal utility is commonly used to manage the transformation
+        definitions coming from the user-facing API. The user may want to
+        define transformations in a more classic (and simple) way by
+        passing a single `transform`, or in a more elaborate way by
+        passing a dictionary of groups (`transform_groups`).
+
+        :param transform_groups: The transform groups to use as a dictionary
+            (group_name -> group). Can be None. Mutually exclusive with
+            `targets` and `target_transform`
+        :param transform: The transformation for the X value. Can be None.
+        :param target_transform: The transformation for the Y value. Can be None.
+        :param initial_transform_group: The name of the initial group.
+            If None, 'train' will be used.
+        :param dataset: The avalanche dataset, used only to obtain the name of
+            the initial transformations groups if `initial_transform_group` is
+            None.
+        :returns: a :class:`TransformGroups` instance if any transformation
+            was passed, else None.
+        """
+        if transform_groups is not None and (
+            transform is not None or target_transform is not None
+        ):
+            raise ValueError(
+                "transform_groups can't be used with transform"
+                "and target_transform values"
+            )
+
+        if transform_groups is not None:
+            _check_groups_dict_format(transform_groups)
+
+        if initial_transform_group is None:
+            # Detect from the input dataset. If not an AvalancheDataset then
+            # use 'train' as the initial transform group
+            if (
+                isinstance(dataset, AvalancheDataset)
+                and dataset._flat_data._transform_groups is not None
+            ):
+                tgs = dataset._flat_data._transform_groups
+                initial_transform_group = tgs.current_group
+            else:
+                initial_transform_group = "train"
+
+        if transform_groups is None:
+            if target_transform is None and transform is None:
+                tgs = None
+            else:
+                tgs = TransformGroups(
+                    {
+                        "train": (transform, target_transform),
+                        "eval": (transform, target_transform),
+                    },
+                    current_group=initial_transform_group,
+                )
+        else:
+            tgs = TransformGroups(
+                transform_groups,
+                current_group=initial_transform_group,
+            )
+        return tgs
 
     def __getitem__(self, item):
         return self.transform_groups[item]

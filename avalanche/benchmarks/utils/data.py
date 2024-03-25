@@ -98,7 +98,7 @@ class AvalancheDataset(IDataset[T_co]):
     ):
         """Creates a ``AvalancheDataset`` instance.
 
-        :param dataset: Original dataset. Beware that
+        :param datasets: Original dataset. Beware that
             AvalancheDataset will not overwrite transformations already
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
