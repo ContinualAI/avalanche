@@ -11,6 +11,7 @@ class MetricCollector:
     # TODO: doc
     def __init__(self, stream):
         # TODO: doc
+        # TODO: add support for different streams for each metric
         self.metrics_res = None
 
         self._stream_len = 0

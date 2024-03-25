@@ -15,7 +15,7 @@ from avalanche.evaluation.functional import forgetting
 from avalanche.evaluation.metrics import Accuracy
 from avalanche.evaluation.plot_utils import plot_metric_matrix
 from avalanche.models import SimpleMLP
-from avalanche.training import ReservoirSamplingBuffer
+from avalanche.training import ReservoirSamplingBuffer, LearningWithoutForgetting
 from avalanche.training.losses import MaskedCrossEntropy
 
 
@@ -45,7 +45,7 @@ def train_experience(agent_state, exp, epochs=10):
             agent_state.opt.zero_grad()
             yp = agent_state.model(x)
             l = agent_state.loss(yp, y)
-            # l += agent_state.reg_loss()
+            l += agent_state.reg_loss(x, yp, agent_state.model)
             l.backward()
             agent_state.opt.step()
 
@@ -91,6 +91,7 @@ if __name__ == '__main__':
     agent_state = Agent()
     agent_state.replay = ReservoirSamplingBuffer(max_size=200)
     agent_state.loss = MaskedCrossEntropy()
+    agent_state.reg_loss = LearningWithoutForgetting(alpha=1, temperature=2)
 
     # model
     agent_state.model = SimpleMLP(num_classes=10).cuda()

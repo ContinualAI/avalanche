@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 
 import torch
 from torch.utils.data import DataLoader
@@ -33,7 +34,7 @@ class TestLwF(unittest.TestCase):
                 assert loss == 0
             else:
                 assert loss > 0.0
-            lwf.update(exp, teacher)
+            lwf.post_adapt(SimpleNamespace(model=teacher), exp)
 
         lwf = LearningWithoutForgetting()
         teacher = MTSimpleMLP(input_size=6)
@@ -60,7 +61,7 @@ class TestLwF(unittest.TestCase):
                     assert torch.norm(weight.grad) > 0
                 model.zero_grad()
 
-            lwf.update(exp, teacher)
+            lwf.post_adapt(SimpleNamespace(model=teacher), exp)
 
 
 if __name__ == "__main__":

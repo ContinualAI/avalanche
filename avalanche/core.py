@@ -21,34 +21,34 @@ class Agent:
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
-        if hasattr(value, 'pre_update') or hasattr(value, 'post_update'):
+        if hasattr(value, 'pre_adapt') or hasattr(value, 'post_adapt'):
             self._updatable_objects.append(value)
             if self.verbose:
                 print("Added updatable object ", value)
 
-    def pre_update(self, exp):
+    def pre_adapt(self, exp):
         # TODO: doc
         for uo in self._updatable_objects:
-            if hasattr(uo, 'pre_update'):
-                uo.pre_update(self, exp)
+            if hasattr(uo, 'pre_adapt'):
+                uo.pre_adapt(self, exp)
                 if self.verbose:
-                    print("preupdate ", uo)
+                    print("pre_adapt ", uo)
 
-    def post_update(self, exp):
+    def post_adapt(self, exp):
         # TODO: doc
         for uo in self._updatable_objects:
-            if hasattr(uo, 'post_update'):
-                uo.post_update(self, exp)
+            if hasattr(uo, 'post_adapt'):
+                uo.post_adapt(self, exp)
                 if self.verbose:
-                    print("post_update ", uo)
+                    print("post_adapt ", uo)
 
 
 @runtime_checkable
-class Updatable(Protocol):
-    def pre_update(self, agent: Agent, exp: CLExperience):
+class Adaptable(Protocol):
+    def pre_adapt(self, agent: Agent, exp: CLExperience):
         pass
 
-    def post_udpate(self, agent: Agent, exp: CLExperience):
+    def post_adapt(self, agent: Agent, exp: CLExperience):
         pass
 
 
