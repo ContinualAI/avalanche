@@ -31,7 +31,7 @@ from typing import (
 
 from avalanche.benchmarks.utils.classification_dataset import (
     _make_taskaware_tensor_classification_dataset,
-    _make_taskaware_classification_dataset,
+    _make_taskaware_classification_dataset, ClassificationDataset,
 )
 
 from avalanche.benchmarks.utils import (
@@ -197,7 +197,7 @@ class LazyStreamDefinition(NamedTuple):
     This class is a named tuple containing the fields required for defining
     a lazily-created benchmark.
 
-    - exps_generator: The experiences generator. Can be a "yield"-based
+    - exps_generator: The experience's generator. Can be a "yield"-based
       generator, a custom sequence, a standard list or any kind of
       iterable returning :class:`AvalancheDataset`.
     - stream_length: The number of experiences in the stream. Must match the
@@ -207,7 +207,7 @@ class LazyStreamDefinition(NamedTuple):
       can be used.
     """
 
-    exps_generator: Iterable[TaskAwareClassificationDataset]
+    exps_generator: Iterable[ClassificationDataset]
     """
     The experiences generator. Can be a "yield"-based generator, a custom
     sequence, a standard list or any kind of iterable returning

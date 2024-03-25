@@ -43,10 +43,10 @@ from avalanche.benchmarks.utils import as_classification_dataset, AvalancheDatas
 
 # Most datasets in Avalanche are automatically downloaded the first time you use them
 # and stored in a default location. You can change this folder by calling
-# avalanche.benchmarks.utils.set_dataset_root(new_location)
+# avalanche.benchmarks.datasets.dataset_utils.set_dataset_root(new_location)
 datadir = default_dataset_location('mnist')
 
-# As we would simply do with any Pytorch dataset we can create the train and 
+# As we would simply do with any Pytorch dataset we can create the train and
 # test sets from it. We could use any of the above imported Datasets, but let's
 # just try to use the standard MNIST.
 train_MNIST = MNIST(datadir, train=True, download=True)
@@ -65,14 +65,14 @@ eval_transforms = torchvision.transforms.Compose([
 train_MNIST = as_classification_dataset(
     train_MNIST,
     transform_groups={
-        'train': train_transforms, 
+        'train': train_transforms,
         'eval': eval_transforms
     }
 )
 test_MNIST = as_classification_dataset(
     test_MNIST,
     transform_groups={
-        'train': train_transforms, 
+        'train': train_transforms,
         'eval': eval_transforms
     }
 )
@@ -117,7 +117,7 @@ print(list(dsub.targets))
 ## 🏛️ Classic Benchmarks
 
 Most benchmarks will provide two streams: the `train_stream` and `test_stream`.
-Often, these are two parallel streams of the same length, where each experience is sampled from the same distribution (e.g. same set of classes). 
+Often, these are two parallel streams of the same length, where each experience is sampled from the same distribution (e.g. same set of classes).
 Some benchmarks may have a single test experience with the whole test dataset.
 
 Experiences provide all the information needed to update the model, such as the new batch of data, and they may be decorated with attributes that are helpful for training or logging purposes.
@@ -248,7 +248,7 @@ print(f"Experience {exp.logging().current_experience}")
 
 #### Classification
 
-classification benchmarks follow the `ClassesTimeline` protocol and provide attributes about the classes in the stream. 
+classification benchmarks follow the `ClassesTimeline` protocol and provide attributes about the classes in the stream.
 
 
 ```python
@@ -322,7 +322,7 @@ for exp in online_train_stream:
     print(f"\tsize: {len(exp.dataset)}")
 
     # in a training loop, here you would train on the online_train_stream
-    # here you would test on bm.valid_stream or bm.test_stream 
+    # here you would test on bm.valid_stream or bm.test_stream
 ```
 
 This completes the "_Benchmark_" tutorial for the "_From Zero to Hero_" series. We hope you enjoyed it!

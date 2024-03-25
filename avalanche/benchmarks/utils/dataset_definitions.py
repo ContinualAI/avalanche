@@ -23,7 +23,7 @@ TTargetType_co = TypeVar("TTargetType_co", covariant=True)
 #
 # That is, accept ISupportedClassificationDataset as parameter to
 # functions/constructors (when possible), but always expose/return instances of
-# ClassificationDataset to the, user (no matter what). The main difference is
+# ClassificationDataset to the user (no matter what). The main difference is
 # that ClassificationDataset is a subclass of the PyTorch Dataset while
 # ISupportedClassificationDataset is just a Protocol. This will allow the user
 # to pass any custom dataset while receiving Dataset subclasses as outputs at
