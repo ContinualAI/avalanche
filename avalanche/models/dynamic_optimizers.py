@@ -31,7 +31,7 @@ colors = {
 colors[None] = colors["END"]
 
 
-def map_optimized_params(optimizer, parameters, old_params=None):
+def _map_optimized_params(optimizer, parameters, old_params=None):
     """
     Establishes a mapping between a list of named parameters and the parameters
     that are in the optimizer, additionally,
@@ -105,8 +105,8 @@ def map_optimized_params(optimizer, parameters, old_params=None):
     )
 
 
-def build_tree_from_name_groups(name_groups):
-    root = TreeNode("")  # Root node
+def _build_tree_from_name_groups(name_groups):
+    root = _TreeNode("")  # Root node
     node_mapping = {}
 
     # Iterate through each string in the list
@@ -117,7 +117,7 @@ def build_tree_from_name_groups(name_groups):
         # Traverse the tree and construct nodes for each component
         for component in components:
             if component not in current_node.children:
-                current_node.children[component] = TreeNode(
+                current_node.children[component] = _TreeNode(
                     component, parent=current_node
                 )
             current_node = current_node.children[component]
@@ -135,7 +135,7 @@ def build_tree_from_name_groups(name_groups):
     return root, node_mapping
 
 
-def print_group_information(node, prefix=""):
+def _print_group_information(node, prefix=""):
     # Print the groups for the current node
 
     if len(node.groups) == 1:
@@ -150,10 +150,10 @@ def print_group_information(node, prefix=""):
 
     # Recursively print group information for children nodes
     for child_name, child_node in node.children.items():
-        print_group_information(child_node, prefix + "  ")
+        _print_group_information(child_node, prefix + "  ")
 
 
-class ParameterGroupStructure:
+class _ParameterGroupStructure:
     """
     Structure used for the resolution of unknown parameter groups,
     stores parameters as a tree and propagates parameter groups from leaves of
@@ -162,15 +162,15 @@ class ParameterGroupStructure:
 
     def __init__(self, name_groups, verbose=False):
         # Here we rebuild the tree
-        self.root, self.node_mapping = build_tree_from_name_groups(name_groups)
+        self.root, self.node_mapping = _build_tree_from_name_groups(name_groups)
         if verbose:
-            print_group_information(self.root)
+            _print_group_information(self.root)
 
     def __getitem__(self, name):
         return self.node_mapping[name]
 
 
-class TreeNode:
+class _TreeNode:
     def __init__(self, name, parent=None):
         self.name = name
         self.children = {}
@@ -293,7 +293,7 @@ def update_optimizer(
         changed_parameters,
         new_parameters,
         not_found_in_parameters,
-    ) = map_optimized_params(optimizer, new_params, old_params=optimized_params)
+    ) = _map_optimized_params(optimizer, new_params, old_params=optimized_params)
 
     # Change reference to already existing parameters
     # i.e growing IncrementalClassifier
@@ -320,7 +320,7 @@ def update_optimizer(
 
     # Add newly added parameters (i.e Multitask, PNN)
 
-    param_structure = ParameterGroupStructure(group_mapping, verbose=verbose)
+    param_structure = _ParameterGroupStructure(group_mapping, verbose=verbose)
 
     # New parameters
     for key in new_parameters:
@@ -336,13 +336,16 @@ def update_optimizer(
     return new_params
 
 
+@deprecated(
+    0.6,
+    "parameters have to be added manually to the optimizer in an existing or a new parameter group",
+)
 def add_new_params_to_optimizer(optimizer, new_params):
     """Add new parameters to the trainable parameters.
 
     :param new_params: list of trainable parameters
     """
-    # optimizer.add_param_group({"params": new_params})
-    optimizer.param_groups[0]["params"].append(new_params)
+    optimizer.add_param_group({"params": new_params})
 
 
 __all__ = ["add_new_params_to_optimizer", "reset_optimizer", "update_optimizer"]

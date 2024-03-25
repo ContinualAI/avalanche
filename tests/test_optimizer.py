@@ -26,7 +26,6 @@ from avalanche.models import (
 from avalanche.models.cosine_layer import CosineLinear, SplitCosineLinear
 from avalanche.models.dynamic_optimizers import (
     add_new_params_to_optimizer,
-    map_optimized_params,
     update_optimizer,
 )
 from avalanche.models.pytorchcv_wrapper import densenet, get_model, pyramidnet, resnet
@@ -85,12 +84,6 @@ class DynamicOptimizersTests(unittest.TestCase):
         return None
 
     def load_benchmark(self, use_task_labels=False):
-        """
-        Returns a NC benchmark from a fake dataset of 10 classes, 5 experiences,
-        2 classes per experience.
-
-        :param fast_test: if True loads fake data, MNIST otherwise.
-        """
         return get_fast_benchmark(use_task_labels=use_task_labels)
 
     def init_scenario(self, multi_task=False):
@@ -104,9 +97,9 @@ class DynamicOptimizersTests(unittest.TestCase):
         optimizer = SGD(model.parameters(), lr=1e-3)
         strategy = Naive(model=model, optimizer=optimizer)
 
-        # check add_param_group
+        # check add new parameter
         p = torch.nn.Parameter(torch.zeros(10, 10))
-        add_new_params_to_optimizer(optimizer, p)
+        optimizer.param_groups[0]["params"].append(p)
         assert self._is_param_in_optimizer(p, strategy.optimizer)
 
         # check new_param is in optimizer
@@ -125,6 +118,10 @@ class DynamicOptimizersTests(unittest.TestCase):
         self.assertFalse(self._is_param_in_optimizer(p, strategy.optimizer))
 
     def test_optimizers(self):
+        """
+        Run a series of tests on various pytorch optimizers
+        """
+
         # SIT scenario
         model, criterion, benchmark = self.init_scenario(multi_task=True)
         for optimizer in self._iterate_optimizers(
@@ -143,6 +140,10 @@ class DynamicOptimizersTests(unittest.TestCase):
             self._test_optimizer_state(strategy)
 
     def test_optimizer_groups_clf_til(self):
+        """
+        Tests the automatic assignation of new
+        MultiHead parameters to the optimizer
+        """
         model, criterion, benchmark = self.init_scenario(multi_task=True)
 
         g1 = []
@@ -180,6 +181,10 @@ class DynamicOptimizersTests(unittest.TestCase):
                     )
 
     def test_optimizer_groups_clf_cil(self):
+        """
+        Tests the automatic assignation of new
+        IncrementalClassifier parameters to the optimizer
+        """
         model, criterion, benchmark = self.init_scenario(multi_task=False)
 
         g1 = []
@@ -216,7 +221,73 @@ class DynamicOptimizersTests(unittest.TestCase):
                         self._is_param_in_optimizer_group(p, strategy.optimizer), 1
                     )
 
+    def test_optimizer_groups_manual_addition(self):
+        """
+        Tests the manual addition of a new parameter group
+        mixed with existing MultiHeadClassifier
+        """
+        model, criterion, benchmark = self.init_scenario(multi_task=True)
+
+        g1 = []
+        g2 = []
+        for n, p in model.named_parameters():
+            if "classifier" in n:
+                g1.append(p)
+            else:
+                g2.append(p)
+
+        optimizer = SGD([{"params": g1, "lr": 0.1}, {"params": g2, "lr": 0.05}])
+
+        strategy = Naive(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=64,
+            device=self.device,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+
+        experience_0 = benchmark.train_stream[0]
+        experience_1 = benchmark.train_stream[1]
+
+        strategy.train(experience_0)
+
+        # Add some new parameter and assign it manually to param group
+        model.new_module1 = torch.nn.Linear(10, 10)
+        model.new_module2 = torch.nn.Linear(10, 10)
+        strategy.optimizer.param_groups[1]["params"] += list(
+            model.new_module1.parameters()
+        )
+        strategy.optimizer.add_param_group(
+            {"params": list(model.new_module2.parameters()), "lr": 0.001}
+        )
+
+        # Also add one but to a new param group
+
+        strategy.train(experience_1)
+
+        for n, p in model.named_parameters():
+            assert self._is_param_in_optimizer(p, strategy.optimizer)
+            if "classifier" in n:
+                self.assertEqual(
+                    self._is_param_in_optimizer_group(p, strategy.optimizer), 0
+                )
+            elif "new_module2" in n:
+                self.assertEqual(
+                    self._is_param_in_optimizer_group(p, strategy.optimizer), 2
+                )
+            else:
+                self.assertEqual(
+                    self._is_param_in_optimizer_group(p, strategy.optimizer), 1
+                )
+
     def test_optimizer_groups_rename(self):
+        """
+        Tests the correct reassignation to
+        existing parameter groups after
+        parameter renaming
+        """
         model, criterion, benchmark = self.init_scenario(multi_task=False)
 
         g1 = []
