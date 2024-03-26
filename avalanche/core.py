@@ -18,6 +18,8 @@ class Agent:
         # TODO: test post_update call
         self._updatable_objects = []
         self.verbose = verbose
+        self._pre_hooks = []
+        self._post_hooks = []
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
@@ -33,6 +35,10 @@ class Agent:
                 uo.pre_adapt(self, exp)
                 if self.verbose:
                     print("pre_adapt ", uo)
+        for foo in self._pre_hooks:
+            if self.verbose:
+                print("pre_adapt hook ", foo)
+            foo(self, exp)
 
     def post_adapt(self, exp):
         # TODO: doc
@@ -41,10 +47,26 @@ class Agent:
                 uo.post_adapt(self, exp)
                 if self.verbose:
                     print("post_adapt ", uo)
+        for foo in self._post_hooks:
+            if self.verbose:
+                print("post_adapt hook ", foo)
+            foo(self, exp)
+
+    def add_pre_hooks(self, foo):
+        # TODO: doc
+        # TODO: test
+        self._pre_hooks.append(foo)
+
+    def add_post_hooks(self, foo):
+        # TODO: doc
+        # TODO: test
+        self._post_hooks.append(foo)
 
 
 @runtime_checkable
 class Adaptable(Protocol):
+    # TODO: doc
+    # TODO: test runtime-checkability
     def pre_adapt(self, agent: Agent, exp: CLExperience):
         pass
 

@@ -50,6 +50,7 @@ def experimental(reason: Optional[str] = None):
     return decorator
 
 
+# TODO: show deprecation warning only once
 def deprecated(version: float, reason: str):
     """Decorator to mark functions as deprecated.
 
@@ -81,13 +82,12 @@ def deprecated(version: float, reason: str):
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.simplefilter("always", DeprecationWarning)
+            warnings.simplefilter("default", DeprecationWarning)
             warnings.warn(
                 msg.format(name=func.__name__, version=version, reason=reason),
                 category=DeprecationWarning,
                 stacklevel=2,
             )
-            warnings.simplefilter("default", DeprecationWarning)
             return func(*args, **kwargs)
 
         return wrapper

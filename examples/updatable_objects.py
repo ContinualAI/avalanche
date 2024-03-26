@@ -1,3 +1,5 @@
+import setGPU
+
 from types import SimpleNamespace
 
 import torch
@@ -15,7 +17,8 @@ from avalanche.evaluation.functional import forgetting
 from avalanche.evaluation.metrics import Accuracy
 from avalanche.evaluation.plot_utils import plot_metric_matrix
 from avalanche.models import SimpleMLP, IncrementalClassifier
-from avalanche.models.dynamic_optimizers import DynamicOptimizer
+from avalanche.models.dynamic_modules import avalanche_model_adaptation
+from avalanche.models.dynamic_optimizers import DynamicOptimizer, reset_optimizer
 from avalanche.training import ReservoirSamplingBuffer, LearningWithoutForgetting
 from avalanche.training.losses import MaskedCrossEntropy
 
@@ -28,9 +31,8 @@ def train_experience(agent_state, exp, epochs=10):
     # this is the usual before_exp
     # updatable_objs = [agent_state.replay, agent_state.loss, agent_state.model]
     # [uo.pre_update(exp, agent_state) for uo in updatable_objs]
-    agent_state.loss.before_training_exp(SimpleNamespace(experience=exp))
     # agent_state.model.recursive_adaptation(exp)
-    # agent_state.pre_update(agent_state, exp)
+    agent_state.pre_adapt(exp)
 
     data = exp.dataset.train()
     for ep in range(epochs):
@@ -49,18 +51,12 @@ def train_experience(agent_state, exp, epochs=10):
             l += agent_state.reg_loss(x, yp, agent_state.model)
             l.backward()
             agent_state.opt.step()
-
-        # this is the usual after_exp
-        # updatable_objs = [agent_state.replay, agent_state.loss, agent_state.model]
-        # [uo.post_update(exp, agent_state) for uo in updatable_objs]
-        agent_state.replay.update(SimpleNamespace(experience=exp))
-    agent_state.scheduler.step()
-    # agent_state.post_update(agent_state, exp)
+    agent_state.post_adapt(exp)
     return agent_state
 
 
 @torch.no_grad()
-def my_eval(model, stream, metrics, **extra_args):
+def my_eval(model, stream, metrics):
     # eval also becomes simpler. Notice how in Avalanche it's harder to check whether
     # we are evaluating a single exp. or the whole stream.
     # Now we evaluate each stream with a separate function call
@@ -89,37 +85,46 @@ if __name__ == '__main__':
     # agent state collects all the objects that are needed during training
     # many of these objects will have some state that is updated during training.
     # The training function returns the updated agent state at each step.
-    agent_state = Agent()
-    agent_state.replay = ReservoirSamplingBuffer(max_size=200)
-    agent_state.loss = MaskedCrossEntropy()
-    agent_state.reg_loss = LearningWithoutForgetting(alpha=1, temperature=2)
+    agent = Agent()
+    agent.replay = ReservoirSamplingBuffer(max_size=200)
+    agent.loss = MaskedCrossEntropy()
+    agent.reg_loss = LearningWithoutForgetting(alpha=1, temperature=2)
 
     # model
-    agent_state.model = SimpleMLP().cuda()
-    agent_state.model.classifier = IncrementalClassifier(in_features=512)
+    agent.model = SimpleMLP().cuda()
+    agent.model.classifier = IncrementalClassifier(in_features=512).cuda()
+    agent.add_pre_hooks(lambda a, e: avalanche_model_adaptation(a.model, e))
 
     # optim and scheduler
-    opt = SGD(agent_state.model.parameters(), lr=0.001)
-    agent_state.opt = DynamicOptimizer(opt)  # TODO: maybe we can do this with some hooks???
-    agent_state.scheduler = ExponentialLR(agent_state.opt, gamma=0.999)
+    agent.opt = SGD(agent.model.parameters(), lr=0.001)
+    agent.add_pre_hooks(lambda a, e: reset_optimizer(a.opt, a.model))  # TODO: update after albin PR is merged
+    # agent_state.opt = DynamicOptimizer(opt)  # TODO: maybe we can do this with some hooks???
+    agent.scheduler = ExponentialLR(agent.opt, gamma=0.999)
+    agent.add_post_hooks(lambda a, e: a.scheduler.step())
 
     print("Start training...")
     metrics = [Accuracy()]
-    mc_test = MetricCollector(test_stream)
+    mc = MetricCollector()
     for exp in ocl_stream:
-        print(exp.classes_in_this_experience, end=' ')
-        agent_state = train_experience(agent_state, exp, epochs=2)
+        if exp.logging().is_first_subexp:
+            print("training on classes ", exp.classes_in_this_experience)
+        agent = train_experience(agent, exp, epochs=2)
         if exp.logging().is_last_subexp:
+            res = my_eval(agent.model, train_stream, metrics)
+            mc.update(res, stream=train_stream)
+            print("RES: ", res)
+            res = my_eval(agent.model, test_stream, metrics)
+            mc.update(res, stream=test_stream)
+            print("EVAL RES: ", res)
             print()
-            res = my_eval(agent_state.model, test_stream, metrics)
-            print("EVAL: ", res)
-            mc_test.update(res)
 
-    acc_timeline = mc_test.get("Accuracy", exp_reduce="sample_mean")
-    print(mc_test.get("Accuracy", exp_reduce=None))
+    print(mc.get_dict())
+
+    acc_timeline = mc.get("Accuracy", exp_reduce="sample_mean", stream=test_stream)
+    print(mc.get("Accuracy", exp_reduce=None, stream=test_stream))
     print(acc_timeline)
 
-    acc_matrix = mc_test.get("Accuracy", exp_reduce=None)
+    acc_matrix = mc.get("Accuracy", exp_reduce=None, stream=test_stream)
     fig = plot_metric_matrix(acc_matrix, title="Accuracy - Train")
     fig.savefig("accuracy.png")
 

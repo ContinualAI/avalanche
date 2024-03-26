@@ -18,6 +18,7 @@ from collections import defaultdict
 
 
 class DynamicOptimizer:
+    # TODO: remove, not needed?
     def __init__(self, opt):
         self._opt = opt
 
