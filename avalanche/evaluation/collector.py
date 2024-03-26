@@ -8,9 +8,25 @@ from avalanche._annotations import experimental
 
 @experimental()
 class MetricCollector:
-    # TODO: doc
+    """A simple metric collector object.
+
+    Functionlity includes the ability to store metrics over time and compute
+    aggregated values of them. Serialization is supported via json files.
+
+    Example usage (pseudocode missing imports and init and other objects):
+
+    ```
+    mc = MetricCollector()
+    for exp in train_stream:
+        agent = train_experience(agent, exp)
+        res = my_eval(agent.model, test_stream, metrics)
+        mc.update(res, stream=test_stream)
+    acc_timeline = mc.get("Accuracy", exp_reduce="sample_mean", stream=test_stream)
+    ```
+
+    """
     def __init__(self):
-        # TODO: doc
+        """Init."""
         self.metrics_res = {}
 
         self._stream_len = {}  # stream-name -> stream length
@@ -29,7 +45,12 @@ class MetricCollector:
         self._coeffs[stream.name] = coeffs / coeffs.sum()
 
     def update(self, res, *, stream=None):
-        # TODO: doc
+        """Update the metrics.
+
+        :param res: a dictionary of new metrics with <metric_name: value> items.
+        :param stream: optional stream. If a stream is given the full metric
+            name becomes `f'{stream.name}/{metric_name}'`.
+        """
         # TODO: test multi groups
         for k, v in res.items():
             # optional safety check on metric shape
@@ -50,7 +71,23 @@ class MetricCollector:
                 self.metrics_res[k] = [v]
 
     def get(self, name, *, time_reduce=None, exp_reduce=None, stream=None):
-        # TODO: doc
+        """Returns a metric value given its name and aggregation method.
+
+        :param name: name of the metric.
+        :param time_reduce: Aggregation over the time dimension. One of {None, 'last', 'mean'}, where:
+            - None (default) does not use any aggregation
+            - 'last' returns the last timestep
+            - 'mean' averages over time
+        :param exp_reduce: Aggregation over the experience dimension. One of {None, 'sample_mean', 'experience_mean'} where:
+            - None (default) does not use any aggregation
+            - `sample_mean` is an average weighted by the number of samples in each experience
+            - `experience_mean` is an experience average.
+        :param stream: stream that was used to compute the metric. This is
+            needed to build the full metric name if the get was called with a
+            stream name and if `exp_reduce == sample_mean` to get the number
+            of samples from each experience.
+        :return: aggregated metric value.
+        """
         assert time_reduce in {None, "last", "mean"}
         assert exp_reduce in {None, "sample_mean", "experience_mean"}
 
@@ -88,23 +125,36 @@ class MetricCollector:
         return mvals
 
     def get_dict(self):
-        # TODO: doc
+        """Returns metrics dictionary.
+
+        :return: metrics dictionary
+        """
         # TODO: test
         return self.metrics_res
 
     def load_dict(self, d):
-        # TODO: doc
+        """Loads a new metrics dictionary.
+
+        :param d: metrics dictionary
+        """
         # TODO: test
         self.metrics_res = d
 
     def load_json(self, fname):
-        # TODO: doc
+        """Loads a metrics dictionary from a json file.
+
+        :param fname: file name
+        """
         # TODO: test
         with open(fname, 'w') as f:
             self.metrics_res = json.load(f)
 
     def to_json(self, fname):
-        # TODO: doc
+        """Stores metrics dictionary as a json filename.
+
+        :param fname:
+        :return:
+        """
         # TODO: test
         with open(fname, 'w') as f:
             json.dump(obj=self.metrics_res, fp=f)
