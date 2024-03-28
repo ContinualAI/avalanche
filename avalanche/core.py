@@ -12,10 +12,53 @@ Template = TypeVar("Template", bound="BaseTemplate")
 
 
 class Agent:
+    """Avalanche Continual Learning Agent.
+
+    The agent stores the state needed by continual learning training methods,
+    such as optimizers, models, regularization losses.
+    You can add any objects as attributes dynamically:
+
+    .. code-block::
+
+        agent = Agent()
+        agent.replay = ReservoirSamplingBuffer(max_size=200)
+        agent.loss = MaskedCrossEntropy()
+        agent.reg_loss = LearningWithoutForgetting(alpha=1, temperature=2)
+        agent.model = my_model
+        agent.opt = SGD(agent.model.parameters(), lr=0.001)
+        agent.scheduler = ExponentialLR(agent.opt, gamma=0.999)
+
+    Many CL objects will need to perform some operation before or
+    after training on each experience. This is supported via the `Adaptable`
+    Protocol, which requires the `pre_adapt` and `post_adapt` methods.
+    To call the pre/post adaptation you can implement your training loop
+    like in the following example:
+
+    .. code-block::
+
+        def train(agent, exp):
+            agent.pre_adapt(exp)
+            # do training here
+            agent.post_update(exp)
+
+    Objects that implement the `Adaptable` Protocol will be called by the Agent.
+
+    You can also add additional functionality to the adaptation phases with
+    hooks. For example:
+
+    .. code-block::
+        agent.add_pre_hooks(lambda a, e: update_optimizer(a.opt, new_params={}, optimized_params=dict(a.model.named_parameters())))
+        # we update the lr scheduler after each experience (not every epoch!)
+        agent.add_post_hooks(lambda a, e: a.scheduler.step())
+
+
+    """
     def __init__(self, verbose=False):
-        # TODO: doc
-        # TODO: test pre_update call
-        # TODO: test post_update call
+        """Init.
+
+        :param verbose: If True, print every time an adaptable object or hook
+            is called during the adaptation. Useful for debugging.
+        """
         self._updatable_objects = []
         self.verbose = verbose
         self._pre_hooks = []
@@ -29,7 +72,12 @@ class Agent:
                 print("Added updatable object ", value)
 
     def pre_adapt(self, exp):
-        # TODO: doc
+        """Pre-adaptation.
+
+        Remember to call this before training on a new experience.
+
+        :param exp: current experience
+        """
         for uo in self._updatable_objects:
             if hasattr(uo, 'pre_adapt'):
                 uo.pre_adapt(self, exp)
@@ -41,7 +89,12 @@ class Agent:
             foo(self, exp)
 
     def post_adapt(self, exp):
-        # TODO: doc
+        """Post-adaptation.
+
+        Remember to call this after training on a new experience.
+
+        :param exp: current experience
+        """
         for uo in self._updatable_objects:
             if hasattr(uo, 'post_adapt'):
                 uo.post_adapt(self, exp)
@@ -53,20 +106,39 @@ class Agent:
             foo(self, exp)
 
     def add_pre_hooks(self, foo):
-        # TODO: doc
-        # TODO: test
+        """Add a pre-adaptation hooks
+
+        Hooks take two arguments: `<agent, experience>`.
+
+        :param foo: the hook function
+        """
         self._pre_hooks.append(foo)
 
     def add_post_hooks(self, foo):
-        # TODO: doc
-        # TODO: test
+        """Add a post-adaptation hooks
+
+        Hooks take two arguments: `<agent, experience>`.
+
+        :param foo: the hook function
+        """
         self._post_hooks.append(foo)
 
 
-@runtime_checkable
 class Adaptable(Protocol):
-    # TODO: doc
-    # TODO: test runtime-checkability
+    """Adaptable objects Protocol.
+
+    These class documents the Adaptable objects API but it is not necessary
+    for an object to inherit from it since the `Agent` will search for the methods
+    dynamically.
+
+    Adaptable objects are objects that require to run their `pre_adapt` and
+    `post_adapt` methods before (and after, respectively) training on each
+    experience.
+
+    Adaptable objects can implement only the method that they need since the
+    `Agent` will look for the methods dynamically and call it only if it is
+    implemented.
+    """
     def pre_adapt(self, agent: Agent, exp: CLExperience):
         pass
 

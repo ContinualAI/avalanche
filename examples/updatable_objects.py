@@ -50,7 +50,6 @@ def train_experience(agent_state, exp, epochs=10):
             l.backward()
             agent_state.opt.step()
     agent_state.post_adapt(exp)  # update objects and call post_hooks
-    return agent_state
 
 
 @torch.no_grad()
@@ -111,8 +110,7 @@ if __name__ == '__main__':
     for exp in ocl_stream:
         if exp.logging().is_first_subexp:  # new drift
             print("training on classes ", exp.classes_in_this_experience)
-        # The training function returns the updated agent state at each step.
-        agent = train_experience(agent, exp, epochs=2)
+        train_experience(agent, exp, epochs=2)
         if exp.logging().is_last_subexp:
             # after learning new classes, do the eval
             # notice that even in online settings we use the non-online stream

@@ -50,7 +50,6 @@ def experimental(reason: Optional[str] = None):
     return decorator
 
 
-# TODO: show deprecation warning only once
 def deprecated(version: float, reason: str):
     """Decorator to mark functions as deprecated.
 

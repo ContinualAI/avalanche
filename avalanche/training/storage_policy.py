@@ -66,7 +66,6 @@ class ExemplarsBuffer(ABC):
         # this should work until we deprecate self.update
         self.post_adapt(strategy, strategy.experience)
 
-    @abstractmethod
     def post_adapt(self, agent_state, exp):
         """Update `self.buffer` using the agent state and current experience.
 
@@ -74,7 +73,7 @@ class ExemplarsBuffer(ABC):
         :param exp:
         :return:
         """
-        ...
+        pass
 
     @abstractmethod
     def resize(self, strategy: "SupervisedTemplate", new_size: int):

@@ -15,6 +15,11 @@ class MetricCollector:
     Functionlity includes the ability to store metrics over time and compute
     aggregated values of them. Serialization is supported via json files.
 
+    You can pass a stream to the `update` method to compute separate metrics
+    for each stream. Metric names will become `{stream.name}/{metric_name}`.
+    When you recover the stream using the `get` method, you need to pass the
+    same stream.
+
     Example usage:
 
     .. code-block:: python
@@ -52,7 +57,6 @@ class MetricCollector:
         :param stream: optional stream. If a stream is given the full metric
             name becomes `f'{stream.name}/{metric_name}'`.
         """
-        # TODO: test multi groups
         for k, v in res.items():
             # optional safety check on metric shape
             # metrics are expected to have one value for each experience in the stream
