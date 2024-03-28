@@ -1,6 +1,6 @@
-import setGPU
+import os
 
-from types import SimpleNamespace
+import setGPU
 
 import torch
 from torch.optim import SGD
@@ -18,26 +18,20 @@ from avalanche.evaluation.metrics import Accuracy
 from avalanche.evaluation.plot_utils import plot_metric_matrix
 from avalanche.models import SimpleMLP, IncrementalClassifier
 from avalanche.models.dynamic_modules import avalanche_model_adaptation
-from avalanche.models.dynamic_optimizers import DynamicOptimizer, reset_optimizer
+from avalanche.models.dynamic_optimizers import update_optimizer
 from avalanche.training import ReservoirSamplingBuffer, LearningWithoutForgetting
 from avalanche.training.losses import MaskedCrossEntropy
 
 
 def train_experience(agent_state, exp, epochs=10):
-    # defining the training for a single exp. instead of the whole stream
-    # should be better because this way training does not need to care about eval loop.
-    # agent_state takes the role of the strategy object
+    agent_state.model.train()
+    data = exp.dataset.train()  # avalanche datasets have train/eval modes to switch augmentations
 
-    # this is the usual before_exp
-    # updatable_objs = [agent_state.replay, agent_state.loss, agent_state.model]
-    # [uo.pre_update(exp, agent_state) for uo in updatable_objs]
-    # agent_state.model.recursive_adaptation(exp)
-    agent_state.pre_adapt(exp)
-
-    data = exp.dataset.train()
+    agent_state.pre_adapt(exp)  # update objects and call pre_hooks
     for ep in range(epochs):
-        agent_state.model.train()
         if len(agent_state.replay.buffer) > 0:
+            # if the replay buffer is not empty we sample from
+            # current data and replay buffer in parallel
             dl = ReplayDataLoader(data, agent_state.replay.buffer,
                                   batch_size=32, shuffle=True)
         else:
@@ -48,10 +42,14 @@ def train_experience(agent_state, exp, epochs=10):
             agent_state.opt.zero_grad()
             yp = agent_state.model(x)
             l = agent_state.loss(yp, y)
+
+            # you may have to change this if your regularization loss
+            # needs different arguments
             l += agent_state.reg_loss(x, yp, agent_state.model)
+
             l.backward()
             agent_state.opt.step()
-    agent_state.post_adapt(exp)
+    agent_state.post_adapt(exp)  # update objects and call post_hooks
     return agent_state
 
 
@@ -74,60 +72,82 @@ def my_eval(model, stream, metrics):
 
 
 if __name__ == '__main__':
-    # TODO: add checkpointing
-    # TODO: add dynamic optimizers
-
     bm = SplitMNIST(n_experiences=5)
     train_stream, test_stream = bm.train_stream, bm.test_stream
+    # we split the training stream into online experiences
     ocl_stream = split_online_stream(train_stream, experience_size=256, seed=1234)
+    # we add class attributes to the experiences
     ocl_stream = with_classes_timeline(ocl_stream)
 
     # agent state collects all the objects that are needed during training
     # many of these objects will have some state that is updated during training.
-    # The training function returns the updated agent state at each step.
+    # Put all the stateful training objects here. Calling the agent `pre_adapt`
+    # and `post_adapt` methods will adapt all the objects.
+    # Sometimes, it may be useful to also put non-stateful objects (e.g. losses)
+    # to easily switch between them while keeping the same training loop.
     agent = Agent()
     agent.replay = ReservoirSamplingBuffer(max_size=200)
     agent.loss = MaskedCrossEntropy()
     agent.reg_loss = LearningWithoutForgetting(alpha=1, temperature=2)
 
-    # model
+    # Avalanche models support dynamic addition and expansion of parameters
     agent.model = SimpleMLP().cuda()
     agent.model.classifier = IncrementalClassifier(in_features=512).cuda()
     agent.add_pre_hooks(lambda a, e: avalanche_model_adaptation(a.model, e))
 
-    # optim and scheduler
+    # optimizer and scheduler
     agent.opt = SGD(agent.model.parameters(), lr=0.001)
-    agent.add_pre_hooks(lambda a, e: reset_optimizer(a.opt, a.model))  # TODO: update after albin PR is merged
-    # agent_state.opt = DynamicOptimizer(opt)  # TODO: maybe we can do this with some hooks???
     agent.scheduler = ExponentialLR(agent.opt, gamma=0.999)
+    # we use a hook to update the optimizer before each experience.
+    # This is needed because the model's parameters may change if you are using
+    # a dynamic model.
+    agent.add_pre_hooks(lambda a, e: update_optimizer(a.opt, new_params={}, optimized_params=dict(a.model.named_parameters())))
+    # we update the lr scheduler after each experience (not every epoch!)
     agent.add_post_hooks(lambda a, e: a.scheduler.step())
 
     print("Start training...")
     metrics = [Accuracy()]
-    mc = MetricCollector()
+    mc = MetricCollector()  # we put all the metric values here
     for exp in ocl_stream:
-        if exp.logging().is_first_subexp:
+        if exp.logging().is_first_subexp:  # new drift
             print("training on classes ", exp.classes_in_this_experience)
+        # The training function returns the updated agent state at each step.
         agent = train_experience(agent, exp, epochs=2)
         if exp.logging().is_last_subexp:
+            # after learning new classes, do the eval
+            # notice that even in online settings we use the non-online stream
+            # for evaluation because each experience in the original stream
+            # corresponds to a separate data distribution.
             res = my_eval(agent.model, train_stream, metrics)
             mc.update(res, stream=train_stream)
-            print("RES: ", res)
+            print("TRAIN METRICS: ", res)
             res = my_eval(agent.model, test_stream, metrics)
             mc.update(res, stream=test_stream)
-            print("EVAL RES: ", res)
+            print("TEST METRICS: ", res)
             print()
 
+    os.makedirs("./logs", exist_ok=True)
+    torch.save(agent.model.state_dict(), "./logs/model.pth")
+
     print(mc.get_dict())
+    mc.to_json("./logs/mc.json")  # save metrics
 
     acc_timeline = mc.get("Accuracy", exp_reduce="sample_mean", stream=test_stream)
-    print(mc.get("Accuracy", exp_reduce=None, stream=test_stream))
-    print(acc_timeline)
+    print("Accuracy:\n", mc.get("Accuracy", exp_reduce=None, stream=test_stream))
+    print("AVG Accuracy: ", acc_timeline)
 
     acc_matrix = mc.get("Accuracy", exp_reduce=None, stream=test_stream)
     fig = plot_metric_matrix(acc_matrix, title="Accuracy - Train")
-    fig.savefig("accuracy.png")
+    fig.savefig("./logs/accuracy.png")
 
     fm = forgetting(acc_matrix)
+    print("Forgetting:\n", fm)
     fig = plot_metric_matrix(fm, title="Forgetting - Train")
-    fig.savefig("forgetting.png")
+    fig.savefig("./logs/forgetting.png")
+
+    # BONUS: example of re-loading the model from disk
+    model = SimpleMLP()
+    model.classifier = IncrementalClassifier(in_features=512)
+    for exp in ocl_stream:  # we need to adapt the model's architecture again
+        avalanche_model_adaptation(model, exp)
+    model.load_state_dict(torch.load("./logs/model.pth"))

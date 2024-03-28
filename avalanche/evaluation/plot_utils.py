@@ -8,7 +8,6 @@
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -37,12 +36,14 @@ def plot_metric_matrix(
         title,
         *,
         ax=None,
+        text_values=True
 ):
     """Plot a matrix of metrics (e.g. forgetting over time).
 
     :param metric_matrix: 2D accuracy matrix with shape <time, experiences>
     :param title: plot title
     :param ax: axes to use for figure
+    :param text_values: (bool) whether to add the value as text in each cell.
 
     :return: a matplotlib.Figure
     """
@@ -53,12 +54,13 @@ def plot_metric_matrix(
 
     metric_matrix = np.array(metric_matrix).T
     ax.matshow(metric_matrix)
-    ax.set_ylabel("Eval Experience")
+    ax.set_ylabel("Experience")
     ax.set_xlabel("Time")
     ax.set_title(title)
 
-    for i in range(len(metric_matrix)):
-        for j in range(len(metric_matrix[0])):
-            ax.text(j, i, f"{metric_matrix[i][j]:.3f}",
-                    ha="center", va="center", color="w")
+    if text_values:
+        for i in range(len(metric_matrix)):
+            for j in range(len(metric_matrix[0])):
+                ax.text(j, i, f"{metric_matrix[i][j]:.3f}",
+                        ha="center", va="center", color="w")
     return fig
