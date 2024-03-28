@@ -1,4 +1,6 @@
-# TODO: doc
+"""
+Utilities for metrics collection outside of Avalanche training Templates.
+"""
 import json
 
 import numpy as np
@@ -13,16 +15,15 @@ class MetricCollector:
     Functionlity includes the ability to store metrics over time and compute
     aggregated values of them. Serialization is supported via json files.
 
-    Example usage (pseudocode missing imports and init and other objects):
+    Example usage:
 
-    ```
-    mc = MetricCollector()
-    for exp in train_stream:
-        agent = train_experience(agent, exp)
-        res = my_eval(agent.model, test_stream, metrics)
-        mc.update(res, stream=test_stream)
-    acc_timeline = mc.get("Accuracy", exp_reduce="sample_mean", stream=test_stream)
-    ```
+    .. code-block:: python
+
+        mc = MetricCollector()
+        for exp in train_stream:
+            res = {"Acc": 0.1} # metric dictionary for the current timestep
+            mc.update(res, stream=test_stream)
+        acc_timeline = mc.get("Accuracy", exp_reduce="sample_mean", stream=test_stream)
 
     """
     def __init__(self):
@@ -114,6 +115,7 @@ class MetricCollector:
             raise ValueError("BUG. It should never get here.")
 
         if time_reduce is None:
+
             pass  # nothing to do here
         elif time_reduce == "last":
             mvals = mvals[-1]  # last timestep
