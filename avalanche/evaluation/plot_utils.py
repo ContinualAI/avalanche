@@ -31,13 +31,7 @@ def learning_curves_plot(all_metrics: dict):
     return fig
 
 
-def plot_metric_matrix(
-        metric_matrix,
-        title,
-        *,
-        ax=None,
-        text_values=True
-):
+def plot_metric_matrix(metric_matrix, title, *, ax=None, text_values=True):
     """Plot a matrix of metrics (e.g. forgetting over time).
 
     :param metric_matrix: 2D accuracy matrix with shape <time, experiences>
@@ -61,6 +55,12 @@ def plot_metric_matrix(
     if text_values:
         for i in range(len(metric_matrix)):
             for j in range(len(metric_matrix[0])):
-                ax.text(j, i, f"{metric_matrix[i][j]:.3f}",
-                        ha="center", va="center", color="w")
+                ax.text(
+                    j,
+                    i,
+                    f"{metric_matrix[i][j]:.3f}",
+                    ha="center",
+                    va="center",
+                    color="w",
+                )
     return fig

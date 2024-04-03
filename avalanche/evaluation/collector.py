@@ -1,6 +1,7 @@
 """
 Utilities for metrics collection outside of Avalanche training Templates.
 """
+
 import json
 
 import numpy as np
@@ -31,6 +32,7 @@ class MetricCollector:
         acc_timeline = mc.get("Accuracy", exp_reduce="sample_mean", stream=test_stream)
 
     """
+
     def __init__(self):
         """Init."""
         self.metrics_res = {}
@@ -64,8 +66,10 @@ class MetricCollector:
                 if stream.name not in self._stream_len:
                     self._init_stream(stream)
                 if len(v) != self._stream_len[stream.name]:
-                    raise ValueError(f"Length does not correspond to stream. "
-                                     f"Found {len(v)}, expected {self._stream_len[stream.name]}")
+                    raise ValueError(
+                        f"Length does not correspond to stream. "
+                        f"Found {len(v)}, expected {self._stream_len[stream.name]}"
+                    )
 
             # update metrics dictionary
             if stream is not None:
@@ -99,7 +103,9 @@ class MetricCollector:
         if stream is not None:
             name = f"{stream.name}/{name}"
         if name not in self.metrics_res:
-            print(f"{name} metric was not found. Maybe you forgot the `stream` argument?")
+            print(
+                f"{name} metric was not found. Maybe you forgot the `stream` argument?"
+            )
 
         mvals = np.array(self.metrics_res[name])
         if exp_reduce is None:
@@ -108,7 +114,8 @@ class MetricCollector:
             if stream is None:
                 raise ValueError(
                     "If you want to use `exp_reduce == sample_mean` you need to provide"
-                    "the `stream` argument to the `update` and `get` methods.")
+                    "the `stream` argument to the `update` and `get` methods."
+                )
             if stream.name not in self._coeffs:
                 self._init_stream(stream)
             mvals = mvals * self._coeffs[stream.name][None, :]  # weight by num.samples
@@ -152,7 +159,7 @@ class MetricCollector:
         :param fname: file name
         """
         # TODO: test
-        with open(fname, 'w') as f:
+        with open(fname, "w") as f:
             self.metrics_res = json.load(f)
 
     def to_json(self, fname):
@@ -162,5 +169,5 @@ class MetricCollector:
         :return:
         """
         # TODO: test
-        with open(fname, 'w') as f:
+        with open(fname, "w") as f:
             json.dump(obj=self.metrics_res, fp=f)

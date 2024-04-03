@@ -254,7 +254,7 @@ def _default_online_split(
     access_task_boundaries: bool,
     exp: DatasetExperience,
     size: int,
-    seed: int
+    seed: int,
 ):
     return FixedSizeExperienceSplitter(
         experience=exp,
@@ -262,7 +262,7 @@ def _default_online_split(
         shuffle=shuffle,
         drop_last=drop_last,
         access_task_boundaries=access_task_boundaries,
-        seed=seed
+        seed=seed,
     )
 
 
@@ -316,8 +316,7 @@ def split_online_stream(
         # However, MyPy does not understand what a partial is -_-
         def default_online_split_wrapper(e, e_sz):
             return _default_online_split(
-                shuffle, drop_last, access_task_boundaries, e, e_sz,
-                seed=seed
+                shuffle, drop_last, access_task_boundaries, e, e_sz, seed=seed
             )
 
         split_strategy = default_online_split_wrapper

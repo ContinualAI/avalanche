@@ -27,8 +27,10 @@ def forgetting(accuracy_matrix, boundary_indices=None):
         acc_first = accuracy_matrix[t_task][k]
 
         # before learning exp k, forgetting is zero
-        forgetting_matrix[:t_task+1, k] = 0
+        forgetting_matrix[: t_task + 1, k] = 0
         # then, it's acc_first - acc[t, k]
-        forgetting_matrix[t_task+1:, k] = acc_first - accuracy_matrix[t_task+1:, k]
+        forgetting_matrix[t_task + 1 :, k] = (
+            acc_first - accuracy_matrix[t_task + 1 :, k]
+        )
 
     return forgetting_matrix

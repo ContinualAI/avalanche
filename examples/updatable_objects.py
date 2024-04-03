@@ -25,15 +25,18 @@ from avalanche.training.losses import MaskedCrossEntropy
 
 def train_experience(agent_state, exp, epochs=10):
     agent_state.model.train()
-    data = exp.dataset.train()  # avalanche datasets have train/eval modes to switch augmentations
+    data = (
+        exp.dataset.train()
+    )  # avalanche datasets have train/eval modes to switch augmentations
 
     agent_state.pre_adapt(exp)  # update objects and call pre_hooks
     for ep in range(epochs):
         if len(agent_state.replay.buffer) > 0:
             # if the replay buffer is not empty we sample from
             # current data and replay buffer in parallel
-            dl = ReplayDataLoader(data, agent_state.replay.buffer,
-                                  batch_size=32, shuffle=True)
+            dl = ReplayDataLoader(
+                data, agent_state.replay.buffer, batch_size=32, shuffle=True
+            )
         else:
             dl = DataLoader(data, batch_size=32, shuffle=True)
 
@@ -70,7 +73,7 @@ def my_eval(model, stream, metrics):
     return res
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     bm = SplitMNIST(n_experiences=5)
     train_stream, test_stream = bm.train_stream, bm.test_stream
     # we split the training stream into online experiences
@@ -100,7 +103,11 @@ if __name__ == '__main__':
     # we use a hook to update the optimizer before each experience.
     # This is needed because the model's parameters may change if you are using
     # a dynamic model.
-    agent.add_pre_hooks(lambda a, e: update_optimizer(a.opt, new_params={}, optimized_params=dict(a.model.named_parameters())))
+    agent.add_pre_hooks(
+        lambda a, e: update_optimizer(
+            a.opt, new_params={}, optimized_params=dict(a.model.named_parameters())
+        )
+    )
     # we update the lr scheduler after each experience (not every epoch!)
     agent.add_post_hooks(lambda a, e: a.scheduler.step())
 

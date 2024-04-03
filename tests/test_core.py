@@ -20,15 +20,19 @@ class AgentTests(unittest.TestCase):
         agent = Agent()
 
         IS_FOO_PRE_CALLED = False
+
         def foo_pre(a, e):
             nonlocal IS_FOO_PRE_CALLED
             IS_FOO_PRE_CALLED = True
+
         agent.add_pre_hooks(foo_pre)
 
         IS_FOO_POST_CALLED = False
+
         def foo_post(a, e):
             nonlocal IS_FOO_POST_CALLED
             IS_FOO_POST_CALLED = True
+
         agent.add_post_hooks(foo_post)
 
         e = None

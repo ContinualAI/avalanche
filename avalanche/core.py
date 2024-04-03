@@ -53,6 +53,7 @@ class Agent:
 
 
     """
+
     def __init__(self, verbose=False):
         """Init.
 
@@ -66,7 +67,7 @@ class Agent:
 
     def __setattr__(self, name, value):
         super().__setattr__(name, value)
-        if hasattr(value, 'pre_adapt') or hasattr(value, 'post_adapt'):
+        if hasattr(value, "pre_adapt") or hasattr(value, "post_adapt"):
             self._updatable_objects.append(value)
             if self.verbose:
                 print("Added updatable object ", value)
@@ -79,7 +80,7 @@ class Agent:
         :param exp: current experience
         """
         for uo in self._updatable_objects:
-            if hasattr(uo, 'pre_adapt'):
+            if hasattr(uo, "pre_adapt"):
                 uo.pre_adapt(self, exp)
                 if self.verbose:
                     print("pre_adapt ", uo)
@@ -96,7 +97,7 @@ class Agent:
         :param exp: current experience
         """
         for uo in self._updatable_objects:
-            if hasattr(uo, 'post_adapt'):
+            if hasattr(uo, "post_adapt"):
                 uo.post_adapt(self, exp)
                 if self.verbose:
                     print("post_adapt ", uo)
@@ -139,6 +140,7 @@ class Adaptable(Protocol):
     `Agent` will look for the methods dynamically and call it only if it is
     implemented.
     """
+
     def pre_adapt(self, agent: Agent, exp: CLExperience):
         pass
 
