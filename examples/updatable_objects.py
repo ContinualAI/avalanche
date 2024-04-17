@@ -18,7 +18,7 @@ from avalanche.evaluation.metrics import Accuracy
 from avalanche.evaluation.plot_utils import plot_metric_matrix
 from avalanche.models import SimpleMLP, IncrementalClassifier
 from avalanche.models.dynamic_modules import avalanche_model_adaptation
-from avalanche.models.dynamic_optimizers import update_optimizer
+from avalanche.models.dynamic_optimizers import update_optimizer, DynamicOptimizer
 from avalanche.training import ReservoirSamplingBuffer, LearningWithoutForgetting
 from avalanche.training.losses import MaskedCrossEntropy
 
@@ -55,10 +55,11 @@ def train_experience(agent_state, exp, epochs=10):
 
 @torch.no_grad()
 def my_eval(model, stream, metrics):
-    # eval also becomes simpler. Notice how in Avalanche it's harder to check whether
-    # we are evaluating a single exp. or the whole stream.
-    # Now we evaluate each stream with a separate function call
+    """Evaluate `model` on `stream` computing `metrics`.
 
+    Returns a dictionary {metric_name: list-of-results}.
+    """
+    model.eval()
     res = {uo.__class__.__name__: [] for uo in metrics}
     for exp in stream:
         [uo.reset() for uo in metrics]
@@ -96,16 +97,13 @@ if __name__ == "__main__":
     agent.add_pre_hooks(lambda a, e: avalanche_model_adaptation(a.model, e))
 
     # optimizer and scheduler
-    agent.opt = SGD(agent.model.parameters(), lr=0.001)
-    agent.scheduler = ExponentialLR(agent.opt, gamma=0.999)
-    # we use a hook to update the optimizer before each experience.
+    # we have update the optimizer before each experience.
     # This is needed because the model's parameters may change if you are using
     # a dynamic model.
-    agent.add_pre_hooks(
-        lambda a, e: update_optimizer(
-            a.opt, new_params={}, optimized_params=dict(a.model.named_parameters())
-        )
-    )
+    opt = SGD(agent.model.parameters(), lr=0.001)
+    agent.opt = DynamicOptimizer(opt)
+    agent.scheduler = ExponentialLR(opt, gamma=0.999)
+    # we use a hook to call the scheduler.
     # we update the lr scheduler after each experience (not every epoch!)
     agent.add_post_hooks(lambda a, e: a.scheduler.step())
 

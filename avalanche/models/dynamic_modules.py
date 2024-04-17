@@ -73,7 +73,7 @@ class DynamicModule(Module):
         super().__init__()
         self._auto_adapt = auto_adapt
 
-    def pre_adapt(self, experience):
+    def pre_adapt(self, agent, experience):
         """
         Calls self.adaptation recursively accross
         the hierarchy of pytorch module childrens

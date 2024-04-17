@@ -18,7 +18,9 @@ from collections import defaultdict
 
 import numpy as np
 
-from avalanche._annotations import deprecated
+from avalanche._annotations import deprecated, experimental
+from avalanche.benchmarks import CLExperience
+from avalanche.core import Adaptable, Agent
 
 colors = {
     "END": "\033[0m",
@@ -29,6 +31,55 @@ colors = {
     4: "\033[36m",
 }
 colors[None] = colors["END"]
+
+
+@experimental("New dynamic optimizers. The API may slightly change in the next versions.")
+class DynamicOptimizer(Adaptable):
+    """Avalanche dynamic optimizer.
+
+    In continual learning, many model architecture may change over time (e.g.
+    adding new units to the classifier). This is handled by the `DynamicModule`.
+    Changing the model's architecture requires updating the optimizer to add
+    the new parameters in the optimizer's state.
+
+    This class provides a simple wrapper to handle the optimizer
+    update via the `Adaptable` Protocol.
+
+    This class provides direct methods only for `zero_grad` and `step` to support
+    basic training functionality. Other methods of the base optimizers must be
+    called by using the base optimizer directly (e.g. `self.optim.add_param_group`).
+
+    NOTE: the model must be adapted *before* calling this method.
+    To ensure this, ensure that the optimizer is added to the agent state
+    after the model:
+
+    .. code-block::
+
+        agent.model = model
+        agent.optimizer = optimizer
+
+        # ... more init code
+
+        # pre_adapt will call the pre_adapt methods in order,
+        # first model.pre_adapt, then optimizer.pre_adapt
+        agent.pre_adapt(experience)
+    """
+    def __init__(self, optim):
+        self.optim = optim
+
+    def zero_grad(self):
+        self.optim.zero_grad()
+
+    def step(self):
+        self.optim.step()
+
+    def pre_adapt(self, agent: Agent, exp: CLExperience):
+        """Adapt the optimizer before training on the current experience."""
+        update_optimizer(
+            self.optim,
+            new_params=dict(agent.model.named_parameters()),
+            optimized_params=dict(agent.model.named_parameters())
+        )
 
 
 def _map_optimized_params(optimizer, parameters, old_params=None):
