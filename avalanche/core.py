@@ -1,4 +1,10 @@
-# TODO: doc
+"""
+This module contains Protocols for some of the main components of Avalanche,
+such as strategy plugins and the agent state.
+
+Most of these protocols are checked dynamically at runtime, so it is often not
+necessary to inherit explicit from them or implement all the methods.
+"""
 from abc import ABC
 from typing import Any, TypeVar, Generic, Protocol, runtime_checkable
 from typing import TYPE_CHECKING
@@ -39,7 +45,7 @@ class Agent:
         def train(agent, exp):
             agent.pre_adapt(exp)
             # do training here
-            agent.post_update(exp)
+            agent.post_adapt(exp)
 
     Objects that implement the `Adaptable` Protocol will be called by the Agent.
 
