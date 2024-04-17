@@ -25,10 +25,8 @@ from avalanche.training.losses import MaskedCrossEntropy
 
 def train_experience(agent_state, exp, epochs=10):
     agent_state.model.train()
-    data = (
-        exp.dataset.train()
-    )  # avalanche datasets have train/eval modes to switch augmentations
-
+    # avalanche datasets have train/eval modes to switch augmentations
+    data = exp.dataset.train()
     agent_state.pre_adapt(exp)  # update objects and call pre_hooks
     for ep in range(epochs):
         if len(agent_state.replay.buffer) > 0:
@@ -64,7 +62,7 @@ def my_eval(model, stream, metrics):
     res = {uo.__class__.__name__: [] for uo in metrics}
     for exp in stream:
         [uo.reset() for uo in metrics]
-        dl = DataLoader(exp.dataset, batch_size=512, num_workers=8)
+        dl = DataLoader(exp.dataset.eval(), batch_size=512, num_workers=8)
         for x, y, _ in dl:
             x, y = x.cuda(), y.cuda()
             yp = model(x)

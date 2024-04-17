@@ -79,7 +79,7 @@ class MetricCollector:
             else:
                 self.metrics_res[k] = [v]
 
-    def get(self, name, *, time_reduce=None, exp_reduce=None, stream=None):
+    def get(self, name, *, time_reduce=None, exp_reduce=None, stream=None, weights=None):
         """Returns a metric value given its name and aggregation method.
 
         :param name: name of the metric.
@@ -91,14 +91,20 @@ class MetricCollector:
             - None (default) does not use any aggregation
             - `sample_mean` is an average weighted by the number of samples in each experience
             - `experience_mean` is an experience average.
+            - 'weighted_sum' is a weighted sum of the experiences using the `weights` argument.
         :param stream: stream that was used to compute the metric. This is
             needed to build the full metric name if the get was called with a
             stream name and if `exp_reduce == sample_mean` to get the number
             of samples from each experience.
+        :param weights: weights for each experience when `exp_reduce == 'weighted_sum`.
         :return: aggregated metric value.
         """
         assert time_reduce in {None, "last", "mean"}
-        assert exp_reduce in {None, "sample_mean", "experience_mean"}
+        assert exp_reduce in {None, "sample_mean", "experience_mean", "weighted_sum"}
+        if exp_reduce == "weighted_sum":
+            assert weights is not None, "You should set the `weights` argument when `exp_reduce == 'weighted_sum'`."
+        else:
+            assert weights is None, "Can't use the `weights` argument when `exp_reduce != 'weighted_sum'`"
 
         if stream is not None:
             name = f"{stream.name}/{name}"
@@ -122,11 +128,13 @@ class MetricCollector:
             mvals = mvals.sum(axis=1)  # weighted avg across exp.
         elif exp_reduce == "experience_mean":
             mvals = mvals.mean(axis=1)  # avg across exp.
+        elif exp_reduce == "weighted_sum":
+            weights = np.array(weights)[None, :]
+            mvals = (mvals * weights).sum(axis=1)
         else:
             raise ValueError("BUG. It should never get here.")
 
         if time_reduce is None:
-
             pass  # nothing to do here
         elif time_reduce == "last":
             mvals = mvals[-1]  # last timestep
