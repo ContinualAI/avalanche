@@ -79,7 +79,9 @@ class MetricCollector:
             else:
                 self.metrics_res[k] = [v]
 
-    def get(self, name, *, time_reduce=None, exp_reduce=None, stream=None, weights=None):
+    def get(
+        self, name, *, time_reduce=None, exp_reduce=None, stream=None, weights=None
+    ):
         """Returns a metric value given its name and aggregation method.
 
         :param name: name of the metric.
@@ -102,9 +104,13 @@ class MetricCollector:
         assert time_reduce in {None, "last", "mean"}
         assert exp_reduce in {None, "sample_mean", "experience_mean", "weighted_sum"}
         if exp_reduce == "weighted_sum":
-            assert weights is not None, "You should set the `weights` argument when `exp_reduce == 'weighted_sum'`."
+            assert (
+                weights is not None
+            ), "You should set the `weights` argument when `exp_reduce == 'weighted_sum'`."
         else:
-            assert weights is None, "Can't use the `weights` argument when `exp_reduce != 'weighted_sum'`"
+            assert (
+                weights is None
+            ), "Can't use the `weights` argument when `exp_reduce != 'weighted_sum'`"
 
         if stream is not None:
             name = f"{stream.name}/{name}"

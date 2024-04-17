@@ -33,7 +33,9 @@ colors = {
 colors[None] = colors["END"]
 
 
-@experimental("New dynamic optimizers. The API may slightly change in the next versions.")
+@experimental(
+    "New dynamic optimizers. The API may slightly change in the next versions."
+)
 class DynamicOptimizer(Adaptable):
     """Avalanche dynamic optimizer.
 
@@ -64,6 +66,7 @@ class DynamicOptimizer(Adaptable):
         # first model.pre_adapt, then optimizer.pre_adapt
         agent.pre_adapt(experience)
     """
+
     def __init__(self, optim):
         self.optim = optim
 
@@ -78,7 +81,7 @@ class DynamicOptimizer(Adaptable):
         update_optimizer(
             self.optim,
             new_params=dict(agent.model.named_parameters()),
-            optimized_params=dict(agent.model.named_parameters())
+            optimized_params=dict(agent.model.named_parameters()),
         )
 
 

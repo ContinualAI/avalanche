@@ -57,10 +57,10 @@ class MetricCollectorTests(unittest.TestCase):
             time_reduce=None,
             exp_reduce="weighted_sum",
             weights=[1, 2],
-            stream=fake_stream
+            stream=fake_stream,
         )
         np.testing.assert_array_almost_equal(
-            v, [(1 + 3*2), (5 + 7*2), (11 + 13*2)]
+            v, [(1 + 3 * 2), (5 + 7 * 2), (11 + 13 * 2)]
         )
 
         # time = "last"
@@ -87,9 +87,9 @@ class MetricCollectorTests(unittest.TestCase):
             time_reduce="last",
             exp_reduce="weighted_sum",
             stream=fake_stream,
-            weights=[1, 2]
+            weights=[1, 2],
         )
-        self.assertAlmostEqual(v, 11 + 13*2)
+        self.assertAlmostEqual(v, 11 + 13 * 2)
 
         # time_reduce = "mean"
         v = mc.get(
@@ -115,9 +115,9 @@ class MetricCollectorTests(unittest.TestCase):
             time_reduce="mean",
             exp_reduce="weighted_sum",
             stream=fake_stream,
-            weights=[1, 2]
+            weights=[1, 2],
         )
-        self.assertAlmostEqual(v, ((1 + 3*2) + (5 + 7*2) + (11 + 13*2)) / 3)
+        self.assertAlmostEqual(v, ((1 + 3 * 2) + (5 + 7 * 2) + (11 + 13 * 2)) / 3)
 
 
 if __name__ == "__main__":
