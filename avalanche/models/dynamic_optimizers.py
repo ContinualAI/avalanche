@@ -67,8 +67,19 @@ class DynamicOptimizer(Adaptable):
         agent.pre_adapt(experience)
     """
 
-    def __init__(self, optim):
+    def __init__(self, optim, model, reset_state=False, verbose=False):
         self.optim = optim
+        self.reset_state = reset_state
+        self.verbose = verbose
+
+        # initialize param-id
+        self._optimized_param_id = update_optimizer(
+            self.optim,
+            dict(model.named_parameters()),
+            None,
+            reset_state=True,
+            verbose=self.verbose,
+        )
 
     def zero_grad(self):
         self.optim.zero_grad()
@@ -78,10 +89,12 @@ class DynamicOptimizer(Adaptable):
 
     def pre_adapt(self, agent: Agent, exp: CLExperience):
         """Adapt the optimizer before training on the current experience."""
-        update_optimizer(
+        self._optimized_param_id = update_optimizer(
             self.optim,
-            new_params=dict(agent.model.named_parameters()),
-            optimized_params=dict(agent.model.named_parameters()),
+            dict(agent.model.named_parameters()),
+            self._optimized_param_id,
+            reset_state=self.reset_state,
+            verbose=self.verbose,
         )
 
 
@@ -329,16 +342,22 @@ def update_optimizer(
 
     Newly added parameters are added by default to parameter group 0
 
-    :param new_params: Dict (name, param) of new parameters
+    WARNING: the first call to `update_optimizer` must be done before
+    calling the model's adaptation.
+
+    :param optimizer: the Optimizer object.
+    :param new_params: Dict (name, param) of new parameters.
     :param optimized_params: Dict (name, param) of
-                             currently optimized parameters
+        currently optimized parameters. In most use cases, it will be `None in
+        the first call and the return value of the last `update_optimizer` call
+        for the subsequent calls.
     :param reset_state: Whether to reset the optimizer's state (i.e momentum).
                         Defaults to False.
     :param remove_params: Whether to remove parameters that were in the optimizer
                           but are not found in new parameters. For safety reasons,
                           defaults to False.
     :param verbose: If True, prints information about inferred
-                    parameter groups for new params
+                    parameter groups for new params.
 
     :return: Dict (name, param) of optimized parameters
     """
@@ -381,7 +400,6 @@ def update_optimizer(
         new_p = new_params[key]
         group = param_structure[key].single_group
         optimizer.param_groups[group]["params"].append(new_p)
-        optimized_params[key] = new_p
         optimizer.state[new_p] = {}
 
     if reset_state:
