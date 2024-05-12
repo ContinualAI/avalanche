@@ -149,13 +149,13 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
     def before_train_dataset_adaptation(
         self, strategy: Template, *args, **kwargs
     ) -> Any:
-        """Called before `train_dataset_adapatation` by the `BaseTemplate`."""
+        """Called before `train_dataset_adaptation` by the `BaseTemplate`."""
         pass
 
     def after_train_dataset_adaptation(
         self, strategy: Template, *args, **kwargs
     ) -> Any:
-        """Called after `train_dataset_adapatation` by the `BaseTemplate`."""
+        """Called after `train_dataset_adaptation` by the `BaseTemplate`."""
         pass
 
     def before_eval_dataset_adaptation(
@@ -177,7 +177,7 @@ class SupervisedPlugin(BaseSGDPlugin[Template], ABC):
 
     def __init__(self):
         """
-        Inizializes an instance of a supervised plugin.
+        Initializes an instance of a supervised plugin.
         """
         super().__init__()
 

@@ -56,7 +56,7 @@ class Naive(SupervisedTemplate):
     """Naive finetuning.
 
     The simplest (and least effective) Continual Learning strategy. Naive just
-    incrementally fine tunes a single model without employing any method
+    incrementally fine-tunes a single model without employing any method
     to contrast the catastrophic forgetting of previous knowledge.
     This strategy does not use task identities.
 

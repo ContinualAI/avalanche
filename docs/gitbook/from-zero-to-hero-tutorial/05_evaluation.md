@@ -23,7 +23,7 @@ Each metric comes with a standalone class and a set of plugin classes aimed at e
 
 #### Standalone metric
 
-As an example, the standalone `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.  
+As an example, the standalone `Accuracy` class can be used to monitor the average accuracy over a stream of `<input,target>` pairs. The class provides an `update` method to update the current average accuracy, a `result` method to print the current average accuracy and a `reset` method to set the current average accuracy to zero. The call to `result`does not change the metric state.
 
 The `TaskAwareAccuracy` metric keeps separate accuracy counters for different task labels. As such, it requires the `task_labels` parameter, which specifies which task is associated with the current patterns. The metric returns a dictionary mapping task labels to accuracy values.
 
@@ -71,7 +71,7 @@ print("Average Accuracy: ", acc) # output 0.5 for task 0
 task_label = 1
 predicted_y = torch.tensor([1,2]).float()
 acc_metric.update(real_y, predicted_y, task_label)
-acc = acc_metric.result() 
+acc = acc_metric.result()
 print("Average Accuracy: ", acc) # output 0.75 for task 0 and 1.0 for task 1
 
 task_label = 0
@@ -111,7 +111,7 @@ The **Evaluation Plugin** is the object in charge of configuring and controlling
 
 The Evaluation Plugin accepts as inputs the plugin metrics you want to track. In addition, you can add one or more loggers to print the metrics in different ways \(on file, on standard output, on Tensorboard...\).
 
-It is also recommended to pass to the Evaluation Plugin the benchmark instance used in the experiment. This allows the plugin to check for consistency during metrics computation. For example, the Evaluation Plugin checks that the `strategy.eval` calls are performed on the same stream or sub-stream. Otherwise, same metric could refer to different portions of the stream.  
+It is also recommended to pass to the Evaluation Plugin the benchmark instance used in the experiment. This allows the plugin to check for consistency during metrics computation. For example, the Evaluation Plugin checks that the `strategy.eval` calls are performed on the same stream or sub-stream. Otherwise, same metric could refer to different portions of the stream.
 These checks can be configured to raise errors (stopping computation) or only warnings.
 
 
@@ -134,7 +134,7 @@ model = SimpleMLP(num_classes=benchmark.n_classes)
 
 # DEFINE THE EVALUATION PLUGIN
 # The evaluation plugin manages the metrics computation.
-# It takes as argument a list of metrics, collectes their results and returns
+# It takes as argument a list of metrics, collects their results and returns
 # them to the strategy it is attached to.
 
 eval_plugin = EvaluationPlugin(
@@ -256,8 +256,8 @@ class MyPluginMetric(PluginMetric[float]):
             task_labels = strategy.mb_task_id
         else:
             task_labels = task_labels[0]
-            
-        self._accuracy_metric.update(strategy.mb_output, strategy.mb_y, 
+
+        self._accuracy_metric.update(strategy.mb_output, strategy.mb_y,
                                      task_labels)
 
     def before_training_epoch(self, strategy: 'PluggableStrategy') -> None:
@@ -271,8 +271,8 @@ class MyPluginMetric(PluginMetric[float]):
         Emit the result
         """
         return self._package_result(strategy)
-        
-        
+
+
     def _package_result(self, strategy):
         """Taken from `GenericPluginMetric`, check that class out!"""
         metric_value = self.accuracy_metric.result()
@@ -303,9 +303,9 @@ class MyPluginMetric(PluginMetric[float]):
 
 ## Accessing metric values
 
-If you want to access all the metrics computed during training and evaluation, you have to make sure that `collect_all=True` is set when creating the `EvaluationPlugin` (default option is `True`). This option maintains an updated version of all metric results in the plugin, which can be retrieved by calling `evaluation_plugin.get_all_metrics()`. You can call this methods whenever you need the metrics. 
+If you want to access all the metrics computed during training and evaluation, you have to make sure that `collect_all=True` is set when creating the `EvaluationPlugin` (default option is `True`). This option maintains an updated version of all metric results in the plugin, which can be retrieved by calling `evaluation_plugin.get_all_metrics()`. You can call this methods whenever you need the metrics.
 
-The result is a dictionary with full metric names as keys and a tuple of two lists as values. The first list stores all the `x` values recorded for that metric. Each `x` value represents the time step at which the corresponding metric value has been computed. The second list stores metric values associated to the corresponding `x` value. 
+The result is a dictionary with full metric names as keys and a tuple of two lists as values. The first list stores all the `x` values recorded for that metric. Each `x` value represents the time step at which the corresponding metric value has been computed. The second list stores metric values associated to the corresponding `x` value.
 
 
 ```python
@@ -332,7 +332,7 @@ d = eval_plugin.get_all_metrics()
 d['Top1_Acc_Epoch/train_phase/train_stream/Task000']
 ```
 
-Alternatively, the `train` and `eval` method of every `strategy` returns a dictionary storing, for each metric, the last value recorded for that metric. You can use these dictionaries to incrementally accumulate metrics. 
+Alternatively, the `train` and `eval` method of every `strategy` returns a dictionary storing, for each metric, the last value recorded for that metric. You can use these dictionaries to incrementally accumulate metrics.
 
 
 ```python
