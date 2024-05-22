@@ -14,7 +14,7 @@ import numpy as np
 
 class TestsTaskAware(unittest.TestCase):
     def test_taskaware(self):
-        """Common use case: add tas labels to class-incremental benchmark."""
+        """Common use case: add task labels to class-incremental benchmark."""
         n_classes, n_samples_per_class, n_features = 10, 3, 7
 
         for _ in range(10000):
@@ -58,6 +58,7 @@ class TestsTaskAware(unittest.TestCase):
         ci_train = bm_ci.train_stream
         for eid, exp in enumerate(bm_ti.train_stream):
             assert exp.task_label == eid
+            assert isinstance(exp.task_labels, list)
             assert len(ci_train[eid].dataset) == len(exp.dataset)
 
 
