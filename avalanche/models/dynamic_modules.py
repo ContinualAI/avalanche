@@ -142,7 +142,7 @@ class MultiTaskModule(DynamicModule):
 
         .. warning::
             As a general rule, you should NOT use this method to train the
-            model. The dataset should be used only to check conditions which
+            model. The experience should be used only to check conditions which
             require the model's adaptation, such as the discovery of new
             classes or tasks.
 
