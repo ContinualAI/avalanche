@@ -119,7 +119,7 @@ def split_validation_random(
     a single parameter: the experience. Consider wrapping your custom
     splitting strategy with `partial` if more parameters are needed.
 
-    You can use this split strategy with methdos that require a custom
+    You can use this split strategy with methods that require a custom
     split strategy such as :func:`benchmark_with_validation_stream`to split
     a benchmark with::
 

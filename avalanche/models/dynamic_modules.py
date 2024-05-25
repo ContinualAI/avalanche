@@ -120,7 +120,7 @@ class MultiTaskModule(DynamicModule):
     scenarios. The ``forward`` method accepts task labels, one for
     each sample in the mini-batch.
 
-    By default the ``forward`` method splits the mini-batch by task
+    By default, the ``forward`` method splits the mini-batch by task
     and calls ``forward_single_task``. Subclasses must implement
     ``forward_single_task`` or override `forward. If ``task_labels == None``,
     the output is computed in parallel for each task.
@@ -342,7 +342,7 @@ class MultiHeadClassifier(MultiTaskModule):
 
         # needs to create the first head because pytorch optimizers
         # fail when model.parameters() is empty.
-        # masking in IncrementalClassifier is unaware of task labels
+        # masking in IncrementalClassifier is unaware of task labels,
         # so we do masking here instead.
         first_head = IncrementalClassifier(
             self.in_features,

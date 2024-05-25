@@ -603,7 +603,7 @@ class CLScenario(Generic[TCLStream]):
 
     @property
     def streams(self):
-        # we don't want in-place modifications so we return a copy
+        # we don't want in-place modifications, so we return a copy
         return copy(self._streams)
 
 
