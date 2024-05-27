@@ -19,7 +19,7 @@ class BasePlugin(Generic[Template], ABC):
     `StrategyCallbacks`
     provide two functions `before_{method}` and `after_{method}`, called
     before and after the method, respectively.
-    Therefore plugins can "inject" additional code by implementing callbacks.
+    Therefore, plugins can "inject" additional code by implementing callbacks.
     Each callback has a `strategy` argument that gives access to the state.
 
     In Avalanche, callbacks are used to implement continual strategies, metrics
@@ -33,7 +33,7 @@ class BasePlugin(Generic[Template], ABC):
 
     def __init__(self):
         """
-        Inizializes an instance of a supervised plugin.
+        Initializes an instance of a supervised plugin.
         """
         super().__init__()
 
@@ -82,7 +82,7 @@ class BaseSGDPlugin(BasePlugin[Template], ABC):
 
     def __init__(self):
         """
-        Inizializes an instance of a base SGD plugin.
+        Initializes an instance of a base SGD plugin.
         """
         super().__init__()
 

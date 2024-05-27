@@ -55,7 +55,7 @@ def reset_optimizer(optimizer, model):
 
 def update_optimizer(optimizer, new_params, optimized_params, reset_state=False):
     """Update the optimizer by adding new parameters,
-    removing removed parameters, and adding new parameters
+    removing obsolete parameters, and adding new parameters
     to the optimizer, for instance after model has been adapted
     to a new task. The state of the optimizer can also be reset,
     it will be reset for the modified parameters.
@@ -65,13 +65,13 @@ def update_optimizer(optimizer, new_params, optimized_params, reset_state=False)
     :param new_params: Dict (name, param) of new parameters
     :param optimized_params: Dict (name, param) of
         currently optimized parameters (returned by reset_optimizer)
-    :param reset_state: Wheter to reset the optimizer's state (i.e momentum).
+    :param reset_state: Whether to reset the optimizer's state (i.e. momentum).
         Defaults to False.
     :return: Dict (name, param) of optimized parameters
     """
     not_in_new, in_both, not_in_old = compare_keys(optimized_params, new_params)
     # Change reference to already existing parameters
-    # i.e growing IncrementalClassifier
+    # i.e. growing IncrementalClassifier
     for key in in_both:
         old_p_hash = optimized_params[key]
         new_p = new_params[key]
@@ -92,7 +92,7 @@ def update_optimizer(optimizer, new_params, optimized_params, reset_state=False)
             )
 
     # Remove parameters that are not here anymore
-    # This should not happend in most use case
+    # This should not happen in most use case
     keys_to_remove = []
     for key in not_in_new:
         old_p_hash = optimized_params[key]
