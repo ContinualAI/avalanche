@@ -12,5 +12,6 @@ class DiskUsageTests(unittest.TestCase):
         disk = DiskUsage()
         disk.get_dir_size(".")
 
+
 if __name__ == "__main__":
     unittest.main()

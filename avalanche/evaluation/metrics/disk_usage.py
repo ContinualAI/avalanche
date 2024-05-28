@@ -99,7 +99,14 @@ class DiskUsage(Metric[float]):
         total_size = 0.0
 
         if platform == "linux" or platform == "linux2":
-          total_size = float(subprocess.check_output(['du', '-sb', path]).split()[0].decode('utf-8')) / 1024
+            total_size = (
+                float(
+                    subprocess.check_output(["du", "-sb", path])
+                    .split()[0]
+                    .decode("utf-8")
+                )
+                / 1024
+            )
         else:
             for dirpath, dirnames, filenames in os.walk(path):
                 for f in filenames:
@@ -150,10 +157,7 @@ class MinibatchDiskUsage(DiskPluginMetric):
         Creates an instance of the minibatch Disk usage metric.
         """
         super(MinibatchDiskUsage, self).__init__(
-            paths_to_monitor,
-            reset_at="iteration",
-            emit_at="iteration",
-            mode="train",
+            paths_to_monitor, reset_at="iteration", emit_at="iteration", mode="train"
         )
 
     def __str__(self):
@@ -195,10 +199,7 @@ class ExperienceDiskUsage(DiskPluginMetric):
         Creates an instance of the experience Disk usage metric.
         """
         super(ExperienceDiskUsage, self).__init__(
-            paths_to_monitor,
-            reset_at="experience",
-            emit_at="experience",
-            mode="eval",
+            paths_to_monitor, reset_at="experience", emit_at="experience", mode="eval"
         )
 
     def __str__(self):
@@ -232,7 +233,7 @@ def disk_usage_metrics(
     minibatch=False,
     epoch=False,
     experience=False,
-    stream=False
+    stream=False,
 ) -> List[DiskPluginMetric]:
     """
     Helper method that can be used to obtain the desired set of
