@@ -10,6 +10,9 @@
 ################################################################################
 
 import os
+import time
+from sys import platform
+import subprocess
 from pathlib import Path
 from typing import Union, Sequence, List, Optional
 
@@ -45,6 +48,8 @@ class DiskUsage(Metric[float]):
             paths_to_monitor = [paths_to_monitor]
 
         self._paths_to_monitor: List[str] = [str(p) for p in paths_to_monitor]
+        # this is used to avoid sending multiple warnings
+        self._warning_sent = False
 
         self.total_usage: float = 0.0
 
@@ -57,7 +62,7 @@ class DiskUsage(Metric[float]):
 
         dirs_size = 0.0
         for directory in self._paths_to_monitor:
-            dirs_size += DiskUsage.get_dir_size(directory)
+            dirs_size += self.get_dir_size(directory)
 
         self.total_usage = dirs_size
 
@@ -81,8 +86,7 @@ class DiskUsage(Metric[float]):
         """
         self.total_usage = 0
 
-    @staticmethod
-    def get_dir_size(path: str) -> float:
+    def get_dir_size(self, path) -> float:
         """
         Obtains the size of the given directory, in KiB.
 
@@ -90,15 +94,29 @@ class DiskUsage(Metric[float]):
         :return: A float value describing the size (in KiB)
             of the directory as the sum of all its elements.
         """
+
+        start = time.time()
         total_size = 0.0
-        for dirpath, dirnames, filenames in os.walk(path):
-            for f in filenames:
-                fp = os.path.join(dirpath, f)
-                # skip if it is symbolic link
-                if not os.path.islink(fp):
-                    # in KB
-                    s = os.path.getsize(fp) / 1024
-                    total_size += s
+
+        if platform == "linux" or platform == "linux2":
+          total_size = float(subprocess.check_output(['du', '-sb', path]).split()[0].decode('utf-8')) / 1024
+        else:
+            for dirpath, dirnames, filenames in os.walk(path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    # skip if it is symbolic link
+                    if not os.path.islink(fp):
+                        # in KB
+                        s = os.path.getsize(fp) / 1024
+                        total_size += s
+
+        end = time.time()
+        elapsed_t = end - start
+        # if we wait for more than 1 sec.
+        if elapsed_t > 0.5 and self._warning_sent is False:
+            print(f"\n\nWARNING: Time to get size of {path}: {elapsed_t}")
+            print("Are you sure you want to monitor this directory?\n")
+            self._warning_sent = True
 
         return total_size
 
