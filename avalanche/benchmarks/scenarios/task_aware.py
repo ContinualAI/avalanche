@@ -96,9 +96,10 @@ def with_task_labels(obj):
 
     def _add_task_labels(exp):
         tls = exp.dataset.targets_task_labels.uniques
+        # tls is a set, we need to convert to list to call __getitem__
+        tls = list(tls)
         if len(tls) == 1:
-            # tls is a set. we need to convert to list to call __getitem__
-            exp.task_label = list(tls)[0]
+            exp.task_label = tls[0]
         exp.task_labels = tls
         return exp
 

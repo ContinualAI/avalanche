@@ -96,6 +96,7 @@ def benchmark_with_validation_stream(
 
     # don't drop classes-timeline for compatibility with old API
     e0 = next(iter(train_stream))
+
     if hasattr(e0, "dataset") and hasattr(e0.dataset, "targets"):
         train_stream = with_classes_timeline(train_stream)
         valid_stream = with_classes_timeline(valid_stream)

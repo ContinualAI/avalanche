@@ -20,6 +20,7 @@ class LinearAdapter(nn.Module):
         :param num_prev_modules: number of previous modules
         """
         super().__init__()
+        self.num_prev_modules = num_prev_modules
         # Eq. 1 - lateral connections
         # one layer for each previous column. Empty for the first task.
         self.lat_layers = nn.ModuleList([])
