@@ -24,6 +24,7 @@ from avalanche.benchmarks.utils import (
 )
 from avalanche.models import FeatureExtractorBackbone
 from ..benchmarks.utils.utils import concat_datasets
+from avalanche._annotations import deprecated
 
 if TYPE_CHECKING:
     from .templates import SupervisedTemplate, BaseSGDTemplate
@@ -54,7 +55,7 @@ class ExemplarsBuffer(ABC):
     def buffer(self, new_buffer: AvalancheDataset):
         self._buffer = new_buffer
 
-    @abstractmethod
+    @deprecated(0.7, "switch to pre_adapt and post_adapt")
     def update(self, strategy: "SupervisedTemplate", **kwargs):
         """Update `self.buffer` using the `strategy` state.
 
@@ -62,7 +63,17 @@ class ExemplarsBuffer(ABC):
         :param kwargs:
         :return:
         """
-        ...
+        # this should work until we deprecate self.update
+        self.post_adapt(strategy, strategy.experience)
+
+    def post_adapt(self, agent_state, exp):
+        """Update `self.buffer` using the agent state and current experience.
+
+        :param agent_state:
+        :param exp:
+        :return:
+        """
+        pass
 
     @abstractmethod
     def resize(self, strategy: "SupervisedTemplate", new_size: int):
@@ -92,11 +103,9 @@ class ReservoirSamplingBuffer(ExemplarsBuffer):
         # INVARIANT: _buffer_weights is always sorted.
         self._buffer_weights = torch.zeros(0)
 
-    def update(self, strategy: "SupervisedTemplate", **kwargs):
+    def post_adapt(self, agent, exp):
         """Update buffer."""
-        experience = strategy.experience
-        assert experience is not None
-        self.update_from_dataset(experience.dataset)
+        self.update_from_dataset(exp.dataset)
 
     def update_from_dataset(self, new_data: AvalancheDataset):
         """Update the buffer using the given dataset.
@@ -193,16 +202,6 @@ class BalancedExemplarsBuffer(ExemplarsBuffer, Generic[TGroupBuffer]):
             "You should modify `self.buffer_groups instead."
         )
 
-    @abstractmethod
-    def update(self, strategy: "SupervisedTemplate", **kwargs):
-        """Update `self.buffer_groups` using the `strategy` state.
-
-        :param strategy:
-        :param kwargs:
-        :return:
-        """
-        ...
-
     def resize(self, strategy, new_size):
         """Update the maximum size of the buffers."""
         self.max_size = new_size
@@ -229,19 +228,19 @@ class ExperienceBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer])
                                 of experiences to divide capacity over.
         """
         super().__init__(max_size, adaptive_size, num_experiences)
+        self._num_exps = 0
 
-    def update(self, strategy: "SupervisedTemplate", **kwargs):
-        assert strategy.experience is not None
-        new_data = strategy.experience.dataset
-        num_exps = strategy.clock.train_exp_counter + 1
-        lens = self.get_group_lengths(num_exps)
+    def post_adapt(self, agent, exp):
+        self._num_exps += 1
+        new_data = exp.dataset
+        lens = self.get_group_lengths(self._num_exps)
 
         new_buffer = ReservoirSamplingBuffer(lens[-1])
         new_buffer.update_from_dataset(new_data)
-        self.buffer_groups[num_exps - 1] = new_buffer
+        self.buffer_groups[self._num_exps - 1] = new_buffer
 
         for ll, b in zip(lens, self.buffer_groups.values()):
-            b.resize(strategy, ll)
+            b.resize(agent, ll)
 
 
 class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
@@ -279,10 +278,9 @@ class ClassBalancedBuffer(BalancedExemplarsBuffer[ReservoirSamplingBuffer]):
         self.total_num_classes = total_num_classes
         self.seen_classes: Set[int] = set()
 
-    def update(self, strategy: "BaseSGDTemplate", **kwargs):
+    def post_adapt(self, agent, exp):
         """Update buffer."""
-        assert strategy.experience is not None
-        self.update_from_dataset(strategy.experience.dataset, strategy)
+        self.update_from_dataset(exp.dataset, agent)
 
     def update_from_dataset(
         self, new_data: AvalancheDataset, strategy: Optional["BaseSGDTemplate"] = None
@@ -361,10 +359,9 @@ class ParametricBuffer(BalancedExemplarsBuffer):
         self.seen_groups: Set[int] = set()
         self._curr_strategy = None
 
-    def update(self, strategy: "SupervisedTemplate", **kwargs):
-        assert strategy.experience is not None
-        new_data: AvalancheDataset = strategy.experience.dataset
-        new_groups = self._make_groups(strategy, new_data)
+    def post_adapt(self, agent, exp):
+        new_data: AvalancheDataset = exp.dataset
+        new_groups = self._make_groups(agent, new_data)
         self.seen_groups.update(new_groups.keys())
 
         # associate lengths to classes
@@ -378,16 +375,16 @@ class ParametricBuffer(BalancedExemplarsBuffer):
             ll = group_to_len[group_id]
             if group_id in self.buffer_groups:
                 old_buffer_g = self.buffer_groups[group_id]
-                old_buffer_g.update_from_dataset(strategy, new_data_g)
-                old_buffer_g.resize(strategy, ll)
+                old_buffer_g.update_from_dataset(agent, new_data_g)
+                old_buffer_g.resize(agent, ll)
             else:
                 new_buffer = _ParametricSingleBuffer(ll, self.selection_strategy)
-                new_buffer.update_from_dataset(strategy, new_data_g)
+                new_buffer.update_from_dataset(agent, new_data_g)
                 self.buffer_groups[group_id] = new_buffer
 
         # resize buffers
         for group_id, class_buf in self.buffer_groups.items():
-            self.buffer_groups[group_id].resize(strategy, group_to_len[group_id])
+            self.buffer_groups[group_id].resize(agent, group_to_len[group_id])
 
     def _make_groups(
         self, strategy, data: AvalancheDataset

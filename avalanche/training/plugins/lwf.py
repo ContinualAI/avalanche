@@ -31,4 +31,4 @@ class LwFPlugin(SupervisedPlugin):
         Save a copy of the model after each experience and
         update self.prev_classes to include the newly learned classes.
         """
-        self.lwf.update(strategy.experience, strategy.model)
+        self.lwf.post_adapt(strategy, strategy.experience)

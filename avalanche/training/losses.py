@@ -8,6 +8,7 @@ from torch.nn import BCELoss
 
 from avalanche.training.plugins import SupervisedPlugin
 from avalanche.training.regularization import cross_entropy_with_oh_targets
+from avalanche._annotations import deprecated
 
 
 class ICaRLLossPlugin(SupervisedPlugin):
@@ -214,12 +215,20 @@ class MaskedCrossEntropy(SupervisedPlugin):
         elif self.mask == "all":
             return list(range(int(logit_shape)))
 
-    def adaptation(self, new_classes):
+    def _adaptation(self, new_classes):
         self.old_classes = self.old_classes.union(self.current_classes)
         self.current_classes = set(new_classes)
 
+    def pre_adapt(self, agent, exp):
+        self._adaptation(exp.classes_in_this_experience)
+
+    @deprecated(0.7, "Please switch to the `pre_adapt`or `_adaptation` methods.")
+    def adaptation(self, new_classes):
+        self._adaptation(new_classes)
+
+    @deprecated(0.7, "Please switch to the `pre_adapt` method.")
     def before_training_exp(self, strategy, **kwargs):
-        self.adaptation(strategy.experience.classes_in_this_experience)
+        self._adaptation(strategy.experience.classes_in_this_experience)
 
 
 __all__ = ["ICaRLLossPlugin", "SCRLoss", "MaskedCrossEntropy"]
