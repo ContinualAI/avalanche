@@ -17,13 +17,7 @@ management of preprocessing pipelines and task/class labels.
 """
 import copy
 import warnings
-import numpy as np
-
-from torch.utils.data.dataloader import default_collate
-
-from avalanche.benchmarks.utils.dataset_definitions import IDataset
-from .data_attribute import DataAttribute
-
+from collections import OrderedDict
 from typing import (
     Dict,
     List,
@@ -36,14 +30,17 @@ from typing import (
     overload,
 )
 
+import numpy as np
+from torch.utils.data import Dataset as TorchDataset
+from torch.utils.data.dataloader import default_collate
+from typing_extensions import Self
+
+from avalanche.benchmarks.utils.dataset_definitions import IDataset
+from .data_attribute import DataAttribute
 from .flat_data import FlatData
 from .transform_groups import TransformGroups, EmptyTransformGroups
-from torch.utils.data import Dataset as TorchDataset
-from collections import OrderedDict
-
 
 T_co = TypeVar("T_co", covariant=True)
-TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 TDataWTransform = TypeVar("TDataWTransform", bound="_FlatDataWithTransform")
 
 
@@ -249,12 +246,10 @@ class AvalancheDataset(IDataset[T_co]):
     def __len__(self) -> int:
         return len(self._flat_data)
 
-    def __add__(self: TAvalancheDataset, other: TAvalancheDataset) -> TAvalancheDataset:
+    def __add__(self, other: Self) -> Self:
         return self.concat(other)
 
-    def __radd__(
-        self: TAvalancheDataset, other: TAvalancheDataset
-    ) -> TAvalancheDataset:
+    def __radd__(self, other: Self) -> Self:
         return other.concat(self)
 
     @property
@@ -262,7 +257,7 @@ class AvalancheDataset(IDataset[T_co]):
         """Only for backward compatibility of old unit tests. Do not use."""
         return self._flat_data._datasets
 
-    def concat(self: TAvalancheDataset, other: TAvalancheDataset) -> TAvalancheDataset:
+    def concat(self, other: Self) -> Self:
         """Concatenate this dataset with other.
 
         :param other: Other dataset to concatenate.
@@ -270,7 +265,7 @@ class AvalancheDataset(IDataset[T_co]):
         """
         return self.__class__([self, other])
 
-    def subset(self: TAvalancheDataset, indices: Sequence[int]) -> TAvalancheDataset:
+    def subset(self, indices: Sequence[int]) -> Self:
         """Subset this dataset.
 
         :param indices: The indices to keep.
@@ -286,14 +281,12 @@ class AvalancheDataset(IDataset[T_co]):
             "See the documentation for more info."
         )
 
-    def update_data_attribute(
-        self: TAvalancheDataset, name: str, new_value
-    ) -> TAvalancheDataset:
+    def update_data_attribute(self, name: str, new_value) -> Self:
         """
         Return a new dataset with the added or replaced data attribute.
 
-        If a object of type :class:`DataAttribute` is passed, then the data
-        attribute is setted as is.
+        If an object of type :class:`DataAttribute` is passed, then the data
+        attribute is set as is.
 
         Otherwise, if a raw value is passed, a new DataAttribute is created.
         If a DataAttribute with the same already exists, the use_in_getitem
@@ -345,11 +338,9 @@ class AvalancheDataset(IDataset[T_co]):
     def __getitem__(self, exp_id: int) -> T_co: ...
 
     @overload
-    def __getitem__(self: TAvalancheDataset, exp_id: slice) -> TAvalancheDataset: ...
+    def __getitem__(self, exp_id: slice) -> Self: ...  # type: ignore
 
-    def __getitem__(
-        self: TAvalancheDataset, idx: Union[int, slice]
-    ) -> Union[T_co, TAvalancheDataset]:
+    def __getitem__(self, idx: Union[int, slice]) -> Union[T_co, Self]:
         elem = self._flat_data[idx]
         for da in self._data_attributes.values():
             if da.use_in_getitem:
@@ -387,7 +378,7 @@ class AvalancheDataset(IDataset[T_co]):
         """
         return self.with_transforms("eval")
 
-    def with_transforms(self: TAvalancheDataset, group_name: str) -> TAvalancheDataset:
+    def with_transforms(self, group_name: str) -> Self:
         """
         Returns a new dataset with the transformations of a different group
         loaded.
@@ -401,7 +392,7 @@ class AvalancheDataset(IDataset[T_co]):
         datacopy._flat_data = datacopy._flat_data.with_transforms(group_name)
         return datacopy
 
-    def freeze_transforms(self: TAvalancheDataset) -> TAvalancheDataset:
+    def freeze_transforms(self) -> Self:
         """Returns a new dataset with the transformation groups frozen."""
         datacopy = self._shallow_clone_dataset()
         datacopy._flat_data = datacopy._flat_data.freeze_transforms()
@@ -422,7 +413,7 @@ class AvalancheDataset(IDataset[T_co]):
         datacopy._flat_data = fdata.replace_current_transform_group(transform)
         return datacopy
 
-    def _shallow_clone_dataset(self: TAvalancheDataset) -> TAvalancheDataset:
+    def _shallow_clone_dataset(self) -> Self:
         """Clone dataset.
         This is a shallow copy, i.e. the data attributes are not copied.
         """
