@@ -103,14 +103,14 @@ def class_incremental_benchmark(
     classes_exp_assignment = []
     if num_experiences is not None:
         assert num_classes_per_exp is None, "BUG: num_classes_per_exp must be None"
-        curr_classess_per_exp: int = num_classes // num_experiences
+        curr_classes_per_exp: int = num_classes // num_experiences
         for eid in range(num_experiences):
             if eid == 0:
-                classes_exp_assignment.append(class_order[:curr_classess_per_exp])
+                classes_exp_assignment.append(class_order[:curr_classes_per_exp])
             else:
                 # final exp will take reminder of classes if they don't divide equally
-                start_idx = curr_classess_per_exp * eid
-                end_idx = start_idx + curr_classess_per_exp
+                start_idx = curr_classes_per_exp * eid
+                end_idx = start_idx + curr_classes_per_exp
                 classes_exp_assignment.append(class_order[start_idx:end_idx])
     elif num_classes_per_exp is not None:
         num_curr = 0
