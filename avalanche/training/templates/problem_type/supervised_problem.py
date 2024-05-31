@@ -35,7 +35,7 @@ class SupervisedProblem(
         """Current mini-batch task labels."""
         mbatch = self.mbatch
         assert mbatch is not None
-        assert len(mbatch) >= 3
+        assert len(mbatch) >= 3, "Task label not found."
         return mbatch[-1]
 
     def criterion(self):
@@ -44,13 +44,18 @@ class SupervisedProblem(
 
     def forward(self):
         """Compute the model's output given the current mini-batch."""
-        return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
+        # use task-aware forward only for task-aware benchmarks
+        if hasattr(self.experience, "task_labels") or hasattr(
+            self.experience, "task_label"
+        ):
+            return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
+        else:
+            return self.model(self.mb_x)
 
     def _unpack_minibatch(self):
         """Check if the current mini-batch has 3 components."""
         mbatch = self.mbatch
         assert mbatch is not None
-        assert len(mbatch) >= 3
 
         if isinstance(mbatch, tuple):
             mbatch = list(mbatch)
