@@ -101,9 +101,9 @@ def _split_dataset_by_attribute(
 def split_validation_random(
     validation_size: Union[int, float],
     shuffle: bool,
-    dataset: AvalancheDataset,
+    dataset: TCLDataset,
     seed: Optional[int] = None,
-) -> Tuple[AvalancheDataset, AvalancheDataset]:
+) -> Tuple[TCLDataset, TCLDataset]:
     """Splits an `AvalancheDataset` in two splits.
 
     The default splitting strategy used by
