@@ -199,10 +199,10 @@ def make_detection_dataset(
     this dataset, but it can also be used in a completely standalone manner.
 
     This dataset applies input/target transformations, it supports
-    slicing and advanced indexing and it also contains useful fields as
+    slicing, advanced indexing, and it also contains useful fields as
     `targets`, which contains the pattern dictionaries, and
     `targets_task_labels`, which contains the pattern task labels.
-    The `task_set` field can be used to obtain a the subset of patterns
+    The `task_set` field can be used to obtain a subset of patterns
     labeled with a given task label.
 
     This dataset can also be used to apply several advanced operations involving
