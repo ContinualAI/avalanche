@@ -40,7 +40,7 @@ def class_incremental_benchmark(
     num_experiences: Optional[int] = None,
     num_classes_per_exp: Optional[Sequence[int]] = None,
     seed: Optional[int] = None,
-) -> CLScenario:
+) -> CLScenario[EagerCLStream[DatasetExperience]]:
     """Splits datasets according to a class-incremental scenario.
 
     Each dataset will create a stream with the same class order.

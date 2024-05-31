@@ -36,7 +36,6 @@ from avalanche.benchmarks.utils.dataset_utils import (
     slice_alike_object_to_indices,
 )
 
-
 # Typing
 T = TypeVar("T")
 TCov = TypeVar("TCov", covariant=True)
@@ -590,6 +589,13 @@ class CLScenario(Generic[TCLStream]):
     provide access to past, current, and future data.
     """
 
+    # Define usual empty streams for typing
+    # TODO: If regarded unnecessary, the constructor magic should be removed
+    #  and `scenario.streams['train']` yields the correct type
+    train_stream = CLStream('train', [])
+    test_stream = CLStream('test', [])
+    valid_stream = CLStream('valid', [])
+
     def __init__(self, streams: Iterable[TCLStream]):
         """Creates an instance of a Continual Learning benchmark.
 
@@ -612,7 +618,7 @@ def make_stream(name: str, exps: Iterable[CLExperience]) -> CLStream:
 
     Uses the correct class for generators, sized generators, and lists.
 
-    :param new_name: The name of the new stream.
+    :param name: The name of the new stream.
     :param exps: sequence of experiences.
     """
     s_wrapped: CLStream
