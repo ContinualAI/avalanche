@@ -370,9 +370,10 @@ def update_optimizer(
 
     # Change reference to already existing parameters
     # i.e. growing IncrementalClassifier
-    for key in in_both:
-        old_p_hash = optimized_params[key]
-        new_p = new_params[key]
+    for name, group_idx, param_idx in changed_parameters:
+        group = optimizer.param_groups[group_idx]
+        old_p = optimized_params[name]
+        new_p = new_params[name]
         # Look for old parameter id in current optimizer
         group["params"][param_idx] = new_p
         if old_p in optimizer.state:
@@ -381,28 +382,14 @@ def update_optimizer(
 
     # Remove parameters that are not here anymore
     # This should not happen in most use cases
-    keys_to_remove = []
-    for key in not_in_new:
-        old_p_hash = optimized_params[key]
-        found = False
-        for i, group in enumerate(optimizer.param_groups):
-            keys_to_remove.append([])
-            for j, curr_p in enumerate(group["params"]):
-                if id(curr_p) == id(old_p_hash):
-                    found = True
-                    keys_to_remove[i].append((j, curr_p))
-                    optimized_params.pop(key)
-                    break
-        if not found:
-            raise Exception(
-                f"Parameter {key} expected but " "not found in the optimizer"
-            )
-
-    for i, idx_list in enumerate(keys_to_remove):
-        for j, p in sorted(idx_list, key=lambda x: x[0], reverse=True):
-            del optimizer.param_groups[i]["params"][j]
-            if p in optimizer.state:
-                optimizer.state.pop(p)
+    if remove_params:
+        for group_idx, idx_list in enumerate(not_found_in_parameters):
+            for j in sorted(idx_list, key=lambda x: x, reverse=True):
+                p = optimizer.param_groups[group_idx]["params"][j]
+                optimizer.param_groups[group_idx]["params"].pop(j)
+                if p in optimizer.state:
+                    optimizer.state.pop(p)
+                del p
 
     # Add newly added parameters (i.e Multitask, PNN)
 
