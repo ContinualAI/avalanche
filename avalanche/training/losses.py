@@ -3,7 +3,6 @@ import copy
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import nn
 from torch.nn import BCELoss
 
 from avalanche.training.plugins import SupervisedPlugin
@@ -170,7 +169,7 @@ class MaskedCrossEntropy(SupervisedPlugin):
     Masked Cross Entropy
 
     This criterion can be used for instance in Class Incremental
-    Learning Problems when no examplars are used
+    Learning Problems when no exemplars are used
     (i.e LwF in Class Incremental Learning would need to use mask="new").
     """
 

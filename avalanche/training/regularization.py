@@ -353,4 +353,5 @@ __all__ = [
     "LearningWithoutForgetting",
     "ACECriterion",
     "AMLCriterion",
+    "cross_entropy_with_oh_targets",
 ]
