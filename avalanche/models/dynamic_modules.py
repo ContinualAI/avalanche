@@ -68,15 +68,15 @@ class DynamicModule(Module):
         """
         :param auto_adapt: If True, will be adapted in the recursive adaptation loop
                            else, will be adapted by a module in charge
-                           (i.e IncrementalClassifier inside MultiHeadClassifier)
+                           (i.e. IncrementalClassifier inside MultiHeadClassifier)
         """
         super().__init__()
         self._auto_adapt = auto_adapt
 
     def pre_adapt(self, agent, experience):
         """
-        Calls self.adaptation recursively accross
-        the hierarchy of pytorch module childrens
+        Calls self.adaptation recursively across
+        the hierarchy of pytorch module children
         """
         avalanche_model_adaptation(self, experience)
 
