@@ -1,5 +1,7 @@
 import sys
 from typing import Any, Callable, Generic, Iterable, Sequence, Optional, TypeVar, Union
+
+from torch.utils.data import DataLoader
 from typing_extensions import TypeAlias
 from packaging.version import parse
 
@@ -453,9 +455,15 @@ class BaseSGDTemplate(
         if "ffcv_args" in kwargs:
             other_dataloader_args["ffcv_args"] = kwargs["ffcv_args"]
 
-        self.dataloader = TaskBalancedDataLoader(
-            self.adapted_dataset, oversample_small_groups=True, **other_dataloader_args
-        )
+        # use task-balanced dataloader for task-aware benchmarks
+        if hasattr(self.experience, "task_labels"):
+            self.dataloader = TaskBalancedDataLoader(
+                self.adapted_dataset,
+                oversample_small_groups=True,
+                **other_dataloader_args
+            )
+        else:
+            self.dataloader = DataLoader(self.adapted_dataset, **other_dataloader_args)
 
     def make_eval_dataloader(
         self,
