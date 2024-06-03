@@ -60,7 +60,7 @@ class DynamicModule(Module):
     expanded to allow architectural modifications (multi-head
     classifiers, progressive networks, ...).
 
-    Compared to pytoch Modules, they provide an additional method,
+    Compared to pytorch Modules, they provide an additional method,
     `model_adaptation`, which adapts the model given the current experience.
     """
 
@@ -68,15 +68,15 @@ class DynamicModule(Module):
         """
         :param auto_adapt: If True, will be adapted in the recursive adaptation loop
                            else, will be adapted by a module in charge
-                           (i.e IncrementalClassifier inside MultiHeadClassifier)
+                           (i.e. IncrementalClassifier inside MultiHeadClassifier)
         """
         super().__init__()
         self._auto_adapt = auto_adapt
 
     def recursive_adaptation(self, experience):
         """
-        Calls self.adaptation recursively accross
-        the hierarchy of pytorch module childrens
+        Calls self.adaptation recursively across
+        the hierarchy of pytorch module children
         """
         avalanche_model_adaptation(self, experience)
 
@@ -120,7 +120,7 @@ class MultiTaskModule(DynamicModule):
     scenarios. The ``forward`` method accepts task labels, one for
     each sample in the mini-batch.
 
-    By default the ``forward`` method splits the mini-batch by task
+    By default, the ``forward`` method splits the mini-batch by task
     and calls ``forward_single_task``. Subclasses must implement
     ``forward_single_task`` or override `forward. If ``task_labels == None``,
     the output is computed in parallel for each task.
