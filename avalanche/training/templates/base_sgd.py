@@ -456,9 +456,7 @@ class BaseSGDTemplate(
             other_dataloader_args["ffcv_args"] = kwargs["ffcv_args"]
 
         # use task-balanced dataloader for task-aware benchmarks
-        if hasattr(self.experience, "task_label") or hasattr(
-            self.experience, "task_labels"
-        ):
+        if hasattr(self.experience, "task_labels"):
             self.dataloader = TaskBalancedDataLoader(
                 self.adapted_dataset,
                 oversample_small_groups=True,

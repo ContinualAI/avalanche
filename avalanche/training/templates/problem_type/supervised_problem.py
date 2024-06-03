@@ -45,9 +45,7 @@ class SupervisedProblem(
     def forward(self):
         """Compute the model's output given the current mini-batch."""
         # use task-aware forward only for task-aware benchmarks
-        if hasattr(self.experience, "task_labels") or hasattr(
-            self.experience, "task_label"
-        ):
+        if hasattr(self.experience, "task_labels"):
             return avalanche_forward(self.model, self.mb_x, self.mb_task_id)
         else:
             return self.model(self.mb_x)
