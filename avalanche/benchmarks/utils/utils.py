@@ -454,11 +454,11 @@ def _select_task_labels(
 
 
 def _init_transform_groups(
-    transform_groups: Optional[Mapping[str, TransformGroupDef]],
-    transform: Optional[XTransform],
-    target_transform: Optional[YTransform],
-    initial_transform_group: Optional[str],
-    dataset,
+    transform_groups: Optional[Mapping[str, TransformGroupDef]] = None,
+    transform: Optional[XTransform] = None,
+    target_transform: Optional[YTransform] = None,
+    initial_transform_group: Optional[str] = None,
+    dataset: Optional[Any] = None,
 ) -> Optional[TransformGroups]:
     """
     Initializes the transform groups for the given dataset.

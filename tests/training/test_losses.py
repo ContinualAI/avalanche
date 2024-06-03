@@ -41,8 +41,8 @@ class TestMaskedCrossEntropy(unittest.TestCase):
         cross_entropy = nn.CrossEntropyLoss()
 
         criterion = MaskedCrossEntropy(mask="new")
-        criterion.adaptation([1, 2, 3, 4])
-        criterion.adaptation([5, 6, 7])
+        criterion._adaptation([1, 2, 3, 4])
+        criterion._adaptation([5, 6, 7])
 
         mb_y = torch.tensor([5, 5, 6, 7, 6])
 

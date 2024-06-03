@@ -387,7 +387,7 @@ class BaseSGDTemplate(
         implementation (super) to obtain a base dictionary of parameters.
 
         However, if a more deep change is needed in the data loading procedure,
-        it is better to overrride :meth:`make_train_dataloader` and/or
+        it is better to override :meth:`make_train_dataloader` and/or
         :meth:`make_eval_dataloader` directly.
 
         Note: the resulting dictionary does not include the collate function

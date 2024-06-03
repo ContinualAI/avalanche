@@ -70,7 +70,7 @@ def benchmark_with_validation_stream(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def random_validation_split_strategy_wrapper(data):
-            return split_validation_random(validation_size, shuffle, seed, data)
+            return split_validation_random(validation_size, shuffle, data, seed)
 
         split_strategy = random_validation_split_strategy_wrapper
     else:
@@ -96,6 +96,7 @@ def benchmark_with_validation_stream(
 
     # don't drop classes-timeline for compatibility with old API
     e0 = next(iter(train_stream))
+
     if hasattr(e0, "dataset") and hasattr(e0.dataset, "targets"):
         train_stream = with_classes_timeline(train_stream)
         valid_stream = with_classes_timeline(valid_stream)

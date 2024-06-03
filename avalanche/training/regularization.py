@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 
 from avalanche.models import MultiTaskModule, avalanche_forward
+from avalanche._annotations import deprecated
 
 
 def stable_softmax(x):
@@ -39,8 +40,15 @@ class RegularizationMethod:
     of an experience.
     """
 
+    @deprecated(0.7, "please switch to pre_update and post_update methods.")
     def update(self, *args, **kwargs):
         raise NotImplementedError()
+
+    def pre_adapt(self, agent, exp):
+        pass  # implementation may be empty if adapt is not needed
+
+    def post_adapt(self, agent, exp):
+        pass  # implementation may be empty if adapt is not needed
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
@@ -133,6 +141,29 @@ class LearningWithoutForgetting(RegularizationMethod):
         )
         return alpha * self._lwf_penalty(mb_pred, mb_x, model)
 
+    def post_adapt(self, agent, exp):
+        """Save a copy of the model after each experience and
+        update self.prev_classes to include the newly learned classes.
+
+        :param agent: agent state
+        :param exp: current experience
+        """
+        self.expcount += 1
+        self.prev_model = copy.deepcopy(agent.model)
+        task_ids = exp.dataset.targets_task_labels.uniques
+
+        for task_id in task_ids:
+            task_data = exp.dataset.task_set[task_id]
+            pc = set(task_data.targets.uniques)
+
+            if task_id not in self.prev_classes_by_task:
+                self.prev_classes_by_task[task_id] = pc
+            else:
+                self.prev_classes_by_task[task_id] = self.prev_classes_by_task[
+                    task_id
+                ].union(pc)
+
+    @deprecated(0.7, "switch to post_udpate method")
     def update(self, experience, model):
         """Save a copy of the model after each experience and
         update self.prev_classes to include the newly learned classes.
@@ -140,7 +171,6 @@ class LearningWithoutForgetting(RegularizationMethod):
         :param experience: current experience
         :param model: current model
         """
-
         self.expcount += 1
         self.prev_model = copy.deepcopy(model)
         task_ids = experience.dataset.targets_task_labels.uniques
@@ -323,4 +353,5 @@ __all__ = [
     "LearningWithoutForgetting",
     "ACECriterion",
     "AMLCriterion",
+    "cross_entropy_with_oh_targets",
 ]

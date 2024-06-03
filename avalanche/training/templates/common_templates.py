@@ -80,7 +80,6 @@ class SupervisedTemplate(
 
     PLUGIN_CLASS = SupervisedPlugin
 
-    # TODO: remove default values of model and optimizer when legacy positional arguments are definitively removed
     def __init__(
         self,
         *,
@@ -194,7 +193,6 @@ class SupervisedMetaLearningTemplate(
 
     PLUGIN_CLASS = SupervisedPlugin
 
-    # TODO: remove default values of model and optimizer when legacy positional arguments are definitively removed
     def __init__(
         self,
         *,

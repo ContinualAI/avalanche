@@ -101,9 +101,9 @@ def _split_dataset_by_attribute(
 def split_validation_random(
     validation_size: Union[int, float],
     shuffle: bool,
+    dataset: TCLDataset,
     seed: Optional[int] = None,
-    dataset: Optional[AvalancheDataset] = None,
-) -> Tuple[AvalancheDataset, AvalancheDataset]:
+) -> Tuple[TCLDataset, TCLDataset]:
     """Splits an `AvalancheDataset` in two splits.
 
     The default splitting strategy used by
@@ -119,7 +119,7 @@ def split_validation_random(
     a single parameter: the experience. Consider wrapping your custom
     splitting strategy with `partial` if more parameters are needed.
 
-    You can use this split strategy with methdos that require a custom
+    You can use this split strategy with methods that require a custom
     split strategy such as :func:`benchmark_with_validation_stream`to split
     a benchmark with::
 
@@ -133,11 +133,10 @@ def split_validation_random(
         Otherwise, the first instances will be allocated to the training
         dataset by leaving the last ones to the validation dataset.
     :param dataset: The dataset to split.
+    :param seed: The random seed for shuffling the dataset.
     :return: A tuple containing 2 elements: the new training and validation
         datasets.
     """
-    if dataset is None:
-        raise ValueError("dataset must be provided")
     exp_indices = list(range(len(dataset)))
 
     if seed is None:

@@ -81,13 +81,12 @@ def deprecated(version: float, reason: str):
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.simplefilter("always", DeprecationWarning)
+            warnings.simplefilter("once", DeprecationWarning)
             warnings.warn(
                 msg.format(name=func.__name__, version=version, reason=reason),
                 category=DeprecationWarning,
                 stacklevel=2,
             )
-            warnings.simplefilter("default", DeprecationWarning)
             return func(*args, **kwargs)
 
         return wrapper

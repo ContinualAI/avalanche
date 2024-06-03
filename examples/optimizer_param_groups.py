@@ -3,8 +3,8 @@
 # Copyrights licensed under the MIT License.                                   #
 # See the accompanying LICENSE file for terms.                                 #
 #                                                                              #
-# Date: 01-12-2020                                                             #
-# Author(s): Andrea Cossu                                                      #
+# Date: 25-03-2024                                                             #
+# Author(s): Albin Soutif                                                      #
 # E-mail: contact@continualai.org                                              #
 # Website: avalanche.continualai.org                                           #
 ################################################################################
@@ -12,13 +12,16 @@
 """
 This example trains a Multi-head model on Split MNIST with Elastic Weight
 Consolidation. Each experience has a different task label, which is used at test
-time to select the appropriate head.
+time to select the appropriate head. Additionally, it assigns different parameter groups
+to the classifier and the backbone, assigning lower learning rate to 
+the backbone than to the classifier. When the multihead classifier grows, 
+new parameters are automatically assigned to the corresponding parameter group
 """
 
 import argparse
 import torch
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam
+from torch.optim import SGD
 
 from avalanche.benchmarks.classic import SplitMNIST
 from avalanche.models import MTSimpleMLP
@@ -42,7 +45,16 @@ def main(args):
     test_stream = benchmark.test_stream
 
     # Prepare for training & testing
-    optimizer = Adam(model.parameters(), lr=0.01)
+    g1 = {"params": [], "lr": 0.1}
+    g2 = {"params": [], "lr": 0.01}
+
+    for n, p in model.named_parameters():
+        if "classifier" in n:
+            g1["params"].append(p)
+        else:
+            g2["params"].append(p)
+
+    optimizer = SGD([g1, g2])
     criterion = CrossEntropyLoss()
 
     # choose some metrics and evaluation method
@@ -69,7 +81,7 @@ def main(args):
 
     # train and test loop
     for train_task in train_stream:
-        strategy.train(train_task, num_workers=4)
+        strategy.train(train_task, num_workers=4, verbose_optimizer=True)
         strategy.eval(test_stream, num_workers=4)
 
 
