@@ -85,7 +85,11 @@ class AvalancheDataset(IDataset[T_co]):
 
     def __init__(
         self,
-        datasets: Sequence[IDataset[T_co]],
+        datasets: Union[
+            Sequence[IDataset[T_co]],
+            TorchDataset[T_co],
+            "AvalancheDataset[T_co]",
+        ],
         *,
         indices: Optional[List[int]] = None,
         data_attributes: Optional[List[DataAttribute]] = None,
@@ -100,7 +104,12 @@ class AvalancheDataset(IDataset[T_co]):
             applied by this dataset.
         :param transform_groups: Avalanche transform groups.
         """
+        # TODO: Deprecate in favor of `make_avalanche_dataset`?
         if isinstance(datasets, (TorchDataset, AvalancheDataset)):
+            warnings.warn(
+                f"'datasets' argument should be a list of datasets, "
+                f"not {type(datasets).__name__}"
+            )
             datasets = [datasets]  # type: ignore
 
         # NOTES on implementation:
