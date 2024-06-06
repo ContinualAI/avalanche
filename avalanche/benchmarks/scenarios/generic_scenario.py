@@ -274,6 +274,7 @@ class CLExperience:
         )
 
 
+# TODO: itertools.cycle?
 class GeneratorMemo(Generic[T]):
     def __init__(self, generator: Generator[T, None, None]):
         self._generator: Optional[Generator[T, None, None]] = generator
@@ -385,7 +386,7 @@ class SizedCLStream(CLStream[TCLExperience], ABC):
 
         :return: The number of experiences in this stream.
         """
-        pass
+        ...
 
 
 class SequenceCLStream(SizedCLStream[TCLExperience], Sequence[TCLExperience], ABC):
