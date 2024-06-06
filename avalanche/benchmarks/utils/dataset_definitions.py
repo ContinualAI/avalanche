@@ -111,11 +111,13 @@ class IClassificationDataset(IDatasetWithTargets[T_co, int], Protocol):
     protocol see :class:`ISupportedClassificationDataset`.
     """
 
-    targets: Sequence[int]
-    """
-    A sequence of ints describing the label of each pattern contained in the
-    dataset.
-    """
+    @property
+    def targets(self) -> Sequence[int]:
+        """
+        A sequence of ints describing the label of each pattern contained in the
+        dataset.
+        """
+        ...
 
 
 class ClassificationDataset(IClassificationDataset[T_co], Dataset):
@@ -126,12 +128,9 @@ class ClassificationDataset(IClassificationDataset[T_co], Dataset):
     The actual value of the targets field should be set by the child class.
     """
 
-    def __init__(self):
-        self.targets = []
-        """
-        A sequence of ints describing the label of each pattern contained in the
-        dataset.
-        """
+    @property
+    def targets(self) -> Sequence[int]:
+        return []
 
 
 __all__ = [
