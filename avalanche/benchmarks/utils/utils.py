@@ -653,13 +653,15 @@ class TaskSet(Mapping[int, TAvalancheDataset], Generic[TAvalancheDataset]):
 
     """
 
+    data: TAvalancheDataset
+
     def __init__(self, data: TAvalancheDataset):
         """Constructor.
 
         :param data: original data
         """
         super().__init__()
-        self.data: TAvalancheDataset = data
+        self.data = data
 
     def __iter__(self) -> Iterator[int]:
         t_labels = self._get_task_labels_field()

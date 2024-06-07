@@ -16,7 +16,6 @@ ClassificationDatasets are ``AvalancheDatasets`` that manage class and task
 labels automatically. Concatenation and subsampling operations are optimized
 to be used frequently, as is common in replay strategies.
 """
-
 from functools import partial
 from typing import (
     List,
@@ -29,7 +28,7 @@ from typing import (
     Dict,
     Tuple,
     Mapping,
-    overload,
+    overload, Self,
 )
 
 import torch
@@ -64,11 +63,11 @@ from avalanche.benchmarks.utils.utils import (
 )
 
 T_co = TypeVar("T_co", covariant=True)
-TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
+TAvalancheDataset = TypeVar("TAvalancheDataset", bound=AvalancheDataset)
 TTargetType = int
 
 TClassificationDataset = TypeVar(
-    "TClassificationDataset", bound="ClassificationDataset"
+    "TClassificationDataset", bound=IDatasetWithTargets
 )
 
 
@@ -114,7 +113,7 @@ class TaskAwareClassificationDataset(AvalancheDataset[T_co]):
         return self.targets_task_labels.val_to_idx  # type: ignore
 
     @property
-    def task_set(self: TClassificationDataset) -> TaskSet[TClassificationDataset]:
+    def task_set(self) -> TaskSet[Self]:
         """Returns the dataset's ``TaskSet``, which is a mapping <task-id,
         task-dataset>."""
         return TaskSet(self)
