@@ -21,7 +21,7 @@ TMBOutput = TypeVar("TMBOutput")
 CriterionType: TypeAlias = Union[Module, Callable[[Tensor, Tensor], Tensor]]
 
 
-class BaseStrategyProtocol(Generic[TExperienceType], Protocol[TExperienceType]):
+class BaseStrategyProtocol(Protocol[TExperienceType]):
     model: Module
 
     device: torch.device
@@ -36,7 +36,6 @@ class BaseStrategyProtocol(Generic[TExperienceType], Protocol[TExperienceType]):
 
 
 class SGDStrategyProtocol(
-    Generic[TSGDExperienceType, TMBInput, TMBOutput],
     BaseStrategyProtocol[TSGDExperienceType],
     Protocol[TSGDExperienceType, TMBInput, TMBOutput],
 ):
@@ -120,6 +119,7 @@ class MetaLearningStrategyProtocol(
 
 
 __all__ = [
+    "BaseStrategyProtocol",
     "SGDStrategyProtocol",
     "SupervisedStrategyProtocol",
     "MetaLearningStrategyProtocol",

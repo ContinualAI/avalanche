@@ -64,6 +64,10 @@ class BaseSGDTemplate(
         *,
         model: Module,
         optimizer: Optimizer,
+        # TODO: Make optional in base classes as subclasses may choose to implement
+        #  `def criterion()` that doesn't depend on `self._criterion`
+        #  (which is set in __init__). Subclasses using `_criterion` in `criterion()`
+        #  should then make the criterion kwarg mandatory
         criterion: CriterionType = CrossEntropyLoss(),
         train_mb_size: int = 1,
         train_epochs: int = 1,
@@ -71,7 +75,7 @@ class BaseSGDTemplate(
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[BasePlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin, Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin], None,
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",

@@ -37,7 +37,7 @@ class SCR(SupervisedTemplate):
         *,
         model: SCRModel,
         optimizer: Optimizer,
-        augmentations=Compose([Lambda(lambda el: el)]),
+        augmentations=Lambda(lambda el: el),
         mem_size: int = 100,
         temperature: float = 0.1,
         train_mb_size: int = 1,

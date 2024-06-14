@@ -92,7 +92,7 @@ class SupervisedTemplate(
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[BasePlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin, Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin], None,
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",
