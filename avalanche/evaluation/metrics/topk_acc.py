@@ -103,6 +103,10 @@ class TopkAccuracy(Metric[Dict[int, float]]):
     def _compute_topk_acc(self, pred, gt, top_k):
         if self.__torchmetrics_requires_task:
             num_classes = int(torch.max(torch.as_tensor(gt))) + 1
+            
+            if num_classes < top_k:
+                return 0
+            
             pred_t = torch.as_tensor(pred)
             if len(pred_t.shape) > 1:
                 num_classes = max(num_classes, pred_t.shape[1])
