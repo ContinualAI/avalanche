@@ -46,6 +46,7 @@ class SGDStrategyProtocol(
     mbatch: Optional[TMBInput]
 
     mb_output: Optional[TMBOutput]
+    """Mini-batch output (typically the result of `self.forward()`)"""
 
     dataloader: Iterable[TMBInput]
 
@@ -94,6 +95,7 @@ class SupervisedStrategyProtocol(
     SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutput],
     Protocol[TSGDExperienceType, TMBInput, TMBOutput],
 ):
+    # TODO: How does this differ from mbatch[0]? Converted to tensor?
     mb_x: Tensor
 
     mb_y: Tensor

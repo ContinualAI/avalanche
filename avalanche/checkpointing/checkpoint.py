@@ -1,6 +1,7 @@
 import os.path
-from pathlib import Path
 from copy import copy
+from functools import partial
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -14,12 +15,12 @@ from typing import (
     Union,
     Collection,
 )
-from typing_extensions import TypeAlias
 
 import dill
 import torch
-from functools import partial
 from packaging.version import parse
+from typing_extensions import TypeAlias
+
 from .checkpoint_internals import (
     CHECKPOINT_MECHANISM_VERSION,
     _CheckpointLoadingContext,
@@ -119,7 +120,7 @@ def maybe_load_checkpoint(
     The method returns the strategy with the state deserialized from the file
     and the index of the training experience to resume training.
 
-    If the file does not exists, the method returns the strategy unmodified
+    If the file does not exist, the method returns the strategy unmodified
     and the index 0. As a result, the method can be safely called even if no
     checkpoint has been previously created (e.g. during the first run).
 

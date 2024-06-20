@@ -112,10 +112,11 @@ class SCR(SupervisedTemplate):
             plugins = [self.replay_plugin] + plugins
         else:
             raise ValueError("`plugins` parameter needs to be a list.")
+
         super().__init__(
             model=model,
             optimizer=optimizer,
-            criterion=SCRLoss(temperature=self.temperature),
+            # criterion=SCRLoss(temperature=self.temperature),
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
