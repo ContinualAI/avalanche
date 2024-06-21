@@ -46,7 +46,7 @@ class SupervisedTemplate(
     This strategy supports several continual learning scenarios:
 
     * class-incremental scenarios (no task labels)
-    * multi-task scenarios, where task labels are provided)
+    * multi-task scenarios, where task labels are provided
     * multi-incremental scenarios, where the same task may be revisited
 
     The exact scenario depends on the data stream and whether it provides
@@ -92,7 +92,7 @@ class SupervisedTemplate(
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[Sequence[BasePlugin]] = None,
         evaluator: Union[
-            EvaluationPlugin, Callable[[], EvaluationPlugin]
+            EvaluationPlugin, Callable[[], EvaluationPlugin], None,
         ] = default_evaluator,
         eval_every=-1,
         peval_mode="epoch",

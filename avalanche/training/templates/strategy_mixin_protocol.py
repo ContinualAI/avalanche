@@ -21,7 +21,7 @@ TMBOutput = TypeVar("TMBOutput")
 CriterionType: TypeAlias = Union[Module, Callable[[Tensor, Tensor], Tensor]]
 
 
-class BaseStrategyProtocol(Generic[TExperienceType], Protocol[TExperienceType]):
+class BaseStrategyProtocol(Protocol[TExperienceType]):
     model: Module
 
     device: torch.device
@@ -36,7 +36,6 @@ class BaseStrategyProtocol(Generic[TExperienceType], Protocol[TExperienceType]):
 
 
 class SGDStrategyProtocol(
-    Generic[TSGDExperienceType, TMBInput, TMBOutput],
     BaseStrategyProtocol[TSGDExperienceType],
     Protocol[TSGDExperienceType, TMBInput, TMBOutput],
 ):
@@ -47,6 +46,7 @@ class SGDStrategyProtocol(
     mbatch: Optional[TMBInput]
 
     mb_output: Optional[TMBOutput]
+    """Mini-batch output (typically the result of `self.forward()`)"""
 
     dataloader: Iterable[TMBInput]
 
@@ -95,6 +95,7 @@ class SupervisedStrategyProtocol(
     SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutput],
     Protocol[TSGDExperienceType, TMBInput, TMBOutput],
 ):
+    # TODO: How does this differ from mbatch[0]? Converted to tensor?
     mb_x: Tensor
 
     mb_y: Tensor
@@ -120,6 +121,7 @@ class MetaLearningStrategyProtocol(
 
 
 __all__ = [
+    "BaseStrategyProtocol",
     "SGDStrategyProtocol",
     "SupervisedStrategyProtocol",
     "MetaLearningStrategyProtocol",

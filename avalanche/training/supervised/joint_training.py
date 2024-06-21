@@ -121,7 +121,7 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
         trains on all of them at the same time (a.k.a. offline training).
 
         :param experiences: single Experience or sequence.
-        :param eval_streams: list of streams for evaluation.
+        :param eval_streams: sequence of streams for evaluation.
             If None: use training experiences for evaluation.
             Use [] if you do not want to evaluate during training.
 

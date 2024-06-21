@@ -335,7 +335,7 @@ def update_optimizer(
     verbose=False,
 ):
     """Update the optimizer by adding new parameters,
-    removing removed parameters, and adding new parameters
+    removing obsolete parameters, and adding new parameters
     to the optimizer, for instance after model has been adapted
     to a new task. The state of the optimizer can also be reset,
     it will be reset for the modified parameters.
@@ -351,7 +351,7 @@ def update_optimizer(
         currently optimized parameters. In most use cases, it will be `None in
         the first call and the return value of the last `update_optimizer` call
         for the subsequent calls.
-    :param reset_state: Whether to reset the optimizer's state (i.e momentum).
+    :param reset_state: Whether to reset the optimizer's state (i.e. momentum).
                         Defaults to False.
     :param remove_params: Whether to remove parameters that were in the optimizer
                           but are not found in new parameters. For safety reasons,
@@ -369,7 +369,7 @@ def update_optimizer(
     ) = _map_optimized_params(optimizer, new_params, old_params=optimized_params)
 
     # Change reference to already existing parameters
-    # i.e growing IncrementalClassifier
+    # i.e. growing IncrementalClassifier
     for name, group_idx, param_idx in changed_parameters:
         group = optimizer.param_groups[group_idx]
         old_p = optimized_params[name]
@@ -381,7 +381,7 @@ def update_optimizer(
             optimizer.state[new_p] = {}
 
     # Remove parameters that are not here anymore
-    # This should not happend in most use case
+    # This should not happen in most use cases
     if remove_params:
         for group_idx, idx_list in enumerate(not_found_in_parameters):
             for j in sorted(idx_list, key=lambda x: x, reverse=True):

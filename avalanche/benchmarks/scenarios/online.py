@@ -46,6 +46,7 @@ class CyclicSampler(Sampler):
     """Samples elements from [0,..,len(dataset)-1] in a cyclic manner."""
 
     def __init__(self, n_samples, shuffle=True, rng=None):
+        super().__init__()
         self.n_samples = n_samples
         self.rng = rng
         self.shuffle = shuffle

@@ -24,7 +24,7 @@ class SCR(SupervisedTemplate):
     embeddings produced by the encoder.
 
     Accuracy cannot be monitored during training (no NCM classifier).
-    During training, NCRLoss is monitored, while during eval
+    During training, SCRLoss is monitored, while during eval
     CrossEntropyLoss is monitored.
 
     The original paper uses an additional fine-tuning phase on the buffer
@@ -37,9 +37,9 @@ class SCR(SupervisedTemplate):
         *,
         model: SCRModel,
         optimizer: Optimizer,
-        augmentations=Compose([Lambda(lambda el: el)]),
+        augmentations=Lambda(lambda el: el),
         mem_size: int = 100,
-        temperature: int = 0.1,
+        temperature: float = 0.1,
         train_mb_size: int = 1,
         batch_size_mem: int = 100,
         train_epochs: int = 1,
@@ -112,10 +112,11 @@ class SCR(SupervisedTemplate):
             plugins = [self.replay_plugin] + plugins
         else:
             raise ValueError("`plugins` parameter needs to be a list.")
+
         super().__init__(
             model=model,
             optimizer=optimizer,
-            criterion=SCRLoss(temperature=self.temperature),
+            # criterion=SCRLoss(temperature=self.temperature),
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,

@@ -124,7 +124,7 @@ def task_incremental_benchmark(bm: CLScenario, reset_task_labels=False) -> CLSce
 
         with_task_labels(benchmark_from_datasets(**dataset_streams)
 
-    :param **dataset_streams: keys are stream names, values are list of datasets.
+    :param dataset_streams: keys are stream names, values are list of datasets.
     :param reset_task_labels: whether existing task labels should be ignored.
         If False (default) if any dataset has task labels the function will raise
         a ValueError. If `True`, it will reset task labels.

@@ -3,7 +3,6 @@ import copy
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch import nn
 from torch.nn import BCELoss
 
 from avalanche.training.plugins import SupervisedPlugin
@@ -115,7 +114,10 @@ class SCRLoss(torch.nn.Module):
         elif labels is not None:
             labels = labels.contiguous().view(-1, 1)
             if labels.shape[0] != batch_size:
-                raise ValueError("Num of labels does not match num of features")
+                raise ValueError(
+                    f"Num of labels {labels.shape[0]} does not match "
+                    f"num of features {batch_size}"
+                )
             mask = torch.eq(labels, labels.T).float().to(device)
         else:
             mask = mask.float().to(device)
@@ -170,7 +172,7 @@ class MaskedCrossEntropy(SupervisedPlugin):
     Masked Cross Entropy
 
     This criterion can be used for instance in Class Incremental
-    Learning Problems when no examplars are used
+    Learning Problems when no exemplars are used
     (i.e LwF in Class Incremental Learning would need to use mask="new").
     """
 

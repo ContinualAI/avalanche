@@ -72,6 +72,7 @@ TDatasetExperience = TypeVar("TDatasetExperience", bound="DatasetExperience")
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
 
 
+# TODO: Nomenclature: experience vs task
 def nc_benchmark(
     train_dataset: Union[Sequence[SupportedDataset], SupportedDataset],
     test_dataset: Union[Sequence[SupportedDataset], SupportedDataset],

@@ -38,7 +38,7 @@ class Accuracy(Metric[float]):
     def __init__(self):
         """Creates an instance of the standalone Accuracy metric.
 
-        By default this metric in its initial state will return an accuracy
+        By default, this metric in its initial state will return an accuracy
         value of 0. The metric can be updated by using the `update` method
         while the running accuracy can be retrieved using the `result` method.
         """
