@@ -75,6 +75,7 @@ def trigger_plugins(strategy: "BaseStrategyProtocol", event: str, **kwargs):
     """Call plugins on a specific callback"""
     for p in strategy.plugins:
         if hasattr(p, event):
+            # print('triggering plugin', p, event)
             getattr(p, event)(strategy, **kwargs)
 
 
