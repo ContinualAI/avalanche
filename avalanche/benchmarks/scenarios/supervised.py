@@ -11,6 +11,7 @@
 
 """High-level benchmark generators for supervised scenarios such as class-incremental."""
 import warnings
+from collections.abc import Collection
 from copy import copy
 from typing import (
     Iterable,
@@ -22,6 +23,7 @@ from typing import (
 )
 
 import torch
+from typing_extensions import Self
 
 from avalanche.benchmarks.utils.classification_dataset import (
     ClassificationDataset,
@@ -30,7 +32,7 @@ from avalanche.benchmarks.utils.classification_dataset import (
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.data_attribute import DataAttribute
 from .dataset_scenario import _split_dataset_by_attribute, DatasetExperience
-from .generic_scenario import CLScenario, CLStream, EagerCLStream
+from .generic_scenario import CLScenario, CLStream, EagerCLStream, CLExperience
 
 
 def class_incremental_benchmark(
@@ -40,7 +42,7 @@ def class_incremental_benchmark(
     num_experiences: Optional[int] = None,
     num_classes_per_exp: Optional[Sequence[int]] = None,
     seed: Optional[int] = None,
-) -> CLScenario:
+) -> CLScenario[EagerCLStream[DatasetExperience[ClassificationDataset]]]:
     """Splits datasets according to a class-incremental scenario.
 
     Each dataset will create a stream with the same class order.
@@ -103,14 +105,14 @@ def class_incremental_benchmark(
     classes_exp_assignment = []
     if num_experiences is not None:
         assert num_classes_per_exp is None, "BUG: num_classes_per_exp must be None"
-        curr_classess_per_exp: int = num_classes // num_experiences
+        curr_classes_per_exp: int = num_classes // num_experiences
         for eid in range(num_experiences):
             if eid == 0:
-                classes_exp_assignment.append(class_order[:curr_classess_per_exp])
+                classes_exp_assignment.append(class_order[:curr_classes_per_exp])
             else:
                 # final exp will take reminder of classes if they don't divide equally
-                start_idx = curr_classess_per_exp * eid
-                end_idx = start_idx + curr_classess_per_exp
+                start_idx = curr_classes_per_exp * eid
+                end_idx = start_idx + curr_classes_per_exp
                 classes_exp_assignment.append(class_order[start_idx:end_idx])
     elif num_classes_per_exp is not None:
         num_curr = 0
@@ -120,7 +122,7 @@ def class_incremental_benchmark(
             num_curr += num_classes
 
     # create the streams using class_order to split the data
-    streams = []
+    streams: List[EagerCLStream[DatasetExperience[ClassificationDataset]]] = []
     for name, dd in datasets_dict.items():
         curr_stream = []
         data_by_class = _split_dataset_by_attribute(dd, "targets")
@@ -339,12 +341,6 @@ def new_instances_benchmark(
     return CLScenario(streams=[train_stream, test_stream])
 
 
-__all__ = [
-    "class_incremental_benchmark",
-    "new_instances_benchmark",
-]
-
-
 class ClassesTimeline(Protocol):
     """Experience decorator that provides info about classes occurrence over time."""
 
@@ -381,7 +377,7 @@ def with_classes_timeline(obj):
             new_streams.append(_decorate_stream(s))
         return CLScenario(new_streams)
 
-    def _decorate_stream(obj: CLStream):
+    def _decorate_stream(obj: CLStream[DatasetExperience[ClassificationDataset]]):
         # TODO: support stream generators. Should return a new generators which applies
         #  foo_decorate_exp every time a new experience is generated.
         new_stream = []

@@ -33,9 +33,8 @@ from avalanche.benchmarks.utils import (
 )
 from avalanche.benchmarks.utils.data import make_avalanche_dataset
 
-_default_mnist_train_transform = Compose([Normalize((0.1307,), (0.3081,))])
-
-_default_mnist_eval_transform = Compose([Normalize((0.1307,), (0.3081,))])
+default_mnist_train_transform = Compose([Normalize((0.1307,), (0.3081,))])
+default_mnist_eval_transform = Compose([Normalize((0.1307,), (0.3081,))])
 
 
 class PixelsPermutation(object):
@@ -83,8 +82,8 @@ def SplitMNIST(
     shuffle: bool = True,
     class_ids_from_zero_in_each_exp: bool = False,
     class_ids_from_zero_from_first_exp: bool = False,
-    train_transform: Optional[Any] = _default_mnist_train_transform,
-    eval_transform: Optional[Any] = _default_mnist_eval_transform,
+    train_transform: Optional[Any] = default_mnist_train_transform,
+    eval_transform: Optional[Any] = default_mnist_eval_transform,
     dataset_root: Optional[Union[str, Path]] = None
 ):
     """
@@ -170,8 +169,8 @@ def PermutedMNIST(
     *,
     return_task_id=False,
     seed: Optional[int] = None,
-    train_transform: Optional[Any] = _default_mnist_train_transform,
-    eval_transform: Optional[Any] = _default_mnist_eval_transform,
+    train_transform: Optional[Any] = default_mnist_train_transform,
+    eval_transform: Optional[Any] = default_mnist_eval_transform,
     dataset_root: Optional[Union[str, Path]] = None
 ) -> NCScenario:
     """
@@ -268,8 +267,8 @@ def RotatedMNIST(
     return_task_id: bool = False,
     seed: Optional[int] = None,
     rotations_list: Optional[Sequence[int]] = None,
-    train_transform: Optional[Any] = _default_mnist_train_transform,
-    eval_transform: Optional[Any] = _default_mnist_eval_transform,
+    train_transform: Optional[Any] = default_mnist_train_transform,
+    eval_transform: Optional[Any] = default_mnist_eval_transform,
     dataset_root: Optional[Union[str, Path]] = None
 ) -> NCScenario:
     """Creates a Rotated MNIST benchmark.
@@ -379,7 +378,13 @@ def RotatedMNIST(
     )
 
 
-__all__ = ["SplitMNIST", "PermutedMNIST", "RotatedMNIST"]
+__all__ = [
+    "SplitMNIST",
+    "PermutedMNIST",
+    "RotatedMNIST",
+    "default_mnist_train_transform",
+    "default_mnist_eval_transform",
+]
 
 
 if __name__ == "__main__":

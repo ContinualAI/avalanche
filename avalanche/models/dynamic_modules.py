@@ -68,15 +68,15 @@ class DynamicModule(Module):
         """
         :param auto_adapt: If True, will be adapted in the recursive adaptation loop
                            else, will be adapted by a module in charge
-                           (i.e IncrementalClassifier inside MultiHeadClassifier)
+                           (i.e. IncrementalClassifier inside MultiHeadClassifier)
         """
         super().__init__()
         self._auto_adapt = auto_adapt
 
     def pre_adapt(self, agent, experience):
         """
-        Calls self.adaptation recursively accross
-        the hierarchy of pytorch module childrens
+        Calls self.adaptation recursively across
+        the hierarchy of pytorch module children
         """
         avalanche_model_adaptation(self, experience)
 
@@ -120,7 +120,7 @@ class MultiTaskModule(DynamicModule):
     scenarios. The ``forward`` method accepts task labels, one for
     each sample in the mini-batch.
 
-    By default the ``forward`` method splits the mini-batch by task
+    By default, the ``forward`` method splits the mini-batch by task
     and calls ``forward_single_task``. Subclasses must implement
     ``forward_single_task`` or override `forward. If ``task_labels == None``,
     the output is computed in parallel for each task.
@@ -142,7 +142,7 @@ class MultiTaskModule(DynamicModule):
 
         .. warning::
             As a general rule, you should NOT use this method to train the
-            model. The dataset should be used only to check conditions which
+            model. The experience should be used only to check conditions which
             require the model's adaptation, such as the discovery of new
             classes or tasks.
 
@@ -342,7 +342,7 @@ class MultiHeadClassifier(MultiTaskModule):
 
         # needs to create the first head because pytorch optimizers
         # fail when model.parameters() is empty.
-        # masking in IncrementalClassifier is unaware of task labels
+        # masking in IncrementalClassifier is unaware of task labels,
         # so we do masking here instead.
         first_head = IncrementalClassifier(
             self.in_features,

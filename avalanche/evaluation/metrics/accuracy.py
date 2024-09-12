@@ -38,7 +38,7 @@ class Accuracy(Metric[float]):
     def __init__(self):
         """Creates an instance of the standalone Accuracy metric.
 
-        By default this metric in its initial state will return an accuracy
+        By default, this metric in its initial state will return an accuracy
         value of 0. The metric can be updated by using the `update` method
         while the running accuracy can be retrieved using the `result` method.
         """
@@ -60,6 +60,9 @@ class Accuracy(Metric[float]):
 
         :return: None.
         """
+        # print('[Accuracy] update')
+        # print('  true_y', true_y.shape)  # [256]
+        # print('  predicted_y', predicted_y.shape)  # [256, 2, 128]
         true_y = torch.as_tensor(true_y)
         predicted_y = torch.as_tensor(predicted_y)
 
@@ -74,6 +77,9 @@ class Accuracy(Metric[float]):
         if len(true_y.shape) > 1:
             # Logits -> transform to labels
             true_y = torch.max(true_y, 1)[1]
+
+        # print('  true_y 2', true_y.shape)  # [256]
+        # print('  predicted_y 2', predicted_y.shape)  # [256, 128]
 
         true_positives = float(torch.sum(torch.eq(predicted_y, true_y)))
         total_patterns = len(true_y)
@@ -218,6 +224,10 @@ class AccuracyPluginMetric(GenericPluginMetric[float, Accuracy]):
         return self._metric.result()
 
     def update(self, strategy):
+        # print('[AccuracyPluginMetric] update]')
+        # print('  strategy:', strategy)
+        # print('  mb_output', strategy.mb_output.shape)
+        # print('  mb_y', strategy.mb_y.shape)
         self._metric.update(strategy.mb_output, strategy.mb_y)
 
 

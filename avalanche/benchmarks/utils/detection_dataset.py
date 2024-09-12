@@ -199,10 +199,10 @@ def make_detection_dataset(
     this dataset, but it can also be used in a completely standalone manner.
 
     This dataset applies input/target transformations, it supports
-    slicing and advanced indexing and it also contains useful fields as
+    slicing, advanced indexing, and it also contains useful fields as
     `targets`, which contains the pattern dictionaries, and
     `targets_task_labels`, which contains the pattern task labels.
-    The `task_set` field can be used to obtain a the subset of patterns
+    The `task_set` field can be used to obtain a subset of patterns
     labeled with a given task label.
 
     This dataset can also be used to apply several advanced operations involving
@@ -273,11 +273,11 @@ def make_detection_dataset(
     is_supervised = isinstance(dataset, SupervisedDetectionDataset)
 
     transform_gs = _init_transform_groups(
-        transform_groups,
-        transform,
-        target_transform,
-        initial_transform_group,
-        dataset,
+        transform_groups=transform_groups,
+        transform=transform,
+        target_transform=target_transform,
+        initial_transform_group=initial_transform_group,
+        dataset=dataset,
     )
     targets_data: Optional[DataAttribute[TTargetType]] = _init_targets(dataset, targets)
     task_labels_data: Optional[DataAttribute[int]] = _init_task_labels(
@@ -509,11 +509,11 @@ def detection_subset(
     del targets
 
     transform_gs = _init_transform_groups(
-        transform_groups,
-        transform,
-        target_transform,
-        initial_transform_group,
-        dataset,
+        transform_groups=transform_groups,
+        transform=transform,
+        target_transform=target_transform,
+        initial_transform_group=initial_transform_group,
+        dataset=dataset,
     )
 
     if initial_transform_group is not None and isinstance(dataset, AvalancheDataset):
@@ -741,12 +741,13 @@ def concat_detection_datasets(
         #######################################
         # TRANSFORMATION GROUPS
         #######################################
+        dataset = dds[0]
         transform_groups_obj = _init_transform_groups(
-            transform_groups,
-            transform,
-            target_transform,
-            initial_transform_group,
-            dds[0],
+            transform_groups=transform_groups,
+            transform=transform,
+            target_transform=target_transform,
+            initial_transform_group=initial_transform_group,
+            dataset=dataset,
         )
 
         # Find common "current_group" or use "train"

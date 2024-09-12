@@ -1,4 +1,4 @@
-]---
+---
 description: How to Contribute Back to the Avalanche Community
 ---
 
@@ -62,14 +62,14 @@ USE_GPU=False FAST_TEST=True python -m unittest discover tests -v
 
 **Contribute to the Avalanche documentation**
 
-Apart from the code, you can also contribute to the Avalanche documentation 📚!  We use [Jupyter notebooks](https://jupyter.org/) to write the documentation, so both code and text can be smoothly inserted, and, as you may have noticed, all our documentation can be run on [Google Colab](https://colab.research.google.com/notebooks/intro.ipynb)! 
+Apart from the code, you can also contribute to the Avalanche documentation 📚!  We use [Jupyter notebooks](https://jupyter.org/) to write the documentation, so both code and text can be smoothly inserted, and, as you may have noticed, all our documentation can be run on [Google Colab](https://colab.research.google.com/notebooks/intro.ipynb)!
 
 To contribute to the documentation you need to follow the steps below:
 
-1. The notebooks are contained in the folder `notebooks`. The folder structure is specular to the documentation, so do not create or delete any folder. 
-2. Detect the notebook that you want to edit and do all the modifications 📝 
-3. Commit the changes and open a pull request (PR). 
-4. If your pull request will be accepted, your edited notebooks will be automatically converted and uploaded to the official Avalanche website 🎊! 
+1. The notebooks are contained in the folder `notebooks`. The folder structure is specular to the documentation, so do not create or delete any folder.
+2. Detect the notebook that you want to edit and do all the modifications 📝
+3. Commit the changes and open a pull request (PR).
+4. If your pull request will be accepted, your edited notebooks will be automatically converted and uploaded to the official Avalanche website 🎊!
 
 
 
