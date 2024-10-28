@@ -21,7 +21,7 @@ Let's first **install Avalanche**. Please, check out our [How to Install](https:
 
 
 ```python
-!pip install avalanche-lib[all]
+!pip install avalanche-lib
 !pip show avalanche-lib
 ```
 
