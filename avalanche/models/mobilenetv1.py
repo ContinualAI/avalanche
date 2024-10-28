@@ -25,7 +25,8 @@ except ImportError:
     try:
         from pytorchcv.models.common import DwsConvBlock 
     except ImportError:
-        from pytorchcv.models.common.conv import DwsConvBlock  # pytorchcv >= 0.0.68
+        # pytorchcv >= 0.0.68
+        from pytorchcv.models.common.conv import DwsConvBlock
 
 
 def remove_sequential(network: nn.Module, all_layers: List[nn.Module]):
