@@ -414,7 +414,7 @@ undocumented_classes_to_ignore = [
     "TaskAware",
     "Adaptable",
     "FFCVInfo",
-	"PackNetPlugin",
+    "PackNetPlugin",
     "ClassesTimeline",
     "Buffer",
     "BoundaryAware",
