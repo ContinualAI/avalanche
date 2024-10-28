@@ -23,7 +23,7 @@ try:
     from pytorchcv.models.mobilenet import DwsConvBlock
 except ImportError:
     try:
-        from pytorchcv.models.common import DwsConvBlock 
+        from pytorchcv.models.common import DwsConvBlock
     except ImportError:
         # pytorchcv >= 0.0.68
         from pytorchcv.models.common.conv import DwsConvBlock
