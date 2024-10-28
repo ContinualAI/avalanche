@@ -21,8 +21,11 @@ from pytorchcv.models.mobilenet import mobilenet_w1
 
 try:
     from pytorchcv.models.mobilenet import DwsConvBlock
-except Exception:
-    from pytorchcv.models.common import DwsConvBlock
+except ImportError:
+    try:
+        from pytorchcv.models.common import DwsConvBlock 
+    except ImportError:
+        from pytorchcv.models.common.conv import DwsConvBlock  # pytorchcv >= 0.0.68
 
 
 def remove_sequential(network: nn.Module, all_layers: List[nn.Module]):
