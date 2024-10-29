@@ -1696,5 +1696,6 @@ __all__ = [
     "MAS",
     "BiC",
     "MIR",
+    "PackNet",
     "FromScratchTraining",
 ]

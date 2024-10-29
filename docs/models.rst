@@ -27,6 +27,7 @@ networks, ...).
     MultiTaskModule
     IncrementalClassifier
     MultiHeadClassifier
+    CosineIncrementalClassifier
 
 Progressive Neural Networks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -68,6 +69,13 @@ Models
     SlimResNet18
     MTSlimResNet18
     ExpertGate
+    packnet.PackNetModel
+    packnet.packnet_simple_mlp
+    FeCAMClassifier
+    cosine_layer.CosineLinear
+    cosine_layer.SplitCosineLinear
+    packnet.WeightAndBiasPackNetModule
+
 
 
 Model Wrappers and Utilities

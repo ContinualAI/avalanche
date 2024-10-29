@@ -83,9 +83,12 @@ Ready-to-use continual learning strategies.
     ER_ACE
     LearningToPrompt
     SCR
+    PackNet
     FromScratchTraining
     ExpertGateStrategy
     DER
+    ER_AML
+    FeatureReplay
     supervised.lamaml.LaMAML
     supervised.lamaml_v2.LaMAML
 
@@ -132,6 +135,8 @@ Loss Functions
     LearningWithoutForgetting
     ACECriterion
     SCRLoss
+    MaskedCrossEntropy
+    AMLCriterion
 
 
 Training Plugins
@@ -184,3 +189,12 @@ Strategy implemented as plugins in `avalanche.training.plugins`.
     MIRPlugin
     RARPlugin
     FromScratchTrainingPlugin
+    FeatureDistillationPlugin
+    FeCAMOracle
+    MemoryFeCAMUpdate
+    CurrentDataFeCAMUpdate
+    MemoryNCMUpdate
+    NCMOracle
+    CurrentDataNCMUpdate
+
+
