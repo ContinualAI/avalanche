@@ -116,7 +116,7 @@ for experience in train_stream:
     print("Start of task ", experience.task_label)
     print('Classes in this task:', experience.classes_in_this_experience)
 
-    # The current Pytorch training set can be easily recovered through the 
+    # The current Pytorch training set can be easily recovered through the
     # experience
     current_training_set = experience.dataset
     # ...as well as the task_label
@@ -211,7 +211,7 @@ class MyStrategy():
         self.criterion = criterion
 
     def train(self, experience):
-        # here you can implement your own training loop for each experience (i.e. 
+        # here you can implement your own training loop for each experience (i.e.
         # batch or task).
 
         train_dataset = experience.dataset
@@ -226,7 +226,7 @@ class MyStrategy():
                 pass
 
     def eval(self, experience):
-        # here you can implement your own eval loop for each experience (i.e. 
+        # here you can implement your own eval loop for each experience (i.e.
         # batch or task).
 
         eval_dataset = experience.dataset
@@ -277,8 +277,8 @@ Check out more details about what Avalanche can offer in this module following t
 
 The `evaluation` module is quite straightforward: it offers all the basic functionalities to evaluate and keep track of a continual learning experiment.
 
-This is mostly done through the **Metrics** and the **Loggers**. The **Metrics** provide a set of classes which implements the main continual learning metrics like Accuracy, Forgetting, Memory Usage, Running Times, etc.  
-Metrics should be created via the utility functions (e.g. `accuracy_metrics`, `timing_metrics` and others) specifying in the arguments when those metrics should be computed (after each minibatch, epoch, experience etc...).  
+This is mostly done through the **Metrics** and the **Loggers**. The **Metrics** provide a set of classes which implements the main continual learning metrics like Accuracy, Forgetting, Memory Usage, Running Times, etc.
+Metrics should be created via the utility functions (e.g. `accuracy_metrics`, `timing_metrics` and others) specifying in the arguments when those metrics should be computed (after each minibatch, epoch, experience etc...).
 The **Loggers** specify a way to report the metrics (e.g. with Tensorboard, on console or others). Loggers are created by instantiating the respective class.
 
 Metrics and loggers interact via the **Evaluation Plugin**: this is the main object responsible of tracking the experiment progress. Metrics and loggers are directly passed to the `EvaluationPlugin` instance. You will see the output of the loggers automatically during training and evaluation! Let's see how to put this together in few lines of code:
@@ -299,7 +299,7 @@ eval_plugin = EvaluationPlugin(
     loss_metrics(minibatch=True, stream=True),
     # catastrophic forgetting after each evaluation
     # experience
-    forgetting_metrics(experience=True, stream=True), 
+    forgetting_metrics(experience=True, stream=True),
     # add as many metrics as you like
     loggers=[InteractiveLogger(), TensorboardLogger()])
 
@@ -338,7 +338,7 @@ model = SimpleMLP(num_classes=benchmark.n_classes)
 
 # DEFINE THE EVALUATION PLUGIN and LOGGERS
 # The evaluation plugin manages the metrics computation.
-# It takes as argument a list of metrics, collectes their results and returns 
+# It takes as argument a list of metrics, collects their results and returns
 # them to the strategy it is attached to.
 
 # log to Tensorboard

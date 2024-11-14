@@ -70,7 +70,7 @@ def benchmark_with_validation_stream(
         # functools.partial is a more compact option
         # However, MyPy does not understand what a partial is -_-
         def random_validation_split_strategy_wrapper(data):
-            return split_validation_random(validation_size, shuffle, seed, data)
+            return split_validation_random(validation_size, shuffle, data, seed)
 
         split_strategy = random_validation_split_strategy_wrapper
     else:

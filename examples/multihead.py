@@ -10,7 +10,7 @@
 ################################################################################
 
 """
-This example trains a Multi-head model on Split MNIST with Elastich Weight
+This example trains a Multi-head model on Split MNIST with Elastic Weight
 Consolidation. Each experience has a different task label, which is used at test
 time to select the appropriate head.
 """

@@ -556,7 +556,7 @@ class NCExperience(ClassificationExperience[TaskAwareSupervisedClassificationDat
     def __init__(self, origin_stream: NCStream, current_experience: int):
         """
         Creates a ``NCExperience`` instance given the stream from this
-        experience was taken and and the current experience ID.
+        experience was taken and the current experience ID.
 
         :param origin_stream: The stream from which this experience was
             obtained.

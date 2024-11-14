@@ -15,7 +15,8 @@ General utility functions for pytorch.
 
 """
 from collections import defaultdict
-from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, Union, \
+    TYPE_CHECKING
 
 import torch
 from torch import Tensor
@@ -24,6 +25,9 @@ from torch.utils.data import DataLoader, Dataset
 
 from avalanche.benchmarks import OnlineCLExperience
 from avalanche.models.batch_renorm import BatchRenorm2D
+
+if TYPE_CHECKING:
+    from avalanche.training.templates.strategy_mixin_protocol import BaseStrategyProtocol
 
 
 def _at_task_boundary(training_experience, before=True) -> bool:
@@ -53,6 +57,8 @@ def _at_task_boundary(training_experience, before=True) -> bool:
                 return True
             elif (not before) and training_experience.is_last_subexp:
                 return True
+            else:
+                return False
         else:
             return True
     else:
@@ -65,13 +71,11 @@ def cycle(loader):
             yield batch
 
 
-def trigger_plugins(strategy, event, **kwargs):
-    """Call plugins on a specific callback
-
-    :return:
-    """
+def trigger_plugins(strategy: "BaseStrategyProtocol", event: str, **kwargs):
+    """Call plugins on a specific callback"""
     for p in strategy.plugins:
         if hasattr(p, event):
+            # print('triggering plugin', p, event)
             getattr(p, event)(strategy, **kwargs)
 
 

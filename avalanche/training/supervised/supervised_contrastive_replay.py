@@ -1,7 +1,6 @@
 from typing import Optional, Sequence
 
 import torch
-from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Lambda
@@ -24,7 +23,7 @@ class SCR(SupervisedTemplate):
     embeddings produced by the encoder.
 
     Accuracy cannot be monitored during training (no NCM classifier).
-    During training, NCRLoss is monitored, while during eval
+    During training, SCRLoss is monitored, while during eval
     CrossEntropyLoss is monitored.
 
     The original paper uses an additional fine-tuning phase on the buffer
@@ -37,9 +36,9 @@ class SCR(SupervisedTemplate):
         *,
         model: SCRModel,
         optimizer: Optimizer,
-        augmentations=Compose([Lambda(lambda el: el)]),
+        augmentations=Lambda(lambda el: el),
         mem_size: int = 100,
-        temperature: int = 0.1,
+        temperature: float = 0.1,
         train_mb_size: int = 1,
         batch_size_mem: int = 100,
         train_epochs: int = 1,
@@ -112,10 +111,11 @@ class SCR(SupervisedTemplate):
             plugins = [self.replay_plugin] + plugins
         else:
             raise ValueError("`plugins` parameter needs to be a list.")
+
         super().__init__(
             model=model,
             optimizer=optimizer,
-            criterion=SCRLoss(temperature=self.temperature),
+            # criterion=SCRLoss(temperature=self.temperature),
             train_mb_size=train_mb_size,
             train_epochs=train_epochs,
             eval_mb_size=eval_mb_size,
@@ -128,6 +128,9 @@ class SCR(SupervisedTemplate):
 
     def criterion(self):
         if self.is_training:
+            # print(self.train_loss)
+            # print('mb_output', self.mb_output.shape)  # [384, 2, 128]
+            # print('mb_y', self.mb_y.shape)  # [256]
             return self.train_loss(self.mb_output, self.mb_y)
         else:
             return self.eval_loss(self.mb_output, self.mb_y)
@@ -138,9 +141,17 @@ class SCR(SupervisedTemplate):
         """
         assert self.is_training
         super()._before_forward(**kwargs)
-        mb_x_augmented = self.augmentations(self.mbatch[0])
+        # print('mbatch', len(self.mbatch), self.mbatch)
+        mb_x_augmented = self.augmentations(self.mb_x)
+        # print()
+        # print('before forward')
+        # print('x', self.mb_x.shape)  # [256, 1, 28, 28]
+        # print('y', self.mb_y.shape)  # [256]
+        # print('mb_x_augmented', mb_x_augmented.shape)  # [512, 1, 28, 28]
+
         # (batch_size*2, input_size)
-        self.mbatch[0] = torch.cat([self.mbatch[0], mb_x_augmented], dim=0)
+        self.mbatch[0] = torch.cat([self.mb_x, mb_x_augmented], dim=0)
+        # print('~x', self.mb_x.shape)  # [768, 1, 28, 28]
 
     def _after_forward(self, **kwargs):
         """
@@ -151,10 +162,12 @@ class SCR(SupervisedTemplate):
         super()._after_forward(**kwargs)
         assert self.mb_output.size(0) % 2 == 0
         original_batch_size = int(self.mb_output.size(0) / 2)
+        # print('[after forward] mb_output 1:', self.mb_output.shape)
         original_examples = self.mb_output[:original_batch_size]
         augmented_examples = self.mb_output[original_batch_size:]
         # (original_batch_size, 2, output_size)
         self.mb_output = torch.stack([original_examples, augmented_examples], dim=1)
+        # print('[after forward] mb_output 2:', self.mb_output.shape)
 
     def _after_training_exp(self, **kwargs):
         """Update NCM means"""

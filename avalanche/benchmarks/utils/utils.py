@@ -11,6 +11,7 @@
 
 """ Common benchmarks/environments utils. """
 
+import warnings
 from collections import OrderedDict, defaultdict, deque
 from typing import (
     TYPE_CHECKING,
@@ -28,7 +29,6 @@ from typing import (
     Dict,
     SupportsInt,
 )
-import warnings
 
 import torch
 from torch import Tensor
@@ -45,15 +45,15 @@ from .dataset_utils import (
 )
 from .flat_data import ConstantSequence
 from .transform_groups import (
-    TransformGroupDef,
-    TransformGroups,
-    XTransform,
-    YTransform,
+    TransformGroups, XTransform, YTransform, TransformGroupDef,
 )
 
 if TYPE_CHECKING:
-    from .classification_dataset import TaskAwareClassificationDataset
+    # Avoid cyclic imports
+    from .classification_dataset import ClassificationDataset, TaskAwareClassificationDataset
 
+Y = TypeVar("Y")
+T = TypeVar("T")
 T_co = TypeVar("T_co", covariant=True)
 TAvalancheDataset = TypeVar("TAvalancheDataset", bound="AvalancheDataset")
 
@@ -71,56 +71,6 @@ def tensor_as_list(sequence) -> List:
     if isinstance(sequence, Tensor):
         return sequence.tolist()
     return list(sequence)
-
-
-def _indexes_grouped_by_classes(
-    targets: Sequence[int],
-    patterns_indexes: Union[None, Sequence[int]],
-    sort_indexes: bool = True,
-    sort_classes: bool = True,
-) -> Union[List[int], None]:
-    result_per_class: Dict[int, List[int]] = OrderedDict()
-    result: List[int] = []
-
-    indexes_was_none = patterns_indexes is None
-
-    if patterns_indexes is not None:
-        patterns_indexes = tensor_as_list(patterns_indexes)
-    else:
-        patterns_indexes = list(range(len(targets)))
-
-    targets = tensor_as_list(targets)
-
-    # Consider that result_per_class is an OrderedDict
-    # This means that, if sort_classes is True, the next for statement
-    # will initialize "result_per_class" in sorted order which in turn means
-    # that patterns will be ordered by ascending class ID.
-    classes = torch.unique(torch.as_tensor(targets), sorted=sort_classes).tolist()
-
-    for class_id in classes:
-        result_per_class[class_id] = []
-
-    # Stores each pattern index in the appropriate class list
-    for idx in patterns_indexes:
-        result_per_class[targets[idx]].append(idx)
-
-    # Concatenate all the pattern indexes
-    for class_id in classes:
-        if sort_indexes:
-            result_per_class[class_id].sort()
-        result.extend(result_per_class[class_id])
-
-    if result == patterns_indexes and indexes_was_none:
-        # Result is [0, 1, 2, ..., N] and patterns_indexes was originally None
-        # This means that the user tried to obtain a full Dataset
-        # (indexes_was_none) only ordered according to the sort_indexes and
-        # sort_classes parameters. However, sort_indexes+sort_classes returned
-        # the plain pattern sequence as it already is. So the original Dataset
-        # already satisfies the sort_indexes+sort_classes constraints.
-        # By returning None, we communicate that the Dataset can be taken as-is.
-        return None
-
-    return result
 
 
 def grouped_and_ordered_indexes(
@@ -176,21 +126,25 @@ def grouped_and_ordered_indexes(
 
 def as_avalanche_dataset(
     dataset: ISupportedClassificationDataset[T_co],
+    **kwargs,
 ) -> AvalancheDataset:
     if isinstance(dataset, AvalancheDataset):
         return dataset
-    return AvalancheDataset([dataset])
+    transform_groups = _init_transform_groups(**kwargs)
+    return AvalancheDataset([dataset], transform_groups=transform_groups)
 
 
 def as_classification_dataset(
     dataset: ISupportedClassificationDataset[T_co],
-    transform_groups: Optional[TransformGroups] = None,
-) -> "TaskAwareClassificationDataset":
-    """Converts a dataset with a `targets` field into an Avalanche ClassificationDataset."""
+    **kwargs,
+) -> "ClassificationDataset":
+    """Converts a dataset with a `targets` field into a ClassificationDataset."""
+    # Avoid cyclic imports
     from avalanche.benchmarks.utils.classification_dataset import ClassificationDataset
 
     if isinstance(dataset, ClassificationDataset):
         return dataset
+    transform_groups = _init_transform_groups(**kwargs)
     da = DataAttribute(dataset.targets, "targets")
     return ClassificationDataset(
         [dataset], transform_groups=transform_groups, data_attributes=[da]
@@ -199,14 +153,67 @@ def as_classification_dataset(
 
 def as_taskaware_classification_dataset(
     dataset: ISupportedClassificationDataset[T_co],
+    **kwargs,
 ) -> "TaskAwareClassificationDataset":
+    # Avoid cyclic imports
     from avalanche.benchmarks.utils.classification_dataset import (
         TaskAwareClassificationDataset,
     )
 
     if isinstance(dataset, TaskAwareClassificationDataset):
         return dataset
-    return TaskAwareClassificationDataset([dataset])
+    transform_groups = _init_transform_groups(**kwargs)
+    return TaskAwareClassificationDataset([dataset], transform_groups=transform_groups)
+
+
+def _indexes_grouped_by_classes(
+    targets: Sequence[int],
+    patterns_indexes: Union[None, Sequence[int]],
+    sort_indexes: bool = True,
+    sort_classes: bool = True,
+) -> Union[List[int], None]:
+    result_per_class: Dict[int, List[int]] = OrderedDict()
+    result: List[int] = []
+
+    indexes_was_none = patterns_indexes is None
+
+    if patterns_indexes is not None:
+        patterns_indexes = tensor_as_list(patterns_indexes)
+    else:
+        patterns_indexes = list(range(len(targets)))
+
+    targets = tensor_as_list(targets)
+
+    # Consider that result_per_class is an OrderedDict
+    # This means that, if sort_classes is True, the next for statement
+    # will initialize "result_per_class" in sorted order which in turn means
+    # that patterns will be ordered by ascending class ID.
+    classes = torch.unique(torch.as_tensor(targets), sorted=sort_classes).tolist()
+
+    for class_id in classes:
+        result_per_class[class_id] = []
+
+    # Stores each pattern index in the appropriate class list
+    for idx in patterns_indexes:
+        result_per_class[targets[idx]].append(idx)
+
+    # Concatenate all the pattern indexes
+    for class_id in classes:
+        if sort_indexes:
+            result_per_class[class_id].sort()
+        result.extend(result_per_class[class_id])
+
+    if result == patterns_indexes and indexes_was_none:
+        # Result is [0, 1, 2, ..., N] and patterns_indexes was originally None
+        # This means that the user tried to obtain a full Dataset
+        # (indexes_was_none) only ordered according to the sort_indexes and
+        # sort_classes parameters. However, sort_indexes+sort_classes returned
+        # the plain pattern sequence as it already is. So the original Dataset
+        # already satisfies the sort_indexes+sort_classes constraints.
+        # By returning None, we communicate that the Dataset can be taken as-is.
+        return None
+
+    return result
 
 
 def _count_unique(*sequences: Sequence[SupportsInt]):
@@ -268,10 +275,6 @@ def find_common_transforms_group(
     return initial_transform_group
 
 
-Y = TypeVar("Y")
-T = TypeVar("T")
-
-
 def _traverse_supported_dataset(
     dataset: Y,
     values_selector: Callable[[Y, Optional[List[int]]], Optional[Sequence[T]]],
@@ -330,12 +333,7 @@ def _traverse_supported_dataset(
         datasets_len = []
         recursion_result = []
 
-        all_size = 0
-        for c_dataset in dataset.datasets:
-            len_dataset = len(c_dataset)
-            datasets_len.append(len_dataset)
-            all_size += len_dataset
-
+        all_size = len(dataset)
         for subset_idx in indices:
             dataset_idx, pattern_idx = find_list_from_index(
                 subset_idx, datasets_len, all_size
@@ -374,7 +372,7 @@ def _init_task_labels(
     Initializes the task label list (one for each pattern in the dataset).
 
     Precedence is given to the values contained in `task_labels` if passed.
-    Otherwisem the elements will be retrieved from the dataset itself by
+    Otherwise, the elements will be retrieved from the dataset itself by
     traversing it and looking at the `targets_task_labels` field.
 
     :param dataset: The dataset for which the task labels list must be
@@ -456,17 +454,17 @@ def _select_task_labels(
 
 
 def _init_transform_groups(
-    transform_groups: Optional[Mapping[str, TransformGroupDef]],
-    transform: Optional[XTransform],
-    target_transform: Optional[YTransform],
-    initial_transform_group: Optional[str],
-    dataset,
+    transform_groups: Optional[Mapping[str, TransformGroupDef]] = None,
+    transform: Optional[XTransform] = None,
+    target_transform: Optional[YTransform] = None,
+    initial_transform_group: Optional[str] = None,
+    dataset: Optional[Any] = None,
 ) -> Optional[TransformGroups]:
     """
     Initializes the transform groups for the given dataset.
 
     This internal utility is commonly used to manage the transformation
-    defintions coming from the user-facing API. The user may want to
+    definitions coming from the user-facing API. The user may want to
     define transformations in a more classic (and simple) way by
     passing a single `transform`, or in a more elaborate way by
     passing a dictionary of groups (`transform_groups`).
@@ -655,13 +653,15 @@ class TaskSet(Mapping[int, TAvalancheDataset], Generic[TAvalancheDataset]):
 
     """
 
+    data: TAvalancheDataset
+
     def __init__(self, data: TAvalancheDataset):
         """Constructor.
 
         :param data: original data
         """
         super().__init__()
-        self.data: TAvalancheDataset = data
+        self.data = data
 
     def __iter__(self) -> Iterator[int]:
         t_labels = self._get_task_labels_field()

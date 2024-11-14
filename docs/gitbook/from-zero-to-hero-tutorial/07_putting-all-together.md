@@ -33,7 +33,7 @@ model = SimpleMLP(num_classes=scenario.n_classes)
 
 # DEFINE THE EVALUATION PLUGIN and LOGGERS
 # The evaluation plugin manages the metrics computation.
-# It takes as argument a list of metrics, collectes their results and returns
+# It takes as argument a list of metrics, collects their results and returns
 # them to the strategy it is attached to.
 
 # log to Tensorboard

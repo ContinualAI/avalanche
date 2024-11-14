@@ -23,7 +23,7 @@ TTargetType_co = TypeVar("TTargetType_co", covariant=True)
 #
 # That is, accept ISupportedClassificationDataset as parameter to
 # functions/constructors (when possible), but always expose/return instances of
-# ClassificationDataset to the, user (no matter what). The main difference is
+# ClassificationDataset to the user (no matter what). The main difference is
 # that ClassificationDataset is a subclass of the PyTorch Dataset while
 # ISupportedClassificationDataset is just a Protocol. This will allow the user
 # to pass any custom dataset while receiving Dataset subclasses as outputs at
@@ -111,11 +111,13 @@ class IClassificationDataset(IDatasetWithTargets[T_co, int], Protocol):
     protocol see :class:`ISupportedClassificationDataset`.
     """
 
-    targets: Sequence[int]
-    """
-    A sequence of ints describing the label of each pattern contained in the
-    dataset.
-    """
+    @property
+    def targets(self) -> Sequence[int]:
+        """
+        A sequence of ints describing the label of each pattern contained in the
+        dataset.
+        """
+        ...
 
 
 class ClassificationDataset(IClassificationDataset[T_co], Dataset):
@@ -126,12 +128,9 @@ class ClassificationDataset(IClassificationDataset[T_co], Dataset):
     The actual value of the targets field should be set by the child class.
     """
 
-    def __init__(self):
-        self.targets = []
-        """
-        A sequence of ints describing the label of each pattern contained in the
-        dataset.
-        """
+    @property
+    def targets(self) -> Sequence[int]:
+        return []
 
 
 __all__ = [

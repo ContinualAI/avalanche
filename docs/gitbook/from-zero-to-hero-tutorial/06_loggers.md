@@ -28,7 +28,7 @@ _Avalanche_ at the moment supports four main Loggers:
 * **TensorboardLogger**: It logs all the metrics on [Tensorboard](https://www.tensorflow.org/tensorboard) in real-time. Perfect for real-time plotting.
 * **WandBLogger**: It leverages [Weights and Biases](https://wandb.ai/site) tools to log metrics and results on a dashboard. It requires a W&B account.
 
-In order to keep track of when each metric value has been logged, we leverage two `global counters`, one for the training phase, one for the evaluation phase. 
+In order to keep track of when each metric value has been logged, we leverage two `global counters`, one for the training phase, one for the evaluation phase.
 You can see the `global counter` value reported in the x axis of the logged plots.
 
 Each `global counter` is an ever-increasing value which starts from 0 and it is increased by one each time a training/evaluation iteration is performed (i.e. after each training/evaluation minibatch).
@@ -56,7 +56,7 @@ model = SimpleMLP(num_classes=benchmark.n_classes)
 
 # DEFINE THE EVALUATION PLUGIN and LOGGERS
 # The evaluation plugin manages the metrics computation.
-# It takes as argument a list of metrics, collectes their results and returns
+# It takes as argument a list of metrics, collects their results and returns
 # them to the strategy it is attached to.
 
 

@@ -55,11 +55,10 @@ class BatchObservation(SGDStrategyProtocol[TSGDExperienceType, TMBInput, TMBOutp
                                   along with their parameter group
 
         Warnings:
-            - The first time this function is called
-              for a given strategy it will reset the
-              optimizer to gather the (name, param)
-              correspondance of the optimized parameters
-              all of the model parameters will be put in the
+            - The first time this function is called for a given strategy,
+              it will reset the optimizer to gather the (name, param)
+              correspondence of the optimized parameters.
+              All of the model parameters will be put in the
               optimizer, regardless of what parameters are
               initially put in the optimizer.
 
