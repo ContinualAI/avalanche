@@ -59,17 +59,8 @@ class SER(SupervisedTemplate):
         :param criterion: loss function.
         :param mem_size: int       : Fixed memory size
         :param batch_size_mem: int : Size of the batch sampled from the buffer
-        :param alpha: float : Hyperparameter weighting the MSE loss
-        :param beta: float : Hyperparameter weighting the CE loss,
-                             when more than 0, DER++ is used instead of DER
-        :param transforms: Callable: Transformations to use for
-                                     both the dataset and the buffer data, on
-                                     top of already existing
-                                     test transformations.
-                                     If any supplementary transformations
-                                     are applied to the
-                                     input data, it will be
-                                     overwritten by this argument
+        :param alpha: float : Hyperparameter weighting the backward consistency loss
+        :param beta: float : Hyperparameter weighting the forward consistency loss
         :param train_mb_size: mini-batch size for training.
         :param train_passes: number of training passes.
         :param eval_mb_size: mini-batch size for eval.
