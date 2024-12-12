@@ -3,6 +3,8 @@ import random
 from pathlib import Path
 from typing import Optional, Union, Any, List, TypeVar
 
+from torchvision import transforms
+
 from avalanche.benchmarks.utils.data import AvalancheDataset
 from avalanche.benchmarks.utils.classification_dataset import _as_taskaware_supervised_classification_dataset
 from avalanche.benchmarks import benchmark_from_datasets, CLScenario
@@ -11,6 +13,27 @@ from avalanche.benchmarks.datasets.concon import ConConDataset
 
 
 TCLDataset = TypeVar("TCLDataset", bound="AvalancheDataset")
+
+
+_default_train_transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.5, 0.5, 0.5],
+            std=[0.5, 0.5, 0.5]
+        )
+    ]
+)
+
+_default_eval_transform = transforms.Compose(
+    [
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.5, 0.5, 0.5],
+            std=[0.5, 0.5, 0.5]
+        )
+    ]
+)
 
 
 def build_concon_scenario(
@@ -56,8 +79,8 @@ def ConConDisjoint(
     *,
     seed: Optional[int] = None,
     shuffle_order: bool = False,
-    train_transform: Optional[Any] = None,
-    eval_transform: Optional[Any] = None,
+    train_transform: Optional[Any] = _default_train_transform,
+    eval_transform: Optional[Any] = _default_eval_transform,
     dataset_root: Optional[Union[str, Path]] = None,
 ) -> CLScenario:
     """
@@ -116,8 +139,8 @@ def ConConStrict(
     *,
     seed: Optional[int] = None,
     shuffle_order: bool = False,
-    train_transform: Optional[Any] = None,
-    eval_transform: Optional[Any] = None,
+    train_transform: Optional[Any] = _default_train_transform,
+    eval_transform: Optional[Any] = _default_eval_transform,
     dataset_root: Optional[Union[str, Path]] = None,
 ) -> CLScenario:
     """
@@ -174,8 +197,8 @@ def ConConStrict(
 
 def ConConUnconfounded(
     *,
-    train_transform: Optional[Any] = None,
-    eval_transform: Optional[Any] = None,
+    train_transform: Optional[Any] = _default_train_transform,
+    eval_transform: Optional[Any] = _default_eval_transform,
     dataset_root: Optional[Union[str, Path]] = None,
 ) -> CLScenario:
     """
