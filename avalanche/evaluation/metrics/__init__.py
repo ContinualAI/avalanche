@@ -19,6 +19,3 @@ from .images_samples import *
 from .topk_acc import *
 from .acc_matrix import *
 from .cumulative_accuracies import *
-from .r2 import *
-from .rmse import *
-from .regression_forgetting import *
