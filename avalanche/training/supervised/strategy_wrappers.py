@@ -42,6 +42,7 @@ from avalanche.training.plugins import (
     BiCPlugin,
     MIRPlugin,
     FromScratchTrainingPlugin,
+    IL2MPlugin,
 )
 from avalanche.training.templates.base import BaseTemplate
 from avalanche.training.templates import SupervisedTemplate
@@ -1676,6 +1677,92 @@ class FromScratchTraining(SupervisedTemplate):
         )
 
 
+class IL2M(SupervisedTemplate):
+    """Class Incremental Learning With Dual Memory (IL2M) strategy.
+
+    See IL2M plugin for details.
+    This strategy does not use task identities.
+    """
+
+    def __init__(
+        self,
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
+        mem_size: int = 2000,
+        mem_mb_size: Optional[int] = None,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: Optional[int] = None,
+        storage_policy: Optional["ExemplarsBuffer"] = None,
+        device: Union[str, torch.device] = "cpu",
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: Union[
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
+        eval_every=-1,
+        peval_mode="epoch",
+        **base_kwargs
+    ):
+        """Init.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param mem_size: Replay buffer size. Defaults to 2000.
+        :param mem_mb_size: The size of the memory batch. Defaults to None.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param storage_policy: The policy that controls how to add new exemplars
+            in memory. Defaults to None.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) Instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: The frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience. Defaults to -1.
+        :param peval_mode: one of {'experience', 'iteration'}. Decides whether
+            the periodic evaluation during training should execute every
+            `eval_every` experience or iterations. Default to 'experience'.
+        :param **base_kwargs: any additional
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
+        """
+
+        # Instantiate plugin
+        il2m = IL2MPlugin(
+            mem_size=mem_size,
+            batch_size=train_mb_size,
+            batch_size_mem=mem_mb_size,
+            storage_policy=storage_policy,
+        )
+
+        # Add plugin to the strategy
+        if plugins is None:
+            plugins = [il2m]
+        else:
+            plugins.append(il2m)
+
+        super().__init__(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            peval_mode=peval_mode,
+            **base_kwargs
+        )
+
+
 __all__ = [
     "Naive",
     "PNNStrategy",
@@ -1698,4 +1785,5 @@ __all__ = [
     "MIR",
     "PackNet",
     "FromScratchTraining",
+    "IL2M",
 ]

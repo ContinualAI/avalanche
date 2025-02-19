@@ -91,6 +91,7 @@ Ready-to-use continual learning strategies.
     FeatureReplay
     supervised.lamaml.LaMAML
     supervised.lamaml_v2.LaMAML
+    IL2M
 
 Replay Buffers and Selection Strategies
 ----------------------------------------
@@ -196,5 +197,6 @@ Strategy implemented as plugins in `avalanche.training.plugins`.
     MemoryNCMUpdate
     NCMOracle
     CurrentDataNCMUpdate
+    IL2MPlugin
 
 

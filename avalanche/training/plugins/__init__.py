@@ -26,3 +26,4 @@ from .rar import RARPlugin
 from .update_ncm import *
 from .update_fecam import *
 from .feature_distillation import *
+from .il2m import IL2MPlugin
