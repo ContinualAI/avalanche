@@ -22,6 +22,7 @@ from avalanche.training.plugins.evaluation import (
     default_evaluator,
     default_loggers,
 )
+from avalanche.training.storage_policy import ExemplarsBuffer
 from avalanche.training.plugins import (
     SupervisedPlugin,
     CWRStarPlugin,
@@ -1695,7 +1696,7 @@ class IL2M(SupervisedTemplate):
         train_mb_size: int = 1,
         train_epochs: int = 1,
         eval_mb_size: Optional[int] = None,
-        storage_policy: Optional["ExemplarsBuffer"] = None,
+        storage_policy: Optional[ExemplarsBuffer] = None,
         device: Union[str, torch.device] = "cpu",
         plugins: Optional[List[SupervisedPlugin]] = None,
         evaluator: Union[

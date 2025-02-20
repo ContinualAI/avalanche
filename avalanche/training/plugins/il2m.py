@@ -4,8 +4,9 @@ from packaging.version import parse
 import torch
 import numpy as np
 
+from avalanche.training.templates import SupervisedTemplate
 from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
-from avalanche.training.storage_policy import ExperienceBalancedBuffer
+from avalanche.training.storage_policy import ExemplarsBuffer, ExperienceBalancedBuffer
 from avalanche.benchmarks.utils.data_loader import ReplayDataLoader
 
 
@@ -27,7 +28,7 @@ class IL2MPlugin(SupervisedPlugin):
         mem_size: int = 2000,
         batch_size: Optional[int] = None,
         batch_size_mem: Optional[int] = None,
-        storage_policy: Optional["ExemplarsBuffer"] = None,
+        storage_policy: Optional[ExemplarsBuffer] = None,
     ):
         """
         :param mem_size: replay buffer size.
@@ -66,7 +67,7 @@ class IL2MPlugin(SupervisedPlugin):
 
     def before_training_exp(
         self,
-        strategy: "SupervisedTemplate",
+        strategy: SupervisedTemplate,
         num_workers: int = 0,
         shuffle: bool = True,
         drop_last: bool = False,
@@ -118,7 +119,7 @@ class IL2MPlugin(SupervisedPlugin):
             **other_dataloader_args
         )
 
-    def after_training_exp(self, strategy: "SupervisedTemplate", **kwargs):
+    def after_training_exp(self, strategy: SupervisedTemplate, **kwargs):
         experience = strategy.experience
         self.current_classes_means = [0 for _ in range(self.n_classes)]
         classes_counts = [0 for _ in range(self.n_classes)]
@@ -160,7 +161,7 @@ class IL2MPlugin(SupervisedPlugin):
         # update the buffer of exemplars
         self.storage_policy.post_adapt(strategy, strategy.experience)
 
-    def after_eval_forward(self, strategy: "SupervisedTemplate", **kwargs):
+    def after_eval_forward(self, strategy: SupervisedTemplate, **kwargs):
         old_classes = strategy.experience.previous_classes
         new_classes = strategy.experience.classes_in_this_experience
         if not old_classes:
