@@ -53,6 +53,7 @@ from avalanche.training.supervised import (
     ExpertGateStrategy,
     MER,
     FeatureReplay,
+    IL2M,
 )
 from avalanche.training.supervised.cumulative import Cumulative
 from avalanche.training.supervised.icarl import ICaRL
@@ -1159,6 +1160,22 @@ class StrategyTest(unittest.TestCase):
                 eval_mb_size=50,
                 train_epochs=2,
                 plugins=plugins,
+            )
+        run_strategy(benchmark, strategy)
+
+    def test_il2m(self):
+        # SIT scenario
+        model, optimizer, criterion, benchmark = self.init_scenario(multi_task=False)
+        with self.assertWarns(PositionalArgumentsDeprecatedWarning):
+            strategy = IL2M(
+                model,
+                optimizer,
+                criterion,
+                mem_size=50,
+                train_mb_size=10,
+                device=self.device,
+                eval_mb_size=50,
+                train_epochs=2,
             )
         run_strategy(benchmark, strategy)
 
