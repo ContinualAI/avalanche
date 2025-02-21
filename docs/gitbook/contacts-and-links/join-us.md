@@ -5,7 +5,7 @@ description: Happiness is only Real when Shared
 # Join Us!
 
 > _Do you want to make Avalanche more suitable for your own research project?_\
-> _Or maybe you just want to learn more about it and sharpen your coding skills in this area?_
+> &#xNAN;_&#x4F;r maybe you just want to learn more about it and sharpen your coding skills in this area?_
 
 No matter the reasons, we are always looking for new members that can help _help us improve Avalanche and make it a better tool for everyone!_
 

@@ -4,7 +4,7 @@ description: All the People that Made Avalanche Great
 
 # The People
 
-![Avalanche: Coming soon to your computer screens! 😂](../../../.gitbook/assets/avalanche\_maintaners.png)
+![Avalanche: Coming soon to your computer screens! 😂](../../../.gitbook/assets/avalanche_maintaners.png)
 
 ## 🗂️ Maintainers
 
@@ -14,7 +14,7 @@ The Project is maintained mostly by [ContinualAI Lab](https://www.continualai.or
 * [**Lorenzo Pellegrini** ](https://www.unibo.it/sitoweb/l.pellegrini)(Mantainer)
 * [**Andrea Cossu**](https://andreacossu.github.io) (Mantainer)
 * [**Gabriele Graffieti**](https://www.unibo.it/sitoweb/gabriele.graffieti/en) (Mantainer)
-* [**Hamed Hemati**](https://www.unisg.ch/personenverzeichnis/80af945c-59bf-452e-b2de-369bd134e6af) **** (Mantainer)
+* [**Hamed Hemati**](https://www.unisg.ch/personenverzeichnis/80af945c-59bf-452e-b2de-369bd134e6af) (Mantainer)
 * [**Vincenzo Lomonaco**](https://www.vincenzolomonaco.com) (Project Manager)
 
 ## 🔨 Contributors
@@ -34,7 +34,7 @@ _Avalanche_ is a great tool also thanks to its many users. Here we list some res
 * [**Italian Association for Machine Learning**](https://iaml.it) (President: Simone Scardapane, Sapienza University)
 * [**AIforPeople**](https://www.aiforpeople.org) (President: Marta Ziosi, University of Oxford)
 * [**Learning and Machine Perception Team**](http://www.cvc.uab.es/lamp/) (PI: Joost van de Weijer)
-* [**Tinne Tuytelaars’ group**](https://homes.esat.kuleuven.be/\~tuytelaa/) (PI: Tinne Tuytelaars)
+* [**Tinne Tuytelaars’ group**](https://homes.esat.kuleuven.be/~tuytelaa/) (PI: Tinne Tuytelaars)
 * [**Machine and Neuromorphic Perception Laboratory**](http://klab.cis.rit.edu) (PI: Christopher Kanan)
 * [**LASTI Lab**](https://kalisteo.cea.fr/index.php/textual-and-visual-semantic/) (PI: Adrian Popescu)
 * [**Visual Artificial Intelligence Laboratory**](https://cms.brookes.ac.uk/staff/FabioCuzzolin) (PI: Fabio Cuzzolin)
@@ -43,4 +43,4 @@ _Avalanche_ is a great tool also thanks to its many users. Here we list some res
 
 ## 📫 Contacts
 
-If you want to contact us don't hesitate to send an email to `vincenzo.lomonaco@continualai.org`, `contact@continualai.org`, or you can join us [on slack](https://join.slack.com/t/continualai/shared\_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU) and chat with us all! 😃
+If you want to contact us don't hesitate to send an email to `vincenzo.lomonaco@continualai.org`, `contact@continualai.org`, or you can join us [on slack](https://join.slack.com/t/continualai/shared_invite/enQtNjQxNDYwMzkxNzk0LTBhYjg2MjM0YTM2OWRkNDYzOGE0ZTIzNDQ0ZGMzNDE3ZGUxNTZmNmM1YzJiYzgwMTkyZDQxYTlkMTI3NzZkNjU) and chat with us all! 😃
