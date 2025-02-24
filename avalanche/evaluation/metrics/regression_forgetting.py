@@ -8,14 +8,16 @@
 # E-mail: josejoaquin.peralta.abadia@gmail.com                                 #
 ################################################################################
 
-from typing import (
-    Dict,
-    Optional,
-    List
-)
+from typing import Dict, Optional, List
 
-from avalanche.evaluation.metrics import GenericExperienceForgetting, GenericStreamForgetting, TaskAwareRMSE, TaskAwareR2
+from avalanche.evaluation.metrics import (
+    GenericExperienceForgetting,
+    GenericStreamForgetting,
+)
 from avalanche.evaluation.metric_definitions import PluginMetric
+
+from metrics import TaskAwareRMSE, TaskAwareR2
+
 
 class ExperienceRMSEForgetting(
     GenericExperienceForgetting[TaskAwareRMSE, Dict[int, float], Optional[float]]
@@ -70,7 +72,8 @@ class ExperienceRMSEForgetting(
 
     def __str__(self):
         return "ExperienceRMSEForgetting"
-    
+
+
 class StreamRMSEForgetting(GenericStreamForgetting[TaskAwareRMSE]):
     """
     The StreamRMSEForgetting metric, describing the average evaluation RMSE loss
@@ -128,6 +131,7 @@ def rmse_forgetting_metrics(*, experience=False, stream=False) -> List[PluginMet
 
     return metrics
 
+
 class ExperienceR2Forgetting(
     GenericExperienceForgetting[TaskAwareR2, Dict[int, float], Optional[float]]
 ):
@@ -178,7 +182,8 @@ class ExperienceR2Forgetting(
 
     def __str__(self):
         return "ExperienceR2Forgetting"
-    
+
+
 class StreamR2Forgetting(GenericStreamForgetting[TaskAwareR2]):
     """
     The StreamR2Forgetting metric, describing the average evaluation R2 loss
@@ -232,6 +237,7 @@ def r2_forgetting_metrics(*, experience=False, stream=False) -> List[PluginMetri
         metrics.append(StreamR2Forgetting())
 
     return metrics
+
 
 __all__ = [
     "ExperienceRMSEForgetting",

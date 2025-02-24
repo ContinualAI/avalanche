@@ -139,9 +139,9 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
             )
 
         # Normalize training and eval data.
-        experiences_list: Iterable[TDatasetExperience] = (
-            _experiences_parameter_as_iterable(experiences)
-        )
+        experiences_list: Iterable[
+            TDatasetExperience
+        ] = _experiences_parameter_as_iterable(experiences)
 
         if eval_streams is None:
             eval_streams = [experiences_list]

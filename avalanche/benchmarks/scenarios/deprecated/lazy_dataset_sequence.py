@@ -99,9 +99,9 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         now, including the ones of dropped experiences.
         """
 
-        self.task_labels_field_sequence: Dict[int, Optional[Sequence[int]]] = (
-            defaultdict(lambda: None)
-        )
+        self.task_labels_field_sequence: Dict[
+            int, Optional[Sequence[int]]
+        ] = defaultdict(lambda: None)
         """
         A dictionary mapping each experience to its `targets_task_labels` field.
 
@@ -118,10 +118,12 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         return self._stream_length
 
     @overload
-    def __getitem__(self, exp_idx: int) -> TCLDataset: ...
+    def __getitem__(self, exp_idx: int) -> TCLDataset:
+        ...
 
     @overload
-    def __getitem__(self, exp_idx: slice) -> Sequence[TCLDataset]: ...
+    def __getitem__(self, exp_idx: slice) -> Sequence[TCLDataset]:
+        ...
 
     def __getitem__(
         self, exp_idx: Union[int, slice]
@@ -133,9 +135,9 @@ class LazyDatasetSequence(Sequence[TCLDataset]):
         :return: The dataset associated to the experience.
         """
         # A lot of unuseful lines needed for MyPy -_-
-        indexing_collate: Callable[[Iterable[TCLDataset]], Sequence[TCLDataset]] = (
-            lambda x: list(x)
-        )
+        indexing_collate: Callable[
+            [Iterable[TCLDataset]], Sequence[TCLDataset]
+        ] = lambda x: list(x)
         result = manage_advanced_indexing(
             exp_idx,
             self._get_experience_and_load_if_needed,

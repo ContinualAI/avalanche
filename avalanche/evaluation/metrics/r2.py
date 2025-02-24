@@ -18,6 +18,7 @@ from collections import defaultdict
 
 from sklearn.metrics import r2_score
 
+
 class R2(Metric[float]):
     """R2 metric. This is a standalone metric.
 
@@ -209,9 +210,7 @@ class R2PluginMetric(GenericPluginMetric[float, R2]):
         self._metric.update(strategy.mb_output, strategy.mb_y)
 
 
-class R2PerTaskPluginMetric(
-    GenericPluginMetric[Dict[int, float], TaskAwareR2]
-):
+class R2PerTaskPluginMetric(GenericPluginMetric[Dict[int, float], TaskAwareR2]):
     """
     Base class for all R2 plugin metrics
     """
@@ -224,9 +223,7 @@ class R2PerTaskPluginMetric(
         :param mode:
         :param split_by_task: whether to compute task-aware R2 or not.
         """
-        super().__init__(
-            TaskAwareR2(), reset_at=reset_at, emit_at=emit_at, mode=mode
-        )
+        super().__init__(TaskAwareR2(), reset_at=reset_at, emit_at=emit_at, mode=mode)
 
     def reset(self) -> None:
         self._metric.reset()
@@ -278,9 +275,7 @@ class EpochR2(R2PluginMetric):
         Creates an instance of the EpochR2 metric.
         """
 
-        super(EpochR2, self).__init__(
-            reset_at="epoch", emit_at="epoch", mode="train"
-        )
+        super(EpochR2, self).__init__(reset_at="epoch", emit_at="epoch", mode="train")
 
     def __str__(self):
         return "Top1_R2_Epoch"
@@ -340,9 +335,7 @@ class StreamR2(R2PluginMetric):
         """
         Creates an instance of StreamR2 metric
         """
-        super(StreamR2, self).__init__(
-            reset_at="stream", emit_at="stream", mode="eval"
-        )
+        super(StreamR2, self).__init__(reset_at="stream", emit_at="stream", mode="eval")
 
     def __str__(self):
         return "Top1_R2_Stream"

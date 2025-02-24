@@ -18,6 +18,7 @@ from collections import defaultdict
 
 from sklearn.metrics import root_mean_squared_error
 
+
 class RMSE(Metric[float]):
     """RMSE metric. This is a standalone metric.
 
@@ -209,9 +210,7 @@ class RMSEPluginMetric(GenericPluginMetric[float, RMSE]):
         self._metric.update(strategy.mb_output, strategy.mb_y)
 
 
-class RMSEPerTaskPluginMetric(
-    GenericPluginMetric[Dict[int, float], TaskAwareRMSE]
-):
+class RMSEPerTaskPluginMetric(GenericPluginMetric[Dict[int, float], TaskAwareRMSE]):
     """
     Base class for all RMSE plugin metrics
     """
@@ -224,9 +223,7 @@ class RMSEPerTaskPluginMetric(
         :param mode:
         :param split_by_task: whether to compute task-aware RMSE or not.
         """
-        super().__init__(
-            TaskAwareRMSE(), reset_at=reset_at, emit_at=emit_at, mode=mode
-        )
+        super().__init__(TaskAwareRMSE(), reset_at=reset_at, emit_at=emit_at, mode=mode)
 
     def reset(self) -> None:
         self._metric.reset()
@@ -278,9 +275,7 @@ class EpochRMSE(RMSEPluginMetric):
         Creates an instance of the EpochRMSE metric.
         """
 
-        super(EpochRMSE, self).__init__(
-            reset_at="epoch", emit_at="epoch", mode="train"
-        )
+        super(EpochRMSE, self).__init__(reset_at="epoch", emit_at="epoch", mode="train")
 
     def __str__(self):
         return "Top1_RMSE_Epoch"

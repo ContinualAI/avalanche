@@ -63,7 +63,10 @@ class SupervisedProblem(
         for i in range(len(mbatch)):
             if isinstance(mbatch[i], dict):
                 # Move all tensor values in the dictionary to the specified device
-                mbatch[i] = {key: value.to(self.device, non_blocking=True) for key, value in mbatch[i].items()}
+                mbatch[i] = {
+                    key: value.to(self.device, non_blocking=True)
+                    for key, value in mbatch[i].items()
+                }
             elif isinstance(mbatch[i], torch.Tensor):
                 # Directly move the tensor to the specified device
                 mbatch[i] = mbatch[i].to(self.device, non_blocking=True)
