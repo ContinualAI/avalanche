@@ -16,8 +16,6 @@ from avalanche.evaluation import Metric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
 from collections import defaultdict
 
-from sklearn.metrics import root_mean_squared_error
-
 
 class RMSE(Metric[float]):
     """RMSE metric. This is a standalone metric.
@@ -61,13 +59,11 @@ class RMSE(Metric[float]):
 
         :return: None.
         """
-        true_y = torch.as_tensor(true_y).cpu().data.numpy()
-        predicted_y = torch.as_tensor(predicted_y).cpu().data.numpy()
 
         if len(true_y) != len(predicted_y):
             raise ValueError("Size mismatch for true_y and predicted_y tensors")
 
-        rmse = float(root_mean_squared_error(true_y, predicted_y))
+        rmse = float(torch.sqrt(torch.mean((true_y - predicted_y)**2)))
         total_patterns = len(true_y)
         self._mean_RMSE.update(rmse, total_patterns)
 

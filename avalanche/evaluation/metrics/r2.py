@@ -16,7 +16,7 @@ from avalanche.evaluation import Metric, GenericPluginMetric
 from avalanche.evaluation.metrics.mean import Mean
 from collections import defaultdict
 
-from sklearn.metrics import r2_score
+from torchmetrics.functional import r2_score
 
 
 class R2(Metric[float]):
@@ -61,9 +61,6 @@ class R2(Metric[float]):
 
         :return: None.
         """
-        true_y = torch.as_tensor(true_y).cpu().data.numpy()
-        predicted_y = torch.as_tensor(predicted_y).cpu().data.numpy()
-
         if len(true_y) != len(predicted_y):
             raise ValueError("Size mismatch for true_y and predicted_y tensors")
 
