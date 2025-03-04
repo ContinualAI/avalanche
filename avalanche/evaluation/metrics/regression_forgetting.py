@@ -16,7 +16,7 @@ from avalanche.evaluation.metrics import (
 )
 from avalanche.evaluation.metric_definitions import PluginMetric
 
-from metrics import TaskAwareRMSE, TaskAwareR2
+from avalanche.evaluation.metrics import TaskAwareRMSE, TaskAwareR2
 
 
 class ExperienceRMSEForgetting(

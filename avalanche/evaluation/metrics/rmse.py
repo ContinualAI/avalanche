@@ -63,7 +63,7 @@ class RMSE(Metric[float]):
         if len(true_y) != len(predicted_y):
             raise ValueError("Size mismatch for true_y and predicted_y tensors")
 
-        rmse = float(torch.sqrt(torch.mean((true_y - predicted_y)**2)))
+        rmse = float(torch.sqrt(torch.mean((true_y - predicted_y) ** 2)))
         total_patterns = len(true_y)
         self._mean_RMSE.update(rmse, total_patterns)
 
