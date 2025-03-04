@@ -5,6 +5,7 @@ from avalanche.training.templates.strategy_mixin_protocol import (
     TMBInput,
     TMBOutput,
 )
+import torch
 
 
 # Types are perfectly ok for MyPy
@@ -60,7 +61,18 @@ class SupervisedProblem(
             self.mbatch = mbatch
 
         for i in range(len(mbatch)):
-            mbatch[i] = mbatch[i].to(self.device, non_blocking=True)  # type: ignore
+            if isinstance(mbatch[i], dict):
+                # Move all tensor values in the dictionary to the specified device
+                mbatch[i] = {
+                    key: value.to(self.device, non_blocking=True)
+                    for key, value in mbatch[i].items()
+                }
+            elif isinstance(mbatch[i], torch.Tensor):
+                # Directly move the tensor to the specified device
+                mbatch[i] = mbatch[i].to(self.device, non_blocking=True)
+            else:
+                # Optionally handle other cases (e.g., raise an error if unsupported types are encountered)
+                raise TypeError(f"Unsupported type in batch: {type(mbatch[i])}")
 
 
 __all__ = ["SupervisedProblem"]

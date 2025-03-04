@@ -66,9 +66,9 @@ class LazyIndices(Sequence[int]):
             else:
                 new_lists.append(ll)
 
-        self._lists: Optional[List[Sequence[int]]] = (
-            new_lists  # freed after eagerification
-        )
+        self._lists: Optional[
+            List[Sequence[int]]
+        ] = new_lists  # freed after eagerification
         self._offset: int = int(offset)
         self._eager_list: Optional[np.ndarray] = None
         """This is the list where we save indices
@@ -408,10 +408,12 @@ class FlatData(IDataset[T_co], Sequence[T_co]):
         return dataset_idx, int(idx)
 
     @overload
-    def __getitem__(self, item: int) -> T_co: ...
+    def __getitem__(self, item: int) -> T_co:
+        ...
 
     @overload
-    def __getitem__(self: TFlatData, item: slice) -> TFlatData: ...
+    def __getitem__(self: TFlatData, item: slice) -> TFlatData:
+        ...
 
     def __getitem__(self: TFlatData, item: Union[int, slice]) -> Union[T_co, TFlatData]:
         if isinstance(item, (int, np.integer)):
@@ -468,10 +470,12 @@ class ConstantSequence(IDataset[DataT], Sequence[DataT]):
         return self._size
 
     @overload
-    def __getitem__(self, index: int) -> DataT: ...
+    def __getitem__(self, index: int) -> DataT:
+        ...
 
     @overload
-    def __getitem__(self, index: slice) -> "ConstantSequence[DataT]": ...
+    def __getitem__(self, index: slice) -> "ConstantSequence[DataT]":
+        ...
 
     def __getitem__(
         self, index: Union[int, slice]

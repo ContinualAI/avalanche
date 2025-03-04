@@ -139,9 +139,9 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
             )
 
         # Normalize training and eval data.
-        experiences_list: Iterable[TDatasetExperience] = (
-            _experiences_parameter_as_iterable(experiences)
-        )
+        experiences_list: Iterable[
+            TDatasetExperience
+        ] = _experiences_parameter_as_iterable(experiences)
 
         if eval_streams is None:
             eval_streams = [experiences_list]
@@ -152,7 +152,7 @@ class JointTraining(SupervisedTemplate[TDatasetExperience, TMBInput, TMBOutput])
         self._before_training(**kwargs)
         for self.experience in self._experiences:
             self._before_training_exp(**kwargs)
-            self._train_exp(self.experience, eval_streams, **kwargs)
+            self._train_exp(self.experience, self._eval_streams, **kwargs)
             self._after_training_exp(**kwargs)
             # Joint training only needs a single step because
             # it concatenates all the data at once.

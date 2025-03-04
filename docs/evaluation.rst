@@ -41,6 +41,10 @@ Metrics helper functions
     images_samples_metrics
     labels_repartition_metrics
     mean_scores_metrics
+    rmse_metrics
+    r2_metrics
+    rmse_forgetting_metrics
+    r2_forgetting_metrics
 
 
 Stream Metrics
@@ -67,6 +71,12 @@ Stream Metrics
     StreamMaxRAM
     StreamMaxGPU
     StreamTopkAccuracy
+    StreamRMSE
+    StreamR2  
+    TrainedExperienceRMSE
+    TrainedExperienceR2
+    StreamRMSEForgetting
+    StreamR2Forgetting
 
 Experience Metrics
 ^^^^^^^^^^^^^^^^^^^^
@@ -89,12 +99,18 @@ Experience Metrics
     ExperienceMaxRAM
     ExperienceMaxGPU
     ExperienceTopkAccuracy
+    ExperienceRMSE
+    ExperienceR2
     WeightCheckpoint
     ImagesSamplePlugin
     CumulativeAccuracyPluginMetric
     CumulativeForgettingPluginMetric
     AccuracyPerTaskPluginMetric
     AccuracyMatrixPluginMetric
+    RMSEPerTaskPluginMetric
+    R2PerTaskPluginMetric
+    ExperienceRMSEForgetting
+    ExperienceR2Forgetting
 
 Epoch Metrics
 ^^^^^^^^^^^^^^^^^^^^
@@ -114,6 +130,8 @@ Epoch Metrics
     EpochMaxRAM
     EpochMaxGPU
     EpochTopkAccuracy
+    EpochRMSE
+    EpochR2
 
 RunningEpoch Metrics
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -129,6 +147,8 @@ RunningEpoch Metrics
     RunningEpochLoss
     RunningEpochCPUUsage
     RunningEpochTime
+    RunningEpochRMSE
+    RunningEpochR2
 
 Minibatch Metrics
 ^^^^^^^^^^^^^^^^^^^^
@@ -148,6 +168,8 @@ Minibatch Metrics
     MinibatchMaxRAM
     MinibatchMaxGPU
     MinibatchTopkAccuracy
+    MinibatchRMSE
+    MinibatchR2
 
 Other Plugin Metrics
 ^^^^^^^^^^^^^^^^^^^^
@@ -190,6 +212,10 @@ Standalone Metrics
     TrainedExperienceTopkAccuracy
     CumulativeAccuracy
     PerClassMeanScores
+    RMSE
+    TaskAwareRMSE
+    R2
+    TaskAwareR2
 
 evaluation.metrics.detection
 ----------------------------------------

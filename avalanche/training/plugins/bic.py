@@ -454,9 +454,9 @@ class BiCPlugin(SupervisedPlugin):
         # - "current" classes: seen in current_experience
 
         # "initial" classes
-        initial_classes: Set[int] = (
-            set()
-        )  # pre_initial_cl in the original implementation
+        initial_classes: Set[
+            int
+        ] = set()  # pre_initial_cl in the original implementation
         previous_classes: Set[int] = set()  # pre_new_cl in the original implementation
         current_classes: Set[int] = set()  # new_cl in the original implementation
         # Note: pre_initial_cl + pre_new_cl is "initial_cl" in the original implementation

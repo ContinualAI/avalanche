@@ -526,15 +526,18 @@ def forgetting_metrics(*, experience=False, stream=False) -> List[PluginMetric]:
 
 
 @overload
-def forgetting_to_bwt(f: float) -> float: ...
+def forgetting_to_bwt(f: float) -> float:
+    ...
 
 
 @overload
-def forgetting_to_bwt(f: Dict[int, float]) -> Dict[int, float]: ...
+def forgetting_to_bwt(f: Dict[int, float]) -> Dict[int, float]:
+    ...
 
 
 @overload
-def forgetting_to_bwt(f: None) -> None: ...
+def forgetting_to_bwt(f: None) -> None:
+    ...
 
 
 def forgetting_to_bwt(f: Optional[Union[float, Dict[int, float]]]):

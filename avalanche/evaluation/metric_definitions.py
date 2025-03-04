@@ -215,7 +215,8 @@ class GenericPluginMetric(PluginMetric[TResult_co], Generic[TResult_co, TMetric]
         ] = "experience",
         emit_at: Literal["iteration", "epoch", "experience", "stream"] = "experience",
         mode: Literal["train"] = "train",
-    ): ...
+    ):
+        ...
 
     @overload
     def __init__(
@@ -224,7 +225,8 @@ class GenericPluginMetric(PluginMetric[TResult_co], Generic[TResult_co, TMetric]
         reset_at: Literal["iteration", "experience", "stream", "never"] = "experience",
         emit_at: Literal["iteration", "experience", "stream"] = "experience",
         mode: Literal["eval"] = "eval",
-    ): ...
+    ):
+        ...
 
     def __init__(
         self, metric: TMetric, reset_at="experience", emit_at="experience", mode="eval"
