@@ -13,13 +13,13 @@
 lvis_archives = [
     (
         "lvis_v1_val.json.zip",  # Validation set annotations
-        "https://s3-us-west-2.amazonaws.com/dl.fbaipublicfiles.com/LVIS"
+        "https://dl.fbaipublicfiles.com/LVIS"
         "/lvis_v1_val.json.zip",
         "87734a7f895990b9552075d7ce723e27",
     ),
     (
         "lvis_v1_train.json.zip",  # Training set annotations
-        "https://s3-us-west-2.amazonaws.com/dl.fbaipublicfiles.com/LVIS"
+        "https://dl.fbaipublicfiles.com/LVIS"
         "/lvis_v1_train.json.zip",
         "4410d837f71203af226950447ef9d422",
     ),
