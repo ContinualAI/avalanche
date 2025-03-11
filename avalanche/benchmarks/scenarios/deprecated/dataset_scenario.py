@@ -184,17 +184,17 @@ class DatasetScenario(
             invoking the super constructor) to specialize the experience class.
         """
 
-        self.experience_factory: Callable[[TCLStream, int], TDatasetExperience] = (
-            experience_factory
-        )
+        self.experience_factory: Callable[
+            [TCLStream, int], TDatasetExperience
+        ] = experience_factory
 
-        self.stream_factory: Callable[[str, TDatasetScenario], TCLStream] = (
-            stream_factory
-        )
+        self.stream_factory: Callable[
+            [str, TDatasetScenario], TCLStream
+        ] = stream_factory
 
-        self.stream_definitions: Dict[str, StreamDef[TCLDataset]] = (
-            DatasetScenario._check_stream_definitions(stream_definitions)
-        )
+        self.stream_definitions: Dict[
+            str, StreamDef[TCLDataset]
+        ] = DatasetScenario._check_stream_definitions(stream_definitions)
         """
         A structure containing the definition of the streams.
         """
