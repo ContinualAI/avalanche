@@ -24,8 +24,8 @@ class ConConDataset(SimpleDownloadableDataset):
       and negative samples.
     - Unconfounded: No task-specific confounders.
 
-    Reference: 
-    Busch, Florian Peter, et al. "Where is the Truth? The Risk of Getting Confounded in a Continual World." 
+    Reference:
+    Busch, Florian Peter, et al. "Where is the Truth? The Risk of Getting Confounded in a Continual World."
     arXiv preprint arXiv:2402.06434 (2024).
 
     Args:
@@ -38,52 +38,58 @@ class ConConDataset(SimpleDownloadableDataset):
         transform: A function/transform that takes in an PIL image and returns a transformed version.
             E.g, ``transforms.RandomCrop`` for data augmentation.
     """
-    
+
     urls = {
         "strict": "https://zenodo.org/records/10630482/files/case_strict_main.zip",
         "disjoint": "https://zenodo.org/records/10630482/files/case_disjoint_main.zip",
-        "unconfounded": "https://zenodo.org/records/10630482/files/unconfounded.zip"
+        "unconfounded": "https://zenodo.org/records/10630482/files/unconfounded.zip",
     }
 
-    def __init__(self,
-                 variant: str,
-                 scenario: int,
-                 root: Optional[Union[str, Path]] = None,
-                 train: bool = True,
-                 download: bool = True,
-                 transform = None,
-                 ):
-        assert variant in ["strict", "disjoint", "unconfounded"], "Invalid variant, must be one of 'strict', 'disjoint', 'unconf'"
-        assert scenario in range(
-            0, 3), "Invalid scenario, must be between 0 and 2"
-        assert variant != "unconfounded" or scenario == 0, "Unconfounded scenario only has one variant"
+    def __init__(
+        self,
+        variant: str,
+        scenario: int,
+        root: Optional[Union[str, Path]] = None,
+        train: bool = True,
+        download: bool = True,
+        transform=None,
+    ):
+        assert variant in [
+            "strict",
+            "disjoint",
+            "unconfounded",
+        ], "Invalid variant, must be one of 'strict', 'disjoint', 'unconf'"
+        assert scenario in range(0, 3), "Invalid scenario, must be between 0 and 2"
+        assert (
+            variant != "unconfounded" or scenario == 0
+        ), "Unconfounded scenario only has one variant"
 
         if root is None:
             root = default_dataset_location("concon")
-                 
+
         self.root = Path(root)
-            
+
         url = self.urls[variant]
-        
+
         super(ConConDataset, self).__init__(
             self.root, url, None, download=download, verbose=True
         )
-        
+
         if variant == "strict":
             self.variant = "case_strict_main"
         elif variant == "disjoint":
             self.variant = "case_disjoint_main"
         else:
             self.variant = variant
-                    
+
         self.scenario = scenario
         self.train = train
         self.transform = transform
         self._load_dataset()
-                
+
     def _load_metadata(self) -> bool:
         root = self.root / self.variant
-        
+
         if self.train:
             images_dir = root / "train"
         else:
@@ -98,7 +104,7 @@ class ConConDataset(SimpleDownloadableDataset):
             for image_path in class_dir.iterdir():
                 self.image_paths.append(image_path)
                 self.targets.append(class_id)
-                
+
         return True
 
     def __len__(self):
@@ -107,14 +113,14 @@ class ConConDataset(SimpleDownloadableDataset):
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
         image = Image.open(image_path).convert("RGB")
-        
+
         if self.transform is not None:
             image = self.transform(image)
-        
+
         target = self.targets[idx]
         return image, target
-    
-    
+
+
 if __name__ == "__main__":
     # this little example script can be used to visualize the first image
     # loaded from the dataset.

@@ -160,15 +160,11 @@ def obtain_base_model(segmentation: bool):
         pretrain_argument["pretrained"] = True
     else:
         if segmentation:
-            pretrain_argument[
-                "weights"
-            ] = (
+            pretrain_argument["weights"] = (
                 torchvision.models.detection.mask_rcnn.MaskRCNN_ResNet50_FPN_Weights.DEFAULT
             )
         else:
-            pretrain_argument[
-                "weights"
-            ] = (
+            pretrain_argument["weights"] = (
                 torchvision.models.detection.faster_rcnn.FasterRCNN_ResNet50_FPN_Weights.DEFAULT
             )
 
