@@ -22,6 +22,7 @@
 * [Contribute to Avalanche](from-zero-to-hero-tutorial/09_contribute-to-avalanche.md)
 
 ## How-Tos
+* [IncDet‑EWC (Huber EWC + Pseudo‑Annotation)](how-tos/incdet_ewc.md)
 
 * [AvalancheDataset](how-tos/avalanchedataset/README.md)
   * [avalanche-datasets](how-tos/avalanchedataset/avalanche-datasets.md)

@@ -27,3 +27,5 @@ from .update_ncm import *
 from .update_fecam import *
 from .feature_distillation import *
 from .il2m import IL2MPlugin
+from .incdet_ewc import HuberEWCPlugin
+from .pseudo_annotation import PseudoAnnotationPlugin
