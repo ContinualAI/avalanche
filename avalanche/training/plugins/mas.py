@@ -128,7 +128,7 @@ class MASPlugin(SupervisedPlugin):
             raise ValueError("Importance is not available")
         if not self.params:
             raise ValueError("Parameters are not available")
-        if not strategy.loss:
+        if not strategy.loss.requires_grad:
             raise ValueError("Loss is not available")
 
         # Apply penalty term
