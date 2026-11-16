@@ -1069,6 +1069,37 @@ class IEWCPluginTest(unittest.TestCase):
         for imp in iewc.values():
             self.assertTrue(torch.all(imp == 0))
 
+    def test_custom_sample_weighting(self):
+        uniform = self.importances(IEWCPlugin(1.0))
+        const = self.importances(IEWCPlugin(1.0, sample_weighting=lambda x, y, g: 3.0))
+        for k in uniform:
+            self.assertTrue(torch.allclose(const[k], uniform[k]))
+
+        # drop all samples of class 0, weights are normalized to mean one
+        plugin = IEWCPlugin(1.0, sample_weighting=lambda x, y, g: float(y.item() != 0))
+        iewc = self.importances(plugin)
+        targets = torch.tensor([y for _, y, _ in self.dataset])
+        w = (targets != 0).float()
+        w = w / w.mean()
+        self.assertTrue(torch.allclose(plugin.sample_weights, w))
+        terms, scales = [], []
+        self.model.eval()
+        for x, y, t in DataLoader(self.dataset, batch_size=1):
+            out = self.model(x)
+            loss = CrossEntropyLoss()(out, y)
+            r = torch.autograd.grad(loss, out, retain_graph=True)[0]
+            grads = torch.autograd.grad(loss, list(self.model.parameters()))
+            scales.append(r.pow(2).sum())
+            terms.append([g.pow(2) for g in grads])
+        self.model.train()
+        scales = torch.stack(scales)
+        tau = plugin.damping
+        for i, imp in enumerate(iewc.values()):
+            exp = sum(
+                wn * term[i] / (s + tau) for wn, term, s in zip(w, terms, scales)
+            ) / len(terms)
+            self.assertTrue(torch.allclose(imp, exp, rtol=1e-4, atol=1e-8))
+
     def test_rdw(self):
         plugin = IEWCPlugin(1.0, sample_weighting="rdw", rdw_max_basis=4)
         self.importances(plugin)

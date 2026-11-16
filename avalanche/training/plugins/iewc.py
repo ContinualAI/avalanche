@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Union
 import warnings
 
 import torch
@@ -48,7 +48,9 @@ class IEWCPlugin(EWCPlugin):
         ewc_lambda,
         kappa: float = 1e-2,
         loss_scale_fn: Optional[Callable[[Tensor], Tensor]] = None,
-        sample_weighting: str = "uniform",
+        sample_weighting: Union[str, Callable[[Tensor, Tensor, Tensor], float]] = (
+            "uniform"
+        ),
         rdw_max_basis: int = 64,
         mode="separate",
         decay_factor=None,
@@ -69,6 +71,9 @@ class IEWCPlugin(EWCPlugin):
                squared residual of its unit gradient direction outside the
                span of up to `rdw_max_basis` earlier residual directions,
                normalized to mean one. RDW depends on the dataset order.
+               A callable `fn(x, y, grad)` is called once per sample with its
+               input, target and flattened parameter gradient and returns a
+               non-negative weight; the weights are normalized to mean one.
         :param rdw_max_basis: maximum number of directions kept by `rdw`.
                The basis is kept on the CPU.
         :param mode: `separate` to keep a separate penalty for each previous
@@ -90,10 +95,10 @@ class IEWCPlugin(EWCPlugin):
             keep_importance_data=keep_importance_data,
         )
         assert kappa >= 0, "kappa must be non-negative."
-        assert sample_weighting in (
+        assert callable(sample_weighting) or sample_weighting in (
             "uniform",
             "rdw",
-        ), "sample_weighting must be uniform or rdw."
+        ), "sample_weighting must be uniform, rdw or a callable."
         assert rdw_max_basis >= 0, "rdw_max_basis must be non-negative."
 
         self.kappa = kappa
@@ -179,7 +184,17 @@ class IEWCPlugin(EWCPlugin):
                 grads = torch.autograd.grad(
                     loss, [p for _, p in params], allow_unused=True
                 )
-                if self.sample_weighting == "rdw":
+                if callable(self.sample_weighting):
+                    flat = torch.cat(
+                        [
+                            (g if g is not None else torch.zeros_like(p))
+                            .detach()
+                            .flatten()
+                            for (_, p), g in zip(params, grads)
+                        ]
+                    )
+                    h = float(self.sample_weighting(x[i : i + 1], y[i : i + 1], flat))
+                elif self.sample_weighting == "rdw":
                     h, basis = self._rdw_weight(params, grads, basis)
                 else:
                     h = 1.0
