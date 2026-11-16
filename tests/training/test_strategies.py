@@ -38,6 +38,7 @@ from avalanche.training.supervised import (
     AGEM,
     GEM,
     EWC,
+    IEWC,
     LFL,
     SynapticIntelligence,
     JointTraining,
@@ -726,6 +727,38 @@ class StrategyTest(unittest.TestCase):
             ewc_lambda=0.4,
             mode="online",
             decay_factor=0.1,
+            train_mb_size=10,
+            eval_mb_size=50,
+            train_epochs=2,
+        )
+        run_strategy(benchmark, strategy)
+
+    def test_iewc(self):
+        for multi_task in (False, True):
+            for mode, decay_factor in (("separate", None), ("online", 0.1)):
+                model, optimizer, criterion, benchmark = self.init_scenario(
+                    multi_task=multi_task
+                )
+                strategy = IEWC(
+                    model=model,
+                    optimizer=optimizer,
+                    criterion=criterion,
+                    ewc_lambda=0.4,
+                    mode=mode,
+                    decay_factor=decay_factor,
+                    train_mb_size=10,
+                    eval_mb_size=50,
+                    train_epochs=2,
+                )
+                run_strategy(benchmark, strategy)
+
+        model, optimizer, criterion, benchmark = self.init_scenario()
+        strategy = IEWC(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            ewc_lambda=0.4,
+            sample_weighting="rdw",
             train_mb_size=10,
             eval_mb_size=50,
             train_epochs=2,

@@ -44,7 +44,7 @@ Avalanche provides _Continual Learning_ algorithms (_strategies_). We are contin
 
 * **Baselines**: Naive, JointTraining, Cumulative.
 * **Rehearsal**: Replay with reservoir sampling and balanced buffers, GSS greedy, CoPE, Generative Replay.
-* **Regularization**: EWC, LwF, GEM, AGEM, CWR\*, Synaptic Intelligence, MAS.
+* **Regularization**: EWC, IEWC, LwF, GEM, AGEM, CWR\*, Synaptic Intelligence, MAS.
 * **Architectural**: Progressive Neural Networks, multi-head, incremental classifier.
 * **Others**: GDumb, iCaRL, AR1, Streaming LDA, LFL.
 

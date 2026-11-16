@@ -34,6 +34,7 @@ from avalanche.training.plugins import (
     AGEMPlugin,
     GEMPlugin,
     EWCPlugin,
+    IEWCPlugin,
     EvaluationPlugin,
     SynapticIntelligencePlugin,
     CoPEPlugin,
@@ -1125,6 +1126,108 @@ class EWC(SupervisedTemplate):
         )
 
 
+class IEWC(SupervisedTemplate):
+    """Improved Elastic Weight Consolidation (IEWC) strategy.
+
+    See IEWC plugin for details.
+    This strategy does not use task identities.
+    """
+
+    def __init__(
+        self,
+        *,
+        model: Module,
+        optimizer: Optimizer,
+        criterion: CriterionType,
+        ewc_lambda: float,
+        kappa: float = 1e-2,
+        loss_scale_fn: Optional[Callable[[torch.Tensor], torch.Tensor]] = None,
+        sample_weighting: str = "uniform",
+        rdw_max_basis: int = 64,
+        mode: str = "separate",
+        decay_factor: Optional[float] = None,
+        keep_importance_data: bool = False,
+        train_mb_size: int = 1,
+        train_epochs: int = 1,
+        eval_mb_size: Optional[int] = None,
+        device: Union[str, torch.device] = "cpu",
+        plugins: Optional[List[SupervisedPlugin]] = None,
+        evaluator: Union[
+            EvaluationPlugin, Callable[[], EvaluationPlugin]
+        ] = default_evaluator,
+        eval_every=-1,
+        **base_kwargs
+    ):
+        """Init.
+
+        :param model: The model.
+        :param optimizer: The optimizer to use.
+        :param criterion: The loss criterion to use.
+        :param ewc_lambda: hyperparameter to weigh the penalty inside the total
+               loss. The larger the lambda, the larger the regularization.
+        :param kappa: relative damping, as a fraction of the median squared
+               output-gradient norm of the experience.
+        :param loss_scale_fn: optional function mapping the output gradient
+               of one sample to the scalar it is normalized by. Defaults to
+               the squared Euclidean norm.
+        :param sample_weighting: `uniform` or `rdw` (residual-diversity
+               weighting).
+        :param rdw_max_basis: maximum number of directions kept by `rdw`.
+        :param mode: `separate` to keep a separate penalty for each previous
+               experience. `online` to keep a single penalty summed with a
+               decay factor over all previous tasks.
+        :param decay_factor: used only if mode is `online`.
+               It specify the decay term of the importance matrix.
+        :param keep_importance_data: if True, keep in memory both parameter
+                values and importances for all previous task, for all modes.
+                If False, keep only last parameter values and importances.
+                If mode is `separate`, the value of `keep_importance_data` is
+                set to be True.
+        :param train_mb_size: The train minibatch size. Defaults to 1.
+        :param train_epochs: The number of training epochs. Defaults to 1.
+        :param eval_mb_size: The eval minibatch size. Defaults to 1.
+        :param device: The device to use. Defaults to None (cpu).
+        :param plugins: Plugins to be added. Defaults to None.
+        :param evaluator: (optional) instance of EvaluationPlugin for logging
+            and metric computations.
+        :param eval_every: the frequency of the calls to `eval` inside the
+            training loop. -1 disables the evaluation. 0 means `eval` is called
+            only at the end of the learning experience. Values >0 mean that
+            `eval` is called every `eval_every` epochs and at the end of the
+            learning experience.
+        :param base_kwargs: any additional
+            :class:`~avalanche.training.BaseTemplate` constructor arguments.
+        """
+        iewc = IEWCPlugin(
+            ewc_lambda,
+            kappa=kappa,
+            loss_scale_fn=loss_scale_fn,
+            sample_weighting=sample_weighting,
+            rdw_max_basis=rdw_max_basis,
+            mode=mode,
+            decay_factor=decay_factor,
+            keep_importance_data=keep_importance_data,
+        )
+        if plugins is None:
+            plugins = [iewc]
+        else:
+            plugins.append(iewc)
+
+        super().__init__(
+            model=model,
+            optimizer=optimizer,
+            criterion=criterion,
+            train_mb_size=train_mb_size,
+            train_epochs=train_epochs,
+            eval_mb_size=eval_mb_size,
+            device=device,
+            plugins=plugins,
+            evaluator=evaluator,
+            eval_every=eval_every,
+            **base_kwargs
+        )
+
+
 class SynapticIntelligence(SupervisedTemplate):
     """Synaptic Intelligence strategy.
 
@@ -1777,6 +1880,7 @@ __all__ = [
     "AGEM",
     "GEM",
     "EWC",
+    "IEWC",
     "SynapticIntelligence",
     "GSS_greedy",
     "CoPE",
