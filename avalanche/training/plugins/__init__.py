@@ -2,6 +2,7 @@ from .agem import AGEMPlugin
 from .cwr_star import CWRStarPlugin
 from .evaluation import EvaluationPlugin
 from .ewc import EWCPlugin
+from .iewc import IEWCPlugin
 from .gdumb import GDumbPlugin
 from .gem import GEMPlugin
 from .lwf import LwFPlugin

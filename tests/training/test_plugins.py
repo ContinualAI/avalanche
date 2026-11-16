@@ -29,11 +29,13 @@ from avalanche.training.plugins import (
     SupervisedPlugin,
     EvaluationPlugin,
     EarlyStoppingPlugin,
+    EWCPlugin,
+    IEWCPlugin,
 )
 from avalanche.training.plugins.clock import Clock
 from avalanche.training.plugins.lr_scheduling import LRSchedulerPlugin
 from avalanche.training.supervised import Naive
-from tests.unit_tests_utils import FAST_TEST
+from tests.unit_tests_utils import FAST_TEST, get_fast_benchmark
 
 
 class MockPlugin(SupervisedPlugin):
@@ -993,6 +995,97 @@ class EarlyStoppingPluginTest(unittest.TestCase):
         assert p.best_step == 0
         assert strat.clock.train_exp_epochs == p.patience
         assert p.best_val == 1
+
+
+class IEWCPluginTest(unittest.TestCase):
+    def setUp(self):
+        torch.manual_seed(0)
+        benchmark = get_fast_benchmark(seed=0)
+        self.dataset = benchmark.train_stream[0].dataset.subset(range(30))
+        self.model = SimpleMLP(input_size=6, hidden_size=10)
+        self.optimizer = SGD(self.model.parameters(), lr=0.1)
+
+    def importances(self, plugin, criterion=None, batch_size=8):
+        imps = plugin.compute_importances(
+            self.model,
+            criterion or CrossEntropyLoss(),
+            self.optimizer,
+            self.dataset,
+            "cpu",
+            batch_size,
+        )
+        return {k: v.data for k, v in imps.items()}
+
+    def expected_importances(self, kappa):
+        """Direct per-sample computation of the IEWC diagonal."""
+        self.model.eval()
+        terms, scales = [], []
+        for x, y, t in DataLoader(self.dataset, batch_size=1):
+            out = self.model(x)
+            loss = CrossEntropyLoss()(out, y)
+            r = torch.autograd.grad(loss, out, retain_graph=True)[0]
+            grads = torch.autograd.grad(loss, list(self.model.parameters()))
+            scales.append(r.pow(2).sum())
+            terms.append([g.pow(2) for g in grads])
+        scales = torch.stack(scales)
+        tau = kappa * torch.quantile(scales[scales > 0].double(), 0.5).item()
+        expected = [
+            sum(term[i] / (s + tau) for term, s in zip(terms, scales)) / len(terms)
+            for i in range(len(terms[0]))
+        ]
+        self.model.train()
+        return expected, tau
+
+    def test_reduces_to_ewc(self):
+        # with a constant loss scale and no damping, IEWC is EWC's empirical
+        # Fisher computed with per-sample gradients
+        ewc = self.importances(EWCPlugin(1.0), batch_size=1)
+        iewc = self.importances(
+            IEWCPlugin(1.0, kappa=0.0, loss_scale_fn=lambda r: torch.ones(()))
+        )
+        self.assertTrue(sum(v.sum() for v in ewc.values()) > 0)
+        for k in ewc:
+            self.assertTrue(torch.allclose(ewc[k], iewc[k], rtol=1e-4, atol=1e-8))
+
+    def test_relative_damping(self):
+        plugin = IEWCPlugin(1.0, kappa=0.1)
+        iewc = self.importances(plugin)
+        expected, tau = self.expected_importances(kappa=0.1)
+        self.assertAlmostEqual(plugin.damping, tau, places=6)
+        for imp, exp in zip(iewc.values(), expected):
+            self.assertTrue(torch.allclose(imp, exp, rtol=1e-4, atol=1e-8))
+
+    def test_loss_rescale_invariance(self):
+        ce = CrossEntropyLoss()
+        iewc = self.importances(IEWCPlugin(1.0))
+        scaled = self.importances(IEWCPlugin(1.0), lambda out, y: 100 * ce(out, y))
+        for k in iewc:
+            self.assertTrue(torch.allclose(iewc[k], scaled[k], rtol=1e-4, atol=1e-8))
+
+    def test_all_zero_loss_scales(self):
+        plugin = IEWCPlugin(1.0)
+        iewc = self.importances(plugin, lambda out, y: (0 * out).sum())
+        self.assertEqual(plugin.damping, 0.0)
+        for imp in iewc.values():
+            self.assertTrue(torch.all(imp == 0))
+
+    def test_rdw(self):
+        plugin = IEWCPlugin(1.0, sample_weighting="rdw", rdw_max_basis=4)
+        self.importances(plugin)
+        weights = plugin.sample_weights
+        self.assertEqual(len(weights), len(self.dataset))
+        self.assertAlmostEqual(weights.mean().item(), 1.0, places=5)
+        self.assertTrue(torch.all(weights >= 0))
+        # the first sample has nothing to project out, so it has the max weight
+        self.assertEqual(weights[0].item(), weights.max().item())
+
+        # with an empty basis every weight is one, which is uniform IEWC
+        plugin = IEWCPlugin(1.0, sample_weighting="rdw", rdw_max_basis=0)
+        rdw = self.importances(plugin)
+        uniform = self.importances(IEWCPlugin(1.0))
+        self.assertTrue(torch.allclose(plugin.sample_weights, torch.ones(30)))
+        for k in rdw:
+            self.assertTrue(torch.allclose(rdw[k], uniform[k]))
 
 
 if __name__ == "__main__":

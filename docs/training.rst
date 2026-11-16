@@ -72,6 +72,7 @@ Ready-to-use continual learning strategies.
     AGEM
     GEM
     EWC
+    IEWC
     SynapticIntelligence
     CoPE
     LFL
@@ -174,6 +175,7 @@ Strategy implemented as plugins in `avalanche.training.plugins`.
     CoPEPlugin
     CWRStarPlugin
     EWCPlugin
+    IEWCPlugin
     GDumbPlugin
     RWalkPlugin
     GEMPlugin
